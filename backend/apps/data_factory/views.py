@@ -6,16 +6,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.views import APIView
-from rest_framework.viewsets import GenericViewSet
-from django.contrib.auth.models import User
-from django.db.models import Q, Count
-from django.utils import timezone
+from django.db.models import Count
 from django.http import HttpResponse
 from django.core.cache import cache
-from django.views.decorators.csrf import csrf_exempt
-from asgiref.sync import sync_to_async
-import asyncio
 
 import logging
 from pathlib import Path
@@ -33,6 +26,7 @@ from .tools.crontab_tools import CrontabTools
 from .tools.image_tools import ImageTools
 
 logger = logging.getLogger(__name__)
+
 
 class DataFactoryPagination(PageNumberPagination):
     """数据工厂自定义分页"""
@@ -80,35 +74,35 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             # 生成缓存键，忽略时间戳参数
             query_params = request.query_params.copy()
             query_params.pop('_t', None)  # 移除时间戳参数
-            
+
             cache_key = f'data_factory_history_{request.user.id}_{query_params.get("page", 1)}_{query_params.get("page_size", 10)}_{query_params.get("tool_category", "")}_{query_params.get("tool_name__icontains", "")}_{query_params.get("tags__contains", "")}'
-            
+
             # 检查缓存，但如果有时间戳参数则不使用缓存
             if '_t' not in request.query_params:
                 cached_data = cache.get(cache_key)
                 if cached_data:
                     return Response(cached_data)
-            
+
             # 获取并过滤查询集
             queryset = self.get_queryset()
             queryset = self.filter_queryset(queryset)
-            
+
             # 分页处理
             page = self.paginate_queryset(queryset)
             if page is not None:
                 # 序列化数据
                 serializer = self.get_serializer(page, many=True)
                 serializer_data = serializer.data
-                
+
                 # 获取分页响应
                 paginated_response = self.get_paginated_response(serializer_data)
-                
+
                 # 缓存结果，3分钟过期
                 if '_t' not in request.query_params:
                     cache.set(cache_key, paginated_response.data, 180)
-                
+
                 return paginated_response
-            
+
             serializer = self.get_serializer(queryset, many=True)
             serializer_data = serializer.data
             return Response(serializer_data)
@@ -145,7 +139,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
                     )
                     result['record_id'] = str(record.id)
                     result['created_at'] = record.created_at.isoformat()
-                    
+
                     # 清除相关缓存
                     self.clear_user_cache(request.user.id)
                 except Exception as e:
@@ -162,15 +156,15 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             # 使用self.get_object()获取记录，它会自动处理权限过滤
             instance = self.get_object()
             logger.info(f'成功获取记录: ID={instance.id}, 用户ID={instance.user.id}')
-            
+
             # 删除记录
             instance.delete()
             logger.info(f'成功删除记录: ID={kwargs.get("pk")}')
-            
+
             # 清除相关缓存
             self.clear_user_cache(request.user.id)
             logger.info(f'成功清除缓存: 用户ID={request.user.id}')
-            
+
             return Response({'message': '删除成功'}, status=status.HTTP_200_OK)
         except DataFactoryRecord.DoesNotExist:
             logger.error(f'记录不存在: ID={kwargs.get("pk")}, 用户ID={request.user.id}')
@@ -187,31 +181,47 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         cache.delete(f'data_factory_tags_{user_id}')
         # 清除历史记录缓存
         try:
-            # 遍历所有缓存键，删除与当前用户相关的历史记录缓存
-            if hasattr(cache, '_cache'):
-                # 对于LocMemCache
+            # 检查缓存类型
+            cache_type = type(cache).__name__
+            logger.debug(f'Cache type: {cache_type}')
+
+            if cache_type == 'LocMemCache':
+                # 对于 LocMemCache
                 keys_to_delete = []
                 for key in cache._cache:
-                    # 匹配包含 data_factory_history 和用户ID的缓存键
                     if 'data_factory_history' in key and str(user_id) in key:
                         keys_to_delete.append(key)
                 for key in keys_to_delete:
                     cache.delete(key)
+            elif hasattr(cache, '_client'):
+                # 对于 Django 内置 Redis 后端
+                redis_client = cache._client
+                pattern = f'*data_factory_history*{user_id}*'
+                try:
+                    keys = list(redis_client.keys(pattern))
+                    if keys:
+                        # 使用管道批量删除
+                        with redis_client.pipeline() as pipe:
+                            for key in keys:
+                                pipe.delete(key)
+                            pipe.execute()
+                except Exception as e:
+                    logger.error(f'Redis keys/delete failed: {str(e)}, type: {type(redis_client).__name__}')
             elif hasattr(cache, 'keys'):
-                # 对于支持keys()方法的缓存后端
+                # 对于支持 keys() 方法的缓存后端（如 django-redis）
                 for key in cache.keys():
-                    # 匹配包含 data_factory_history 和用户ID的缓存键
                     if 'data_factory_history' in key and str(user_id) in key:
                         cache.delete(key)
         except Exception as e:
-            logger.error(f'清除历史记录缓存失败: {str(e)}')
+            import traceback
+            logger.error(f'清除历史记录缓存失败: {str(e)}\n{traceback.format_exc()}')
         # 历史记录缓存会在3分钟后自动过期（作为备份）
 
     def execute_tool(self, tool_name: str, tool_category: str, input_data: dict):
         """执行工具"""
         try:
             logger.info(f'开始执行工具: {tool_name}, 分类: {tool_category}, 输入数据: {input_data}')
-            
+
             # 字符工具
             if tool_category == 'string':
                 result = self.execute_string_tool(tool_name, input_data)
@@ -240,7 +250,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
                 error_msg = f'不支持的工具分类: {tool_category}'
                 logger.error(error_msg)
                 return {'error': error_msg}
-            
+
             logger.info(f'工具执行完成: {tool_name}, 结果: {"成功" if "error" not in result else "失败"}')
             return result
         except Exception as e:
@@ -527,28 +537,28 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         try:
             # 生成缓存键（分类数据是静态的，不需要用户ID）
             cache_key = 'data_factory_categories'
-            
+
             # 检查缓存
             cached_categories = cache.get(cache_key)
             if cached_categories:
                 return Response(cached_categories)
-            
+
             # 获取分类数据
             categories = get_categories()
-            
+
             # 为每个分类添加工具列表
             tool_list = get_tool_list()
             for category in categories:
                 category['tools'] = [tool for tool in tool_list if tool['scenario'] == category['scenario']]
-            
+
             categories_data = {
                 'categories': categories,
                 'total_tools': sum(len(cat['tools']) for cat in categories)
             }
-            
+
             # 缓存结果，30分钟过期（分类数据很少变化）
             cache.set(cache_key, categories_data, 1800)
-            
+
             return Response(categories_data)
         except Exception as e:
             logger.error(f'获取分类列表失败: {str(e)}', exc_info=True)
@@ -563,23 +573,23 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         try:
             # 生成缓存键
             cache_key = f'data_factory_tags_{request.user.id}'
-            
+
             # 检查缓存
             cached_tags = cache.get(cache_key)
             if cached_tags:
                 return Response(cached_tags)
-            
+
             # 同步获取标签，获取当前用户的所有记录
             queryset = DataFactoryRecord.objects.filter(user=request.user)
-            
+
             # 获取所有唯一的标签
             tag_set = set()
             for record in queryset:
                 if record.tags and isinstance(record.tags, list):
                     tag_set.update(record.tags)
-            
+
             tags = sorted(list(tag_set))
-            
+
             # 缓存结果，5分钟过期
             cache_data = {
                 'tags': tags,
@@ -614,11 +624,11 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         import json
         non_cacheable_tools = ['random_', 'mock_']
         is_cacheable = not any(tool_name.startswith(prefix) for prefix in non_cacheable_tools)
-        
+
         if is_cacheable:
             # 生成缓存键
             cache_key = f'data_factory_batch_{tool_name}_{tool_category}_{count}_{hashlib.md5(json.dumps(input_data, sort_keys=True).encode()).hexdigest()}'
-            
+
             # 检查缓存
             cached_result = cache.get(cache_key)
             if cached_result:
@@ -683,53 +693,53 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         """获取使用统计"""
         # 生成缓存键
         cache_key = f'data_factory_statistics_{request.user.id}'
-        
+
         # 检查缓存
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
-        
+
         # 预计算映射
         category_map = dict(DataFactoryRecord.TOOL_CATEGORIES)
         scenario_map = dict(DataFactoryRecord.TOOL_SCENARIOS)
-        
+
         # 1. 计算总记录数（使用聚合查询）
         total_records = DataFactoryRecord.objects.filter(
             user=request.user
         ).count()
-        
+
         # 2. 按分类统计（使用聚合查询）
         category_stats = {}
         category_counts = DataFactoryRecord.objects.filter(
             user=request.user
         ).values('tool_category').annotate(count=Count('tool_category')).order_by()
-        
+
         for item in category_counts:
             cat_name = item['tool_category']
             cat_display = category_map.get(cat_name, cat_name)
             category_stats[cat_display] = item['count']
-        
+
         # 确保所有分类都有统计数据
         for cat_name, cat_display in DataFactoryRecord.TOOL_CATEGORIES:
             if cat_display not in category_stats:
                 category_stats[cat_display] = 0
-        
+
         # 3. 按场景统计（使用聚合查询）
         scenario_stats = {}
         scenario_counts = DataFactoryRecord.objects.filter(
             user=request.user
         ).values('tool_scenario').annotate(count=Count('tool_scenario')).order_by()
-        
+
         for item in scenario_counts:
             sce_name = item['tool_scenario']
             sce_display = scenario_map.get(sce_name, sce_name)
             scenario_stats[sce_display] = item['count']
-        
+
         # 确保所有场景都有统计数据
         for sce_name, sce_display in DataFactoryRecord.TOOL_SCENARIOS:
             if sce_display not in scenario_stats:
                 scenario_stats[sce_display] = 0
-        
+
         # 4. 获取最近使用的工具（只选择需要的字段）
         recent_tools = []
         recent_records = DataFactoryRecord.objects.filter(
@@ -737,7 +747,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         ).only(
             'tool_name', 'tool_category', 'tool_scenario', 'created_at'
         ).order_by('-created_at')[:10]
-        
+
         for record in recent_records:
             recent_tools.append({
                 'tool_name': record.tool_name,
@@ -745,7 +755,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
                 'tool_scenario_display': record.get_tool_scenario_display(),
                 'created_at': record.created_at
             })
-        
+
         # 构建响应数据
         stats_data = {
             'total_records': total_records,
@@ -753,10 +763,10 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'scenario_stats': scenario_stats,
             'recent_tools': recent_tools
         }
-        
+
         # 缓存结果，5分钟过期
         cache.set(cache_key, stats_data, 300)
-        
+
         return Response(stats_data)
 
     @action(detail=False, methods=['get'])
@@ -834,16 +844,16 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
         """
         # 生成缓存键（变量函数列表是静态的）
         cache_key = 'data_factory_variable_functions'
-        
+
         # 检查缓存
         cached_functions = cache.get(cache_key)
         if cached_functions:
             return Response(cached_functions)
-        
+
         # 获取变量函数列表
         tool_list = get_tool_list()
         logger.info(f'获取到工具列表，共 {len(tool_list)} 个工具')
-        
+
         # 定义工具函数的语法模板
         syntax_templates = {
             # 随机工具
@@ -864,7 +874,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'random_password': '${random_password(length, count)}',
             'random_sequence': '${random_sequence(sequence, count, unique)}',
             'random_date': '${random_date(start_date, end_date, count, date_format)}',
-            
+
             # 测试数据工具
             'random_phone': '${random_phone(count)}',
             'random_email': '${random_email(count)}',
@@ -883,14 +893,14 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'generate_business_license': '${generate_business_license(count)}',
             'generate_user_profile': '${generate_user_profile(count)}',
             'generate_coordinates': '${generate_coordinates(count)}',
-            
+
             # 字符工具
             'remove_whitespace': '${remove_whitespace(text, type)}',
             'replace_string': '${replace_string(text, old, new, count)}',
             'word_count': '${word_count(text)}',
             'regex_test': '${regex_test(pattern, text, flags)}',
             'case_convert': '${case_convert(text, case_type)}',
-            
+
             # 编码工具
             'timestamp_convert': '${timestamp_convert(timestamp, convert_type)}',
             'base64_encode': '${base64_encode(text, encoding)}',
@@ -906,7 +916,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'decode_qrcode': '${decode_qrcode(image_path)}',
             'image_to_base64': '${image_to_base64(image_path)}',
             'base64_to_image': '${base64_to_image(base64_data, output_path)}',
-            
+
             # 加密工具
             'md5': '${md5(text)}',
             'sha1': '${sha1(text)}',
@@ -921,13 +931,13 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'jwt_decode': '${jwt_decode(token, verify, secret)}',
             'password_strength': '${password_strength(password)}',
             'generate_salt': '${generate_salt(length)}',
-            
+
             # Crontab工具
             'generate_expression': '${generate_expression(minute, hour, day, month, weekday)}',
             'parse_expression': '${parse_expression(expression)}',
             'get_next_runs': '${get_next_runs(expression, count)}',
             'validate_expression': '${validate_expression(expression)}',
-            
+
             # 时间日期函数
             'timestamp': '${timestamp()}',
             'timestamp_sec': '${timestamp_sec()}',
@@ -936,7 +946,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'time': '${time(format_str)}',
             'date_offset': '${date_offset(days, hours, minutes, format_str)}',
         }
-        
+
         # 定义示例模板
         example_templates = {
             # 随机工具
@@ -957,7 +967,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'random_password': '${random_password(12, 1)}',
             'random_sequence': '${random_sequence([a,b,c], 1, false)}',
             'random_date': '${random_date(2024-01-01, 2024-12-31, 1, %Y-%m-%d)}',
-            
+
             # 测试数据工具
             'random_phone': '${random_phone(1)}',
             'random_email': '${random_email(1)}',
@@ -976,14 +986,14 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'generate_business_license': '${generate_business_license(1)}',
             'generate_user_profile': '${generate_user_profile(1)}',
             'generate_coordinates': '${generate_coordinates(1)}',
-            
+
             # 字符工具
             'remove_whitespace': '${remove_whitespace(hello world, all)}',
             'replace_string': '${replace_string(hello world, world, test, 1)}',
             'word_count': '${word_count(hello world)}',
             'regex_test': '${regex_test(hello123, ^[a-z]+\\d+$, gi)}',
             'case_convert': '${case_convert(hello, upper)}',
-            
+
             # 编码工具
             'timestamp_convert': '${timestamp_convert(1234567890, to_datetime)}',
             'base64_encode': '${base64_encode(123456, utf-8)}',
@@ -999,7 +1009,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'decode_qrcode': '${decode_qrcode(/path/to/qrcode.png)}',
             'image_to_base64': '${image_to_base64(/path/to/image.png)}',
             'base64_to_image': '${base64_to_image(data:image/png;base64,..., /path/to/output.png)}',
-            
+
             # 加密工具
             'md5': '${md5(123456)}',
             'sha1': '${sha1(123456)}',
@@ -1014,13 +1024,13 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'jwt_decode': '${jwt_decode(token, false, secret)}',
             'password_strength': '${password_strength(myPassword123)}',
             'generate_salt': '${generate_salt(16)}',
-            
+
             # Crontab工具
             'generate_expression': '${generate_expression(*, *, *, *, *)}',
             'parse_expression': '${parse_expression(0 0 * * *)}',
             'get_next_runs': '${get_next_runs(0 0 * * *, 5)}',
             'validate_expression': '${validate_expression(0 0 * * *)}',
-            
+
             # 时间日期函数
             'timestamp': '${timestamp()}',
             'timestamp_sec': '${timestamp_sec()}',
@@ -1029,7 +1039,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'time': '${time(%H:%M:%S)}',
             'date_offset': '${date_offset(1, 0, 0, %Y-%m-%d)}',
         }
-        
+
         # 定义分类映射
         category_map = {
             'random_int': '随机数',
@@ -1109,10 +1119,10 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'time': '时间日期',
             'date_offset': '时间日期',
         }
-        
+
         # 生成变量函数列表
         variable_functions = []
-        
+
         # 从工具列表生成函数信息
         for tool in tool_list:
             tool_name = tool['name']
@@ -1124,7 +1134,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
                     'example': example_templates.get(tool_name, syntax_templates[tool_name]),
                     'category': category_map.get(tool_name, '其他')
                 })
-        
+
         # 添加时间日期函数
         time_functions = ['timestamp', 'timestamp_sec', 'datetime', 'date', 'time', 'date_offset']
         time_function_descriptions = {
@@ -1144,7 +1154,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
                     'example': example_templates.get(func_name, syntax_templates[func_name]),
                     'category': '时间日期'
                 })
-        
+
         # 缓存结果，30分钟过期（静态数据）
         cache.set(cache_key, variable_functions, 1800)
 

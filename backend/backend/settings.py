@@ -3,15 +3,24 @@
 from pathlib import Path
 from decouple import config
 import os
+import logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 导入配置加载器
 from .config_loader import config_loader
 
-SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key','django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm5'))
 
-DEBUG = config('DEBUG', default=config_loader.get('server.debug',False), cast=bool)
+# 自定义日志过滤器：过滤掉ERROR级别的日志
+class ExcludeErrorsFilter(logging.Filter):
+    def filter(self, record):
+        return record.levelno < logging.ERROR
+
+
+SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
+                                                            'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm5'))
+
+DEBUG = config('DEBUG', default=config_loader.get('server.debug', False), cast=bool)
 
 # ================================
 # 服务端口配置
@@ -236,7 +245,7 @@ else:
     CSRF_COOKIE_SAMESITE = 'Strict'
 
 # CORS Settings
-cors_origins_str = config('CORS_ALLOWED_ORIGINS', default=config_loader.get('cors.allowed_origins',''))
+cors_origins_str = config('CORS_ALLOWED_ORIGINS', default=config_loader.get('cors.allowed_origins', ''))
 parsed_cors_origins = [s.strip() for s in cors_origins_str.split(',') if s.strip()]
 
 if DEBUG:
@@ -353,14 +362,11 @@ if DEBUG:
         }
     }
 else:
-    # 生产环境使用Redis
+    # 生产环境使用Redis（Django 6 内置）
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': config_loader.get('redis.url', 'redis://127.0.0.1:6379/1'),
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            },
             'KEY_PREFIX': cache_config.get('key_prefix', 'testhub'),
             'TIMEOUT': cache_config.get('default_timeout', 300),
         }
@@ -386,7 +392,31 @@ EMAIL_TIMEOUT = email_config.get('timeout', 30)
 
 # 确保日志目录存在
 logging_config = config_loader.get_logging_config()
-log_dir = os.path.join(BASE_DIR, logging_config.get('dir', '../../logs'))
+log_dir_config = logging_config.get('dir', '../../logs')
+
+# 计算日志目录的绝对路径
+if os.path.isabs(log_dir_config):
+    log_dir = log_dir_config
+else:
+    # 从项目根目录（config.yaml 所在目录）开始计算相对路径
+    project_root = str(config_loader.project_root)
+    
+    # 输入校验和安全性处理
+    if not project_root or not isinstance(project_root, str):
+        raise ValueError("project_root 必须是非空字符串")
+    if not log_dir_config or not isinstance(log_dir_config, str):
+        raise ValueError("log_dir_config 必须是非空字符串")
+
+    # 检查 project_root 是否已经是绝对路径，避免重复处理
+    if os.path.isabs(project_root):
+        log_dir = os.path.join(project_root, log_dir_config)
+    else:
+        log_dir = os.path.abspath(os.path.join(project_root, log_dir_config))
+
+    # 限制路径范围，防止路径遍历攻击
+    if not os.path.commonpath([project_root, log_dir]) == project_root:
+        raise ValueError("日志路径超出项目根目录范围")
+
 os.makedirs(log_dir, exist_ok=True)
 
 # Logging
@@ -403,6 +433,11 @@ LOGGING = {
             'style': '{',
         },
     },
+    'filters': {
+        'exclude_errors': {
+            '()': 'backend.settings.ExcludeErrorsFilter',
+        },
+    },
     'handlers': {
         'file': {
             'level': 'INFO',
@@ -412,6 +447,7 @@ LOGGING = {
             'backupCount': logging_config.get('backup_count', 10),
             'formatter': 'verbose',
             'encoding': 'utf-8',
+            'filters': ['exclude_errors'],
         },
         'error_file': {
             'level': 'ERROR',
@@ -537,4 +573,3 @@ SIMPLEUI_ICON = {
 
 # 开发环境，暂时禁用迁移历史检查
 # SILENCED_SYSTEM_CHECKS = ['django.db.migrations.InconsistentMigrationHistory']
-
