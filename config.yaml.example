@@ -1,0 +1,212 @@
+# TestHub 统一配置文件示例
+# 此文件为 config.yaml 的示例模板
+# 实际使用时，请复制 config.yaml.example 为 config.yaml 并根据需要修改
+
+# ================================
+# 服务端口配置
+# ================================
+server:
+  # 前端服务端口（开发环境）
+  frontend_port: 3000
+  
+  # 后端服务端口（开发环境）
+  backend_port: 8000
+  
+  # 后端服务主机地址
+  backend_host: "127.0.0.1"
+
+  # 是否启用后端debug
+  debug: false
+
+  # 后端SECRET_KEY
+  secret_key: "django-insecure-9wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi1mewwbyyqmna7ertm0"
+
+# ================================
+# 数据库配置
+# ================================
+database:
+  # 数据库名称
+  name: testhub
+  
+  # 数据库用户名
+  user: root
+  
+  # 数据库密码（生产环境请修改）
+  password: ""
+  
+  # 数据库主机
+  host: "127.0.0.1"
+  
+  # 数据库端口
+  port: 3306
+  
+  # 数据库字符集
+  charset: utf8mb4
+
+# ================================
+# Redis 配置
+# ================================
+redis:
+  # Redis 连接 URL
+  url: "redis://127.0.0.1:6379/0"
+  
+  # Redis 缓存数据库编号
+  cache_db: 1
+  
+  # Redis 会话数据库编号
+  session_db: 2
+
+# ================================
+# 缓存配置
+# ================================
+cache:
+  # 默认缓存超时时间（秒）
+  default_timeout: 300
+  
+  # 缓存键前缀
+  key_prefix: "testhub"
+
+# ================================
+# 日志配置
+# ================================
+logging:
+  # 日志目录
+  dir: "../../logs"
+  
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: INFO
+  
+  # 日志文件最大大小（MB）
+  max_bytes: 10
+  
+  # 日志文件备份数量
+  backup_count: 10
+  
+  # 日志格式
+  format: "{levelname} {asctime} {module} {process:d} {thread:d} {message}"
+
+# ================================
+# JWT 配置
+# ================================
+jwt:
+  # Access Token 有效期（分钟）
+  access_token_lifetime: 15
+  
+  # Refresh Token 有效期（天）
+  refresh_token_lifetime: 7
+  
+  # 是否轮换 Refresh Token
+  rotate_refresh_tokens: true
+  
+  # 是否将旧 Refresh Token 加入黑名单
+  blacklist_after_rotation: true
+
+# ================================
+# 速率限制配置
+# ================================
+throttling:
+  # 匿名用户速率限制（请求/小时）
+  anon_rate: "100/hour"
+  
+  # 认证用户速率限制（请求/小时）
+  user_rate: "1000/hour"
+
+# ================================
+# CORS 配置
+# ================================
+cors:
+  # 允许的跨域来源（开发环境）
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+    - "http://localhost:8080"
+    - "http://127.0.0.1:8080"
+    - "http://localhost:5173"
+    - "http://127.0.0.1:5173"
+  
+  # 是否允许携带凭证
+  allow_credentials: true
+  
+  # 允许的请求头
+  allowed_headers:
+    - "accept"
+    - "accept-encoding"
+    - "authorization"
+    - "content-type"
+    - "dnt"
+    - "origin"
+    - "user-agent"
+    - "x-csrftoken"
+    - "x-requested-with"
+    - "cache-control"
+
+# ================================
+# 邮件配置
+# ================================
+email:
+  # SMTP 服务器地址
+  host: "smtp.gmail.com"
+  
+  # SMTP 端口
+  port: 587
+  
+  # 是否使用 TLS
+  use_tls: true
+  
+  # 是否使用 SSL
+  use_ssl: false
+  
+  # 发件人邮箱
+  host_user: ""
+  
+  # 发件人密码
+  host_password: ""
+  
+  # 默认发件人
+  default_from_email: "webmaster@localhost"
+  
+  # 邮件超时时间（秒）
+  timeout: 30
+
+# ================================
+# 定时任务配置
+# ================================
+scheduler:
+  # 任务检查间隔（秒）
+  check_interval: 60
+  
+  # 是否启用调度器
+  enabled: true
+
+# ================================
+# 文件上传配置
+# ================================
+upload:
+  # 最大上传文件大小（MB）
+  max_file_size: 10
+  
+  # 允许的文件类型
+  allowed_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".doc"
+    - ".docx"
+    - ".txt"
+    - ".xls"
+    - ".xlsx"
+
+# ================================
+# Allure 配置
+# ================================
+allure:
+  # Allure 命令行工具路径
+  bin_path: "expand/allure/bin/allure"
+
+  # Allure 报告输出目录
+  reports_dir: "backend/media/allure-reports"
+
+  # Allure 测试结果目录
+  results_dir: "backend/media/allure-results"
