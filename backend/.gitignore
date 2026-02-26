@@ -22,14 +22,14 @@ apps/*/migrations/*
 !apps/*/migrations/__init__.py
 
 # 忽略media下的子目录及文件，但保留.gitkeep文件
-media/allure-reports/*
-!media/allure-reports/.gitkeep
-media/allure-results/*
-!media/allure-results/.gitkeep
-media/requirement_docs/*
-!media/requirement_docs/.gitkeep
-media/ai_recording/*
-!media/ai_recording/.gitkeep
+../expand/media/allure-reports/*
+!../expand/media/allure-reports/.gitkeep
+../expand/media/allure-results/*
+!../expand/media/allure-results/.gitkeep
+../expand/media/requirement_docs/*
+!../expand/media/requirement_docs/.gitkeep
+../expand/media/ai_recording/*
+!../expand/media/ai_recording/.gitkeep
 
 # 忽略前端文件
 frontend/node_modules/

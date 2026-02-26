@@ -69,10 +69,11 @@ try:
         response = None
         for attempt in range(max_retries):
             try:
-                # 添加超时控制，设置为60秒（支持硅基流动等大模型API的响应时间）
+                # 使用配置文件中的 AI 请求超时时间
+                from django.conf import settings
                 response = await asyncio.wait_for(
                     self.llm.ainvoke(input_messages, **kwargs),
-                    timeout=60.0  # 超时时间60秒
+                    timeout=settings.TIMEOUTS_AI_REQUEST
                 )
                 break
             except asyncio.TimeoutError as te:
@@ -401,7 +402,9 @@ try:
 
         for attempt in range(10): # 增加重试次数
             try:
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                # 使用配置文件中的 AI 快速请求超时时间
+                from django.conf import settings
+                async with httpx.AsyncClient(timeout=settings.TIMEOUTS_AI_FAST_REQUEST) as client:
                     response = await client.get(cdp_endpoint)
                     if response.status_code == 200 and response.text:
                         version_info = response.json()
@@ -512,10 +515,11 @@ try:
             Patched screenshot event handler with increased timeout and optimized parameters.
             """
             try:
-                # Try original method first with strict timeout
+                # 使用配置文件中的 AI 快速请求超时时间
+                from django.conf import settings
                 result = await asyncio.wait_for(
                     _original_on_screenshot_event(self, event),
-                    timeout=3.0  # Reduced for fail-fast
+                    timeout=settings.TIMEOUTS_AI_FAST_REQUEST
                 )
                 return result
             except asyncio.TimeoutError:

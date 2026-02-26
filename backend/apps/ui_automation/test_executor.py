@@ -4,9 +4,11 @@ UI自动化测试执行服务
 """
 import time
 import json
+import os
 from datetime import datetime
 from django.utils import timezone
 from django.db import connection
+from django.conf import settings
 from playwright.sync_api import sync_playwright
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -34,6 +36,10 @@ class TestExecutor:
         self.execution = None
         self.test_cases = []
         self.results = []
+        
+        # 初始化截图目录 - 使用配置文件中的路径
+        self.screenshots_dir = os.path.join(settings.MEDIA_ROOT, settings.PATHS_UI_AUTOMATION_SCREENSHOTS)
+        os.makedirs(self.screenshots_dir, exist_ok=True)
 
     def create_execution_record(self):
         """创建测试执行记录"""
@@ -282,9 +288,9 @@ class TestExecutor:
                             import platform
                             is_linux = platform.system() == 'Linux'
 
-                            # 使用 networkidle 等待页面加载完成
+                            # 使用 networkidle 等待页面加载完成 - 使用配置文件中的超时时间
                             self.current_page.goto(self.test_suite.project.base_url, wait_until='networkidle',
-                                                   timeout=30000)
+                                                   timeout=settings.TIMEOUTS_PAGE_LOAD_NETWORKIDLE)
 
                             # 额外等待，确保动态内容加载（Vue/React等SPA应用）
                             # 服务器无头模式需要更长的等待时间
@@ -445,7 +451,8 @@ class TestExecutor:
                         print(f"🔍 开始捕获失败截图 (步骤 {step_data['step_number']})...")
                         print(f"   当前page对象URL: {self.current_page.url}")
                         print(f"   当前page对象标题: {self.current_page.title()}")
-                        screenshot_bytes = self.current_page.screenshot(timeout=5000)  # 5秒超时
+                        # 使用配置文件中的截图超时时间
+                        screenshot_bytes = self.current_page.screenshot(timeout=settings.TIMEOUTS_SCREENSHOT)
                         print(f"   截图字节大小: {len(screenshot_bytes)} bytes")
 
                         screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
@@ -487,9 +494,9 @@ class TestExecutor:
             # 捕获异常截图（改进版）
             try:
                 import base64
-                # 增加超时设置，避免截图等待时间过长
+                # 使用配置文件中的截图超时时间
                 print(f"🔍 开始捕获异常截图...")
-                screenshot_bytes = self.current_page.screenshot(timeout=5000)  # 5秒超时
+                screenshot_bytes = self.current_page.screenshot(timeout=settings.TIMEOUTS_SCREENSHOT)
                 print(f"   截图字节大小: {len(screenshot_bytes)} bytes")
 
                 screenshot_base64 = base64.b64encode(screenshot_bytes).decode('utf-8')
@@ -803,8 +810,8 @@ class TestExecutor:
                                         candidate = candidates.nth(i)
                                         if candidate.is_visible():
                                             print(f"[Playwright-调试] 第 {i} 个元素可见，尝试点击...")
-                                            # 使用 Playwright 的 click，它会触发完整的鼠标事件链
-                                            candidate.click(timeout=2000)
+                                            # 使用配置文件中的元素点击超时时间
+                                            candidate.click(timeout=settings.TIMEOUTS_ELEMENT_CLICK)
                                             found_visible = True
                                             step_result['success'] = True
                                             print(f"[Playwright-调试] 点击成功")
@@ -828,8 +835,8 @@ class TestExecutor:
                             if step_result['success']:
                                 try:
                                     if self.current_page.locator('.el-select-dropdown').first.is_visible():
-                                        # 点击空白处关闭
-                                        self.current_page.click('body', position={'x': 10, 'y': 10}, timeout=3000)
+                                        # 使用配置文件中的元素点击超时时间
+                                        self.current_page.click('body', position={'x': 10, 'y': 10}, timeout=settings.TIMEOUTS_ELEMENT_CLICK)
                                         self.current_page.wait_for_timeout(500)
                                 except:
                                     pass
@@ -845,9 +852,9 @@ class TestExecutor:
                                 self.current_page.bring_to_front()
                                 print(f"  ✓ 页面已置于前台")
 
-                                # 先尝试滚动到元素（确保元素在视口内）
+                                # 使用配置文件中的元素滚动超时时间
                                 try:
-                                    self.current_page.locator(selector).scroll_into_view_if_needed(timeout=5000)
+                                    self.current_page.locator(selector).scroll_into_view_if_needed(timeout=settings.TIMEOUTS_ELEMENT_SCROLL)
                                     print(f"  ✓ 元素已滚动到视口")
                                 except Exception as e:
                                     print(f"  ⚠️  滚动失败: {str(e)[:50]}")
@@ -913,7 +920,8 @@ class TestExecutor:
                     step_result['success'] = True
 
                 elif step_data['action_type'] == 'screenshot':
-                    screenshot_path = f'screenshots/step_{step_data["step_number"]}.png'
+                    # 使用配置文件中的截图目录
+                    screenshot_path = os.path.join(self.screenshots_dir, f'step_{step_data["step_number"]}.png')
                     self.current_page.screenshot(path=screenshot_path)
                     step_result['screenshot'] = screenshot_path
                     step_result['success'] = True
@@ -1048,13 +1056,13 @@ class TestExecutor:
                     # 等待页面稳定
                     # 新标签页可能需要时间加载和渲染
                     try:
-                        # 等待网络空闲状态（页面加载完成）
-                        target_page.wait_for_load_state('networkidle', timeout=10000)  # 增加到10秒
+                        # 使用配置文件中的页面加载超时时间
+                        target_page.wait_for_load_state('networkidle', timeout=settings.TIMEOUTS_PAGE_LOAD_NETWORKIDLE)
                         print(f"  - 页面加载状态: networkidle")
                     except Exception as e:
-                        # 如果networkidle超时，至少等待domcontentloaded
+                        # 使用配置文件中的页面加载超时时间
                         try:
-                            target_page.wait_for_load_state('domcontentloaded', timeout=5000)  # 增加到5秒
+                            target_page.wait_for_load_state('domcontentloaded', timeout=settings.TIMEOUTS_PAGE_LOAD_DOMCONTENTLOADED)
                             print(f"  - 页面加载状态: domcontentloaded")
                         except Exception as e2:
                             print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
@@ -1172,13 +1180,13 @@ class TestExecutor:
 
                     # 等待页面稳定
                     try:
-                        # 等待网络空闲状态（页面加载完成）
-                        target_page.wait_for_load_state('networkidle', timeout=10000)  # 增加到10秒
+                        # 使用配置文件中的页面加载超时时间
+                        target_page.wait_for_load_state('networkidle', timeout=settings.TIMEOUTS_PAGE_LOAD_NETWORKIDLE)
                         print(f"  - 页面加载状态: networkidle")
                     except Exception as e:
-                        # 如果networkidle超时，至少等待domcontentloaded
+                        # 使用配置文件中的页面加载超时时间
                         try:
-                            target_page.wait_for_load_state('domcontentloaded', timeout=5000)  # 增加到5秒
+                            target_page.wait_for_load_state('domcontentloaded', timeout=settings.TIMEOUTS_PAGE_LOAD_DOMCONTENTLOADED)
                             print(f"  - 页面加载状态: domcontentloaded")
                         except Exception as e2:
                             print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
@@ -2164,7 +2172,8 @@ class TestExecutor:
                                 raise
 
                 elif step_data['action_type'] == 'screenshot':
-                    screenshot_path = f'screenshots/step_{step_data["step_number"]}.png'
+                    # 使用配置文件中的截图目录
+                    screenshot_path = os.path.join(self.screenshots_dir, f'step_{step_data["step_number"]}.png')
                     driver.save_screenshot(screenshot_path)
                     step_result['screenshot'] = screenshot_path
                     step_result['success'] = True

@@ -31,7 +31,9 @@ class OCRHelper:
     # OCR结果缓存：key为(坐标区域hash, 图片hash)，value为(识别结果, 时间戳)
     _ocr_cache = {}
     _cache_ttl = 2.0  # 缓存有效期2秒
-    _cache_max_size = 50  # 最大缓存条目数
+    # 使用配置文件中的缓存大小
+    from django.conf import settings
+    _cache_max_size = settings.CACHE_OCR_MAX_SIZE
     
     # EasyOCR reader实例（延迟初始化）
     _easyocr_reader = None

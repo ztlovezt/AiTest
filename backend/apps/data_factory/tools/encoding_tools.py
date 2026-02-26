@@ -103,10 +103,10 @@ class EncodingTools:
     @staticmethod
     def get_static_img_path() -> str:
         """
-        获取 static_files/img 文件夹的路径
+        获取 static_files/img 文件夹的路径 - 使用配置文件中的路径
         """
-        current_file_dir = Path(__file__).parent.parent
-        static_img_path = current_file_dir.parent.parent / "static_files" / "img"
+        from django.conf import settings
+        static_img_path = Path(settings.BASE_DIR) / settings.PATHS_DATA_FACTORY_STATIC_IMG
         static_img_path.mkdir(parents=True, exist_ok=True)
         return str(static_img_path.resolve())
 

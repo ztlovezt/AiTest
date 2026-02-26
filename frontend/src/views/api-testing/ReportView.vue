@@ -75,14 +75,19 @@ const refreshReports = async () => {
 
 const generateAndOpenAllureReport = async (executionId) => {
   try {
+    ElMessage.info('报告生成中，请稍后……')
+    
     // 调用API生成Allure报告数据
     const response = await api.post(`/api-testing/test-executions/${executionId}/generate-allure-report/`)
+    console.log('API响应:', response.data)
     ElMessage.success(t('apiTesting.messages.success.reportGenerated'))
 
     // 通过当前窗口的origin构造完整的URL，确保通过Vite代理访问
     const fullUrl = `${window.location.origin}${response.data.report_url}`;
+    console.log('报告URL:', fullUrl)
     window.open(fullUrl, '_blank')
   } catch (error) {
+    console.error('生成报告失败:', error)
     ElMessage.error(t('apiTesting.messages.error.reportGenerateFailed'))
   }
 }

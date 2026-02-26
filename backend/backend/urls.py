@@ -15,7 +15,6 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    
     path('api/auth/', include('apps.users.urls')),
     path('api/projects/', include('apps.projects.urls')),
     path('api/testcases/', include('apps.testcases.urls')),
@@ -46,9 +45,16 @@ urlpatterns += [
          {'document_root': os.path.join(settings.BASE_DIR, 'apps', 'app_automation', 'Template')}),
 ]
 
-# APP自动化 Allure 报告访问
+# APP自动化 Allure 报告访问 - 使用配置项
 urlpatterns += [
     path('app-automation-reports/<path:path>',
          serve,
-         {'document_root': os.path.join(settings.MEDIA_ROOT, 'app-automation', 'allure-reports')}),
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_REPORTS_DIR)}),
+]
+
+# API测试 Allure 报告访问 - 使用配置项
+urlpatterns += [
+    path('api-testing-reports/<path:path>',
+         serve,
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_REPORTS_DIR)}),
 ]

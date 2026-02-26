@@ -32,32 +32,32 @@ apps/*/migrations/*
 !apps/*/migrations/__init__.py
 
 # 忽略 allure-static 下的所有文件（运行时生成）
-backend/media/media/allure-static/*
-!backend/media/media/allure-static/.gitkeep
+expand/media/media/allure-static/*
+!expand/media/media/allure-static/.gitkeep
 
 # 忽略 AI 录屏文件，但保留.gitkeep
-backend/media/media/ai_recording/*
-!backend/media/media/ai_recording/.gitkeep
+expand/media/media/ai_recording/*
+!expand/media/media/ai_recording/.gitkeep
 
 # 忽略需求文档上传的文件，但保留.gitkeep
-backend/media/media/requirement_docs/*
-!backend/media/media/requirement_docs/.gitkeep
+expand/media/media/requirement_docs/*
+!expand/media/media/requirement_docs/.gitkeep
 
 # 忽略接口测试运行时产生的 Allure 报告文件，但保留.gitkeep文件
-backend/media/api-testing/allure-results/*
-!backend/media/api-testing/allure-results/.gitkeep
-backend/media/api-testing/allure-reports/*
-!backend/media/api-testing/allure-reports/.gitkeep
-backend/media/api-testing/allure-static/*
-!backend/media/api-testing/allure-static/.gitkeep
+expand/media/api-testing/allure-results/*
+!expand/media/api-testing/allure-results/.gitkeep
+expand/media/api-testing/allure-reports/*
+!expand/media/api-testing/allure-reports/.gitkeep
+expand/media/api-testing/allure-static/*
+!expand/media/api-testing/allure-static/.gitkeep
 
 # 忽略 APP 自动化运行时产生的文件，但保留.gitkeep文件
-backend/media/app-automation/allure-results/*
-!backend/media/app-automation/allure-results/.gitkeep
-backend/media/app-automation/allure-reports/*
-!backend/media/app-automation/allure-reports/.gitkeep
-backend/media/app-automation/screenshots/*
-!backend/media/app-automation/screenshots/.gitkeep
+expand/media/app-automation/allure-results/*
+!expand/media/app-automation/allure-results/.gitkeep
+expand/media/app-automation/allure-reports/*
+!expand/media/app-automation/allure-reports/.gitkeep
+expand/media/app-automation/screenshots/*
+!expand/media/app-automation/screenshots/.gitkeep
 
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**

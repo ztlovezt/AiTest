@@ -97,12 +97,10 @@ class AppElementViewSet(viewsets.ModelViewSet):
         获取模板基础路径
         参考 Smart AI Test 的实现：图片存放在 app 目录下的 Template 文件夹
         
-        返回: apps/app_automation/Template/
+        返回: 使用配置文件中的模板目录
         """
-        # __file__ = .../views/element_views.py
-        # .parent = .../views/
-        # .parent.parent = .../app_automation/
-        return Path(__file__).resolve().parent.parent / "Template"
+        # 使用配置文件中的模板目录
+        return Path(settings.BASE_DIR) / settings.PATHS_APP_AUTOMATION_TEMPLATE
     
     @action(detail=False, methods=['post'], url_path='upload')
     def upload_image(self, request):

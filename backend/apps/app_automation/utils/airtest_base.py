@@ -42,12 +42,12 @@ class AirtestBase:
         self.device_id = device_id
         self.is_connected = False
         
-        # 设置截图目录: media/app-automation/screenshots/{username}/
+        # 设置截图目录: 使用配置文件中的路径
         if screenshots_dir:
             self.screenshots_dir = screenshots_dir
         else:
             self.screenshots_dir = os.path.join(
-                settings.MEDIA_ROOT, 'app-automation', 'screenshots', username or 'unknown'
+                settings.MEDIA_ROOT, settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
             )
         
         # 确保截图目录存在

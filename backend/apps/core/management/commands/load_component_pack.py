@@ -18,9 +18,10 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
-        # YAML 文件路径（与本脚本同目录）
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        yaml_path = os.path.join(current_dir, 'ui-component-pack.yaml')
+        from django.conf import settings
+        
+        # YAML 文件路径：使用配置文件中的路径
+        yaml_path = os.path.join(settings.BASE_DIR, settings.PATHS_UI_COMPONENT_PACK)
         
         if not os.path.exists(yaml_path):
             self.stdout.write(self.style.ERROR(f'❌ 文件不存在: {yaml_path}'))

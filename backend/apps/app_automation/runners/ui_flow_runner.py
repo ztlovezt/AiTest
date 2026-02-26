@@ -9,6 +9,7 @@ import json
 import re
 import copy
 from typing import Any, Dict, List, Optional
+
 from django.conf import settings
 
 from airtest.core.api import (
@@ -54,12 +55,12 @@ class UiFlowRunner:
         if image_base_dir:
             self.image_base_dir = image_base_dir
         else:
-            # 使用统一的 Template 目录作为图片基础目录
-            self.image_base_dir = os.path.join(settings.BASE_DIR, 'apps', 'app_automation', 'Template')
+            # 使用配置文件中的 Template 目录作为图片基础目录
+            self.image_base_dir = os.path.join(settings.BASE_DIR, settings.PATHS_APP_AUTOMATION_TEMPLATE)
         
-        # 截图保存目录: media/app-automation/screenshots/{username}/
+        # 截图保存目录: 使用配置文件中的路径
         self.screenshots_dir = os.path.join(
-            settings.MEDIA_ROOT, 'app-automation', 'screenshots', username or 'unknown'
+            settings.MEDIA_ROOT, settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
         )
         
         os.makedirs(self.image_base_dir, exist_ok=True)

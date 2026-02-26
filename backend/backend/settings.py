@@ -5,6 +5,7 @@ from decouple import config
 import os
 import logging
 
+# 当前文件所在路径
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # 导入配置加载器
@@ -151,14 +152,57 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'static_files')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 # 数据工厂的静态文件目录
 STATIC_FILES_URL = '/static_files/'
 STATIC_FILES_ROOT = os.path.join(BASE_DIR, 'static_files')
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Allure 配置
+allure_config = config_loader.get_allure_config()
+ALLURE_BIN_PATH = allure_config.get('bin_path', 'expand/allure/bin')
+ALLURE_STATIC_DIR = allure_config.get('static_dir', 'static')
+ALLURE_REPORTS_DIR = allure_config.get('reports_dir', 'allure-reports')
+ALLURE_RESULTS_DIR = allure_config.get('results_dir', 'allure-results')
+ALLURE_AI_RECORDING = allure_config.get('ai_recording', 'ai_recording')
+ALLURE_API_TESTING = allure_config.get('api_testing', 'api_testing')
+ALLURE_APP_AUTOMATION = allure_config.get('app_automation', 'app_automation')
+
+# 路径配置
+paths_config = config_loader.get_paths_config()
+# Media 文件根目录 - 使用配置文件中的路径
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, paths_config.get('media_root', 'media'))
+PATHS_APP_AUTOMATION_TEMPLATE = paths_config.get('app_automation_template', 'apps/app_automation/Template')
+PATHS_UI_COMPONENT_PACK = paths_config.get('ui_component_pack', 'apps/core/management/commands/ui-component-pack.yaml')
+PATHS_DATA_FACTORY_STATIC_IMG = paths_config.get('data_factory_static_img', 'static_files/img')
+PATHS_APP_AUTOMATION_SCREENSHOTS = paths_config.get('app_automation_screenshots', 'app-automation/screenshots')
+PATHS_UI_AUTOMATION_SCREENSHOTS = paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots')
+PATHS_LOGS = paths_config.get('logs', 'logs')
+
+# 超时配置
+timeouts_config = config_loader.get_timeouts_config()
+TIMEOUTS_API_REQUEST = timeouts_config.get('api_request', 30)
+TIMEOUTS_ALLURE_REPORT = timeouts_config.get('allure_report', 30)
+TIMEOUTS_PROCESS_WAIT = timeouts_config.get('process_wait', 5)
+TIMEOUTS_TEST_EXECUTION = timeouts_config.get('test_execution', 60)
+TIMEOUTS_AI_REQUEST = timeouts_config.get('ai_request', 60)
+TIMEOUTS_AI_FAST_REQUEST = timeouts_config.get('ai_fast_request', 3.0)
+TIMEOUTS_PAGE_LOAD_NETWORKIDLE = timeouts_config.get('page_load_networkidle', 10000)
+TIMEOUTS_PAGE_LOAD_DOMCONTENTLOADED = timeouts_config.get('page_load_domcontentloaded', 5000)
+TIMEOUTS_ELEMENT_CLICK = timeouts_config.get('element_click', 2000)
+TIMEOUTS_ELEMENT_SCROLL = timeouts_config.get('element_scroll', 5000)
+TIMEOUTS_SCREENSHOT = timeouts_config.get('screenshot', 5000)
+
+# 前端配置
+frontend_config = config_loader.get_frontend_config()
+FRONTEND_DEFAULT_URL = frontend_config.get('default_url', 'http://localhost:3000')
+FRONTEND_LOCAL_URLS = frontend_config.get('local_urls', ['http://localhost:3000', 'http://127.0.0.1:3000'])
+
+# 缓存配置
+cache_config = config_loader.get_cache_config()
+CACHE_OCR_MAX_SIZE = cache_config.get('ocr_max_size', 50)
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

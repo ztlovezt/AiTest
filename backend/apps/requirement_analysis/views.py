@@ -1,11 +1,12 @@
 import asyncio
 import logging
 import re
-import os  # Added import
+import os
 import json
 import time
+
 from rest_framework import viewsets, status
-from django.conf import settings  # Added import
+from django.conf import settings
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.renderers import BaseRenderer
@@ -957,7 +958,7 @@ class AIModelConfigViewSet(viewsets.ModelViewSet):
                         result = loop.run_until_complete(
                             asyncio.wait_for(
                                 AIModelService.call_openai_compatible_api(config, test_messages),
-                                timeout=60.0
+                                timeout=settings.TIMEOUTS_AI_REQUEST
                             )
                         )
 
@@ -1847,8 +1848,8 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 if origin in allowed_origins:
                     return origin
 
-                # 兼容未配置时的本地开发默认
-                local_defaults = ['http://localhost:3000', 'http://127.0.0.1:3000']
+                # 兼容未配置时的本地开发默认 - 使用配置文件中的前端地址
+                local_defaults = settings.FRONTEND_LOCAL_URLS
                 if origin in local_defaults:
                     return origin
 
@@ -1856,8 +1857,8 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 if allowed_origins:
                     return allowed_origins[0]
 
-                # 最后兜底：返回请求 origin（若存在）
-                return origin or 'http://localhost:3000'
+                # 最后兜底：返回请求 origin（若存在）- 使用配置文件中的默认前端地址
+                return origin or settings.FRONTEND_DEFAULT_URL
 
             cors_origin = get_allowed_origin(request_origin)
 
@@ -2100,14 +2101,16 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 if origin in allowed_origins:
                     return origin
 
-                local_defaults = ['http://localhost:3000', 'http://127.0.0.1:3000']
+                # 使用配置文件中的前端地址
+                local_defaults = settings.FRONTEND_LOCAL_URLS
                 if origin in local_defaults:
                     return origin
 
                 if allowed_origins:
                     return allowed_origins[0]
 
-                return origin or 'http://localhost:3000'
+                # 使用配置文件中的默认前端地址
+                return origin or settings.FRONTEND_DEFAULT_URL
 
             cors_origin = get_allowed_origin(request_origin)
             response = HttpResponse(

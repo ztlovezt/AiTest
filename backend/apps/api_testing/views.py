@@ -1,3 +1,10 @@
+import subprocess
+import time
+import os
+import json
+import logging
+from datetime import datetime
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -9,11 +16,6 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 import requests
-import time
-import os
-import json
-import logging
-from datetime import datetime
 
 from .models import (
     ApiProject, ApiCollection, ApiRequest, Environment,
@@ -44,8 +46,8 @@ from .serializers import (
 
 User = get_user_model()
 
-
 from rest_framework.pagination import PageNumberPagination
+
 
 class StandardPagination(PageNumberPagination):
     page_size = 20
@@ -62,13 +64,13 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['created_at', 'name', 'start_date']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         user = self.request.user
         return ApiProject.objects.filter(
             models.Q(owner=user) | models.Q(members=user)
         ).distinct()
-    
+
     def perform_create(self, serializer):
         """创建项目时记录日志"""
         instance = serializer.save()
@@ -79,7 +81,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             resource_name=instance.name,
             user=self.request.user
         )
-    
+
     def perform_update(self, serializer):
         """更新项目时记录日志"""
         instance = serializer.save()
@@ -90,7 +92,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             resource_name=instance.name,
             user=self.request.user
         )
-    
+
     def perform_destroy(self, instance):
         """删除项目时记录日志"""
         log_operation(
@@ -101,13 +103,13 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             user=self.request.user
         )
         instance.delete()
-    
+
     @action(detail=False, methods=['post'], url_path='create-sample')
     def create_sample_project(self, request):
         """创建示例项目（宠物店）"""
         if ApiProject.objects.filter(name='宠物店API示例项目').exists():
             return Response({'message': '示例项目已存在'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # 创建示例项目
         project = ApiProject.objects.create(
             name='宠物店API示例项目',
@@ -117,13 +119,13 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             owner=request.user,
             start_date=datetime.now().date()
         )
-        
+
         # 创建示例数据
         self._create_sample_data(project, request.user)
-        
+
         serializer = self.get_serializer(project)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
+
     def _create_sample_data(self, project, user):
         """创建示例数据"""
         # 用户管理集合
@@ -133,7 +135,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             description='用户注册、登录、信息管理相关接口',
             order=1
         )
-        
+
         # 用户注册接口
         ApiRequest.objects.create(
             collection=user_collection,
@@ -153,7 +155,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             created_by=user,
             order=1
         )
-        
+
         # 用户登录接口
         ApiRequest.objects.create(
             collection=user_collection,
@@ -172,7 +174,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             created_by=user,
             order=2
         )
-        
+
         # 宠物管理集合
         pet_collection = ApiCollection.objects.create(
             project=project,
@@ -180,7 +182,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             description='宠物信息增删改查接口',
             order=2
         )
-        
+
         # 获取宠物列表
         ApiRequest.objects.create(
             collection=pet_collection,
@@ -193,7 +195,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             created_by=user,
             order=1
         )
-        
+
         # 创建宠物
         ApiRequest.objects.create(
             collection=pet_collection,
@@ -225,7 +227,7 @@ class ApiCollectionViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['project', 'parent']
-    
+
     def get_queryset(self):
         user = self.request.user
         return ApiCollection.objects.filter(
@@ -275,7 +277,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['collection', 'method', 'request_type']
     search_fields = ['name', 'url']
-    
+
     def get_queryset(self):
         user = self.request.user
         # 获取用户有权限的项目
@@ -339,13 +341,13 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
             user=self.request.user
         )
         instance.delete()
-    
+
     @action(detail=True, methods=['post'])
     def execute(self, request, pk=None):
         """执行API请求"""
         api_request = self.get_object()
         environment_id = request.data.get('environment_id')
-        
+
         try:
             # 创建变量解析器
             resolver = VariableResolver()
@@ -355,7 +357,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
             if environment_id:
                 env = Environment.objects.get(id=environment_id)
                 variables.update(env.variables)
-            
+
             # 使用前端发送的更新后的数据，如果没有则使用数据库中的数据
             request_params = request.data.get('params', api_request.params)
             request_headers = request.data.get('headers', api_request.headers)
@@ -366,7 +368,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
             # 替换URL中的变量（先解析动态函数，再替换环境变量）
             url = self._replace_variables(request_url or '', variables)
             url = resolver.resolve(url)
-            
+
             # 准备请求头
             headers = {}
             if isinstance(request_headers, list):
@@ -415,7 +417,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                         body_data = body_content
                 else:
                     body_data = body_content
-            
+
             # 执行请求
             start_time = time.time()
 
@@ -428,7 +430,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                     headers=headers,
                     params=params,
                     data=body_data,
-                    timeout=30
+                    timeout=settings.TIMEOUTS_API_REQUEST
                 )
             else:
                 # json 类型使用 json 参数，自动序列化
@@ -438,19 +440,19 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                     headers=headers,
                     params=params,
                     json=body_data,
-                    timeout=30
+                    timeout=settings.TIMEOUTS_API_REQUEST
                 )
             end_time = time.time()
-            
+
             response_time = (end_time - start_time) * 1000  # 转换为毫秒
-            
+
             # 执行断言验证
             assertions = request.data.get('assertions', api_request.assertions) or []
             for assertion in assertions:
                 if assertion.get('type') == 'response_time':
                     assertion['actual_time'] = response_time
             assertions_results = execute_assertions(response, assertions)
-            
+
             # 保存请求历史
             history = RequestHistory.objects.create(
                 request=api_request,
@@ -465,13 +467,14 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                 response_data={
                     'headers': dict(response.headers),
                     'body': response.text,
-                    'json': response.json() if response.headers.get('content-type', '').startswith('application/json') else None
+                    'json': response.json() if response.headers.get('content-type', '').startswith(
+                        'application/json') else None
                 },
                 status_code=response.status_code,
                 response_time=response_time,
                 executed_by=request.user
             )
-            
+
             # 记录执行操作
             log_operation(
                 operation_type='execute',
@@ -480,13 +483,13 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                 resource_name=api_request.name,
                 user=request.user
             )
-            
+
             # 返回包含断言结果的数据
             history_data = RequestHistorySerializer(history).data
             history_data['assertions_results'] = assertions_results
-            
+
             return Response(history_data)
-            
+
         except Exception as e:
             # 保存错误历史
             history = RequestHistory.objects.create(
@@ -502,14 +505,14 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                 error_message=str(e),
                 executed_by=request.user
             )
-            
+
             return Response(RequestHistorySerializer(history).data, status=status.HTTP_400_BAD_REQUEST)
-    
+
     def _replace_variables(self, text, variables):
         """替换文本中的变量"""
         if not isinstance(text, str):
             return text
-        
+
         result = text
         for key, value in (variables or {}).items():
             if isinstance(value, dict):
@@ -518,7 +521,7 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
                 replacement = str(value) if value is not None else ''
             result = result.replace(f'{{{{{key}}}}}', replacement)
         return result
-    
+
     def _replace_variables_in_dict(self, data, variables):
         """递归替换字典中的变量"""
         if isinstance(data, dict):
@@ -549,11 +552,11 @@ class EnvironmentViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['scope', 'project', 'is_active']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         user = self.request.user
         return Environment.objects.filter(
-            models.Q(scope='GLOBAL') | 
+            models.Q(scope='GLOBAL') |
             models.Q(
                 scope='LOCAL',
                 project__in=ApiProject.objects.filter(
@@ -561,12 +564,12 @@ class EnvironmentViewSet(viewsets.ModelViewSet):
                 )
             )
         ).distinct().order_by('-created_at')
-    
+
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         """激活环境"""
         environment = self.get_object()
-        
+
         # 如果是局部环境，取消同项目下其他环境的激活状态
         if environment.scope == 'LOCAL' and environment.project:
             Environment.objects.filter(
@@ -576,10 +579,10 @@ class EnvironmentViewSet(viewsets.ModelViewSet):
         # 如果是全局环境，取消其他全局环境的激活状态
         elif environment.scope == 'GLOBAL':
             Environment.objects.filter(scope='GLOBAL').update(is_active=False)
-        
+
         environment.is_active = True
         environment.save()
-        
+
         return Response({'message': '环境已激活'})
 
     def perform_create(self, serializer):
@@ -624,7 +627,7 @@ class RequestHistoryViewSet(viewsets.ModelViewSet):
     filterset_fields = ['request__request_type', 'status_code']
     ordering = ['-executed_at']
     pagination_class = StandardPagination
-    
+
     def get_queryset(self):
         user = self.request.user
         return RequestHistory.objects.filter(
@@ -642,15 +645,15 @@ class RequestHistoryViewSet(viewsets.ModelViewSet):
         ids = request.data.get('ids', [])
         if not ids:
             return Response({'error': '未提供要删除的记录ID'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # 确保只能删除有权限的记录
         # 先获取有权限的ID列表，避免在distinct()后调用delete()
         queryset = self.get_queryset()
         valid_ids = list(queryset.filter(id__in=ids).values_list('id', flat=True))
-        
+
         # 使用有权限的ID列表进行删除
         deleted_count, _ = RequestHistory.objects.filter(id__in=valid_ids).delete()
-        
+
         return Response({'message': f'成功删除 {deleted_count} 条记录'})
 
 
@@ -660,7 +663,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['project']
-    
+
     def get_queryset(self):
         user = self.request.user
         return TestSuite.objects.filter(
@@ -673,7 +676,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
     def execute(self, request, pk=None):
         """执行测试套件"""
         test_suite = self.get_object()
-        
+
         try:
             # 创建执行记录
             execution = TestExecution.objects.create(
@@ -682,33 +685,33 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 start_time=timezone.now(),
                 executed_by=request.user
             )
-            
+
             # 获取套件中的请求
             suite_requests = TestSuiteRequest.objects.filter(
                 test_suite=test_suite,
                 enabled=True
             ).order_by('order')
-            
+
             execution.total_requests = suite_requests.count()
             execution.save()
-            
+
             results = []
             passed_count = 0
             failed_count = 0
-            
+
             # 创建变量解析器
             resolver = VariableResolver()
 
             # 执行每个请求
             for suite_request in suite_requests:
                 api_request = suite_request.request
-                
+
                 try:
                     # 解析环境变量
                     variables = {}
                     if test_suite.environment:
                         variables.update(test_suite.environment.variables)
-                    
+
                     # 替换URL中的变量（先解析动态函数，再替换环境变量）
                     url = self._replace_variables(api_request.url, variables)
                     url = resolver.resolve(url)
@@ -751,25 +754,25 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         headers=headers,
                         params=params,
                         json=body_data,
-                        timeout=30
+                        timeout=settings.TIMEOUTS_API_REQUEST
                     )
                     end_time = time.time()
                     response_time = (end_time - start_time) * 1000
-                    
+
                     # 执行断言验证
                     assertions = api_request.assertions or []
                     # 添加响应时间到断言中
                     for assertion in assertions:
                         if assertion.get('type') == 'response_time':
                             assertion['actual_time'] = response_time
-                    
+
                     # 使用共享的断言执行方法
                     assertions_results = execute_assertions(response, assertions)
-                    
+
                     # 检查所有断言是否通过
                     passed = True
                     error_message = ''
-                    
+
                     # 检查套件请求的断言
                     for assertion in suite_request.assertions:
                         # 简单的状态码断言
@@ -779,7 +782,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                                 passed = False
                                 error_message = f'状态码断言失败: 期望 {expected}, 实际 {response.status_code}'
                                 break
-                    
+
                     # 检查接口自身的断言
                     if passed and assertions_results:
                         for assertion_result in assertions_results:
@@ -787,12 +790,12 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                                 passed = False
                                 error_message = f"断言失败: {assertion_result.get('name', '未命名断言')} - {assertion_result.get('error', '断言不通过')}"
                                 break
-                    
+
                     if passed:
                         passed_count += 1
                     else:
                         failed_count += 1
-                    
+
                     results.append({
                         'name': api_request.name,
                         'method': api_request.method,
@@ -803,7 +806,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         'error': error_message,
                         'assertions_results': assertions_results
                     })
-                    
+
                     # 保存请求历史
                     RequestHistory.objects.create(
                         request=api_request,
@@ -818,14 +821,15 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         response_data={
                             'headers': dict(response.headers),
                             'body': response.text,
-                            'json': response.json() if response.headers.get('content-type', '').startswith('application/json') else None
+                            'json': response.json() if response.headers.get('content-type', '').startswith(
+                                'application/json') else None
                         },
                         status_code=response.status_code,
                         response_time=response_time,
                         assertions_results=assertions_results,
                         executed_by=request.user
                     )
-                    
+
                 except Exception as e:
                     failed_count += 1
                     results.append({
@@ -835,7 +839,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         'passed': False,
                         'error': str(e)
                     })
-            
+
             # 更新执行结果
             execution.end_time = timezone.now()
             execution.passed_requests = passed_count
@@ -843,7 +847,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
             execution.status = 'COMPLETED' if failed_count == 0 else 'FAILED'
             execution.results = results
             execution.save()
-            
+
             # 记录执行操作
             log_operation(
                 operation_type='execute',
@@ -852,9 +856,9 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 resource_name=test_suite.name,
                 user=request.user
             )
-            
+
             return Response(TestExecutionSerializer(execution).data)
-            
+
         except Exception as e:
             execution.status = 'FAILED'
             execution.end_time = timezone.now()
@@ -899,7 +903,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
         """添加请求到测试套件"""
         test_suite = self.get_object()
         request_ids = request.data.get('request_ids', [])
-        
+
         try:
             for request_id in request_ids:
                 api_request = ApiRequest.objects.get(id=request_id)
@@ -912,17 +916,17 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         'assertions': []
                     }
                 )
-            
+
             return Response({'message': '添加成功'})
-            
+
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-    
+
     def _replace_variables(self, text, variables):
         """替换文本中的变量"""
         if not isinstance(text, str):
             return text
-        
+
         result = text
         for key, value in (variables or {}).items():
             if isinstance(value, dict):
@@ -931,7 +935,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 replacement = str(value) if value is not None else ''
             result = result.replace(f'{{{{{key}}}}}', replacement)
         return result
-    
+
     def _replace_variables_in_dict(self, data, variables):
         """递归替换字典中的变量"""
         if isinstance(data, dict):
@@ -961,7 +965,7 @@ class TestSuiteRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['test_suite', 'enabled']
-    
+
     def get_queryset(self):
         user = self.request.user
         return TestSuiteRequest.objects.filter(
@@ -979,7 +983,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['status', 'test_suite']
     ordering = ['-created_at']
     pagination_class = StandardPagination
-    
+
     def get_queryset(self):
         user = self.request.user
         return TestExecution.objects.filter(
@@ -987,47 +991,52 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                 models.Q(owner=user) | models.Q(members=user)
             )
         ).distinct()
-    
+
     @action(detail=True, methods=['post'], url_path='generate-allure-report')
     def generate_allure_report(self, request, pk=None):
         """生成Allure报告数据"""
         execution = self.get_object()
-        
+
         try:
-            # 创建报告目录
-            results_dir = os.path.join(settings.MEDIA_ROOT, 'api-testing', 'allure-results', f'execution_{execution.id}')
+            # 创建报告目录 - 使用配置项
+            results_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_RESULTS_DIR,
+                                       f'execution_{execution.id}')
             os.makedirs(results_dir, exist_ok=True)
-            
+
             # 生成测试结果文件
             self._generate_test_result_files(execution, results_dir)
-            
-            # 生成Allure报告
-            report_output_dir = os.path.join(settings.MEDIA_ROOT, 'api-testing', 'allure-reports', f'execution_{execution.id}')
+
+            # 生成Allure报告 - 使用配置项
+            report_output_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_REPORTS_DIR,
+                                             f'execution_{execution.id}')
             os.makedirs(report_output_dir, exist_ok=True)
-            
+
             # 使用Allure命令行工具生成完整报告
             import subprocess
             import shutil
             import time
             from pathlib import Path
-            
+
             # 检查 Java 环境
             java_available = self._check_java_environment()
             if not java_available:
                 logger.warning("Java 环境未配置，将使用简单报告")
 
-            # Allure命令行工具路径 - 使用相对路径
-            # views.py 在 backend/apps/api_testing/，所以需要向上3级到项目根目录
+            # Allure命令行工具路径 - 使用配置项
             project_root = Path(__file__).resolve().parent.parent.parent.parent
-            
+            allure_bin_path = settings.ALLURE_BIN_PATH
+
             # 根据操作系统确定可执行文件名
             if os.name == 'nt':
                 allure_executable = 'allure.bat'
             else:
                 allure_executable = 'allure'
-                
-            allure_cmd = base_dir / 'allure' / 'bin' / allure_executable
-            allure_cmd = str(project_root / 'expand' / 'allure' / 'bin' / allure_executable)
+
+            # 使用配置项中的 Allure 路径
+            if os.path.isabs(allure_bin_path):
+                allure_cmd = Path(allure_bin_path) / allure_executable
+            else:
+                allure_cmd = project_root / allure_bin_path / allure_executable
 
             if not allure_cmd.exists():
                 logger.warning(f"Allure command not found at: {allure_cmd}, trying system paths")
@@ -1042,7 +1051,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                     if path.exists():
                         allure_cmd = path
                         break
-            
+
             # 确保所有目录存在
             os.makedirs(results_dir, exist_ok=True)
 
@@ -1087,14 +1096,14 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                                     '--clean',
                                     '--output', str(Path(report_output_dir))
                                 ]
-                            
+
                             # 生成Allure报告
                             result = subprocess.run(
                                 cmd_list,
                                 check=True,
                                 capture_output=True,
                                 text=True,
-                                timeout=30
+                                timeout=settings.TIMEOUTS_ALLURE_REPORT
                             )
                             logger.info(f"Allure 报告生成成功: {result.stdout}")
                             break
@@ -1145,7 +1154,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
 """
                 with open(os.path.join(report_output_dir, 'index.html'), 'w', encoding='utf-8') as f:
                     f.write(fallback_html)
-            
+
             # 创建自定义的summary.html页面作为报告概览
             status_class = "status-passed" if execution.status == "COMPLETED" else "status-failed"
             index_content = f"""
@@ -1154,6 +1163,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
 <head>
     <meta charset="UTF-8">
     <title>测试报告概览 - {execution.test_suite.name}</title>
+    <link rel="icon" href="/src/assets/images/logo.svg" type="image/x-icon">
     <style>
         body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -1361,7 +1371,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                     状态: {execution.get_status_display()}
                 </div>
                 <span class="execution-time">
-                    执行时间: {execution.created_at.strftime('%Y-%m-%d %H:%M:%S') if execution.created_at else 'N/A'}
+                    执行时间: {timezone.localtime(execution.created_at).strftime('%Y-%m-%d %H:%M:%S') if execution.created_at else 'N/A'}
                 </span>
             </div>
             
@@ -1384,7 +1394,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
         <div class="test-results">
             <h2>测试结果详情</h2>
 """
-            
+
             # 添加测试结果列表
             if execution.results:
                 for i, result in enumerate(execution.results):
@@ -1394,18 +1404,18 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
             <div class="test-result-item {result_class}">
                 <div class="test-header">
                     <span class="test-method {method_class}">{result.get('method', 'GET')}</span>
-                    <span class="test-name">{result.get('name', f'测试请求 {i+1}')}</span>
+                    <span class="test-name">{result.get('name', f'测试请求 {i + 1}')}</span>
                 </div>
                 <div class="test-url">{result.get('url', '')}</div>
                 <div><strong>状态:</strong> {'通过' if result.get('passed', False) else '失败'}</div>
                 {f'<div class="test-error"><strong>错误:</strong> {result.get("error", "")}</div>' if result.get('error') else ""}
             </div>
 """
-            
+
             index_content += f"""
         </div>
         <div class="footer">
-            <p>报告生成时间: {execution.created_at.strftime('%Y-%m-%d %H:%M:%S') if execution.created_at else 'N/A'}</p>
+            <p>报告生成时间: {timezone.localtime(execution.created_at).strftime('%Y-%m-%d %H:%M:%S') if execution.created_at else 'N/A'}</p>
         </div>
     </div>
 </body>
@@ -1415,10 +1425,10 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
             summary_file = os.path.join(report_output_dir, 'summary.html')
             with open(summary_file, 'w', encoding='utf-8') as f:
                 f.write(index_content)
-            
+
             return Response({
                 'message': 'Allure报告生成成功',
-                'report_url': f'/media/api-testing/allure-reports/execution_{execution.id}/summary.html'
+                'report_url': f'/api-testing-reports/execution_{execution.id}/summary.html'
             })
         except Exception as e:
             import traceback
@@ -1429,7 +1439,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                 'error': error_detail,
                 'detail': error_traceback
             }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     def _check_java_environment(self):
         """检查 Java 运行环境是否可用"""
         try:
@@ -1487,14 +1497,14 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
             for i, result in enumerate(execution.results):
                 request_result = {
                     "uuid": f"{execution.id}-{i}",
-                    "name": result.get('name', f'测试请求 {i+1}'),
+                    "name": result.get('name', f'测试请求 {i + 1}'),
                     "status": "passed" if result.get('passed', False) else "failed",
                     "stage": "finished",
                     "start": int(time.time() * 1000) - 1000,  # 模拟开始时间
                     "stop": int(time.time() * 1000),  # 模拟结束时间
                     "description": f"Method: {result.get('method', 'GET')}\nURL: {result.get('url', '')}",
                     "historyId": f"{execution.test_suite.id}-{i}",
-                    "fullName": f"{execution.test_suite.name} / {result.get('name', f'请求 {i+1}')}",
+                    "fullName": f"{execution.test_suite.name} / {result.get('name', f'请求 {i + 1}')}",
                     "links": [],
                     "labels": [
                         {"name": "suite", "value": execution.test_suite.name},
@@ -1525,14 +1535,14 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
                         }
                     ]
                 }
-                
+
                 # 添加错误信息（如果有的话）
                 if result.get('error'):
                     request_result["statusDetails"] = {
                         "message": result.get('error'),
                         "trace": ""
                     }
-                
+
                 # 保存请求结果
                 request_file_path = os.path.join(report_dir, f'{execution.id}-{i}-result.json')
                 with open(request_file_path, 'w', encoding='utf-8') as f:
@@ -1562,36 +1572,36 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['created_at', 'updated_at', 'last_run_time']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         """根据用户权限过滤任务"""
         queryset = super().get_queryset()
-        
+
         # 管理员可以看到所有任务
         if self.request.user.is_staff:
             return queryset
-        
+
         # 普通用户只能看到自己创建的任务
         return queryset.filter(created_by=self.request.user)
-    
+
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
         """立即执行定时任务"""
         import logging
         logger = logging.getLogger(__name__)
         logger.info("=== run_now 方法被调用 ===")
-        
+
         task = self.get_object()
         logger.info(f"获取任务对象: {task.id} - {task.name}")
-        
+
         # 检查权限
         if not request.user.is_staff and task.created_by != request.user:
             logger.info("权限检查失败")
             return Response(
-                {'error': '无权执行此任务'}, 
+                {'error': '无权执行此任务'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         try:
             # 创建执行日志
             execution_log = TaskExecutionLog.objects.create(
@@ -1600,102 +1610,102 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                 executed_by=request.user
             )
             logger.info(f"创建执行日志: {execution_log.id}")
-            
+
             # 异步执行任务
             logger.info("调用 _execute_task_async 方法")
             self._execute_task_async(task, execution_log)
-            
+
             logger.info("任务开始执行")
             return Response(
                 {'message': '任务已开始执行', 'execution_id': execution_log.id},
                 status=status.HTTP_200_OK
             )
-            
+
         except Exception as e:
             return Response(
                 {'error': f'执行任务失败: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
+
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         """激活定时任务"""
         task = self.get_object()
-        
+
         if task.status == 'ACTIVE':
             return Response(
                 {'error': '任务已经是激活状态'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         task.status = 'ACTIVE'
         task.next_run_time = task.calculate_next_run()
         task.save()
-        
+
         return Response(
             {'message': '任务已激活', 'next_run_time': task.next_run_time},
             status=status.HTTP_200_OK
         )
-    
+
     @action(detail=True, methods=['post'])
     def pause(self, request, pk=None):
         """暂停定时任务"""
         task = self.get_object()
-        
+
         if task.status == 'PAUSED':
             return Response(
                 {'error': '任务已经是暂停状态'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         task.status = 'PAUSED'
         task.next_run_time = None
         task.save()
-        
+
         return Response(
             {'message': '任务已暂停'},
             status=status.HTTP_200_OK
         )
-    
+
     @action(detail=True, methods=['get'])
     def execution_logs(self, request, pk=None):
         """获取任务执行日志"""
         task = self.get_object()
-        
+
         # 检查权限
         if not request.user.is_staff and task.created_by != request.user:
             return Response(
-                {'error': '无权查看此任务的执行日志'}, 
+                {'error': '无权查看此任务的执行日志'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         logs = TaskExecutionLog.objects.filter(task=task).order_by('-created_at')
         page = self.paginate_queryset(logs)
-        
+
         if page is not None:
             serializer = TaskExecutionLogSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = TaskExecutionLogSerializer(logs, many=True)
         return Response(serializer.data)
-    
+
     def _execute_task_async(self, task, execution_log):
         """异步执行任务"""
         import threading
         from datetime import datetime
-        
+
         # 添加测试日志
         import logging
         logger = logging.getLogger(__name__)
         logger.info("=== _execute_task_async 方法被调用 ===")
-        
+
         def execute():
             try:
                 # 更新执行状态
                 execution_log.status = 'RUNNING'
                 execution_log.start_time = timezone.now()
                 execution_log.save()
-                
+
                 # 执行任务
                 if task.task_type == 'TEST_SUITE':
                     result = self._execute_test_suite(task)
@@ -1703,18 +1713,18 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                     result = self._execute_api_request(task)
                 else:
                     raise ValueError(f"未知的任务类型: {task.task_type}")
-                
+
                 # 更新执行结果
                 execution_log.status = 'COMPLETED'
                 execution_log.end_time = timezone.now()
                 execution_log.result = result
                 execution_log.save()
-                
+
                 # 更新任务统计
                 task.update_run_stats(success=True)
                 task.last_result = result
                 task.save()
-                
+
                 logger.info("=== 开始检查发送成功通知 ===")
                 # 发送通知（如果配置了）
                 # 检查任务是否有通知设置
@@ -1724,7 +1734,8 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         notification_setting = task.notification_settings.first()
                         logger.info(f"获取到通知设置: {notification_setting}")
                         if notification_setting:
-                            logger.info(f"通知设置详情 - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 成功通知: {notification_setting.notify_on_success}")
+                            logger.info(
+                                f"通知设置详情 - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 成功通知: {notification_setting.notify_on_success}")
                         else:
                             logger.info("没有找到通知设置")
                     except Exception as e:
@@ -1733,7 +1744,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         traceback.print_exc()
                 else:
                     logger.info("任务没有notification_settings属性")
-                
+
                 if notification_setting and notification_setting.is_enabled:
                     logger.info("通知设置已启用，准备发送成功通知")
                     if notification_setting.notify_on_success:
@@ -1744,19 +1755,19 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                 else:
                     logger.info("通知设置未启用或不存在，跳过成功通知")
                 logger.info("=== 结束检查发送成功通知 ===")
-                
+
             except Exception as e:
                 # 记录执行失败
                 execution_log.status = 'FAILED'
                 execution_log.end_time = timezone.now()
                 execution_log.error_message = str(e)
                 execution_log.save()
-                
+
                 # 更新任务统计
                 task.update_run_stats(success=False)
                 task.error_message = str(e)
                 task.save()
-                
+
                 logger.info("=== 开始检查发送失败通知 ===")
                 # 发送失败通知（如果配置了）
                 # 检查任务是否有通知设置
@@ -1766,7 +1777,8 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         notification_setting = task.notification_settings.first()
                         logger.info(f"获取到通知设置（失败情况）: {notification_setting}")
                         if notification_setting:
-                            logger.info(f"通知设置详情（失败情况） - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 失败通知: {notification_setting.notify_on_failure}")
+                            logger.info(
+                                f"通知设置详情（失败情况） - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 失败通知: {notification_setting.notify_on_failure}")
                         else:
                             logger.info("没有找到通知设置（失败情况）")
                     except Exception as e:
@@ -1775,7 +1787,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         traceback.print_exc()
                 else:
                     logger.info("任务没有notification_settings属性（失败情况）")
-                
+
                 if notification_setting and notification_setting.is_enabled:
                     logger.info("通知设置已启用，准备发送失败通知")
                     if notification_setting.notify_on_failure:
@@ -1786,34 +1798,34 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                 else:
                     logger.info("通知设置未启用或不存在，跳过失败通知")
                 logger.info("=== 结束检查发送失败通知 ===")
-        
+
         # 在新线程中执行
         thread = threading.Thread(target=execute)
         thread.daemon = True
         thread.start()
-    
+
     def _execute_test_suite(self, task):
         """执行测试套件"""
         from .utils import execute_test_suite
-        
+
         result = execute_test_suite(
-            task.test_suite, 
-            task.environment, 
+            task.test_suite,
+            task.environment,
             task.created_by
         )
         return result
-    
+
     def _execute_api_request(self, task):
         """执行API请求"""
         from .utils import execute_api_request
-        
+
         result = execute_api_request(
-            task.api_request, 
-            task.environment, 
+            task.api_request,
+            task.environment,
             task.created_by
         )
         return result
-    
+
     def _send_notification(self, task, execution_log, success=True):
         """发送通知邮件"""
         try:
@@ -1858,12 +1870,12 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
 
             # 获取通知配置
             notification_config = notification_setting.get_notification_config()
-            
+
             # 检查是否有通知配置或自定义配置
             has_config = notification_config is not None
             has_custom_bots = bool(notification_setting.custom_webhook_bots)
             has_custom_recipients = notification_setting.custom_recipients.exists()
-            
+
             if not (has_config or has_custom_bots or has_custom_recipients):
                 logger.warning("没有找到通知配置且无自定义设置")
                 return
@@ -1918,7 +1930,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
             message = f"""
             任务名称: {task.name}
             执行状态: {'成功' if success else '失败'}
-            执行时间: {execution_log.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+            执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
             任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}
 
             执行概要:
@@ -2089,7 +2101,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
 
 执行状态: {status_text}
 
-执行时间: {execution_log.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
 
 任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"""
                         }
@@ -2101,7 +2113,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                             "elements": [{
                                 "tag": "div",
                                 "text": {
-                                    "content": f"**定时任务执行{status_text}**\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {execution_log.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}",
+                                    "content": f"**定时任务执行{status_text}**\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}",
                                     "tag": "lark_md"
                                 }
                             }],
@@ -2125,7 +2137,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
 
 执行状态: {status_text}
 
-执行时间: {execution_log.created_at.strftime('%Y-%m-%d %H:%M:%S')}
+执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
 
 任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"""
                         }
@@ -2161,7 +2173,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         logger.info("钉钉机器人未配置签名密钥，使用无签名模式")
                 else:  # 通用格式
                     message_data = {
-                        "text": f"定时任务执行{status_text}\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {execution_log.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"
+                        "text": f"定时任务执行{status_text}\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"
                     }
 
                 # 发送webhook请求
@@ -2170,7 +2182,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         webhook_url,
                         json=message_data,
                         headers={'Content-Type': 'application/json'},
-                        timeout=10
+                        timeout=settings.TIMEOUTS_API_REQUEST
                     )
                     response.raise_for_status()
                     logger.info(f"Webhook通知发送成功 - {bot_type}: {response.status_code}")
@@ -2240,14 +2252,12 @@ class TaskExecutionLogViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['task', 'status']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         user = self.request.user
         return TaskExecutionLog.objects.filter(
             task__created_by=user
         ).select_related('task', 'executed_by')
-
-
 
 
 # ================ 通知管理相关视图集 ================
@@ -2261,7 +2271,7 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['status', 'notification_type']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         user = self.request.user
         # 修复查询逻辑：通过任务的创建者或相关项目过滤通知日志
@@ -2278,7 +2288,7 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
                 task__created_by=user
             )
         ).distinct()
-    
+
     @action(detail=True, methods=['get'], url_path='detail')
     def get_notification_detail(self, request, pk=None):
         """获取通知详情"""
@@ -2295,7 +2305,7 @@ class TaskNotificationSettingViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['task', 'is_enabled']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         user = self.request.user
         return TaskNotificationSetting.objects.filter(
@@ -2311,7 +2321,7 @@ class TaskNotificationSettingViewSet(viewsets.ModelViewSet):
                 task__created_by=user
             )
         ).distinct()
-    
+
     @action(detail=True, methods=['post'], url_path='update-settings')
     def update_notification_settings(self, request, pk=None):
         """更新通知设置"""
@@ -2319,13 +2329,11 @@ class TaskNotificationSettingViewSet(viewsets.ModelViewSet):
         serializer = TaskNotificationSettingDetailSerializer(setting, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        
+
         return Response(serializer.data)
 
 
 # ================ 通知管理相关模型 ================
-
-
 
 
 class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -2336,7 +2344,7 @@ class OperationLogViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['operation_type', 'resource_type', 'user']
     ordering = ['-created_at']
-    
+
     def get_queryset(self):
         """只返回当前用户相关的操作日志"""
         user = self.request.user
@@ -2352,7 +2360,7 @@ class ApiDashboardViewSet(viewsets.ViewSet):
     def stats(self, request):
         """获取仪表盘统计数据"""
         user = request.user
-        
+
         # 获取用户可访问的项目ID列表
         accessible_projects = ApiProject.objects.filter(
             models.Q(owner=user) | models.Q(members=user)
@@ -2361,17 +2369,17 @@ class ApiDashboardViewSet(viewsets.ViewSet):
 
         # 统计数据
         project_count = accessible_projects.count()
-        
+
         # 接口数量 (通过项目关联)
         interface_count = ApiRequest.objects.filter(
             collection__project_id__in=project_ids
         ).count()
-        
+
         # 测试套件数量
         suite_count = TestSuite.objects.filter(
             project_id__in=project_ids
         ).count()
-        
+
         # 执行记录数量 (仅统计当前用户有权访问的)
         history_count = RequestHistory.objects.filter(
             request__collection__project_id__in=project_ids
@@ -2428,7 +2436,7 @@ class AIServiceConfigViewSet(viewsets.ModelViewSet):
                 f"{config.base_url}/chat/completions",
                 headers=headers,
                 json=test_data,
-                timeout=10
+                timeout=settings.TIMEOUTS_API_REQUEST
             )
 
             if response.status_code == 200:
@@ -2529,7 +2537,7 @@ URL参数:
                 f"{config.base_url}/chat/completions",
                 headers=headers,
                 json=ai_data,
-                timeout=30
+                timeout=settings.TIMEOUTS_API_REQUEST
             )
 
             if response.status_code == 200:
@@ -2601,7 +2609,7 @@ URL参数:
                 f"{config.base_url}/chat/completions",
                 headers=headers,
                 json=ai_data,
-                timeout=30
+                timeout=settings.TIMEOUTS_API_REQUEST
             )
 
             if response.status_code == 200:
@@ -2677,7 +2685,7 @@ URL参数:
                 f"{config.base_url}/chat/completions",
                 headers=headers,
                 json=ai_data,
-                timeout=30
+                timeout=settings.TIMEOUTS_API_REQUEST
             )
 
             if response.status_code == 200:
@@ -2764,7 +2772,7 @@ URL参数: {json.dumps(request_data['params'], ensure_ascii=False)}
                 f"{config.base_url}/chat/completions",
                 headers=headers,
                 json=ai_data,
-                timeout=30
+                timeout=settings.TIMEOUTS_API_REQUEST
             )
 
             if response.status_code == 200:

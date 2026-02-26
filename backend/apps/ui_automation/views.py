@@ -3055,8 +3055,8 @@ class AICaseViewSet(viewsets.ModelViewSet):
             if os.path.exists(default_gif_path):
                 import shutil
 
-                # 创建录制文件目录
-                gif_dir = os.path.join(settings.MEDIA_ROOT, 'ai_recording')
+                # 创建录制文件目录 - 使用配置文件中的路径
+                gif_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_AI_RECORDING)
                 os.makedirs(gif_dir, exist_ok=True)
 
                 # 生成新的文件名：用例名称+年月日时分秒
@@ -3070,8 +3070,8 @@ class AICaseViewSet(viewsets.ModelViewSet):
                 # 移动并重命名文件
                 shutil.move(default_gif_path, new_gif_path)
 
-                # 保存相对路径到数据库（使用正斜杠，确保跨平台兼容）
-                relative_path = f'media/ai_recording/{new_gif_filename}'
+                # 保存相对路径到数据库（使用正斜杠，确保跨平台兼容）- 使用配置文件中的路径
+                relative_path = f'media/{settings.ALLURE_AI_RECORDING}/{new_gif_filename}'
                 execution_record.gif_path = relative_path
 
                 logger.info(f"✅ GIF recording saved to: {relative_path}")
@@ -3423,8 +3423,8 @@ class AIExecutionRecordViewSet(viewsets.ModelViewSet):
             if os.path.exists(default_gif_path):
                 import shutil
 
-                # 创建录制文件目录
-                gif_dir = os.path.join(settings.MEDIA_ROOT, 'ai_recording')
+                # 创建录制文件目录 - 使用配置文件中的路径
+                gif_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_AI_RECORDING)
                 os.makedirs(gif_dir, exist_ok=True)
 
                 # 生成新的文件名：用例名称+年月日时分秒
@@ -3438,8 +3438,8 @@ class AIExecutionRecordViewSet(viewsets.ModelViewSet):
                 # 移动并重命名文件
                 shutil.move(default_gif_path, new_gif_path)
 
-                # 保存相对路径到数据库（使用正斜杠，确保跨平台兼容）
-                relative_path = f'media/ai_recording/{new_gif_filename}'
+                # 保存相对路径到数据库（使用正斜杠，确保跨平台兼容）- 使用配置文件中的路径
+                relative_path = f'media/{settings.ALLURE_AI_RECORDING}/{new_gif_filename}'
                 execution_record.gif_path = relative_path
 
                 logger.info(f"✅ GIF recording saved to: {relative_path}")
