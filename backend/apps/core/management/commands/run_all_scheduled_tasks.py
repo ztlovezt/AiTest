@@ -549,8 +549,9 @@ class Command(BaseCommand):
                             task.test_suite.execution_status = 'running'
                             task.test_suite.save(update_fields=['execution_status'])
 
-                            from .....apps.app_automation.tasks import execute_app_suite_task
-                            execute_app_suite_task.delay(
+                            from django_q.tasks import async_task
+                            async_task(
+                                'apps.app_automation.tasks_async.execute_app_suite_task',
                                 suite_id=task.test_suite.id,
                                 execution_ids=[e.id for e in executions],
                                 package_name=package_name,
@@ -564,13 +565,14 @@ class Command(BaseCommand):
                                 user=task.created_by,
                                 status='pending'
                             )
-                            from .....apps.app_automation.tasks import execute_app_test_task
-                            celery_task = execute_app_test_task.delay(
+                            from django_q.tasks import async_task
+                            task_id = async_task(
+                                'apps.app_automation.tasks_async.execute_app_test_task',
                                 execution.id,
                                 package_name=package_name,
                                 scheduled_task_id=task.id,
                             )
-                            execution.task_id = celery_task.id
+                            execution.task_id = task_id
                             execution.save(update_fields=['task_id'])
 
                         else:

@@ -21,7 +21,7 @@ class ExcludeErrorsFilter(logging.Filter):
 SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
                                                             'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm5'))
 
-DEBUG = config('DEBUG', default=config_loader.get('server.debug', False), cast=bool)
+DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bool)
 
 # ================================
 # 服务端口配置
@@ -56,6 +56,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'channels',
+    'django_q',  # 替换 Celery 为 Django-Q2（注意：应用名是 django_q，不是 django_q2）
 ]
 
 LOCAL_APPS = [
@@ -153,6 +154,11 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# 静态文件目录配置 - 不能包含 STATIC_ROOT
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static_files'),
+]
 
 # 数据工厂的静态文件目录
 STATIC_FILES_URL = '/static_files/'
@@ -289,55 +295,77 @@ else:
     CSRF_COOKIE_SAMESITE = 'Strict'
 
 # CORS Settings
-cors_origins_str = config('CORS_ALLOWED_ORIGINS', default=config_loader.get('cors.allowed_origins', ''))
-parsed_cors_origins = [s.strip() for s in cors_origins_str.split(',') if s.strip()]
+# 优先使用 config.yaml 中的跨域配置
+cors_origins_config = config_loader.get('cors.allowed_origins', [])
+# 如果 config.yaml 中没有配置，再从环境变量中获取
+if not cors_origins_config:
+    cors_origins_config = config('CORS_ALLOWED_ORIGINS', default='')
+
+# 处理 CORS 配置：支持字符串（逗号分隔）和列表格式
+if isinstance(cors_origins_config, list):
+    parsed_cors_origins = cors_origins_config
+elif isinstance(cors_origins_config, str):
+    parsed_cors_origins = [s.strip() for s in cors_origins_config.split(',') if s.strip()]
+else:
+    parsed_cors_origins = []
 
 if DEBUG:
-    # 开发环境默认允许本地地址，同时合并环境变量里的配置
-    # 优先使用环境变量配置的地址，确保服务器IP优先级最高
+    # 开发环境默认允许本地地址，同时合并配置里的地址
+    # 优先使用 config.yaml 配置的地址，确保服务器IP优先级最高
     CORS_ALLOWED_ORIGINS = [
-        *parsed_cors_origins,  # 环境变量配置的地址优先
+        *parsed_cors_origins,  # config.yaml 配置的地址优先
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
     ]
-    CORS_ALLOW_CREDENTIALS = True
-    # 支持EventSource (SSE) 的额外CORS头部
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'cache-control',  # 添加 SSE 需要的头部
-    ]
+    # 从 config.yaml 中读取 CORS 配置
+    CORS_ALLOW_CREDENTIALS = config_loader.get('cors.allow_credentials', True)
+    # 从 config.yaml 中读取允许的请求头
+    allowed_headers = config_loader.get('cors.allowed_headers', [])
+    # 如果 config.yaml 中没有配置，使用默认值
+    if not allowed_headers:
+        allowed_headers = [
+            'accept',
+            'accept-encoding',
+            'authorization',
+            'content-type',
+            'dnt',
+            'origin',
+            'user-agent',
+            'x-csrftoken',
+            'x-requested-with',
+            'cache-control',  # 添加 SSE 需要的头部
+        ]
+    CORS_ALLOW_HEADERS = allowed_headers
 else:
     # 生产环境 CORS 配置
     if parsed_cors_origins:
-        # 如果配置了 CORS_ALLOWED_ORIGINS，使用配置的值
+        # 如果在 config.yaml 或环境变量中配置了 CORS_ALLOWED_ORIGINS，使用配置的值
         CORS_ALLOWED_ORIGINS = parsed_cors_origins
     else:
         # 如果未配置，允许所有来源（可根据需求调整）
         CORS_ALLOW_ALL_ORIGINS = True
 
-    CORS_ALLOW_CREDENTIALS = True
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'cache-control',  # 添加 SSE 需要的头部
-    ]
+    # 从 config.yaml 中读取 CORS 配置
+    CORS_ALLOW_CREDENTIALS = config_loader.get('cors.allow_credentials', True)
+    # 从 config.yaml 中读取允许的请求头
+    allowed_headers = config_loader.get('cors.allowed_headers', [])
+    # 如果 config.yaml 中没有配置，使用默认值
+    if not allowed_headers:
+        allowed_headers = [
+            'accept',
+            'accept-encoding',
+            'authorization',
+            'content-type',
+            'dnt',
+            'origin',
+            'user-agent',
+            'x-csrftoken',
+            'x-requested-with',
+            'cache-control',  # 添加 SSE 需要的头部
+        ]
+    CORS_ALLOW_HEADERS = allowed_headers
     # SSE 需要的额外配置
     CORS_EXPOSE_HEADERS = ['Content-Type', 'Cache-Control']
 
@@ -385,10 +413,21 @@ else:
 # 开发环境和生产环境都使用配置的Redis
 REDIS_URL = config('REDIS_URL', default=config_loader.get('redis.url', 'redis://127.0.0.1:6379/0'))
 
-# Celery配置
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Django-Q2 配置（替换 Celery）
+Q_CLUSTER = {
+    'name': 'testhub',
+    'workers': 2,              # 工作进程数，根据服务器配置做调整
+    'timeout': 90,             # 任务超时时间（秒）
+    'retry': 120,              # 重试时间（秒）
+    'queue_limit': 50,         # 队列限制
+    'bulk': 10,                # 批量处理数量
+    'orm': 'default',          # 数据库配置
+    'save_limit': 250,         # 保存限制
+    'cpu_affinity': 1,         # CPU 亲和性
+    'label': 'Django Q',
+    'redis': REDIS_URL,        # Redis 配置
+    'sync': False,             # 异步模式
+}
 
 # Cache配置
 # 使用 Redis 缓存（生产环境推荐）
@@ -567,8 +606,8 @@ SIMPLEUI_HOME_QUICK = True
 SIMPLEUI_HOME_ACTION = True
 # 使用分析
 SIMPLEUI_ANALYSIS = False
-# 离线模式
-SIMPLEUI_STATIC_OFFLINE = True
+# 离线模式 - 暂时禁用以使用在线资源
+SIMPLEUI_STATIC_OFFLINE = False
 # True或None 默认显示加载遮罩层，指定为False 不显示遮罩层。默认显示
 SIMPLEUI_LOADING = True
 # 设置菜单icon，参考https://element.eleme.cn/#/zh-CN/component/icon

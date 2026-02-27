@@ -83,9 +83,9 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
                     return Response({'success': False, 'message': '测试套件没有用例'},
                                     status=status.HTTP_400_BAD_REQUEST)
 
-                # 创建执行记录并调用 Celery
+                # 创建执行记录并调用 Django-Q2 异步任务
                 from ..models import AppTestExecution
-                from ..tasks import execute_app_suite_task
+                from ..tasks_async import execute_app_suite_task
 
                 executions = []
                 for sc in suite_cases:
@@ -101,9 +101,11 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
                 task.test_suite.execution_status = 'running'
                 task.test_suite.save(update_fields=['execution_status'])
 
-                celery_task = execute_app_suite_task.delay(
-                    suite_id=task.test_suite.id,
-                    execution_ids=[e.id for e in executions],
+                from django_q.tasks import async_task
+                task_id = async_task(
+                    'apps.app_automation.tasks_async.execute_app_suite_task',
+                    task.test_suite.id,
+                    [e.id for e in executions],
                     package_name=package_name,
                     scheduled_task_id=task.id,
                 )
@@ -111,7 +113,7 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
                 return Response({
                     'success': True,
                     'message': f'测试套件开始执行，共 {len(executions)} 个用例',
-                    'data': {'task_id': celery_task.id, 'test_case_count': len(executions)}
+                    'data': {'task_id': task_id, 'test_case_count': len(executions)}
                 })
 
             elif task.task_type == 'TEST_CASE':
@@ -120,7 +122,7 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
                                     status=status.HTTP_400_BAD_REQUEST)
 
                 from ..models import AppTestExecution
-                from ..tasks import execute_app_test_task
+                from django_q.tasks import async_task
 
                 execution = AppTestExecution.objects.create(
                     test_case=task.test_case,
@@ -128,18 +130,19 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
                     user=request.user,
                     status='pending'
                 )
-                celery_task = execute_app_test_task.delay(
+                task_id = async_task(
+                    'apps.app_automation.tasks_async.execute_app_test_task',
                     execution.id,
                     package_name=package_name,
                     scheduled_task_id=task.id,
                 )
-                execution.task_id = celery_task.id
+                execution.task_id = task_id
                 execution.save(update_fields=['task_id'])
 
                 return Response({
                     'success': True,
                     'message': '测试用例开始执行',
-                    'data': {'task_id': celery_task.id}
+                    'data': {'task_id': task_id}
                 })
 
             return Response({'success': False, 'message': '不支持的任务类型'},

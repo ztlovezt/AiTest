@@ -425,7 +425,8 @@ python manage.py runserver
 10. **启动Celery服务**
 ```bash
 # 启动 Celery 开发服务(可选，用于处理APP自动化任务)
-celery -A backend worker -l info
+# celery -A backend worker -l info
+python manage.py qcluster
 ```
 
 ### 数据工厂模块初始化
