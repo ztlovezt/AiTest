@@ -49,14 +49,14 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_simplejwt',  # 添加JWT支持
+    'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # JWT token黑名单
     'corsheaders',
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'channels',
-    'django_q',  # 替换 Celery 为 Django-Q2（注意：应用名是 django_q，不是 django_q2）
+    'django_q',
 ]
 
 LOCAL_APPS = [
@@ -151,6 +151,17 @@ LANGUAGE_CODE = config('LANGUAGE_CODE', default='zh-hans')
 TIME_ZONE = config('TIME_ZONE', default='Asia/Shanghai')
 USE_I18N = True
 USE_TZ = True
+
+# 国际化配置 - 支持简体中文和英文
+LANGUAGES = [
+    ('zh-hans', '简体中文'),
+    ('en', 'English'),
+]
+
+# 翻译文件路径
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
@@ -424,7 +435,7 @@ Q_CLUSTER = {
     'orm': 'default',          # 数据库配置
     'save_limit': 250,         # 保存限制
     'cpu_affinity': 1,         # CPU 亲和性
-    'label': 'Django Q',
+    'label': '任务队列',        # Admin 菜单显示名称
     'redis': REDIS_URL,        # Redis 配置
     'sync': False,             # 异步模式
 }
@@ -607,7 +618,7 @@ SIMPLEUI_HOME_ACTION = True
 # 使用分析
 SIMPLEUI_ANALYSIS = False
 # 离线模式 - 暂时禁用以使用在线资源
-SIMPLEUI_STATIC_OFFLINE = False
+SIMPLEUI_STATIC_OFFLINE = True
 # True或None 默认显示加载遮罩层，指定为False 不显示遮罩层。默认显示
 SIMPLEUI_LOADING = True
 # 设置菜单icon，参考https://element.eleme.cn/#/zh-CN/component/icon
