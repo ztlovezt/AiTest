@@ -363,8 +363,9 @@ export default {
       // 复用RequirementAnalysisView中的解析逻辑
       if (!content) return []
 
-      // 去除markdown加粗标记，保留纯净文本
-      let cleanContent = content.replace(/\*\*([^*]+)\*\*/g, '$1')
+      // 去除markdown加粗标记 **text**，保留纯文本
+      // 注意：这可能会影响后续的表格解析（例如整行被加粗），但为了内容展示需要
+      cleanContent = cleanContent.replace(/\*\*([^*]+)\*\*/g, '$1')
 
       const lines = cleanContent.split('\n').filter(line => line.trim())
       const testCases = []
@@ -374,10 +375,40 @@ export default {
       const tableData = []
 
       for (let line of lines) {
-        const trimmedLine = line.trim()
-        if (trimmedLine.includes('|') && !trimmedLine.includes('--------')) {
-          const cells = trimmedLine.split('|').map(cell => cell.trim()).filter(cell => cell)
-          if (cells.length > 1) {
+        let trimmedLine = line.trim()
+        
+        // 兼容处理：如果整行被加粗但没有被上面的正则替换掉（例如 | **text** |），再次尝试清理
+        if (trimmedLine.startsWith('**') && trimmedLine.endsWith('**')) {
+             trimmedLine = trimmedLine.substring(2, trimmedLine.length - 2)
+        }
+        
+        // 检查是否是表格行：必须包含 | 且不是分隔线
+        // 增强分隔线检查：排除 ---, :---, ---: 等组合
+        
+        // 关键修复：trimmedLine 已经被替换了 **，所以不能再用它来判断是否是分隔线
+        // 使用原始行判断是否为表格行，因为加粗标记可能在清理过程中被移除，导致判断失败
+        // 注意：line.trim() 也可能包含加粗标记，所以正则需要处理
+        const checkLine = line.trim()
+        // 移除所有加粗标记后再判断
+        const cleanCheckLine = checkLine.replace(/\*\*([^*]+)\*\*/g, '$1')
+        
+        // 分隔线通常只包含 | - : 和空白字符
+        // 如果 cleanCheckLine（去除加粗后）只包含这些字符，那它就是分隔线，应该跳过
+        // 但是，正常的表格行内容也可能包含这些字符，所以判断要更严格
+        // 分隔线行通常至少包含3个连字符 ---
+        const isSeparatorLine = /^[\s|:\-]+$/.test(cleanCheckLine) && cleanCheckLine.includes('---')
+        
+        if (checkLine.includes('|') && !isSeparatorLine) {
+          // 不使用 filter(cell => cell) 以保留空单元格，防止列错位
+          const parts = trimmedLine.split('|')
+          // 去除首尾的空字符串（Markdown表格通常以|开头和结尾）
+          if (parts.length > 0 && parts[0].trim() === '') parts.shift()
+          if (parts.length > 0 && parts[parts.length - 1].trim() === '') parts.pop()
+          
+          const cells = parts.map(cell => cell.trim())
+          
+          // 只要有内容就认为是有效行
+          if (cells.length > 0) {
             tableData.push(cells)
             isTableFormat = true
           }

@@ -116,8 +116,8 @@ class Command(BaseCommand):
     def schedule_api_tasks(self):
         """调度 API 测试模块的定时任务"""
         try:
-            from .....apps.api_testing.models import ScheduledTask
-            from .....apps.api_testing.views import ScheduledTaskViewSet
+            from apps.api_testing.models import ScheduledTask
+            from apps.api_testing.views import ScheduledTaskViewSet
 
             # 获取所有活跃的定时任务
             active_tasks = ScheduledTask.objects.filter(status='ACTIVE')
@@ -143,7 +143,7 @@ class Command(BaseCommand):
                     self.stdout.write(f"       类型: {task.get_task_type_display() if hasattr(task, 'get_task_type_display') else task.task_type}, 触发方式: {task.get_trigger_type_display() if hasattr(task, 'get_trigger_type_display') else task.trigger_type}")
                     try:
                         # 创建执行日志
-                        from .....apps.api_testing.models import TaskExecutionLog
+                        from apps.api_testing.models import TaskExecutionLog
                         execution_log = TaskExecutionLog.objects.create(
                             task=task,
                             status='PENDING'
@@ -170,7 +170,7 @@ class Command(BaseCommand):
     def schedule_ui_tasks(self):
         """调度 UI 自动化模块的定时任务"""
         try:
-            from .....apps.ui_automation.models import UiScheduledTask
+            from apps.ui_automation.models import UiScheduledTask
 
             # 获取所有活跃的定时任务
             active_tasks = UiScheduledTask.objects.filter(status='ACTIVE')
@@ -229,7 +229,7 @@ class Command(BaseCommand):
 
                             # 在后台线程中执行测试
                             import threading
-                            from .....apps.ui_automation.test_executor import TestExecutor
+                            from apps.ui_automation.test_executor import TestExecutor
 
                             def run_test():
                                 try:
@@ -278,7 +278,7 @@ class Command(BaseCommand):
                                         if notification_setting.notify_on_success:
                                             print("       调用 _send_task_notification 方法发送成功通知")
                                             try:
-                                                from .....apps.ui_automation.views import UiScheduledTaskViewSet
+                                                from apps.ui_automation.views import UiScheduledTaskViewSet
                                                 viewset = UiScheduledTaskViewSet()
                                                 viewset._send_task_notification(task, success=True)
                                                 print("       ✓ 成功通知已发送")
@@ -326,7 +326,7 @@ class Command(BaseCommand):
                                         if notification_setting.notify_on_failure:
                                             print("       调用 _send_task_notification 方法发送失败通知")
                                             try:
-                                                from .....apps.ui_automation.views import UiScheduledTaskViewSet
+                                                from apps.ui_automation.views import UiScheduledTaskViewSet
                                                 viewset = UiScheduledTaskViewSet()
                                                 viewset._send_task_notification(task, success=False)
                                                 print("       ✓ 失败通知已发送")
@@ -352,7 +352,7 @@ class Command(BaseCommand):
                                 continue
 
                             # 获取测试用例
-                            from .....apps.ui_automation.models import TestCase as UiTestCase
+                            from apps.ui_automation.models import TestCase as UiTestCase
                             test_cases_list = UiTestCase.objects.filter(id__in=task.test_cases)
 
                             if not test_cases_list.exists():
@@ -368,8 +368,8 @@ class Command(BaseCommand):
 
                             # 为每个测试用例创建一个临时的测试套件来执行
                             import threading
-                            from .....apps.ui_automation.models import TestSuite
-                            from .....apps.ui_automation.test_executor import TestExecutor
+                            from apps.ui_automation.models import TestSuite
+                            from apps.ui_automation.test_executor import TestExecutor
 
                             def run_test_cases():
                                 success_count = 0
@@ -486,7 +486,7 @@ class Command(BaseCommand):
                                     if success and notification_setting.notify_on_success:
                                         print("       调用 _send_task_notification 方法发送成功通知")
                                         try:
-                                            from .....apps.ui_automation.views import UiScheduledTaskViewSet
+                                            from apps.ui_automation.views import UiScheduledTaskViewSet
                                             viewset = UiScheduledTaskViewSet()
                                             viewset._send_task_notification(task, success=True)
                                             print(f"       ✓ 成功通知已发送 (成功:{success_count}, 失败:{failed_count})")
@@ -495,7 +495,7 @@ class Command(BaseCommand):
                                     elif not success and notification_setting.notify_on_failure:
                                         print("       调用 _send_task_notification 方法发送失败通知")
                                         try:
-                                            from .....apps.ui_automation.views import UiScheduledTaskViewSet
+                                            from apps.ui_automation.views import UiScheduledTaskViewSet
                                             viewset = UiScheduledTaskViewSet()
                                             viewset._send_task_notification(task, success=False)
                                             print(f"       ✓ 失败通知已发送 (成功:{success_count}, 失败:{failed_count})")
@@ -535,7 +535,7 @@ class Command(BaseCommand):
     def schedule_app_tasks(self):
         """调度 APP 自动化模块的定时任务"""
         try:
-            from .....apps.app_automation.models import AppScheduledTask, AppTestExecution
+            from apps.app_automation.models import AppScheduledTask, AppTestExecution
 
             active_tasks = AppScheduledTask.objects.filter(status='ACTIVE')
             executed_count = 0

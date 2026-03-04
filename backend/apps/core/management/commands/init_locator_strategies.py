@@ -3,7 +3,7 @@ Django管理命令：初始化定位策略
 用法：python manage.py init_locator_strategies
 """
 from django.core.management.base import BaseCommand
-from .....apps.ui_automation.models import LocatorStrategy
+from apps.ui_automation.models import LocatorStrategy
 
 
 class Command(BaseCommand):

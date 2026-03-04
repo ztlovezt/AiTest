@@ -21,27 +21,23 @@ logs/*
 !logs/*/
 logs/*/*
 !logs/*/.gitkeep
-# 忽略.env配置文件(但保留.env.example示例文件)
-.env
 .sql
-static_files/img/
 .bak
-# 忽略所有 app/*/migrations/ 目录下的所有内容 (包括文件和子目录)
-apps/*/migrations/*
-# 使用否定模式，例外地跟踪 __init__.py 文件
-!apps/*/migrations/__init__.py
+# 保留数据工厂静态文件目录、忽略内容
+static_files/img/*
+!static_files/img/.gitkeep
 
 # 忽略 allure-static 下的所有文件（运行时生成）
-expand/media/media/allure-static/*
-!expand/media/media/allure-static/.gitkeep
+expand/media/allure-static/*
+!expand/media/allure-static/.gitkeep
 
 # 忽略 AI 录屏文件，但保留.gitkeep
-expand/media/media/ai_recording/*
-!expand/media/media/ai_recording/.gitkeep
+expand/media/ai_recording/*
+!expand/media/ai_recording/.gitkeep
 
 # 忽略需求文档上传的文件，但保留.gitkeep
-expand/media/media/requirement_docs/*
-!expand/media/media/requirement_docs/.gitkeep
+expand/document/requirement_docs/*
+!expand/document/requirement_docs/.gitkeep
 
 # 忽略接口测试运行时产生的 Allure 报告文件，但保留.gitkeep文件
 expand/media/api-testing/allure-results/*
