@@ -1,54 +1,54 @@
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="isEdit ? '编辑元素' : '新增元素'"
+    :title="isEdit ? t('appAutomation.element.editElement') : t('appAutomation.element.newElement')"
     width="700px"
     @close="handleClose"
   >
     <el-form :model="formData" ref="formRef" label-width="120px" :rules="rules">
-      <el-form-item label="元素名称" prop="name" required>
-        <el-input v-model="formData.name" placeholder="如：登录按钮" />
+      <el-form-item :label="t('appAutomation.element.elementName')" prop="name" required>
+        <el-input v-model="formData.name" :placeholder="t('appAutomation.element.elementNamePlaceholder2')" />
       </el-form-item>
 
-      <el-form-item label="所属项目">
-        <el-select v-model="formData.project" placeholder="请选择项目" clearable filterable style="width: 100%">
+      <el-form-item :label="t('appAutomation.element.project')">
+        <el-select v-model="formData.project" :placeholder="t('appAutomation.element.selectProject')" clearable filterable style="width: 100%">
           <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
         </el-select>
       </el-form-item>
 
-      <el-form-item label="元素类型" prop="element_type" required>
+      <el-form-item :label="t('appAutomation.element.elementType')" prop="element_type" required>
         <el-radio-group v-model="formData.element_type" @change="handleTypeChange">
-          <el-radio value="image">图片元素</el-radio>
-          <el-radio value="pos">坐标元素</el-radio>
-          <el-radio value="region">区域元素</el-radio>
+          <el-radio value="image">{{ t('appAutomation.element.imageElement') }}</el-radio>
+          <el-radio value="pos">{{ t('appAutomation.element.posElement') }}</el-radio>
+          <el-radio value="region">{{ t('appAutomation.element.regionElement') }}</el-radio>
         </el-radio-group>
       </el-form-item>
       
-      <el-form-item label="标签">
+      <el-form-item :label="t('appAutomation.element.tags')">
         <el-select
           v-model="formData.tags"
           multiple
           filterable
           allow-create
-          placeholder="输入标签后回车"
+          :placeholder="t('appAutomation.element.tagsPlaceholder')"
           style="width: 100%"
         >
-          <el-option label="登录" value="登录" />
+          <el-option :label="t('appAutomation.element.login')" value="登录" />
         </el-select>
         <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-          💡 提示：输入标签回车创建
+          {{ t('appAutomation.element.tagsTip') }}
         </div>
       </el-form-item>
       
       <!-- 图片类型配置 -->
       <template v-if="formData.element_type === 'image'">
-        <el-divider content-position="left">图片配置</el-divider>
+        <el-divider content-position="left">{{ t('appAutomation.element.imageConfig') }}</el-divider>
         
-        <el-form-item label="图片分类" required>
+        <el-form-item :label="t('appAutomation.element.imageCategory')" required>
           <div style="display: flex; gap: 10px;">
             <el-select 
               v-model="formData.config.image_category"
-              placeholder="选择分类"
+              :placeholder="t('appAutomation.element.selectCategory')"
               filterable
               style="flex: 1;"
             >
@@ -67,7 +67,7 @@
                     link
                     :icon="Delete"
                     @click.stop="handleDeleteCategory(cat)"
-                    title="删除分类"
+                    :title="t('appAutomation.element.deleteCategory')"
                     style="padding: 0; margin-left: 8px;"
                   />
                 </div>
@@ -77,19 +77,19 @@
               type="primary" 
               :icon="Plus" 
               @click="showCreateCategoryDialog"
-              title="创建新分类"
+              :title="t('appAutomation.element.createCategory')"
             />
           </div>
           <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-            💡 提示：图片将保存到 Template/&lt;分类&gt;/ 目录下
+            {{ t('appAutomation.element.savePathTip') }}
           </div>
         </el-form-item>
         
-        <el-form-item label="元素图片">
+        <el-form-item :label="t('appAutomation.element.elementImage')">
           <!-- 编辑模式：显示当前图片和更换选项 -->
           <div v-if="isEdit && formData.config.image_path" class="current-image-section">
             <div style="color: #606266; font-size: 14px; margin-bottom: 10px; font-weight: 500;">
-              📷 当前图片
+              📷 {{ t('appAutomation.element.currentImage') }}
             </div>
             
             <!-- 图片预览 -->
@@ -104,7 +104,7 @@
                 <template #error>
                   <div class="image-error">
                     <el-icon :size="50"><Picture /></el-icon>
-                    <div>加载失败</div>
+                    <div>{{ t('appAutomation.element.loadFailed') }}</div>
                   </div>
                 </template>
               </el-image>
@@ -127,14 +127,14 @@
                 :icon="Upload"
                 @click="handleChangeImage"
               >
-                更换图片
+                {{ t('appAutomation.element.changeImage') }}
               </el-button>
               <el-button 
                 v-if="showUpload"
                 size="small"
                 @click="cancelUpload"
               >
-                取消更换
+                {{ t('appAutomation.element.cancelChange') }}
               </el-button>
             </el-space>
             
@@ -152,7 +152,7 @@
             <!-- 新图片预览区域 -->
             <div v-if="showUpload && imagePreview" style="margin-top: 15px">
               <div style="color: #67C23A; font-size: 14px; margin-bottom: 10px; font-weight: 500;">
-                <el-icon><SuccessFilled /></el-icon> 新图片
+                <el-icon><SuccessFilled /></el-icon> {{ t('appAutomation.element.newImage') }}
               </div>
               
               <div class="image-preview-box" style="border-color: #67C23A;">
@@ -167,12 +167,12 @@
               <div class="image-info-box">
                 <div class="info-item">
                   <el-icon><Document /></el-icon>
-                  <span>{{ imageFile?.name || '新选择的图片' }}</span>
+                  <span>{{ imageFile?.name || t('appAutomation.element.newSelectedImage') }}</span>
                 </div>
               </div>
               
               <div style="color: #67C23A; font-size: 12px; margin-top: 8px;">
-                💡 保存后将替换当前图片
+                {{ t('appAutomation.element.willReplaceCurrentImage') }}
               </div>
             </div>
           </div>
@@ -189,11 +189,11 @@
               list-type="picture"
             >
               <el-button type="primary" size="small" :icon="Upload">
-                选择图片
+                {{ t('appAutomation.element.selectImage') }}
               </el-button>
               <template #tip>
                 <div style="color: #909399; font-size: 12px;">
-                  支持 PNG、JPG 格式
+                  {{ t('appAutomation.element.supportedImageFormats') }}
                 </div>
               </template>
             </el-upload>
@@ -204,7 +204,7 @@
           </div>
         </el-form-item>
         
-        <el-form-item label="匹配阈值">
+        <el-form-item :label="t('appAutomation.element.matchThreshold')">
           <el-slider
             v-model="formData.config.image_threshold"
             :min="0.5"
@@ -214,47 +214,47 @@
             :format-tooltip="val => val.toFixed(2)"
           />
           <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-            💡 提示：阈值越高匹配越严格（推荐 0.7-0.8），越低越宽松但可能误匹配
+            {{ t('appAutomation.element.matchThresholdTip2') }}
           </div>
         </el-form-item>
         
-        <el-form-item label="颜色模式">
+        <el-form-item :label="t('appAutomation.element.colorMode')">
           <el-switch
             v-model="formData.config.rgb"
-            active-text="RGB彩色"
-            inactive-text="灰度"
+            :active-text="t('appAutomation.element.rgbColor')"
+            :inactive-text="t('appAutomation.element.grayscale')"
           />
           <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-            💡 提示：RGB彩色适用于彩色界面，灰度适用于单色或对颜色不敏感的场景
+            {{ t('appAutomation.element.colorModeTip') }}
           </div>
         </el-form-item>
       </template>
       
       <!-- 坐标类型配置 -->
       <template v-if="formData.element_type === 'pos'">
-        <el-divider content-position="left">坐标配置</el-divider>
+        <el-divider content-position="left">{{ t('appAutomation.element.positionConfig') }}</el-divider>
         
-        <el-form-item label="X坐标" required>
-          <el-input-number v-model="formData.config.x" :min="0" placeholder="横坐标" style="width: 100%" />
+        <el-form-item :label="t('appAutomation.element.xCoordinate')" required>
+          <el-input-number v-model="formData.config.x" :min="0" :placeholder="t('appAutomation.element.horizontalCoordinate')" style="width: 100%" />
         </el-form-item>
         
-        <el-form-item label="Y坐标" required>
-          <el-input-number v-model="formData.config.y" :min="0" placeholder="纵坐标" style="width: 100%" />
+        <el-form-item :label="t('appAutomation.element.yCoordinate')" required>
+          <el-input-number v-model="formData.config.y" :min="0" :placeholder="t('appAutomation.element.verticalCoordinate')" style="width: 100%" />
         </el-form-item>
       </template>
       
       <!-- 区域类型配置 -->
       <template v-if="formData.element_type === 'region'">
-        <el-divider content-position="left">区域配置</el-divider>
+        <el-divider content-position="left">{{ t('appAutomation.element.regionConfig') }}</el-divider>
         
-        <el-form-item label="左上角坐标" required>
+        <el-form-item :label="t('appAutomation.element.topLeftCoordinate')" required>
           <el-space>
             <el-input-number v-model="formData.config.x1" placeholder="X1" style="width: 150px" />
             <el-input-number v-model="formData.config.y1" placeholder="Y1" style="width: 150px" />
           </el-space>
         </el-form-item>
         
-        <el-form-item label="右下角坐标" required>
+        <el-form-item :label="t('appAutomation.element.bottomRightCoordinate')" required>
           <el-space>
             <el-input-number v-model="formData.config.x2" placeholder="X2" style="width: 150px" />
             <el-input-number v-model="formData.config.y2" placeholder="Y2" style="width: 150px" />
@@ -264,32 +264,32 @@
     </el-form>
     
     <template #footer>
-      <el-button @click="handleClose">取消</el-button>
-      <el-button type="primary" @click="handleSubmit" :loading="submitting">保存</el-button>
+      <el-button @click="handleClose">{{ t('appAutomation.element.cancel') }}</el-button>
+      <el-button type="primary" @click="handleSubmit" :loading="submitting">{{ t('appAutomation.element.save') }}</el-button>
     </template>
   </el-dialog>
   
   <!-- 创建图片分类对话框 -->
   <el-dialog
     v-model="createCategoryVisible"
-    title="创建图片分类"
+    :title="t('appAutomation.element.createCategory')"
     width="400px"
   >
     <el-form>
-      <el-form-item label="分类名称">
+      <el-form-item :label="t('appAutomation.element.categoryName')">
         <el-input 
           v-model="newCategoryName" 
-          placeholder="如：button, icon, menu"
+          :placeholder="t('appAutomation.element.categoryNamePlaceholder')"
           @keyup.enter="handleCreateCategory"
         />
         <div style="color: #909399; font-size: 12px; margin-top: 5px;">
-          💡 只能包含字母、数字、下划线和中划线
+          {{ t('appAutomation.element.categoryNameTip') }}
         </div>
       </el-form-item>
     </el-form>
     <template #footer>
-      <el-button @click="createCategoryVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleCreateCategory" :loading="creatingCategory">创建</el-button>
+      <el-button @click="createCategoryVisible = false">{{ t('appAutomation.element.cancel') }}</el-button>
+      <el-button type="primary" @click="handleCreateCategory" :loading="creatingCategory">{{ t('appAutomation.element.create') }}</el-button>
     </template>
   </el-dialog>
 </template>
@@ -297,6 +297,7 @@
 <script setup>
 import { ref, reactive, watch, computed, onMounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { Plus, Delete, Upload, Document, Folder, SuccessFilled, Picture } from '@element-plus/icons-vue'
 import {
   uploadAppElementImage,
@@ -306,6 +307,8 @@ import {
   createAppImageCategory,
   deleteAppImageCategory
 } from '@/api/app-automation'
+
+const { t } = useI18n()
 
 const props = defineProps({
   modelValue: {

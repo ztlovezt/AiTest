@@ -2,7 +2,6 @@ import subprocess
 import time
 import os
 import json
-import logging
 from datetime import datetime
 
 from rest_framework import viewsets, status
@@ -16,6 +15,7 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 import requests
+from loguru import logger
 
 from .models import (
     ApiProject, ApiCollection, ApiRequest, Environment,
@@ -27,11 +27,8 @@ from .models import (
 from .serializers import (
     TaskExecutionLogSerializer,
     NotificationLogSerializer, TaskNotificationSettingSerializer,
-    NotificationLogDetailSerializer,
-    TaskNotificationSettingDetailSerializer, OperationLogSerializer
+    NotificationLogDetailSerializer, TaskNotificationSettingDetailSerializer, OperationLogSerializer
 )
-
-logger = logging.getLogger(__name__)
 
 from .utils import execute_assertions
 from .operation_logger import log_operation
@@ -863,6 +860,8 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
             execution.status = 'FAILED'
             execution.end_time = timezone.now()
             execution.save()
+            logger.error(f"执行测试套件失败: {e}", exc_info=True)
+            logger.error(f"测试套件ID: {test_suite.id}, 错误类型: {type(e).__name__}")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
@@ -1563,8 +1562,17 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['username', 'email', 'first_name', 'last_name']
 
 
-class ScheduledTaskViewSet(viewsets.ModelViewSet):
-    """定时任务视图集"""
+class ScheduledTaskViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    定时任务视图集（已弃用）
+    
+    此视图集已弃用，请使用新的统一调度器API：
+    - API路径: /api/scheduler/schedules/
+    - 文档: 请参考 scheduler 应用
+    
+    此视图集仅保留只读功能，用于查看历史任务。
+    新任务请通过统一调度器创建。
+    """
     queryset = ScheduledTask.objects.all()
     serializer_class = ScheduledTaskSerializer
     permission_classes = [IsAuthenticated]
@@ -1574,97 +1582,60 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """根据用户权限过滤任务"""
         queryset = super().get_queryset()
-
-        # 管理员可以看到所有任务
         if self.request.user.is_staff:
             return queryset
-
-        # 普通用户只能看到自己创建的任务
         return queryset.filter(created_by=self.request.user)
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 更新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 删除任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
-        """立即执行定时任务"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("=== run_now 方法被调用 ===")
-
-        task = self.get_object()
-        logger.info(f"获取任务对象: {task.id} - {task.name}")
-
-        # 检查权限
-        if not request.user.is_staff and task.created_by != request.user:
-            logger.info("权限检查失败")
-            return Response(
-                {'error': '无权执行此任务'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        try:
-            # 创建执行日志
-            execution_log = TaskExecutionLog.objects.create(
-                task=task,
-                status='PENDING',
-                executed_by=request.user
-            )
-            logger.info(f"创建执行日志: {execution_log.id}")
-
-            # 异步执行任务
-            logger.info("调用 _execute_task_async 方法")
-            self._execute_task_async(task, execution_log)
-
-            logger.info("任务开始执行")
-            return Response(
-                {'message': '任务已开始执行', 'execution_id': execution_log.id},
-                status=status.HTTP_200_OK
-            )
-
-        except Exception as e:
-            return Response(
-                {'error': f'执行任务失败: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/execute/ 执行任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
-        """激活定时任务"""
-        task = self.get_object()
-
-        if task.status == 'ACTIVE':
-            return Response(
-                {'error': '任务已经是激活状态'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        task.status = 'ACTIVE'
-        task.next_run_time = task.calculate_next_run()
-        task.save()
-
         return Response(
-            {'message': '任务已激活', 'next_run_time': task.next_run_time},
-            status=status.HTTP_200_OK
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 激活任务'},
+            status=status.HTTP_410_GONE
         )
 
     @action(detail=True, methods=['post'])
     def pause(self, request, pk=None):
-        """暂停定时任务"""
-        task = self.get_object()
-
-        if task.status == 'PAUSED':
-            return Response(
-                {'error': '任务已经是暂停状态'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        task.status = 'PAUSED'
-        task.next_run_time = None
-        task.save()
-
         return Response(
-            {'message': '任务已暂停'},
-            status=status.HTTP_200_OK
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 暂停任务'},
+            status=status.HTTP_410_GONE
         )
 
     @action(detail=True, methods=['get'])

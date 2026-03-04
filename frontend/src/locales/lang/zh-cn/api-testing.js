@@ -375,6 +375,20 @@ export default {
       testSuiteShort: '测试套件',
       apiRequestShort: 'API请求'
     },
+    scheduleType: '调度类型',
+    scheduleTypes: {
+      cron: 'Cron',
+      once: '单次',
+      interval: '分钟间隔',
+      hourly: '每小时',
+      daily: '每天',
+      weekly: '每周',
+      biweekly: '双周',
+      monthly: '每月',
+      bimonthly: '双月',
+      quarterly: '每季度',
+      yearly: '每年'
+    },
     triggerType: '触发器类型',
     triggerTypes: {
       cron: 'Cron表达式',
@@ -411,9 +425,31 @@ export default {
       monthly: '每月1号0点: 0 0 1 * *'
     },
     intervalTime: '间隔时间',
+    intervalMinutes: '间隔分钟数',
     seconds: '秒',
+    minutes: '分钟',
     executeTime: '执行时间',
+    executeMinute: '执行分钟',
     selectExecuteTime: '选择执行时间',
+    selectMinute: '选择分钟',
+    selectWeekday: '选择星期',
+    selectDate: '选择日期',
+    selectMonth: '选择月份',
+    weekdays: {
+      sunday: '周日',
+      monday: '周一',
+      tuesday: '周二',
+      wednesday: '周三',
+      thursday: '周四',
+      friday: '周五',
+      saturday: '周六'
+    },
+    unit: {
+      minute: '分',
+      day: '日',
+      month: '月',
+      year: '年'
+    },
     selectTestSuite: '请选择测试套件',
     apiRequest: 'API请求',
     selectApiRequest: '请选择API请求',
@@ -425,6 +461,8 @@ export default {
     selectNotificationType: '请选择通知类型',
     notifyEmails: '通知邮箱',
     selectNotifyEmails: '请选择通知邮箱',
+    webhookUrl: 'Webhook地址',
+    enterWebhookUrl: '请输入Webhook地址',
     startTime: '开始时间',
     endTime: '结束时间',
     errorMessage: '错误信息',

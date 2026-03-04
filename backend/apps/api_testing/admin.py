@@ -55,19 +55,19 @@ class TestExecutionAdmin(admin.ModelAdmin):
     search_fields = ['test_suite__name']
 
 
-@admin.register(ScheduledTask)
-class ScheduledTaskAdmin(admin.ModelAdmin):
-    list_display = ['name', 'task_type', 'trigger_type', 'status', 'total_runs', 'successful_runs', 'failed_runs', 'created_by', 'created_at']
-    list_filter = ['task_type', 'trigger_type', 'status', 'created_at']
-    search_fields = ['name', 'description']
-    readonly_fields = ['last_run_time', 'next_run_time', 'total_runs', 'successful_runs', 'failed_runs', 'created_at', 'updated_at']
-    
-    def get_queryset(self, request):
-        """根据用户权限过滤任务"""
-        qs = super().get_queryset(request)
-        if request.user.is_superuser:
-            return qs
-        return qs.filter(created_by=request.user)
+# @admin.register(ScheduledTask)
+# class ScheduledTaskAdmin(admin.ModelAdmin):
+#     list_display = ['name', 'task_type', 'trigger_type', 'status', 'total_runs', 'successful_runs', 'failed_runs', 'created_by', 'created_at']
+#     list_filter = ['task_type', 'trigger_type', 'status', 'created_at']
+#     search_fields = ['name', 'description']
+#     readonly_fields = ['last_run_time', 'next_run_time', 'total_runs', 'successful_runs', 'failed_runs', 'created_at', 'updated_at']
+#
+#     def get_queryset(self, request):
+#         """根据用户权限过滤任务"""
+#         qs = super().get_queryset(request)
+#         if request.user.is_superuser:
+#             return qs
+#         return qs.filter(created_by=request.user)
 
 
 @admin.register(TaskExecutionLog)

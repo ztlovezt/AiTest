@@ -22,5 +22,6 @@ export default {
   tips: 'Tips',
   warning: 'Warning',
   previous: 'Previous',
-  next: 'Next'
+  next: 'Next',
+  unknown: 'Unknown error'
 }

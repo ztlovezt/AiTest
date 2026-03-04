@@ -1058,3 +1058,66 @@ export function exportAIExecutionReportPDF(id, params = {}) {
     responseType: 'blob'
   })
 }
+
+// ==================== Django-Q 统一调度器API ====================
+
+export function getSchedulerSchedules(params) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'get',
+    params
+  })
+}
+
+export function createSchedulerSchedule(data) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'post',
+    data
+  })
+}
+
+export function updateSchedulerSchedule(id, data) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+export function deleteSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'delete'
+  })
+}
+
+export function executeSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/execute/`,
+    method: 'post'
+  })
+}
+
+export function toggleSchedulerSchedule(id, action) {
+  return request({
+    url: `/scheduler/schedules/${id}/toggle/`,
+    method: 'post',
+    data: { action }
+  })
+}
+
+export function getSchedulerHistory(id, params = {}) {
+  return request({
+    url: `/scheduler/schedules/${id}/history/`,
+    method: 'get',
+    params
+  })
+}
+
+export function getSchedulerStatistics() {
+  return request({
+    url: '/scheduler/schedules/statistics/',
+    method: 'get'
+  })
+}

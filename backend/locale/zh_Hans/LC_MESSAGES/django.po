@@ -185,8 +185,14 @@ msgstr "每天"
 msgid "Weekly"
 msgstr "每周"
 
+msgid "Biweekly"
+msgstr "双周"
+
 msgid "Monthly"
 msgstr "每月"
+
+msgid "Bimonthly"
+msgstr "双月"
 
 msgid "Quarterly"
 msgstr "每季度"
@@ -227,3 +233,139 @@ msgstr "全选"
 
 msgid "Clear selection"
 msgstr "清除选择"
+
+# ============================================
+# 调度器模块翻译 (Scheduler)
+# ============================================
+
+msgid "Task scheduling"
+msgstr "任务调度"
+
+msgid "Task config"
+msgstr "任务配置"
+
+msgid "Task configs"
+msgstr "任务配置"
+
+msgid "任务配置"
+msgstr "任务配置"
+
+msgid "任务执行记录"
+msgstr "任务执行记录"
+
+# 模块选项
+msgid "API"
+msgstr "API测试"
+
+msgid "UI"
+msgstr "UI自动化"
+
+msgid "APP"
+msgstr "APP自动化"
+
+# 任务类型选项
+msgid "API_TEST_SUITE"
+msgstr "API测试套件"
+
+msgid "API_REQUEST"
+msgstr "API请求"
+
+msgid "UI_TEST_SUITE"
+msgstr "UI测试套件"
+
+msgid "UI_TEST_CASE"
+msgstr "UI测试用例"
+
+msgid "APP_TEST_SUITE"
+msgstr "APP测试套件"
+
+msgid "APP_TEST_CASE"
+msgstr "APP测试用例"
+
+# 触发类型选项
+msgid "CRON"
+msgstr "Cron表达式"
+
+msgid "INTERVAL"
+msgstr "固定间隔"
+
+msgid "ONCE"
+msgstr "单次执行"
+
+# 状态选项
+msgid "ACTIVE"
+msgstr "激活"
+
+msgid "PAUSED"
+msgstr "暂停"
+
+msgid "COMPLETED"
+msgstr "已完成"
+
+msgid "FAILED"
+msgstr "失败"
+
+# 执行状态
+msgid "PENDING"
+msgstr "等待中"
+
+msgid "RUNNING"
+msgstr "执行中"
+
+msgid "SUCCESS"
+msgstr "成功"
+
+msgid "TIMEOUT"
+msgstr "超时"
+
+# 字段翻译
+msgid "所属模块"
+msgstr "所属模块"
+
+msgid "任务类型"
+msgstr "任务类型"
+
+msgid "触发类型"
+msgstr "触发类型"
+
+msgid "目标ID"
+msgstr "目标ID"
+
+msgid "执行配置"
+msgstr "执行配置"
+
+msgid "Django-Q调度"
+msgstr "Django-Q调度"
+
+msgid "成功次数"
+msgstr "成功次数"
+
+msgid "失败次数"
+msgstr "失败次数"
+
+msgid "通知邮箱"
+msgstr "通知邮箱"
+
+msgid "Webhook地址"
+msgstr "Webhook地址"
+
+msgid "任务名称"
+msgstr "任务名称"
+
+msgid "开始时间"
+msgstr "开始时间"
+
+msgid "结束时间"
+msgstr "结束时间"
+
+msgid "执行结果"
+msgstr "执行结果"
+
+msgid "错误信息"
+msgstr "错误信息"
+
+msgid "Django-Q任务ID"
+msgstr "Django-Q任务ID"
+
+msgid "耗时"
+msgstr "耗时"

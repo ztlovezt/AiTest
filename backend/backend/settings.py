@@ -1,15 +1,72 @@
-# https://newpanjing.github.io/simpleui_docs/config.html#%E5%9B%BE%E6%A0%87%E8%AF%B4%E6%98%8E
-
 from pathlib import Path
 from decouple import config
 import os
 import logging
 
+from .config_loader import config_loader
+from .log_config import log_config
+
 # 当前文件所在路径
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = log_config.log_dir
 
-# 导入配置加载器
-from .config_loader import config_loader
+# 确保日志目录存在
+os.makedirs(LOG_DIR, exist_ok=True)
+
+
+# Loguru Handler - 桥接Django logging和loguru
+class LoguruHandler(logging.Handler):
+    """自定义Handler，将Django logging桥接到loguru"""
+
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+        try:
+            from loguru import logger
+            self.loguru_logger = logger
+        except ImportError:
+            self.loguru_logger = None
+
+    def emit(self, record):
+        """将日志记录发送到loguru"""
+        if self.loguru_logger is None:
+            return
+
+        try:
+            # 获取loguru对应的日志级别
+            loguru_level = self._get_loguru_level(record.levelno)
+
+            # 构建日志消息
+            msg = self.format(record)
+
+            # 添加额外信息
+            extra = {
+                'name': record.name,
+                'function': record.funcName,
+                'line': record.lineno,
+            }
+
+            # 发送到loguru，使用 bind 绑定额外信息，避免解析消息中的花括号
+            self.loguru_logger.bind(**extra).log(
+                loguru_level,
+                msg
+            )
+        except Exception:
+            self.handleError(record)
+
+    def _get_loguru_level(self, levelno):
+        """将Python logging级别映射到loguru级别"""
+        if levelno >= logging.CRITICAL:
+            return "CRITICAL"
+        elif levelno >= logging.ERROR:
+            return "ERROR"
+        elif levelno >= logging.WARNING:
+            return "WARNING"
+        elif levelno >= logging.INFO:
+            return "INFO"
+        elif levelno >= logging.DEBUG:
+            return "DEBUG"
+        else:
+            return "TRACE"
 
 
 # 自定义日志过滤器：过滤掉ERROR级别的日志
@@ -18,14 +75,111 @@ class ExcludeErrorsFilter(logging.Filter):
         return record.levelno < logging.ERROR
 
 
+class DebugOrErrorFilter(logging.Filter):
+    def filter(self, record):
+        if DEBUG:
+            return True
+        return record.levelno >= logging.ERROR
+
+
+# 自定义日志过滤器：只记录数据库SQL日志
+class ORMSQLFilter(logging.Filter):
+    def filter(self, record):
+        return record.name == 'django.db.backends'
+
+
+# 自定义日志过滤器：只记录Django-Q任务日志
+class DjangoTaskFilter(logging.Filter):
+    def filter(self, record):
+        result = record.name.startswith('django_q')
+        print(f'[DjangoTaskFilter] record.name={record.name}, result={result}')
+        return result
+
+
+# 自定义日志过滤器：排除Django-Q相关日志
+class ExcludeDjangoQFilter(logging.Filter):
+    def filter(self, record):
+        return not record.name.startswith('django_q')
+
+
+class ORMSQLHandler(logging.Handler):
+    """专门用于 ORM SQL 日志的 Handler"""
+
+    def __init__(self, filename=None, level=logging.NOTSET):
+        super().__init__(level)
+        if filename is None:
+            import os
+            from pathlib import Path
+            try:
+                log_dir = log_config.log_dir
+            except:
+                log_dir = Path(__file__).parent.parent / 'logs'
+            filename = log_dir / 'orm_sql.log'
+        self.filename = str(filename)  # 转换为字符串以避免多进程环境下的路径问题
+        self._ensure_log_dir()
+        self.addFilter(ORMSQLFilter())
+
+    def _ensure_log_dir(self):
+        """确保日志目录存在（多进程环境安全）"""
+        log_dir = os.path.dirname(self.filename)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+
+    def emit(self, record):
+        """将日志记录写入文件"""
+        try:
+            msg = self.format(record)
+            self._ensure_log_dir()  # 每次写入前确保目录存在
+            with open(self.filename, 'a', encoding='utf-8') as f:
+                f.write(msg + '\n')
+        except Exception:
+            self.handleError(record)
+
+
+class DjangoTaskHandler(logging.Handler):
+    """专门用于 Django 任务日志的 Handler"""
+
+    def __init__(self, filename=None, level=logging.NOTSET):
+        super().__init__(level)
+        if filename is None:
+            import os
+            from pathlib import Path
+            try:
+                log_dir = log_config.log_dir
+            except:
+                log_dir = Path(__file__).parent.parent / 'logs'
+            filename = log_dir / 'django_task.log'
+        self.filename = str(filename)  # 转换为字符串以避免多进程环境下的路径问题
+        self._ensure_log_dir()
+        self.addFilter(DjangoTaskFilter())
+        print(f'[DjangoTaskHandler] 初始化: filename={self.filename}')
+
+    def _ensure_log_dir(self):
+        """确保日志目录存在（多进程环境安全）"""
+        log_dir = os.path.dirname(self.filename)
+        if log_dir:
+            os.makedirs(log_dir, exist_ok=True)
+
+    def emit(self, record):
+        """将日志记录写入文件"""
+        print(f'[DjangoTaskHandler] emit 被调用: record.name={record.name}, level={record.levelno}')
+        try:
+            msg = self.format(record)
+            print(f'[DjangoTaskHandler] 格式化后的消息: {msg}')
+            self._ensure_log_dir()  # 每次写入前确保目录存在
+            with open(self.filename, 'a', encoding='utf-8') as f:
+                f.write(msg + '\n')
+            print(f'[DjangoTaskHandler] 写入成功: {record.name}')
+        except Exception as e:
+            print(f'[DjangoTaskHandler] 写入失败: {e}')
+            self.handleError(record)
+
+
 SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
-                                                            'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm5'))
+                                                            'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm9'))
 
 DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bool)
 
-# ================================
-# 服务端口配置
-# ================================
 # 后端服务端口（开发环境）
 BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8000), cast=int)
 
@@ -50,7 +204,7 @@ THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
-    'rest_framework_simplejwt.token_blacklist',  # JWT token黑名单
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'django_filters',
     'drf_spectacular',
@@ -73,6 +227,7 @@ LOCAL_APPS = [
     'apps.api_testing',
     'apps.ui_automation.apps.UiAutomationConfig',
     'apps.app_automation.apps.AppAutomationConfig',
+    'apps.scheduler',
     'apps.core',
     'apps.data_factory',
 ]
@@ -84,7 +239,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'backend.middleware.DisableCSRFMiddleware',  # 添加CSRF禁用中间件
+    'backend.middleware.DisableCSRFMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -109,7 +264,7 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'backend.wsgi.application'
+WSGI_APPLICATION = 'backend.wsgi.application'
 ASGI_APPLICATION = 'backend.asgi.application'
 
 db_config = config_loader.get_database_config()
@@ -420,30 +575,28 @@ else:
         },
     }
 
-# Redis配置
-# 开发环境和生产环境都使用配置的Redis
-REDIS_URL = config('REDIS_URL', default=config_loader.get('redis.url', 'redis://127.0.0.1:6379/0'))
+# Cache配置，使用 Redis 缓存（生产环境推荐）
+cache_config = config_loader.get_cache_config()
 
-# Django-Q2 配置（替换 Celery）
+# Redis配置，开发环境和生产环境都使用配置的Redis
+redis_config = config_loader.get_redis_config()
+REDIS_URL = redis_config.get('url', 'redis://127.0.0.1:6379/0')
+
+# 任务队列配置
 Q_CLUSTER = {
     'name': 'testhub',
-    'workers': 2,              # 工作进程数，根据服务器配置做调整
-    'timeout': 90,             # 任务超时时间（秒）
-    'retry': 120,              # 重试时间（秒）
-    'queue_limit': 50,         # 队列限制
-    'bulk': 10,                # 批量处理数量
-    'orm': 'default',          # 数据库配置
-    'save_limit': 250,         # 保存限制
-    'cpu_affinity': 1,         # CPU 亲和性
-    'label': '任务队列',        # Admin 菜单显示名称
-    'redis': REDIS_URL,        # Redis 配置
-    'sync': False,             # 异步模式
+    'workers': 1,           # 工作进程数，根据服务器配置做调整
+    'timeout': 90,          # 任务超时时间（秒）
+    'retry': 120,           # 重试时间（秒）
+    'queue_limit': 50,      # 队列限制
+    'bulk': 10,             # 批量处理数量
+    'orm': 'default',       # 数据库配置
+    'save_limit': 250,      # 保存限制
+    'cpu_affinity': 1,      # CPU 亲和性
+    'label': '任务队列',     # Admin 菜单显示名称
+    'redis': REDIS_URL,     # Redis 配置
+    'sync': False,          # False异步模式，True同步模式
 }
-
-# Cache配置
-# 使用 Redis 缓存（生产环境推荐）
-cache_config = config_loader.get_cache_config()
-redis_config = config_loader.get_redis_config()
 
 if DEBUG:
     # 开发环境使用本地内存缓存
@@ -484,34 +637,10 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default=email_config.get('ho
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=email_config.get('default_from_email', 'webmaster@localhost'))
 EMAIL_TIMEOUT = email_config.get('timeout', 30)
 
-# 确保日志目录存在
+# 读取日志配置
 logging_config = config_loader.get_logging_config()
-log_dir_config = logging_config.get('dir', '../../logs')
-
-# 计算日志目录的绝对路径
-if os.path.isabs(log_dir_config):
-    log_dir = log_dir_config
-else:
-    # 从项目根目录（config.yaml 所在目录）开始计算相对路径
-    project_root = str(config_loader.project_root)
-    
-    # 输入校验和安全性处理
-    if not project_root or not isinstance(project_root, str):
-        raise ValueError("project_root 必须是非空字符串")
-    if not log_dir_config or not isinstance(log_dir_config, str):
-        raise ValueError("log_dir_config 必须是非空字符串")
-
-    # 检查 project_root 是否已经是绝对路径，避免重复处理
-    if os.path.isabs(project_root):
-        log_dir = os.path.join(project_root, log_dir_config)
-    else:
-        log_dir = os.path.abspath(os.path.join(project_root, log_dir_config))
-
-    # 限制路径范围，防止路径遍历攻击
-    if not os.path.commonpath([project_root, log_dir]) == project_root:
-        raise ValueError("日志路径超出项目根目录范围")
-
-os.makedirs(log_dir, exist_ok=True)
+debug_enabled = logging_config.get('debug_enabled', False)
+console_level = 'DEBUG' if debug_enabled else 'INFO'
 
 # Logging
 LOGGING = {
@@ -519,7 +648,7 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': logging_config.get('format', '{levelname} {asctime} {module} {process:d} {thread:d} {message}'),
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
         'simple': {
@@ -531,65 +660,98 @@ LOGGING = {
         'exclude_errors': {
             '()': 'backend.settings.ExcludeErrorsFilter',
         },
+        'debug_or_error': {
+            '()': 'backend.settings.DebugOrErrorFilter',
+        },
+        'exclude_django_q': {
+            '()': 'backend.settings.ExcludeDjangoQFilter',
+        },
     },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(log_dir, 'app.log'),
-            'maxBytes': logging_config.get('max_bytes', 10) * 1024 * 1024,  # MB to bytes
-            'backupCount': logging_config.get('backup_count', 10),
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-            'filters': ['exclude_errors'],
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(log_dir, 'error.log'),
-            'maxBytes': logging_config.get('max_bytes', 10) * 1024 * 1024,
-            'backupCount': logging_config.get('backup_count', 10),
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
+        'loguru': {
+            'level': 'DEBUG',
+            'class': 'backend.settings.LoguruHandler',
+            'filters': ['exclude_django_q'],
         },
         'console': {
-            'level': 'DEBUG',
+            'level': console_level,
             'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'orm_sql': {
+            'level': 'DEBUG',
+            'class': 'backend.settings.ORMSQLHandler',
+            'formatter': 'verbose',
+        },
+        'django_task': {
+            'level': 'INFO',
+            'class': 'backend.settings.DjangoTaskHandler',
             'formatter': 'verbose',
         },
     },
     'loggers': {
+        # django_task 日志配置（任务队列和定时任务）
+        'django_q': {
+            'handlers': ['django_task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django_q.cluster': {
+            'handlers': ['django_task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django_q.monitor': {
+            'handlers': ['django_task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django_q.worker': {
+            'handlers': ['django_task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django_q.pusher': {
+            'handlers': ['django_task', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # ORM SQL 日志配置
+        'django.db.backends': {
+            'handlers': ['orm_sql'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
         # 其他具体模块的 logger 配置
         'django': {
-            'handlers': ['file', 'error_file', 'console'],
+            'handlers': ['loguru', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
         'apps.api_testing.views': {
-            'handlers': ['file', 'error_file', 'console'],
+            'handlers': ['loguru', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
         'apps.data_factory.tools.json_tools': {
-            'handlers': ['file', 'error_file', 'console'],
+            'handlers': ['loguru', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools.encoding_tools': {
-            'handlers': ['file', 'error_file', 'console'],
+            'handlers': ['loguru', 'console'],
             'level': 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools': {
-            'handlers': ['file', 'error_file', 'console'],
+            'handlers': ['loguru', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
     },
     'root': {
-        'handlers': ['file', 'error_file', 'console'],
+        'handlers': ['loguru', 'console'],
         'level': 'INFO',
-        # 'propagate': True,
     },
 }
 

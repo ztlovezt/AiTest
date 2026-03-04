@@ -23,8 +23,17 @@ from ..serializers import (
 logger = logging.getLogger(__name__)
 
 
-class AppScheduledTaskViewSet(viewsets.ModelViewSet):
-    """APP定时任务视图集"""
+class AppScheduledTaskViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    APP定时任务视图集（已弃用）
+    
+    此视图集已弃用，请使用新的统一调度器API：
+    - API路径: /api/scheduler/schedules/
+    - 文档: 请参考 scheduler 应用
+    
+    此视图集仅保留只读功能，用于查看历史任务。
+    新任务请通过统一调度器创建。
+    """
     queryset = AppScheduledTask.objects.all()
     serializer_class = AppScheduledTaskSerializer
     permission_classes = [IsAuthenticated]
@@ -35,123 +44,56 @@ class AppScheduledTaskViewSet(viewsets.ModelViewSet):
     ordering_fields = ['created_at', 'next_run_time', 'last_run_time']
     ordering = ['-created_at']
 
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 更新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 删除任务'},
+            status=status.HTTP_410_GONE
+        )
+
     @action(detail=True, methods=['post'])
     def pause(self, request, pk=None):
-        task = self.get_object()
-        task.status = 'PAUSED'
-        task.save(update_fields=['status'])
-        return Response({'success': True, 'message': '任务已暂停'})
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 暂停任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def resume(self, request, pk=None):
-        task = self.get_object()
-        task.status = 'ACTIVE'
-        task.next_run_time = task.calculate_next_run()
-        task.save(update_fields=['status', 'next_run_time'])
-        return Response({'success': True, 'message': '任务已恢复'})
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 恢复任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
-        """立即运行任务"""
-        task = self.get_object()
-
-        try:
-            if not task.device:
-                return Response({'success': False, 'message': '该任务未配置执行设备'},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            device = task.device
-            if device.status == 'locked' and device.locked_by != request.user:
-                return Response({'success': False, 'message': '设备已被其他用户锁定'},
-                                status=status.HTTP_400_BAD_REQUEST)
-
-            # 更新统计
-            task.last_run_time = timezone.now()
-            task.total_runs += 1
-            task.next_run_time = task.calculate_next_run()
-            task.save()
-
-            package_name = task.app_package.package_name if task.app_package else ''
-
-            if task.task_type == 'TEST_SUITE':
-                if not task.test_suite:
-                    return Response({'success': False, 'message': '该任务未配置测试套件'},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-                suite_cases = task.test_suite.suite_cases.select_related('test_case').all()
-                if not suite_cases.exists():
-                    return Response({'success': False, 'message': '测试套件没有用例'},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-                # 创建执行记录并调用 Django-Q2 异步任务
-                from ..models import AppTestExecution
-                from ..tasks_async import execute_app_suite_task
-
-                executions = []
-                for sc in suite_cases:
-                    execution = AppTestExecution.objects.create(
-                        test_case=sc.test_case,
-                        test_suite=task.test_suite,
-                        device=device,
-                        user=request.user,
-                        status='pending'
-                    )
-                    executions.append(execution)
-
-                task.test_suite.execution_status = 'running'
-                task.test_suite.save(update_fields=['execution_status'])
-
-                from django_q.tasks import async_task
-                task_id = async_task(
-                    'apps.app_automation.tasks_async.execute_app_suite_task',
-                    task.test_suite.id,
-                    [e.id for e in executions],
-                    package_name=package_name,
-                    scheduled_task_id=task.id,
-                )
-
-                return Response({
-                    'success': True,
-                    'message': f'测试套件开始执行，共 {len(executions)} 个用例',
-                    'data': {'task_id': task_id, 'test_case_count': len(executions)}
-                })
-
-            elif task.task_type == 'TEST_CASE':
-                if not task.test_case:
-                    return Response({'success': False, 'message': '该任务未配置测试用例'},
-                                    status=status.HTTP_400_BAD_REQUEST)
-
-                from ..models import AppTestExecution
-                from django_q.tasks import async_task
-
-                execution = AppTestExecution.objects.create(
-                    test_case=task.test_case,
-                    device=device,
-                    user=request.user,
-                    status='pending'
-                )
-                task_id = async_task(
-                    'apps.app_automation.tasks_async.execute_app_test_task',
-                    execution.id,
-                    package_name=package_name,
-                    scheduled_task_id=task.id,
-                )
-                execution.task_id = task_id
-                execution.save(update_fields=['task_id'])
-
-                return Response({
-                    'success': True,
-                    'message': '测试用例开始执行',
-                    'data': {'task_id': task_id}
-                })
-
-            return Response({'success': False, 'message': '不支持的任务类型'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            logger.error(f'执行定时任务失败: {str(e)}', exc_info=True)
-            return Response({'success': False, 'message': f'执行失败: {str(e)}'},
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/execute/ 执行任务'},
+            status=status.HTTP_410_GONE
+        )
 
 
 class AppNotificationLogViewSet(viewsets.ReadOnlyModelViewSet):

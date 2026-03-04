@@ -8,11 +8,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from django.db import models
 from django.utils import timezone
-import logging
 import json
 import re
 import random
 import time
+from loguru import logger
 
 from .models import (
     UiProject, LocatorStrategy, Element, TestScript, TestSuite,
@@ -41,7 +41,6 @@ from .serializers import (
 )
 from .operation_logger import log_operation
 
-logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
@@ -427,6 +426,8 @@ class PageObjectViewSet(viewsets.ModelViewSet):
                     'framework': framework
                 })
             except Exception as e:
+                logger.error(f"代码生成失败: {e}", exc_info=True)
+                logger.error(f"页面对象ID: {pk}, 语言: {language}, 框架: {framework}, 错误类型: {type(e).__name__}")
                 return Response({
                     'error': f'代码生成失败: {str(e)}'
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -1975,8 +1976,17 @@ class OperationRecordViewSet(viewsets.ReadOnlyModelViewSet):
 
 # ==================== 定时任务和通知相关视图 ====================
 
-class UiScheduledTaskViewSet(viewsets.ModelViewSet):
-    """UI定时任务视图集"""
+class UiScheduledTaskViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    UI定时任务视图集（已弃用）
+    
+    此视图集已弃用，请使用新的统一调度器API：
+    - API路径: /api/scheduler/schedules/
+    - 文档: 请参考 scheduler 应用
+    
+    此视图集仅保留只读功能，用于查看历史任务。
+    新任务请通过统一调度器创建。
+    """
     queryset = UiScheduledTask.objects.all()
     serializer_class = UiScheduledTaskSerializer
     permission_classes = [IsAuthenticated]
@@ -1987,575 +1997,172 @@ class UiScheduledTaskViewSet(viewsets.ModelViewSet):
     ordering = ['-created_at']
 
     def get_queryset(self):
-        """只显示用户有权限访问的项目的定时任务"""
         user = self.request.user
         accessible_projects = UiProject.objects.filter(
             models.Q(owner=user) | models.Q(members=user)
         ).distinct()
         return UiScheduledTask.objects.filter(project__in=accessible_projects)
-
-    def perform_create(self, serializer):
-        """创建定时任务"""
-        instance = serializer.save(created_by=self.request.user)
-        log_operation('create', 'scheduled_task', instance.id, instance.name, self.request.user)
-
-    def perform_update(self, serializer):
-        """更新定时任务"""
-        instance = serializer.save()
-        log_operation('edit', 'scheduled_task', instance.id, instance.name, self.request.user)
-
-    def perform_destroy(self, instance):
-        """删除定时任务"""
-        log_operation('delete', 'scheduled_task', instance.id, instance.name, self.request.user)
-        instance.delete()
+    
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        response.data['deprecated'] = True
+        response.data['message'] = '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'
+        return response
+    
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 创建新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def update(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 更新任务'},
+            status=status.HTTP_410_GONE
+        )
+    
+    def destroy(self, request, *args, **kwargs):
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/ 删除任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def pause(self, request, pk=None):
-        """暂停定时任务"""
-        task = self.get_object()
-        task.status = 'PAUSED'
-        task.save()
-        return Response({'message': '任务已暂停', 'status': task.status})
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 暂停任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def resume(self, request, pk=None):
-        """恢复定时任务"""
-        task = self.get_object()
-        task.status = 'ACTIVE'
-        task.next_run_time = task.calculate_next_run()
-        task.save()
-        return Response({'message': '任务已恢复', 'status': task.status})
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/toggle/ 恢复任务'},
+            status=status.HTTP_410_GONE
+        )
 
     @action(detail=True, methods=['post'])
     def run_now(self, request, pk=None):
-        """立即运行任务"""
-        task = self.get_object()
+        return Response(
+            {'error': '此API已弃用，请使用 /api/scheduler/schedules/{id}/execute/ 执行任务'},
+            status=status.HTTP_410_GONE
+        )
+
+
+class UiTaskNotificationSettingViewSet(viewsets.ModelViewSet):
+    """UI任务通知设置视图集"""
+    queryset = UiTaskNotificationSetting.objects.all()
+    serializer_class = UiTaskNotificationSettingSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['task', 'is_enabled']
+
+    def get_queryset(self):
+        user = self.request.user
+        accessible_projects = UiProject.objects.filter(
+            models.Q(owner=user) | models.Q(members=user)
+        ).distinct()
+        task_ids = UiScheduledTask.objects.filter(project__in=accessible_projects).values_list('id', flat=True)
+        return UiTaskNotificationSetting.objects.filter(task_id__in=task_ids)
+
+
+def _send_task_notification(task, success):
+    """发送任务执行通知"""
+    try:
+        logger.info(f"准备发送任务 {task.id} 的通知，执行结果: {'成功' if success else '失败'}")
+
+        if success and not task.notify_on_success:
+            logger.info("任务执行成功但未启用成功通知")
+            return
+
+        if not success and not task.notify_on_failure:
+            logger.info("任务执行失败但未启用失败通知")
+            return
+
+        if not task.notification_type:
+            logger.info("未设置通知类型")
+            return
+
+        logger.info(f"通知类型: {task.notification_type}")
+
+        if task.notification_type in ['webhook', 'both']:
+            logger.info("发送Webhook通知")
+            _send_webhook_notification(task, success)
+
+        if task.notification_type in ['email', 'both']:
+            logger.info("发送邮件通知")
+            _send_email_notification(task, success)
+
+    except Exception as e:
+        logger.error(f"发送通知失败: {str(e)}", exc_info=True)
+
+
+def _send_webhook_notification(task, success):
+    """发送Webhook通知"""
+    try:
+        import requests
+        import json
+
+        logger.info("=== 开始发送Webhook通知 ===")
 
         try:
-            # 更新任务执行时间和次数
-            task.last_run_time = timezone.now()
-            task.total_runs += 1
-            # 重新计算下次运行时间
-            task.next_run_time = task.calculate_next_run()
-            task.save()
-
-            # 根据任务类型执行不同的逻辑
-            if task.task_type == 'TEST_SUITE':
-                # 执行测试套件
-                if not task.test_suite:
-                    return Response({
-                        'error': '该任务未配置测试套件'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-                test_suite = task.test_suite
-                test_case_count = test_suite.suite_test_cases.count()
-
-                if test_case_count == 0:
-                    return Response({
-                        'error': '该测试套件未包含任何测试用例，无法执行'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-                # 更新套件执行状态
-                test_suite.execution_status = 'running'
-                test_suite.save()
-
-                # 在后台线程中执行测试
-                import threading
-                from .test_executor import TestExecutor
-
-                def run_test():
-                    try:
-                        executor = TestExecutor(
-                            test_suite=test_suite,
-                            engine=task.engine,
-                            browser=task.browser,
-                            headless=task.headless,
-                            executed_by=task.created_by
-                        )
-                        executor.run()
-
-                        # 更新任务执行结果
-                        task.successful_runs += 1
-                        task.last_result = {'status': 'success', 'message': '测试套件执行成功'}
-                        task.error_message = ''
-                        task.save()
-
-                        # 发送成功通知
-                        self._send_task_notification(task, success=True)
-
-                    except Exception as e:
-                        task.failed_runs += 1
-                        task.last_result = {'status': 'failed', 'message': str(e)}
-                        task.error_message = str(e)
-                        test_suite.execution_status = 'failed'
-                        test_suite.save()
-                        task.save()
-
-                        # 发送失败通知
-                        self._send_task_notification(task, success=False)
-
-                # 启动后台线程执行测试
-                thread = threading.Thread(target=run_test)
-                thread.daemon = True
-                thread.start()
-
-                log_operation('run', 'scheduled_task', task.id, task.name, request.user)
-
-                return Response({
-                    'message': '测试套件开始执行',
-                    'task_id': task.id,
-                    'task_name': task.name,
-                    'test_suite': test_suite.name,
-                    'test_case_count': test_case_count,
-                    'engine': task.engine,
-                    'browser': task.browser,
-                    'headless': task.headless
-                }, status=status.HTTP_200_OK)
-
-            elif task.task_type == 'TEST_CASE':
-                # 执行测试用例
-                if not task.test_cases or len(task.test_cases) == 0:
-                    return Response({
-                        'error': '该任务未配置测试用例'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-                test_case_ids = task.test_cases
-                test_cases = TestCase.objects.filter(id__in=test_case_ids)
-                test_case_count = test_cases.count()
-
-                if test_case_count == 0:
-                    return Response({
-                        'error': '找不到配置的测试用例'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-
-                # 在后台线程中执行测试用例
-                import threading
-
-                def run_test_cases():
-                    """在后台线程中执行测试用例"""
-                    success_count = 0
-                    failed_count = 0
-
-                    try:
-                        for test_case in test_cases:
-                            # 创建执行记录
-                            execution = TestCaseExecution.objects.create(
-                                test_case=test_case,
-                                project=task.project,
-                                execution_source='scheduled',
-                                status='running',
-                                engine=task.engine,
-                                browser=task.browser,
-                                headless=task.headless,
-                                created_by=task.created_by,
-                                started_at=timezone.now()
-                            )
-
-                            # 实际执行测试用例
-                            try:
-                                logger.info(f"开始执行定时任务的测试用例: {test_case.name} (ID: {test_case.id})")
-
-                                start_time = time.time()
-
-                                # 获取测试用例的所有步骤
-                                test_steps = list(test_case.steps.all().order_by('step_number'))
-
-                                # 预先获取所有步骤的数据
-                                steps_data = []
-                                for step in test_steps:
-                                    step_data = {
-                                        'step': step,
-                                        'action_type': step.action_type,
-                                        'description': step.description,
-                                        'input_value': step.input_value,
-                                        'wait_time': step.wait_time,
-                                        'assert_type': step.assert_type,
-                                        'assert_value': step.assert_value,
-                                    }
-
-                                    if step.element:
-                                        step_data['element_data'] = {
-                                            'locator_strategy': step.element.locator_strategy.name if step.element.locator_strategy else 'css',
-                                            'locator_value': step.element.locator_value,
-                                            'name': step.element.name,
-                                            'wait_timeout': step.element.wait_timeout,
-                                            'force_action': step.element.force_action
-                                        }
-                                    else:
-                                        step_data['element_data'] = None
-
-                                    steps_data.append(step_data)
-
-                                # 存储步骤执行结果和截图
-                                step_results = []
-                                screenshots = []
-                                execution_logs = []
-                                execution_result = {'status': 'passed', 'error_message': None}
-
-                                # 根据引擎类型执行
-                                if task.engine == 'selenium':
-                                    from .selenium_engine import SeleniumTestEngine
-
-                                    # 检查浏览器是否可用
-                                    is_available, error_msg = SeleniumTestEngine.check_browser_available(task.browser)
-                                    if not is_available:
-                                        execution.status = 'failed'
-                                        execution.error_message = error_msg
-                                        execution.execution_logs = json.dumps([{
-                                            'step_number': 0,
-                                            'action_type': '浏览器检查',
-                                            'description': '执行前浏览器环境检查',
-                                            'success': False,
-                                            'error': error_msg
-                                        }], ensure_ascii=False)
-                                        execution.finished_at = timezone.now()
-                                        execution.save()
-                                        failed_count += 1
-                                        continue
-
-                                    # 创建Selenium引擎实例并执行
-                                    engine = SeleniumTestEngine(browser_type=task.browser, headless=task.headless)
-
-                                    try:
-                                        # 启动浏览器
-                                        engine.start()
-                                        execution_logs.append("✓ 浏览器启动成功")
-
-                                        # 导航到项目基础URL
-                                        if test_case.project.base_url:
-                                            success, nav_log = engine.navigate(test_case.project.base_url)
-                                            execution_logs.append(nav_log)
-                                            if not success:
-                                                execution_result['status'] = 'failed'
-                                                execution_result['error_message'] = "导航到测试页面失败"
-                                                raise Exception("导航到测试页面失败")
-
-                                        # 执行测试步骤
-                                        for i, step_info in enumerate(steps_data, 1):
-                                            step = step_info['step']
-                                            action_type = step_info['action_type']
-                                            element_data = step_info['element_data']
-
-                                            success, step_log, screenshot_base64 = engine.execute_step(step,
-                                                                                                       element_data or {})
-
-                                            step_results.append({
-                                                'step_number': i,
-                                                'action_type': action_type,
-                                                'description': step_info['description'] or '',
-                                                'success': success,
-                                                'error': None if success else step_log
-                                            })
-
-                                            if not success:
-                                                execution_result['status'] = 'failed'
-                                                execution_result['error_message'] = step_log
-
-                                                if not screenshot_base64:
-                                                    screenshot_base64 = engine.capture_screenshot()
-
-                                                if screenshot_base64:
-                                                    screenshots.append({
-                                                        'url': screenshot_base64,
-                                                        'description': f'步骤 {i} 失败截图',
-                                                        'step_number': i,
-                                                        'timestamp': timezone.now().isoformat()
-                                                    })
-
-                                                break
-
-                                            if action_type == 'screenshot' and screenshot_base64:
-                                                screenshots.append({
-                                                    'url': screenshot_base64,
-                                                    'description': f'步骤 {i}: {step_info["description"] or "手动截图"}',
-                                                    'step_number': i,
-                                                    'timestamp': timezone.now().isoformat()
-                                                })
-
-                                    finally:
-                                        engine.stop()
-
-                                else:  # Playwright
-                                    import asyncio
-                                    from asgiref.sync import sync_to_async
-                                    from .playwright_engine import PlaywrightTestEngine
-
-                                    async def run_playwright_test():
-                                        browser_map = {
-                                            'chrome': 'chromium',
-                                            'firefox': 'firefox',
-                                            'safari': 'webkit'
-                                        }
-                                        browser_type = browser_map.get(task.browser, 'chromium')
-
-                                        engine = PlaywrightTestEngine(browser_type=browser_type, headless=task.headless)
-
-                                        try:
-                                            # 启动浏览器
-                                            await engine.start()
-                                            execution_logs.append("✓ 浏览器启动成功")
-
-                                            # 获取项目基础URL（同步操作）
-                                            base_url = await sync_to_async(lambda: test_case.project.base_url)()
-
-                                            # 导航到项目基础URL
-                                            if base_url:
-                                                success, nav_log = await engine.navigate(base_url)
-                                                execution_logs.append(nav_log)
-                                                if not success:
-                                                    execution_result['status'] = 'failed'
-                                                    execution_result['error_message'] = "导航到测试页面失败"
-                                                    return False
-
-                                            # 执行测试步骤
-                                            for i, step_info in enumerate(steps_data, 1):
-                                                step = step_info['step']
-                                                action_type = step_info['action_type']
-                                                element_data = step_info['element_data']
-
-                                                success, step_log, screenshot_base64 = await engine.execute_step(step,
-                                                                                                                 element_data or {})
-
-                                                step_results.append({
-                                                    'step_number': i,
-                                                    'action_type': action_type,
-                                                    'description': step_info['description'] or '',
-                                                    'success': success,
-                                                    'error': None if success else step_log
-                                                })
-
-                                                if not success:
-                                                    execution_result['status'] = 'failed'
-                                                    execution_result['error_message'] = step_log
-
-                                                    if not screenshot_base64:
-                                                        screenshot_base64 = await engine.capture_screenshot()
-
-                                                    if screenshot_base64:
-                                                        screenshots.append({
-                                                            'url': screenshot_base64,
-                                                            'description': f'步骤 {i} 失败截图',
-                                                            'step_number': i,
-                                                            'timestamp': timezone.now().isoformat()
-                                                        })
-
-                                                    return False
-
-                                                if action_type == 'screenshot' and screenshot_base64:
-                                                    screenshots.append({
-                                                        'url': screenshot_base64,
-                                                        'description': f'步骤 {i}: {step_info["description"] or "手动截图"}',
-                                                        'step_number': i,
-                                                        'timestamp': timezone.now().isoformat()
-                                                    })
-
-                                            return True
-
-                                        finally:
-                                            await engine.stop()
-
-                                    # 在新的事件循环中运行Playwright测试
-                                    loop = asyncio.new_event_loop()
-                                    asyncio.set_event_loop(loop)
-                                    try:
-                                        loop.run_until_complete(run_playwright_test())
-                                    finally:
-                                        loop.close()
-
-                                # 计算执行时间
-                                total_time = round(time.time() - start_time, 2)
-
-                                # 保存执行结果
-                                execution.status = execution_result['status']
-                                execution.error_message = execution_result['error_message'] or ''
-                                execution.execution_logs = json.dumps(step_results, ensure_ascii=False)
-                                execution.execution_time = total_time
-                                execution.screenshots = screenshots
-                                execution.finished_at = timezone.now()
-                                execution.save()
-
-                                if execution.status == 'passed':
-                                    success_count += 1
-                                    logger.info(f"测试用例 {test_case.name} 执行成功")
-                                else:
-                                    failed_count += 1
-                                    logger.warning(f"测试用例 {test_case.name} 执行失败: {execution.error_message}")
-
-                            except Exception as e:
-                                logger.error(f"执行测试用例 {test_case.name} 时发生异常: {str(e)}")
-                                execution.status = 'failed'
-                                execution.error_message = str(e)
-                                execution.finished_at = timezone.now()
-                                execution.save()
-                                failed_count += 1
-
-                        # 更新任务执行结果
-                        if failed_count == 0:
-                            task.successful_runs += 1
-                            task.last_result = {
-                                'status': 'success',
-                                'message': f'执行完成: {success_count}个成功',
-                                'success_count': success_count,
-                                'failed_count': failed_count
-                            }
-                            task.error_message = ''
-                            task.save()
-
-                            # 发送成功通知
-                            self._send_task_notification(task, success=True)
-                        else:
-                            task.failed_runs += 1
-                            task.last_result = {
-                                'status': 'partial',
-                                'message': f'执行完成: {success_count}个成功, {failed_count}个失败',
-                                'success_count': success_count,
-                                'failed_count': failed_count
-                            }
-                            task.error_message = f'{failed_count}个测试用例执行失败'
-                            task.save()
-
-                            # 发送失败通知
-                            self._send_task_notification(task, success=False)
-
-                    except Exception as e:
-                        logger.error(f"执行定时任务测试用例时发生异常: {str(e)}")
-                        task.failed_runs += 1
-                        task.last_result = {'status': 'failed', 'message': str(e)}
-                        task.error_message = str(e)
-                        task.save()
-
-                        # 发送失败通知
-                        self._send_task_notification(task, success=False)
-
-                # 启动后台线程执行测试
-                thread = threading.Thread(target=run_test_cases)
-                thread.daemon = True
-                thread.start()
-
-                log_operation('run', 'scheduled_task', task.id, task.name, request.user)
-
-                return Response({
-                    'message': '测试用例开始执行',
-                    'task_id': task.id,
-                    'task_name': task.name,
-                    'test_case_count': test_case_count,
-                    'engine': task.engine,
-                    'browser': task.browser,
-                    'headless': task.headless
-                }, status=status.HTTP_200_OK)
-
-            else:
-                return Response({
-                    'error': '不支持的任务类型'
-                }, status=status.HTTP_400_BAD_REQUEST)
-
+            from apps.core.models import UnifiedNotificationConfig
+            all_webhook_configs = UnifiedNotificationConfig.objects.filter(
+                config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk'],
+                is_active=True
+            )
+            logger.info("使用统一通知配置 (UnifiedNotificationConfig)")
+        except ImportError as e:
+            logger.error(f"无法导入统一通知配置: {e}")
+            logger.warning("通知发送失败：无法找到通知配置模块")
+            return
         except Exception as e:
-            logger.error(f'执行定时任务失败: {str(e)}')
-            return Response({
-                'error': f'执行失败: {str(e)}'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f"获取通知配置时出错: {e}")
+            return
 
-    def _send_task_notification(self, task, success):
-        """发送任务执行通知"""
-        try:
-            logger.info(f"准备发送任务 {task.id} 的通知，执行结果: {'成功' if success else '失败'}")
+        all_webhook_bots = []
+        for config in all_webhook_configs:
+            bots = config.get_webhook_bots()
+            if bots:
+                for bot in bots:
+                    if bot.get('enabled', True) and bot.get('enable_ui_automation', True):
+                        all_webhook_bots.append(bot)
+                        logger.info(f"添加机器人: {bot.get('name')} (UI自动化测试已启用)")
+                    elif bot.get('enabled', True):
+                        logger.info(f"配置中心机器人 {bot.get('name')} 未启用UI自动化测试，跳过")
 
-            # 检查是否需要发送通知
-            if success and not task.notify_on_success:
-                logger.info("任务执行成功但未启用成功通知")
-                return
+        if not all_webhook_bots:
+            logger.warning("没有找到任何启用的webhook机器人配置")
+            return
 
-            if not success and not task.notify_on_failure:
-                logger.info("任务执行失败但未启用失败通知")
-                return
+        logger.info(f"找到 {len(all_webhook_bots)} 个启用的webhook机器人配置")
 
-            # 检查通知类型
-            if not task.notification_type:
-                logger.info("未设置通知类型")
-                return
+        status_text = '成功' if success else '失败'
+        task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else '测试用例执行'
 
-            logger.info(f"通知类型: {task.notification_type}")
+        last_result = task.last_result or {}
+        result_message = last_result.get('message', '')
+        success_count = last_result.get('success_count', 0)
+        failed_count = last_result.get('failed_count', 0)
 
-            # 根据通知类型发送不同的通知
-            if task.notification_type in ['webhook', 'both']:
-                logger.info("发送Webhook通知")
-                self._send_webhook_notification(task, success)
+        for bot in all_webhook_bots:
+            if not bot.get('enabled', True) or not bot.get('webhook_url'):
+                logger.info(f"跳过未启用或无URL的机器人: {bot.get('name', 'Unknown')}")
+                continue
 
-            if task.notification_type in ['email', 'both']:
-                logger.info("发送邮件通知")
-                self._send_email_notification(task, success)
+            bot_type = bot.get('type', 'unknown')
+            webhook_url = bot['webhook_url']
+            logger.info(f"发送通知到 {bot_type} 机器人: {bot.get('name', 'Unknown')}")
 
-        except Exception as e:
-            logger.error(f"发送通知失败: {str(e)}", exc_info=True)
-
-    def _send_webhook_notification(self, task, success):
-        """发送Webhook通知"""
-        try:
-            import requests
-            import json
-
-            logger.info("=== 开始发送Webhook通知 ===")
-
-            # 使用统一的通知配置
-            try:
-                from apps.core.models import UnifiedNotificationConfig
-                all_webhook_configs = UnifiedNotificationConfig.objects.filter(
-                    config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk'],
-                    is_active=True
-                )
-                logger.info("使用统一通知配置 (UnifiedNotificationConfig)")
-            except ImportError as e:
-                # 如果 core 模块不可用，记录错误并返回
-                logger.error(f"无法导入统一通知配置: {e}")
-                logger.warning("通知发送失败：无法找到通知配置模块")
-                return
-            except Exception as e:
-                logger.error(f"获取通知配置时出错: {e}")
-                return
-
-            all_webhook_bots = []
-            for config in all_webhook_configs:
-                bots = config.get_webhook_bots()
-                if bots:
-                    for bot in bots:
-                        # 只添加启用了"UI自动化测试"的机器人
-                        if bot.get('enabled', True) and bot.get('enable_ui_automation', True):
-                            all_webhook_bots.append(bot)
-                            logger.info(f"添加机器人: {bot.get('name')} (UI自动化测试已启用)")
-                        elif bot.get('enabled', True):
-                            logger.info(f"配置中心机器人 {bot.get('name')} 未启用UI自动化测试，跳过")
-
-            if not all_webhook_bots:
-                logger.warning("没有找到任何启用的webhook机器人配置")
-                return
-
-            logger.info(f"找到 {len(all_webhook_bots)} 个启用的webhook机器人配置")
-
-            # 准备通知内容
-            status_text = '成功' if success else '失败'
-            task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else '测试用例执行'
-
-            # 获取最后执行结果的详细信息
-            last_result = task.last_result or {}
-            result_message = last_result.get('message', '')
-            success_count = last_result.get('success_count', 0)
-            failed_count = last_result.get('failed_count', 0)
-
-            # 为不同的机器人平台准备消息格式
-            for bot in all_webhook_bots:
-                if not bot.get('enabled', True) or not bot.get('webhook_url'):
-                    logger.info(f"跳过未启用或无URL的机器人: {bot.get('name', 'Unknown')}")
-                    continue
-
-                bot_type = bot.get('type', 'unknown')
-                webhook_url = bot['webhook_url']
-                logger.info(f"发送通知到 {bot_type} 机器人: {bot.get('name', 'Unknown')}")
-
-                # 构造详细内容
-                # 转换执行时间到本地时区
-                local_run_time = timezone.localtime(task.last_run_time).strftime(
-                    '%Y-%m-%d %H:%M:%S') if task.last_run_time else '未知'
-                detail_content = f"""任务名称: {task.name}
+            local_run_time = timezone.localtime(task.last_run_time).strftime(
+                '%Y-%m-%d %H:%M:%S') if task.last_run_time else '未知'
+            detail_content = f"""任务名称: {task.name}
 
 执行状态: {status_text}
 
@@ -2567,134 +2174,109 @@ class UiScheduledTaskViewSet(viewsets.ModelViewSet):
 
 浏览器: {task.browser.capitalize()}"""
 
-                if result_message:
-                    detail_content += f"\n\n执行结果: {result_message}"
+            if result_message:
+                detail_content += f"\n\n执行结果: {result_message}"
 
-                if success_count > 0 or failed_count > 0:
-                    detail_content += f"\n\n成功: {success_count} 个，失败: {failed_count} 个"
+            if success_count > 0 or failed_count > 0:
+                detail_content += f"\n\n成功: {success_count} 个，失败: {failed_count} 个"
 
-                # 根据机器人类型构造消息格式
-                if bot_type == 'wechat':  # 企业微信
-                    message_data = {
-                        "msgtype": "markdown",
-                        "markdown": {
-                            "content": f"""**UI自动化定时任务执行{status_text}**
+            if bot_type == 'wechat':
+                message_data = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "content": f"""**UI自动化定时任务执行{status_text}**
 
 {detail_content}"""
-                        }
                     }
-                elif bot_type == 'feishu':  # 飞书
-                    message_data = {
-                        "msg_type": "interactive",
-                        "card": {
-                            "elements": [{
-                                "tag": "div",
-                                "text": {
-                                    "content": f"**UI自动化定时任务执行{status_text}**\n\n{detail_content}",
-                                    "tag": "lark_md"
-                                }
-                            }],
-                            "header": {
-                                "title": {
-                                    "content": f"UI自动化定时任务执行{status_text}",
-                                    "tag": "plain_text"
-                                },
-                                "template": "green" if success else "red"
+                }
+            elif bot_type == 'feishu':
+                message_data = {
+                    "msg_type": "interactive",
+                    "card": {
+                        "elements": [{
+                            "tag": "div",
+                            "text": {
+                                "content": f"**UI自动化定时任务执行{status_text}**\n\n{detail_content}",
+                                "tag": "lark_md"
                             }
+                        }],
+                        "header": {
+                            "title": {
+                                "content": f"UI自动化定时任务执行{status_text}",
+                                "tag": "plain_text"
+                            },
+                            "template": "green" if success else "red"
                         }
                     }
-                elif bot_type == 'dingtalk':  # 钉钉
-                    message_data = {
-                        "msgtype": "markdown",
-                        "markdown": {
-                            "title": f"UI自动化定时任务执行{status_text}",
-                            "text": f"""**UI自动化定时任务执行{status_text}**
+                }
+            elif bot_type == 'dingtalk':
+                message_data = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "title": f"UI自动化定时任务执行{status_text}",
+                        "text": f"""**UI自动化定时任务执行{status_text}**
 
 {detail_content}"""
-                        }
                     }
+                }
 
-                    # 钉钉机器人签名验证
-                    secret = bot.get('secret')
-                    if secret:
-                        import time
-                        import hmac
-                        import hashlib
-                        import base64
-                        import urllib.parse
+                secret = bot.get('secret')
+                if secret:
+                    import time
+                    import hmac
+                    import hashlib
+                    import base64
+                    import urllib.parse
 
-                        timestamp = str(round(time.time() * 1000))
-                        string_to_sign = f'{timestamp}\n{secret}'
-                        string_to_sign_enc = string_to_sign.encode('utf-8')
-                        secret_enc = secret.encode('utf-8')
-                        hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
-                        sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+                    timestamp = str(round(time.time() * 1000))
+                    string_to_sign = f'{timestamp}\n{secret}'
+                    string_to_sign_enc = string_to_sign.encode('utf-8')
+                    secret_enc = secret.encode('utf-8')
+                    hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+                    sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
 
-                        # 在URL中添加签名参数
-                        if '?' in webhook_url:
-                            webhook_url += f'&timestamp={timestamp}&sign={sign}'
-                        else:
-                            webhook_url += f'?timestamp={timestamp}&sign={sign}'
-                else:
-                    logger.warning(f"未知的机器人类型: {bot_type}")
-                    continue
-
-                # 发送webhook请求
-                try:
-                    logger.info(f"发送请求到: {webhook_url}")
-                    logger.info(f"消息数据: {json.dumps(message_data, ensure_ascii=False, indent=2)}")
-
-                    response = requests.post(
-                        webhook_url,
-                        json=message_data,
-                        headers={'Content-Type': 'application/json'},
-                        timeout=10
-                    )
-
-                    logger.info(f"响应状态码: {response.status_code}")
-                    logger.info(f"响应内容: {response.text}")
-
-                    if response.status_code == 200:
-                        logger.info(f"成功发送通知到 {bot.get('name', 'Unknown')}")
-
-                        # 记录通知日志
-                        UiNotificationLog.objects.create(
-                            task=task,
-                            task_name=task.name,
-                            task_type=task.task_type,
-                            notification_type='task_execution',
-                            sender_name='系统Webhook通知',
-                            sender_email='system@notification.com',
-                            recipient_info=[{'name': bot.get('name', 'Unknown'), 'webhook_url': webhook_url}],
-                            webhook_bot_info=bot,
-                            notification_content=json.dumps(message_data, ensure_ascii=False),
-                            status='success',
-                            response_info={'status_code': response.status_code, 'response': response.text},
-                            sent_at=timezone.now()
-                        )
+                    if '?' in webhook_url:
+                        webhook_url += f'&timestamp={timestamp}&sign={sign}'
                     else:
-                        logger.error(f"发送通知失败，状态码: {response.status_code}, 响应: {response.text}")
+                        webhook_url += f'?timestamp={timestamp}&sign={sign}'
+            else:
+                logger.warning(f"未知的机器人类型: {bot_type}")
+                continue
 
-                        # 记录失败日志
-                        UiNotificationLog.objects.create(
-                            task=task,
-                            task_name=task.name,
-                            task_type=task.task_type,
-                            notification_type='task_execution',
-                            sender_name='系统Webhook通知',
-                            sender_email='system@notification.com',
-                            recipient_info=[{'name': bot.get('name', 'Unknown'), 'webhook_url': webhook_url}],
-                            webhook_bot_info=bot,
-                            notification_content=json.dumps(message_data, ensure_ascii=False),
-                            status='failed',
-                            error_message=f'HTTP {response.status_code}: {response.text}',
-                            response_info={'status_code': response.status_code, 'response': response.text}
-                        )
+            try:
+                logger.info(f"发送请求到: {webhook_url}")
+                logger.info(f"消息数据: {json.dumps(message_data, ensure_ascii=False, indent=2)}")
 
-                except requests.exceptions.RequestException as e:
-                    logger.error(f"发送webhook请求失败: {str(e)}")
+                response = requests.post(
+                    webhook_url,
+                    json=message_data,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=10
+                )
 
-                    # 记录失败日志
+                logger.info(f"响应状态码: {response.status_code}")
+                logger.info(f"响应内容: {response.text}")
+
+                if response.status_code == 200:
+                    logger.info(f"成功发送通知到 {bot.get('name', 'Unknown')}")
+
+                    UiNotificationLog.objects.create(
+                        task=task,
+                        task_name=task.name,
+                        task_type=task.task_type,
+                        notification_type='task_execution',
+                        sender_name='系统Webhook通知',
+                        sender_email='system@notification.com',
+                        recipient_info=[{'name': bot.get('name', 'Unknown'), 'webhook_url': webhook_url}],
+                        webhook_bot_info=bot,
+                        notification_content=json.dumps(message_data, ensure_ascii=False),
+                        status='success',
+                        response_info={'status_code': response.status_code, 'response': response.text},
+                        sent_at=timezone.now()
+                    )
+                else:
+                    logger.error(f"发送通知失败，状态码: {response.status_code}, 响应: {response.text}")
+
                     UiNotificationLog.objects.create(
                         task=task,
                         task_name=task.name,
@@ -2706,46 +2288,62 @@ class UiScheduledTaskViewSet(viewsets.ModelViewSet):
                         webhook_bot_info=bot,
                         notification_content=json.dumps(message_data, ensure_ascii=False),
                         status='failed',
-                        error_message=str(e)
+                        error_message=f'HTTP {response.status_code}: {response.text}',
+                        response_info={'status_code': response.status_code, 'response': response.text}
                     )
 
-        except Exception as e:
-            logger.error(f"发送Webhook通知失败: {str(e)}", exc_info=True)
+            except requests.exceptions.RequestException as e:
+                logger.error(f"发送webhook请求失败: {str(e)}")
 
-    def _send_email_notification(self, task, success):
-        """发送邮件通知"""
-        try:
-            from django.core.mail import send_mail
-            from django.conf import settings
+                UiNotificationLog.objects.create(
+                    task=task,
+                    task_name=task.name,
+                    task_type=task.task_type,
+                    notification_type='task_execution',
+                    sender_name='系统Webhook通知',
+                    sender_email='system@notification.com',
+                    recipient_info=[{'name': bot.get('name', 'Unknown'), 'webhook_url': webhook_url}],
+                    webhook_bot_info=bot,
+                    notification_content=json.dumps(message_data, ensure_ascii=False),
+                    status='failed',
+                    error_message=str(e)
+                )
 
-            logger.info("=== 开始发送邮件通知 ===")
+    except Exception as e:
+        logger.error(f"发送Webhook通知失败: {str(e)}", exc_info=True)
 
-            # 获取收件人列表
-            recipients = []
-            if task.notify_emails:
-                if isinstance(task.notify_emails, list):
-                    recipients = task.notify_emails
-                else:
-                    recipients = [task.notify_emails]
 
-            if not recipients:
-                logger.warning("没有找到任何邮件收件人")
-                return
+def _send_email_notification(task, success):
+    """发送邮件通知"""
+    try:
+        from django.core.mail import send_mail
+        from django.conf import settings
 
-            # 准备邮件内容
-            status_text = '成功' if success else '失败'
-            task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else '测试用例执行'
+        logger.info("=== 开始发送邮件通知 ===")
 
-            subject = f"UI自动化定时任务执行{status_text}: {task.name}"
+        recipients = []
+        if task.notify_emails:
+            if isinstance(task.notify_emails, list):
+                recipients = task.notify_emails
+            else:
+                recipients = [task.notify_emails]
 
-            last_result = task.last_result or {}
-            result_message = last_result.get('message', '')
+        if not recipients:
+            logger.warning("没有找到任何邮件收件人")
+            return
 
-            # 转换执行时间到本地时区
-            local_run_time = timezone.localtime(task.last_run_time).strftime(
-                '%Y-%m-%d %H:%M:%S') if task.last_run_time else '未知'
+        status_text = '成功' if success else '失败'
+        task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else '测试用例执行'
 
-            message = f"""
+        subject = f"UI自动化定时任务执行{status_text}: {task.name}"
+
+        last_result = task.last_result or {}
+        result_message = last_result.get('message', '')
+
+        local_run_time = timezone.localtime(task.last_run_time).strftime(
+            '%Y-%m-%d %H:%M:%S') if task.last_run_time else '未知'
+
+        message = f"""
 任务名称: {task.name}
 执行状态: {status_text}
 执行时间: {local_run_time}
@@ -2758,54 +2356,51 @@ class UiScheduledTaskViewSet(viewsets.ModelViewSet):
 
 错误信息:
 {task.error_message if task.error_message else '无错误信息'}
-            """
+        """
 
-            # 发送邮件
-            from_email = settings.DEFAULT_FROM_EMAIL
-            logger.info(f"准备发送邮件，发件人: {from_email}, 收件人: {recipients}")
+        from_email = settings.DEFAULT_FROM_EMAIL
+        logger.info(f"准备发送邮件，发件人: {from_email}, 收件人: {recipients}")
 
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email,
-                recipient_list=recipients,
-                fail_silently=False,
-            )
-            logger.info("邮件发送成功")
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+        logger.info("邮件发送成功")
 
-            # 记录通知日志
+        UiNotificationLog.objects.create(
+            task=task,
+            task_name=task.name,
+            task_type=task.task_type,
+            notification_type='task_execution',
+            sender_name='系统邮件通知',
+            sender_email=from_email,
+            recipient_info=[{'email': email} for email in recipients],
+            notification_content=message,
+            status='success',
+            sent_at=timezone.now()
+        )
+
+    except Exception as e:
+        logger.error(f"发送邮件通知失败: {str(e)}", exc_info=True)
+
+        try:
             UiNotificationLog.objects.create(
                 task=task,
                 task_name=task.name,
                 task_type=task.task_type,
                 notification_type='task_execution',
                 sender_name='系统邮件通知',
-                sender_email=from_email,
-                recipient_info=[{'email': email} for email in recipients],
-                notification_content=message,
-                status='success',
-                sent_at=timezone.now()
+                sender_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_info=[{'email': email} for email in recipients] if recipients else [],
+                notification_content=f"发送邮件通知失败: {str(e)}",
+                status='failed',
+                error_message=str(e)
             )
-
-        except Exception as e:
-            logger.error(f"发送邮件通知失败: {str(e)}", exc_info=True)
-
-            # 记录失败日志
-            try:
-                UiNotificationLog.objects.create(
-                    task=task,
-                    task_name=task.name,
-                    task_type=task.task_type,
-                    notification_type='task_execution',
-                    sender_name='系统邮件通知',
-                    sender_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_info=[{'email': email} for email in recipients] if recipients else [],
-                    notification_content=f"发送邮件通知失败: {str(e)}",
-                    status='failed',
-                    error_message=str(e)
-                )
-            except:
-                pass
+        except:
+            pass
 
 
 class UiNotificationLogViewSet(viewsets.ReadOnlyModelViewSet):

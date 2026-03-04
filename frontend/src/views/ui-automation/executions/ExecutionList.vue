@@ -234,8 +234,8 @@
       <el-form :model="rerunFormData" label-width="100px">
         <el-form-item :label="$t('uiAutomation.execution.testEngine')">
           <el-radio-group v-model="rerunFormData.engine">
-            <el-radio label="playwright">Playwright</el-radio>
-            <el-radio label="selenium">Selenium</el-radio>
+            <el-radio value="playwright">Playwright</el-radio>
+            <el-radio value="selenium">Selenium</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.execution.browserFilter')">
@@ -248,8 +248,8 @@
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.execution.executionMode')">
           <el-radio-group v-model="rerunFormData.headless">
-            <el-radio :label="false">{{ $t('uiAutomation.execution.headedMode') }}</el-radio>
-            <el-radio :label="true">{{ $t('uiAutomation.execution.headlessMode') }}</el-radio>
+            <el-radio :value="false">{{ $t('uiAutomation.execution.headedMode') }}</el-radio>
+            <el-radio :value="true">{{ $t('uiAutomation.execution.headlessMode') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

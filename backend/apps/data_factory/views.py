@@ -10,8 +10,8 @@ from django.db.models import Count
 from django.http import HttpResponse
 from django.core.cache import cache
 
-import logging
 from pathlib import Path
+from loguru import logger
 
 from .models import DataFactoryRecord
 from .serializers import DataFactoryRecordSerializer, ToolExecuteSerializer
@@ -24,8 +24,6 @@ from .tools.test_data_tools import TestDataTools
 from .tools.json_tools import JsonTools
 from .tools.crontab_tools import CrontabTools
 from .tools.image_tools import ImageTools
-
-logger = logging.getLogger(__name__)
 
 
 class DataFactoryPagination(PageNumberPagination):

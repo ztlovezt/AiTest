@@ -1,10 +1,10 @@
 <template>
   <div class="scheduled-tasks">
     <div class="header">
-      <h3>APP定时任务</h3>
+      <h3>{{ t('appAutomation.scheduledTask.title') }}</h3>
       <el-button type="primary" @click="handleCreate">
         <el-icon><Plus /></el-icon>
-        新建任务
+        {{ t('appAutomation.scheduledTask.newTask') }}
       </el-button>
     </div>
 
@@ -12,101 +12,109 @@
     <div class="filters">
       <el-row :gutter="20">
         <el-col :span="5">
-          <el-select v-model="filters.project" placeholder="全部项目" clearable filterable>
+          <el-select v-model="filters.project" :placeholder="t('appAutomation.scheduledTask.allProjects')" clearable filterable>
             <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-col>
         <el-col :span="5">
-          <el-select v-model="filters.task_type" placeholder="任务类型" clearable>
-            <el-option label="测试套件执行" value="TEST_SUITE" />
-            <el-option label="测试用例执行" value="TEST_CASE" />
+          <el-select v-model="filters.task_type" :placeholder="t('appAutomation.scheduledTask.taskTypeFilter')" clearable>
+            <el-option :label="t('appAutomation.scheduledTask.taskTypeTestSuite')" value="APP_TEST_SUITE" />
+            <el-option :label="t('appAutomation.scheduledTask.taskTypeTestCase')" value="APP_TEST_CASE" />
           </el-select>
         </el-col>
         <el-col :span="5">
-          <el-select v-model="filters.trigger_type" placeholder="触发器类型" clearable>
-            <el-option label="Cron表达式" value="CRON" />
-            <el-option label="固定间隔" value="INTERVAL" />
-            <el-option label="单次执行" value="ONCE" />
+          <el-select v-model="filters.schedule_type" :placeholder="t('appAutomation.scheduledTask.scheduleType')" clearable>
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.cron')" value="C" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.once')" value="O" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.interval')" value="I" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.hourly')" value="H" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.daily')" value="D" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.weekly')" value="W" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.biweekly')" value="BW" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.monthly')" value="M" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.bimonthly')" value="BM" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.quarterly')" value="Q" />
+            <el-option :label="t('appAutomation.scheduledTask.scheduleTypes.yearly')" value="Y" />
           </el-select>
         </el-col>
         <el-col :span="4">
-          <el-select v-model="filters.status" placeholder="状态" clearable>
-            <el-option label="激活" value="ACTIVE" />
-            <el-option label="暂停" value="PAUSED" />
-            <el-option label="已完成" value="COMPLETED" />
-            <el-option label="失败" value="FAILED" />
+          <el-select v-model="filters.status" :placeholder="t('appAutomation.scheduledTask.status')" clearable>
+            <el-option :label="t('appAutomation.scheduledTask.statusTypes.active')" value="ACTIVE" />
+            <el-option :label="t('appAutomation.scheduledTask.statusTypes.paused')" value="PAUSED" />
+            <el-option :label="t('appAutomation.scheduledTask.statusTypes.completed')" value="COMPLETED" />
+            <el-option :label="t('appAutomation.scheduledTask.statusTypes.failed')" value="FAILED" />
           </el-select>
         </el-col>
         <el-col :span="5">
-          <el-button @click="resetFilters">重置</el-button>
-          <el-button type="primary" @click="loadTasks">查询</el-button>
+          <el-button @click="resetFilters">{{ t('appAutomation.common.reset') }}</el-button>
+          <el-button type="primary" @click="loadTasks">{{ t('appAutomation.common.query') }}</el-button>
         </el-col>
       </el-row>
     </div>
 
     <!-- 列表 -->
     <el-table :data="tasks" v-loading="loading" border>
-      <el-table-column prop="name" label="任务名称" min-width="180" />
-      <el-table-column prop="task_type" label="任务类型" width="120">
+      <el-table-column prop="name" :label="t('appAutomation.scheduledTask.taskName')" min-width="180" />
+      <el-table-column prop="task_type_display" :label="t('appAutomation.scheduledTask.taskType')" width="120">
         <template #default="{ row }">
-          <el-tag :type="row.task_type === 'TEST_SUITE' ? 'success' : 'primary'" size="small">
-            {{ row.task_type_display }}
+          <el-tag :type="row.task_type === 'APP_TEST_SUITE' ? 'success' : 'primary'" size="small">
+            {{ row.task_type_display || row.task_type }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="trigger_type" label="触发器" width="100">
+      <el-table-column prop="schedule_type_display" :label="t('appAutomation.scheduledTask.scheduleType')" width="100">
         <template #default="{ row }">
-          <el-tag size="small">{{ row.trigger_type_display }}</el-tag>
+          <el-tag size="small">{{ row.schedule_type_display || getScheduleTypeText(row.schedule_type) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="通知" width="100">
+      <el-table-column :label="t('appAutomation.scheduledTask.notificationType')" width="100">
         <template #default="{ row }">
-          <el-tag v-if="row.notification_type" :type="row.notification_type === 'webhook' ? 'primary' : row.notification_type === 'both' ? 'warning' : ''" size="small">
+          <el-tag v-if="row.notification_type_display && row.notification_type_display !== '-'" :type="row.notification_type_display === 'Webhook' ? 'primary' : row.notification_type_display === '邮件+Webhook' ? 'warning' : ''" size="small">
             {{ row.notification_type_display }}
           </el-tag>
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="90">
+      <el-table-column prop="status" :label="t('appAutomation.scheduledTask.status')" width="90">
         <template #default="{ row }">
           <el-tag :type="row.status === 'ACTIVE' ? 'success' : row.status === 'PAUSED' ? 'warning' : 'info'" size="small">
             {{ row.status_display }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="设备" width="130">
+      <el-table-column :label="t('appAutomation.scheduledTask.device')" width="130">
         <template #default="{ row }">
           {{ row.device_name || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="下次执行" width="170">
+      <el-table-column :label="t('appAutomation.scheduledTask.nextRunTime')" width="170">
         <template #default="{ row }">
-          {{ formatDateTime(row.next_run_time) }}
+          {{ row.next_run_display || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="上次执行" width="170">
+      <el-table-column :label="t('appAutomation.scheduledTask.lastRunTime')" width="170">
         <template #default="{ row }">
-          {{ formatDateTime(row.last_run_time) }}
+          {{ row.last_run_display || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="执行统计" width="140">
+      <el-table-column :label="t('appAutomation.scheduledTask.executionStats')" width="140">
         <template #default="{ row }">
-          <span>总 {{ row.total_runs }}  </span>
-          <span style="color:#67c23a">成功 {{ row.successful_runs }}  </span>
-          <span style="color:#f56c6c">失败 {{ row.failed_runs }}</span>
+          <span>{{ t('appAutomation.scheduledTask.total') }} {{ row.total_runs || 0 }}  </span>
+          <span style="color:#67c23a">{{ t('appAutomation.scheduledTask.success') }} {{ row.successful_runs || 0 }}  </span>
+          <span style="color:#f56c6c">{{ t('appAutomation.scheduledTask.failed') }} {{ row.failed_runs || 0 }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200" fixed="right">
+      <el-table-column :label="t('appAutomation.common.operation')" width="200" fixed="right">
         <template #default="{ row }">
-          <el-button size="small" @click="runNow(row)" :loading="row._running">执行</el-button>
+          <el-button size="small" @click="runNow(row)" :loading="row._running">{{ t('appAutomation.scheduledTask.actions.execute') }}</el-button>
           <el-dropdown @command="cmd => handleAction(cmd, row)">
-            <el-button size="small">更多<el-icon><ArrowDown /></el-icon></el-button>
+            <el-button size="small">{{ t('appAutomation.scheduledTask.more') }}<el-icon><ArrowDown /></el-icon></el-button>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                <el-dropdown-item command="pause" v-if="row.status === 'ACTIVE'">暂停</el-dropdown-item>
-                <el-dropdown-item command="resume" v-if="row.status === 'PAUSED'">恢复</el-dropdown-item>
-                <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                <el-dropdown-item command="edit">{{ t('appAutomation.scheduledTask.actions.edit') }}</el-dropdown-item>
+                <el-dropdown-item command="pause" v-if="row.status === 'ACTIVE'">{{ t('appAutomation.scheduledTask.actions.pause') }}</el-dropdown-item>
+                <el-dropdown-item command="resume" v-if="row.status === 'PAUSED'">{{ t('appAutomation.scheduledTask.actions.resume') }}</el-dropdown-item>
+                <el-dropdown-item command="delete" divided>{{ t('appAutomation.scheduledTask.actions.delete') }}</el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
@@ -128,118 +136,223 @@
     </div>
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog v-model="showDialog" :title="editingTask ? '编辑定时任务' : '新建定时任务'" width="720px" :close-on-click-modal="false" @close="resetForm">
+    <el-dialog v-model="showDialog" :title="editingTask ? t('appAutomation.scheduledTask.editTask') : t('appAutomation.scheduledTask.createTask')" width="720px" :close-on-click-modal="false" @close="resetForm">
       <el-form :model="form" label-width="110px">
-        <el-form-item label="任务名称" required>
-          <el-input v-model="form.name" placeholder="请输入任务名称" />
+        <el-form-item :label="t('appAutomation.scheduledTask.form.taskName')" required>
+          <el-input v-model="form.name" :placeholder="t('appAutomation.scheduledTask.form.taskNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="所属项目">
-          <el-select v-model="form.project" placeholder="请选择项目" clearable filterable style="width:100%">
+        <el-form-item :label="t('appAutomation.scheduledTask.form.relatedProject')">
+          <el-select v-model="form.project" :placeholder="t('appAutomation.scheduledTask.selectProject')" clearable filterable style="width:100%">
             <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="任务描述">
-          <el-input v-model="form.description" type="textarea" placeholder="请输入描述" />
+        <el-form-item :label="t('appAutomation.scheduledTask.form.taskDesc')">
+          <el-input v-model="form.description" type="textarea" :placeholder="t('appAutomation.scheduledTask.form.taskDescPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="任务类型" required>
+        <el-form-item :label="t('appAutomation.scheduledTask.form.taskType')" required>
           <el-radio-group v-model="form.task_type">
-            <el-radio value="TEST_SUITE">测试套件</el-radio>
-            <el-radio value="TEST_CASE">测试用例</el-radio>
+            <el-radio value="APP_TEST_SUITE">{{ t('appAutomation.scheduledTask.form.testSuite') }}</el-radio>
+            <el-radio value="APP_TEST_CASE">{{ t('appAutomation.scheduledTask.form.testCase') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="form.task_type === 'TEST_SUITE'" label="测试套件" required>
-          <el-select v-model="form.test_suite" placeholder="选择套件" filterable>
+        <el-form-item v-if="form.task_type === 'APP_TEST_SUITE'" :label="t('appAutomation.scheduledTask.form.testSuite')" required>
+          <el-select v-model="form.test_suite" :placeholder="t('appAutomation.scheduledTask.form.selectSuite')" filterable>
             <el-option v-for="s in suites" :key="s.id" :label="s.name" :value="s.id" />
           </el-select>
         </el-form-item>
 
-        <el-form-item v-if="form.task_type === 'TEST_CASE'" label="测试用例" required>
-          <el-select v-model="form.test_case" placeholder="选择用例" filterable>
+        <el-form-item v-if="form.task_type === 'APP_TEST_CASE'" :label="t('appAutomation.scheduledTask.form.testCase')" required>
+          <el-select v-model="form.test_case" :placeholder="t('appAutomation.scheduledTask.form.selectTestCase')" filterable>
             <el-option v-for="tc in testCases" :key="tc.id" :label="tc.name" :value="tc.id" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="执行设备" required>
-          <el-select v-model="form.device" placeholder="选择设备" filterable>
+        <el-form-item :label="t('appAutomation.scheduledTask.form.executeDevice')" required>
+          <el-select v-model="form.device" :placeholder="t('appAutomation.scheduledTask.form.selectDevice')" filterable>
             <el-option v-for="d in devices" :key="d.id" :label="d.name || d.device_id" :value="d.id" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="应用包">
-          <el-select v-model="form.app_package" placeholder="选择应用包" filterable clearable>
+        <el-form-item :label="t('appAutomation.scheduledTask.form.appPackage')">
+          <el-select v-model="form.app_package" :placeholder="t('appAutomation.scheduledTask.form.selectAppPackage')" filterable clearable>
             <el-option v-for="p in packages" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
 
-        <el-form-item label="触发器类型" required>
-          <el-radio-group v-model="form.trigger_type">
-            <el-radio value="CRON">Cron表达式</el-radio>
-            <el-radio value="INTERVAL">固定间隔</el-radio>
-            <el-radio value="ONCE">单次执行</el-radio>
+        <el-form-item :label="t('appAutomation.scheduledTask.scheduleType')" required>
+          <el-radio-group v-model="form.schedule_type">
+            <el-radio value="C">{{ t('appAutomation.scheduledTask.scheduleTypes.cron') }}</el-radio>
+            <el-radio value="O">{{ t('appAutomation.scheduledTask.scheduleTypes.once') }}</el-radio>
+            <el-radio value="I">{{ t('appAutomation.scheduledTask.scheduleTypes.interval') }}</el-radio>
+            <el-radio value="H">{{ t('appAutomation.scheduledTask.scheduleTypes.hourly') }}</el-radio>
+            <el-radio value="D">{{ t('appAutomation.scheduledTask.scheduleTypes.daily') }}</el-radio>
+            <el-radio value="W">{{ t('appAutomation.scheduledTask.scheduleTypes.weekly') }}</el-radio>
+            <el-radio value="BW">{{ t('appAutomation.scheduledTask.scheduleTypes.biweekly') }}</el-radio>
+            <el-radio value="M">{{ t('appAutomation.scheduledTask.scheduleTypes.monthly') }}</el-radio>
+            <el-radio value="BM">{{ t('appAutomation.scheduledTask.scheduleTypes.bimonthly') }}</el-radio>
+            <el-radio value="Q">{{ t('appAutomation.scheduledTask.scheduleTypes.quarterly') }}</el-radio>
+            <el-radio value="Y">{{ t('appAutomation.scheduledTask.scheduleTypes.yearly') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="form.trigger_type === 'CRON'" label="Cron表达式" required>
-          <el-input v-model="form.cron_expression" placeholder="如: 0 0 * * *" />
+        <el-form-item v-if="form.schedule_type === 'C'" :label="t('appAutomation.scheduledTask.cronExpression')" required>
+          <el-input v-model="form.cron" :placeholder="t('appAutomation.scheduledTask.cronPlaceholder')" />
           <div class="cron-help">
             <el-tooltip raw-content placement="top">
               <template #content>
                 <div style="line-height: 1.6; text-align: left;">
-                  <div>Cron表达式格式: 分 时 日 月 周</div>
-                  <div>分: 0-59</div>
-                  <div>时: 0-23</div>
-                  <div>日: 1-31</div>
-                  <div>月: 1-12 或 JAN-DEC</div>
-                  <div>周: 0-6 或 SUN-SAT (0=周日)</div>
-                  <div style="margin-top: 8px;">常用示例:</div>
-                  <div>每天0点: 0 0 * * *</div>
-                  <div>每小时: 0 * * * *</div>
-                  <div>每周一9点: 0 9 * * 1</div>
-                  <div>每月1号0点: 0 0 1 * *</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.format') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.minute') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.hour') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.day') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.month') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.week') }}</div>
+                  <div style="margin-top: 8px;">{{ t('appAutomation.scheduledTask.cronHelp.examples') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.everyDay') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.everyHour') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.everyMonday') }}</div>
+                  <div>{{ t('appAutomation.scheduledTask.cronHelp.everyMonth') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">Cron帮助</span>
+              <span style="cursor: pointer; color: #409EFF;">{{ t('appAutomation.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>
 
-        <el-form-item v-if="form.trigger_type === 'INTERVAL'" label="间隔时间" required>
-          <el-input-number v-model="form.interval_seconds" :min="60" :step="60" />
-          <span class="unit">秒</span>
+        <el-form-item v-if="form.schedule_type === 'I'" :label="t('appAutomation.scheduledTask.intervalTime')" required>
+          <el-input-number v-model="form.minutes" :min="1" />
+          <span class="unit">{{ t('appAutomation.scheduledTask.intervalUnit') }}</span>
         </el-form-item>
 
-        <el-form-item v-if="form.trigger_type === 'ONCE'" label="执行时间" required>
-          <el-date-picker v-model="form.execute_at" type="datetime" placeholder="选择执行时间" />
+        <el-form-item v-if="form.schedule_type === 'O'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-date-picker
+            v-model="form.next_run"
+            type="datetime"
+            :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')"
+          />
         </el-form-item>
 
-        <el-form-item label="通知设置">
-          <el-checkbox v-model="form.notify_on_success">成功时通知</el-checkbox>
-          <el-checkbox v-model="form.notify_on_failure">失败时通知</el-checkbox>
+        <!-- 每小时 -->
+        <el-form-item v-if="form.schedule_type === 'H'" :label="t('appAutomation.scheduledTask.executeMinute')" required>
+          <el-select v-model="form.hour_minute" :placeholder="t('appAutomation.scheduledTask.selectMinute')" style="width: 120px;">
+            <el-option v-for="i in 60" :key="i-1" :label="i-1" :value="i-1" />
+          </el-select>
+          <span class="unit">{{ t('appAutomation.scheduledTask.unit.minute') }}</span>
         </el-form-item>
 
-        <el-form-item v-if="form.notify_on_success || form.notify_on_failure" label="通知类型">
-          <el-select v-model="form.notification_type" placeholder="选择通知类型">
-            <el-option label="邮箱通知" value="email" />
-            <el-option label="Webhook机器人" value="webhook" />
-            <el-option label="两者都发送" value="both" />
+        <!-- 每天 -->
+        <el-form-item v-if="form.schedule_type === 'D'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-time-picker v-model="form.daily_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每周 -->
+        <el-form-item v-if="form.schedule_type === 'W'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.weekly_day" :placeholder="t('appAutomation.scheduledTask.selectWeekday')" style="width: 120px; margin-right: 10px;">
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.sunday')" value="0" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.monday')" value="1" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.tuesday')" value="2" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.wednesday')" value="3" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.thursday')" value="4" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.friday')" value="5" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.saturday')" value="6" />
+          </el-select>
+          <el-time-picker v-model="form.weekly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 双周 -->
+        <el-form-item v-if="form.schedule_type === 'BW'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.biweekly_day" :placeholder="t('appAutomation.scheduledTask.selectWeekday')" style="width: 120px; margin-right: 10px;">
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.sunday')" value="0" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.monday')" value="1" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.tuesday')" value="2" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.wednesday')" value="3" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.thursday')" value="4" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.friday')" value="5" />
+            <el-option :label="t('appAutomation.scheduledTask.weekdays.saturday')" value="6" />
+          </el-select>
+          <el-time-picker v-model="form.biweekly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每月 -->
+        <el-form-item v-if="form.schedule_type === 'M'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.monthly_date" :placeholder="t('appAutomation.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="form.monthly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 双月 -->
+        <el-form-item v-if="form.schedule_type === 'BM'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.bimonthly_date" :placeholder="t('appAutomation.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="form.bimonthly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每季度 -->
+        <el-form-item v-if="form.schedule_type === 'Q'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.quarterly_month" :placeholder="t('appAutomation.scheduledTask.selectMonth')" style="width: 100px; margin-right: 10px;">
+            <el-option :label="`${1}${t('appAutomation.scheduledTask.unit.month')}`" value="1" />
+            <el-option :label="`${4}${t('appAutomation.scheduledTask.unit.month')}`" value="4" />
+            <el-option :label="`${7}${t('appAutomation.scheduledTask.unit.month')}`" value="7" />
+            <el-option :label="`${10}${t('appAutomation.scheduledTask.unit.month')}`" value="10" />
+          </el-select>
+          <el-select v-model="form.quarterly_date" :placeholder="t('appAutomation.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="form.quarterly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每年 -->
+        <el-form-item v-if="form.schedule_type === 'Y'" :label="t('appAutomation.scheduledTask.executeTime')" required>
+          <el-select v-model="form.yearly_month" :placeholder="t('appAutomation.scheduledTask.selectMonth')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 12" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-select v-model="form.yearly_date" :placeholder="t('appAutomation.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="form.yearly_time" :placeholder="t('appAutomation.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <el-form-item :label="t('appAutomation.scheduledTask.notificationSettings')">
+          <el-checkbox v-model="form.notify_on_success">{{ t('appAutomation.scheduledTask.notifyOnSuccess') }}</el-checkbox>
+          <el-checkbox v-model="form.notify_on_failure">{{ t('appAutomation.scheduledTask.notifyOnFailure') }}</el-checkbox>
+        </el-form-item>
+
+        <el-form-item v-if="form.notify_on_success || form.notify_on_failure" :label="t('appAutomation.scheduledTask.selectNotificationType')">
+          <el-select v-model="form.notification_type" :placeholder="t('appAutomation.scheduledTask.selectNotificationType')">
+            <el-option :label="t('appAutomation.scheduledTask.notificationTypes.email')" value="email" />
+            <el-option :label="t('appAutomation.scheduledTask.notificationTypes.webhook')" value="webhook" />
+            <el-option :label="t('appAutomation.scheduledTask.notificationTypes.both')" value="both" />
           </el-select>
         </el-form-item>
 
         <el-form-item
           v-if="(form.notify_on_success || form.notify_on_failure) && (form.notification_type === 'email' || form.notification_type === 'both')"
-          label="通知邮箱"
+          :label="t('appAutomation.scheduledTask.notifyEmails')"
         >
-          <el-select v-model="form.notify_emails" multiple filterable allow-create placeholder="输入或选择邮箱">
+          <el-select
+            v-model="form.notify_emails"
+            multiple
+            filterable
+            :placeholder="t('appAutomation.scheduledTask.selectNotifyEmails')"
+          >
+            <el-option
+              v-for="user in users"
+              :key="user.id"
+              :label="user.display_name"
+              :value="user.email"
+            />
           </el-select>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="showDialog = false">取消</el-button>
+        <el-button @click="showDialog = false">{{ t('appAutomation.common.cancel') }}</el-button>
         <el-button type="primary" @click="submitForm" :loading="submitting">
-          {{ editingTask ? '保存' : '创建' }}
+          {{ editingTask ? t('appAutomation.common.save') : t('appAutomation.common.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -250,20 +363,23 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import {
-  getAppScheduledTasks,
-  createAppScheduledTask,
-  updateAppScheduledTask,
-  deleteAppScheduledTask,
-  pauseAppScheduledTask,
-  resumeAppScheduledTask,
-  runAppScheduledTask,
+  getSchedulerSchedules,
+  createSchedulerSchedule,
+  updateSchedulerSchedule,
+  deleteSchedulerSchedule,
+  executeSchedulerSchedule,
+  toggleSchedulerSchedule,
   getTestSuiteList,
   getTestCaseList,
   getDeviceList,
   getPackageList,
   getAppProjects,
+  getAppUsers,
 } from '@/api/app-automation.js'
+
+const { t } = useI18n()
 
 const projectList = ref([])
 const tasks = ref([])
@@ -271,20 +387,37 @@ const suites = ref([])
 const testCases = ref([])
 const devices = ref([])
 const packages = ref([])
+const users = ref([])
 const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
 const editingTask = ref(null)
 
-const filters = reactive({ project: null, task_type: '', trigger_type: '', status: '' })
+const filters = reactive({ project: null, task_type: '', schedule_type: '', status: '' })
 const pagination = reactive({ current: 1, size: 10, total: 0 })
 
 const defaultForm = {
-  name: '', description: '', project: null, task_type: 'TEST_SUITE', trigger_type: 'CRON',
-  cron_expression: '0 0 * * *', interval_seconds: 3600, execute_at: '',
+  name: '', description: '', project: null, task_type: 'APP_TEST_SUITE', schedule_type: 'C',
+  cron: '0 0 * * *', minutes: 60, next_run: '',
+  hour_minute: 0,
+  daily_time: '',
+  weekly_day: '1',
+  weekly_time: '',
+  biweekly_day: '1',
+  biweekly_time: '',
+  monthly_date: 1,
+  monthly_time: '',
+  bimonthly_date: 1,
+  bimonthly_time: '',
+  quarterly_month: 1,
+  quarterly_date: 1,
+  quarterly_time: '',
+  yearly_month: 1,
+  yearly_date: 1,
+  yearly_time: '',
   device: '', app_package: '', test_suite: '', test_case: '',
   notify_on_success: false, notify_on_failure: false,
-  notification_type: '', notify_emails: [],
+  notify_emails: [],
 }
 const form = reactive({ ...defaultForm })
 
@@ -297,30 +430,54 @@ onMounted(() => {
 const loadTasks = async () => {
   loading.value = true
   try {
-    const params = { page: pagination.current, page_size: pagination.size }
-    if (filters.project) params.project = filters.project
+    const params = { page: pagination.current, page_size: pagination.size, module: 'APP' }
+    if (filters.project) params.project_id = filters.project
     if (filters.task_type) params.task_type = filters.task_type
-    if (filters.trigger_type) params.trigger_type = filters.trigger_type
+    if (filters.schedule_type) params.schedule_type = filters.schedule_type
     if (filters.status) params.status = filters.status
-    const res = await getAppScheduledTasks(params)
-    tasks.value = (res.data.results || []).map(t => ({ ...t, _running: false }))
-    pagination.total = res.data.count || 0
+    const res = await getSchedulerSchedules(params)
+    tasks.value = (res.data.results || res.data || []).map(t => ({ ...t, _running: false }))
+    pagination.total = res.data.count || tasks.value.length
   } catch { ElMessage.error('加载失败') }
   finally { loading.value = false }
 }
 
+// 获取调度类型文本
+const getScheduleTypeText = (type) => {
+  const typeMap = {
+    'O': '单次',
+    'I': '分钟间隔',
+    'H': '每小时',
+    'D': '每天',
+    'W': '每周',
+    'BW': '双周',
+    'M': '每月',
+    'BM': '双月',
+    'Q': '每季度',
+    'Y': '每年',
+    'C': 'Cron'
+  }
+  return typeMap[type] || type
+}
+
 const loadOptions = async () => {
   try {
-    const [s, tc, d, p] = await Promise.all([
+    const [s, tc, d, p, u] = await Promise.all([
       getTestSuiteList({ page_size: 200 }),
       getTestCaseList({ page_size: 500 }),
       getDeviceList({ page_size: 100 }),
       getPackageList({ page_size: 100 }),
+      getAppUsers({ page_size: 1000 }),
     ])
     suites.value = s.data.results || s.data || []
     testCases.value = tc.data.results || tc.data || []
     devices.value = d.data.results || d.data || []
     packages.value = p.data.results || p.data || []
+    const usersData = u.data.results || u.data || []
+    users.value = usersData.map(user => ({
+      ...user,
+      display_name: user.first_name ? `${user.first_name}（${user.email}）` : `${user.username}（${user.email}）`
+    }))
   } catch (e) { console.error('加载选项失败', e) }
 }
 
@@ -331,7 +488,7 @@ const handleCreate = () => {
 }
 
 const resetForm = () => Object.assign(form, { ...defaultForm, notify_emails: [] })
-const resetFilters = () => { Object.assign(filters, { project: null, task_type: '', trigger_type: '', status: '' }); loadTasks() }
+const resetFilters = () => { Object.assign(filters, { project: null, task_type: '', schedule_type: '', status: '' }); loadTasks() }
 
 const submitForm = async () => {
   if (!form.name) return ElMessage.warning('请输入任务名称')
@@ -339,41 +496,143 @@ const submitForm = async () => {
 
   submitting.value = true
   try {
-    const data = { ...form }
-    // 清理多余字段
-    if (data.task_type === 'TEST_SUITE') delete data.test_case
-    else delete data.test_suite
-    if (data.trigger_type !== 'CRON') delete data.cron_expression
-    if (data.trigger_type !== 'INTERVAL') delete data.interval_seconds
-    if (data.trigger_type !== 'ONCE') delete data.execute_at
-    if (!data.notify_on_success && !data.notify_on_failure) {
-      delete data.notification_type
-      delete data.notify_emails
+    const submitData = {
+      name: form.name,
+      description: form.description,
+      module: 'APP',
+      task_type: form.task_type,
+      schedule_type: form.schedule_type,
+      project_id: form.project,
+      task_config: {
+        device_id: form.device,
+        app_package_id: form.app_package || null
+      },
+      notify_on_success: form.notify_on_success,
+      notify_on_failure: form.notify_on_failure,
+      notify_emails: (form.notify_on_success || form.notify_on_failure) && (form.notification_type === 'email' || form.notification_type === 'both') ? form.notify_emails : [],
+      use_webhook: (form.notify_on_success || form.notify_on_failure) && (form.notification_type === 'webhook' || form.notification_type === 'both')
     }
-    if (!data.app_package) delete data.app_package
+
+    // 根据调度类型添加对应字段
+    if (form.schedule_type === 'C') {
+      submitData.cron = form.cron
+    } else if (form.schedule_type === 'I') {
+      submitData.minutes = form.minutes
+    } else if (form.schedule_type === 'O') {
+      submitData.next_run = form.next_run
+    } else if (form.schedule_type === 'H') {
+      // 每小时：指定分钟
+      const minute = form.hour_minute || 0
+      submitData.cron = `${minute} * * * *`
+    } else if (form.schedule_type === 'D') {
+      // 每天：指定时间
+      if (form.daily_time) {
+        const time = form.daily_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        submitData.cron = `${minute} ${hour} * * *`
+      } else {
+        submitData.cron = '0 0 * * *' // 默认每天0点
+      }
+    } else if (form.schedule_type === 'W') {
+      // 每周：指定星期和时间
+      if (form.weekly_time) {
+        const time = form.weekly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const day = form.weekly_day || 1
+        submitData.cron = `${minute} ${hour} * * ${day}`
+      } else {
+        submitData.cron = '0 0 * * 1' // 默认每周一0点
+      }
+    } else if (form.schedule_type === 'BW') {
+      // 双周：使用cron表达式，实际上是每两周的指定时间
+      if (form.biweekly_time) {
+        const time = form.biweekly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const day = form.biweekly_day || 1
+        submitData.cron = `${minute} ${hour} * * ${day}`
+      } else {
+        submitData.cron = '0 0 * * 1' // 默认双周周一0点
+      }
+    } else if (form.schedule_type === 'M') {
+      // 每月：指定日期和时间
+      if (form.monthly_time) {
+        const time = form.monthly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = form.monthly_date || 1
+        submitData.cron = `${minute} ${hour} ${date} * *`
+      } else {
+        submitData.cron = '0 0 1 * *' // 默认每月1号0点
+      }
+    } else if (form.schedule_type === 'BM') {
+      // 双月：使用cron表达式，实际上是每两个月的指定时间
+      if (form.bimonthly_time) {
+        const time = form.bimonthly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = form.bimonthly_date || 1
+        submitData.cron = `${minute} ${hour} ${date} */2 *`
+      } else {
+        submitData.cron = '0 0 1 */2 *' // 默认双月1号0点
+      }
+    } else if (form.schedule_type === 'Q') {
+      // 每季度：指定月份日期和时间
+      if (form.quarterly_time) {
+        const time = form.quarterly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = form.quarterly_date || 1
+        const month = form.quarterly_month || 1
+        submitData.cron = `${minute} ${hour} ${date} ${month} *`
+      } else {
+        submitData.cron = '0 0 1 1 *' // 默认每年1月1号0点
+      }
+    } else if (form.schedule_type === 'Y') {
+      // 每年：指定月份日期和时间
+      if (form.yearly_time) {
+        const time = form.yearly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = form.yearly_date || 1
+        const month = form.yearly_month || 1
+        submitData.cron = `${minute} ${hour} ${date} ${month} *`
+      } else {
+        submitData.cron = '0 0 1 1 *' // 默认每年1月1号0点
+      }
+    }
+
+    // 根据任务类型添加对应字段
+    if (form.task_type === 'APP_TEST_SUITE') {
+      submitData.target_id = form.test_suite
+    } else if (form.task_type === 'APP_TEST_CASE') {
+      submitData.target_id = form.test_case
+    }
 
     if (editingTask.value) {
-      await updateAppScheduledTask(editingTask.value.id, data)
+      await updateSchedulerSchedule(editingTask.value.id, submitData)
       ElMessage.success('更新成功')
     } else {
-      await createAppScheduledTask(data)
+      await createSchedulerSchedule(submitData)
       ElMessage.success('创建成功')
     }
     showDialog.value = false
     loadTasks()
   } catch (e) {
-    ElMessage.error(e.response?.data?.detail || e.response?.data?.message || '操作失败')
+    ElMessage.error(e.response?.data?.detail || e.response?.data?.message || e.response?.data?.error || '操作失败')
   } finally { submitting.value = false }
 }
 
 const runNow = async (task) => {
   task._running = true
   try {
-    await runAppScheduledTask(task.id)
+    await executeSchedulerSchedule(task.id)
     ElMessage.success('任务已开始执行')
     setTimeout(loadTasks, 2000)
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || '执行失败')
+    ElMessage.error(e.response?.data?.message || e.response?.data?.error || '执行失败')
   } finally { task._running = false }
 }
 
@@ -388,34 +647,133 @@ const handleAction = (cmd, task) => {
 
 const editTask = (task) => {
   editingTask.value = task
+  const config = task.config || {}
+  
+  // 从 cron 表达式中解析时间字段
+  let hour_minute = 0
+  let daily_time = null
+  let weekly_day = '1'
+  let weekly_time = null
+  let biweekly_day = '1'
+  let biweekly_time = null
+  let monthly_date = 1
+  let monthly_time = null
+  let bimonthly_date = 1
+  let bimonthly_time = null
+  let quarterly_month = 1
+  let quarterly_date = 1
+  let quarterly_time = null
+  let yearly_month = 1
+  let yearly_date = 1
+  let yearly_time = null
+  
+  if (task.cron) {
+    const cronParts = task.cron.split(' ')
+    const minute = parseInt(cronParts[0]) || 0
+    const hour = parseInt(cronParts[1]) || 0
+    const dayOfMonth = parseInt(cronParts[2]) || 1
+    const month = parseInt(cronParts[3]) || 1
+    const dayOfWeek = parseInt(cronParts[4]) || 1
+    
+    hour_minute = minute
+    
+    if (task.schedule_type === 'D') {
+      daily_time = new Date()
+      daily_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'W') {
+      weekly_day = dayOfWeek.toString()
+      weekly_time = new Date()
+      weekly_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'BW') {
+      biweekly_day = dayOfWeek.toString()
+      biweekly_time = new Date()
+      biweekly_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'M') {
+      monthly_date = dayOfMonth
+      monthly_time = new Date()
+      monthly_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'BM') {
+      bimonthly_date = dayOfMonth
+      bimonthly_time = new Date()
+      bimonthly_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'Q') {
+      quarterly_month = month
+      quarterly_date = dayOfMonth
+      quarterly_time = new Date()
+      quarterly_time.setHours(hour, minute, 0, 0)
+    } else if (task.schedule_type === 'Y') {
+      yearly_month = month
+      yearly_date = dayOfMonth
+      yearly_time = new Date()
+      yearly_time.setHours(hour, minute, 0, 0)
+    }
+  }
+  
   Object.assign(form, {
-    name: task.name, description: task.description || '',
-    task_type: task.task_type, trigger_type: task.trigger_type,
-    cron_expression: task.cron_expression || '0 0 * * *',
-    interval_seconds: task.interval_seconds || 3600,
-    execute_at: task.execute_at || '',
-    device: task.device || '', app_package: task.app_package || '',
-    test_suite: task.test_suite || '', test_case: task.test_case || '',
-    notify_on_success: task.notify_on_success || false,
-    notify_on_failure: task.notify_on_failure || false,
-    notification_type: task.notification_type || '',
-    notify_emails: task.notify_emails || [],
+    name: task.name, description: config.description || '',
+    task_type: config.task_type || 'APP_TEST_SUITE', schedule_type: task.schedule_type || 'C',
+    cron: task.cron || '0 0 * * *',
+    minutes: task.minutes || 60,
+    next_run: task.next_run || '',
+    hour_minute,
+    daily_time,
+    weekly_day,
+    weekly_time,
+    biweekly_day,
+    biweekly_time,
+    monthly_date,
+    monthly_time,
+    bimonthly_date,
+    bimonthly_time,
+    quarterly_month,
+    quarterly_date,
+    quarterly_time,
+    yearly_month,
+    yearly_date,
+    yearly_time,
+    device: config.task_config?.device_id || '',
+    app_package: config.task_config?.app_package_id || '',
+    test_suite: config.task_type === 'APP_TEST_SUITE' ? config.target_id : '',
+    test_case: config.task_type === 'APP_TEST_CASE' ? config.target_id : '',
+    notify_on_success: config.notify_on_success ?? false,
+    notify_on_failure: config.notify_on_failure ?? true,
+    notify_emails: config.notify_emails || []
   })
+  
+  // 根据现有设置推断通知类型
+  const hasEmail = config.notify_emails && config.notify_emails.length > 0
+  const hasWebhook = config.use_webhook
+  const hasNotification = config.notify_on_success || config.notify_on_failure
+  
+  if (hasNotification) {
+    if (hasEmail && hasWebhook) {
+      form.notification_type = 'both'
+    } else if (hasEmail) {
+      form.notification_type = 'email'
+    } else if (hasWebhook) {
+      form.notification_type = 'webhook'
+    } else {
+      form.notification_type = 'email'
+    }
+  } else {
+    form.notification_type = ''
+  }
+  
   showDialog.value = true
 }
 
 const pauseTask = async (task) => {
-  try { await pauseAppScheduledTask(task.id); ElMessage.success('已暂停'); loadTasks() }
+  try { await toggleSchedulerSchedule(task.id, 'pause'); ElMessage.success('已暂停'); loadTasks() }
   catch { ElMessage.error('暂停失败') }
 }
 const resumeTask = async (task) => {
-  try { await resumeAppScheduledTask(task.id); ElMessage.success('已恢复'); loadTasks() }
+  try { await toggleSchedulerSchedule(task.id, 'resume'); ElMessage.success('已恢复'); loadTasks() }
   catch { ElMessage.error('恢复失败') }
 }
 const deleteTask = async (task) => {
   try {
     await ElMessageBox.confirm(`确认删除任务「${task.name}」？`, '删除确认', { type: 'warning' })
-    await deleteAppScheduledTask(task.id)
+    await deleteSchedulerSchedule(task.id)
     ElMessage.success('已删除')
     loadTasks()
   } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }

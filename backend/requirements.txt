@@ -23,6 +23,7 @@ httpx
 jsonpath_ng==1.8.0
 langchain_core
 langchain_openai
+loguru>=0.7.3
 numpy>=1.26.0,<2.0
 opencv_python
 Pillow

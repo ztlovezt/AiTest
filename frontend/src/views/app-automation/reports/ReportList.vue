@@ -3,7 +3,7 @@
     <!-- Tab 切换 -->
     <el-tabs v-model="activeTab" @tab-change="onTabChange">
       <!-- ==================== 套件报告 ==================== -->
-      <el-tab-pane label="套件报告" name="suite">
+      <el-tab-pane :label="t('appAutomation.report.suiteReport')" name="suite">
         <!-- 统计 -->
         <div class="stats-row">
           <el-card v-for="stat in suiteStatsCards" :key="stat.label" class="stat-card" shadow="hover">
@@ -18,44 +18,44 @@
         <div class="filters">
           <el-row :gutter="20">
             <el-col :span="4">
-              <el-select v-model="suiteProjectFilter" placeholder="全部项目" clearable filterable @change="loadSuiteReports">
+              <el-select v-model="suiteProjectFilter" :placeholder="t('appAutomation.report.allProjects')" clearable filterable @change="loadSuiteReports">
                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
             </el-col>
             <el-col :span="6">
-              <el-input v-model="suiteSearch" placeholder="搜索套件名称" clearable @clear="loadSuiteReports" @keyup.enter="loadSuiteReports">
+              <el-input v-model="suiteSearch" :placeholder="t('appAutomation.report.searchSuite')" clearable @clear="loadSuiteReports" @keyup.enter="loadSuiteReports">
                 <template #prefix><el-icon><Search /></el-icon></template>
               </el-input>
             </el-col>
             <el-col :span="5">
-              <el-select v-model="suiteStatusFilter" placeholder="执行状态" clearable @change="loadSuiteReports">
-                <el-option label="全部" value="" />
-                <el-option label="已完成" value="completed" />
-                <el-option label="执行异常" value="error" />
-                <el-option label="执行中" value="running" />
+              <el-select v-model="suiteStatusFilter" :placeholder="t('appAutomation.report.executionStatus')" clearable @change="loadSuiteReports">
+                <el-option :label="t('appAutomation.report.all')" value="" />
+                <el-option :label="t('appAutomation.report.completed')" value="completed" />
+                <el-option :label="t('appAutomation.report.executionError')" value="error" />
+                <el-option :label="t('appAutomation.report.running')" value="running" />
               </el-select>
             </el-col>
             <el-col :span="6">
-              <el-button type="primary" @click="loadSuiteReports"><el-icon><Search /></el-icon>查询</el-button>
-              <el-button @click="suiteSearch = ''; suiteStatusFilter = ''; suiteProjectFilter = null; loadSuiteReports()">重置</el-button>
+              <el-button type="primary" @click="loadSuiteReports"><el-icon><Search /></el-icon>{{ t('appAutomation.report.query') }}</el-button>
+              <el-button @click="suiteSearch = ''; suiteStatusFilter = ''; suiteProjectFilter = null; loadSuiteReports()">{{ t('appAutomation.report.reset') }}</el-button>
             </el-col>
           </el-row>
         </div>
 
         <!-- 套件报告列表 -->
         <el-table :data="suiteReports" v-loading="suiteLoading" border stripe>
-          <el-table-column prop="name" label="套件名称" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="description" label="描述" min-width="120" show-overflow-tooltip>
+          <el-table-column prop="name" :label="t('appAutomation.report.suiteName')" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="description" :label="t('appAutomation.report.description')" min-width="120" show-overflow-tooltip>
             <template #default="{ row }">{{ row.description || '-' }}</template>
           </el-table-column>
-          <el-table-column label="执行状态" min-width="90">
+          <el-table-column :label="t('appAutomation.report.executionStatus')" min-width="90">
             <template #default="{ row }">
               <el-tag :type="getSuiteDisplayStatus(row).type" size="small">
                 {{ getSuiteDisplayStatus(row).text }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="用例通过率" min-width="140">
+          <el-table-column :label="t('appAutomation.report.casePassRate')" min-width="140">
             <template #default="{ row }">
               <el-progress
                 v-if="row.test_case_count > 0"
@@ -64,32 +64,32 @@
                 :stroke-width="16"
                 :text-inside="true"
               />
-              <span v-else style="color:#909399">无用例</span>
+              <span v-else style="color:#909399">{{ t('appAutomation.report.noCases') }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="用例统计" min-width="180">
+          <el-table-column :label="t('appAutomation.report.caseStats')" min-width="180">
             <template #default="{ row }">
               <div class="step-stats">
-                <span style="color:#67c23a">通过 {{ row.passed_count || 0 }}</span>
+                <span style="color:#67c23a">{{ t('appAutomation.report.passed') }} {{ row.passed_count || 0 }}</span>
                 <el-divider direction="vertical" />
-                <span style="color:#f56c6c">失败 {{ row.failed_count || 0 }}</span>
+                <span style="color:#f56c6c">{{ t('appAutomation.report.failed') }} {{ row.failed_count || 0 }}</span>
                 <el-divider direction="vertical" />
-                <span>总计 {{ row.test_case_count || 0 }}</span>
+                <span>{{ t('appAutomation.report.total') }} {{ row.test_case_count || 0 }}</span>
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="创建人" min-width="80">
+          <el-table-column :label="t('appAutomation.report.creator')" min-width="80">
             <template #default="{ row }">{{ row.created_by_name || '-' }}</template>
           </el-table-column>
-          <el-table-column label="最后执行" min-width="150">
+          <el-table-column :label="t('appAutomation.report.lastRun')" min-width="150">
             <template #default="{ row }">{{ formatDateTime(row.last_run_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" min-width="200">
+          <el-table-column :label="t('appAutomation.common.operation')" min-width="200">
             <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="viewSuiteDetail(row)">详情</el-button>
-              <el-button type="success" link size="small" @click="viewSuiteExecutions(row)">执行记录</el-button>
-              <el-button type="success" link size="small" @click="viewSuiteAllureReport(row)">Allure报告</el-button>
-              <el-button type="danger" link size="small" @click="deleteSuiteReport(row)">删除</el-button>
+              <el-button type="primary" link size="small" @click="viewSuiteDetail(row)">{{ t('appAutomation.report.detail') }}</el-button>
+              <el-button type="success" link size="small" @click="viewSuiteExecutions(row)">{{ t('appAutomation.report.executions') }}</el-button>
+              <el-button type="success" link size="small" @click="viewSuiteAllureReport(row)">{{ t('appAutomation.report.allureReport') }}</el-button>
+              <el-button type="danger" link size="small" @click="deleteSuiteReport(row)">{{ t('appAutomation.common.delete') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -108,7 +108,7 @@
       </el-tab-pane>
 
       <!-- ==================== 用例报告 ==================== -->
-      <el-tab-pane label="用例报告" name="case">
+      <el-tab-pane :label="t('appAutomation.report.caseReport')" name="case">
         <!-- 统计 -->
         <div class="stats-row">
           <el-card v-for="stat in caseStatsCards" :key="stat.label" class="stat-card" shadow="hover">
@@ -123,46 +123,46 @@
         <div class="filters">
           <el-row :gutter="20">
             <el-col :span="4">
-              <el-select v-model="caseProjectFilter" placeholder="全部项目" clearable filterable @change="loadCaseReports">
+              <el-select v-model="caseProjectFilter" :placeholder="t('appAutomation.report.allProjects')" clearable filterable @change="loadCaseReports">
                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
             </el-col>
             <el-col :span="6">
-              <el-input v-model="caseSearch" placeholder="搜索用例名称、设备" clearable @clear="loadCaseReports" @keyup.enter="loadCaseReports">
+              <el-input v-model="caseSearch" :placeholder="t('appAutomation.report.searchCaseDevice')" clearable @clear="loadCaseReports" @keyup.enter="loadCaseReports">
                 <template #prefix><el-icon><Search /></el-icon></template>
               </el-input>
             </el-col>
             <el-col :span="4">
-              <el-select v-model="caseStatusFilter" placeholder="执行状态" clearable @change="loadCaseReports">
-                <el-option label="全部" value="" />
-                <el-option label="已完成" value="completed" />
-                <el-option label="执行异常" value="error" />
-                <el-option label="已停止" value="stopped" />
+              <el-select v-model="caseStatusFilter" :placeholder="t('appAutomation.report.executionStatus')" clearable @change="loadCaseReports">
+                <el-option :label="t('appAutomation.report.all')" value="" />
+                <el-option :label="t('appAutomation.report.completed')" value="completed" />
+                <el-option :label="t('appAutomation.report.executionError')" value="error" />
+                <el-option :label="t('appAutomation.report.stopped')" value="stopped" />
               </el-select>
             </el-col>
             <el-col :span="6">
-              <el-button type="primary" @click="loadCaseReports"><el-icon><Search /></el-icon>查询</el-button>
-              <el-button @click="caseSearch = ''; caseStatusFilter = ''; caseProjectFilter = null; loadCaseReports()">重置</el-button>
+              <el-button type="primary" @click="loadCaseReports"><el-icon><Search /></el-icon>{{ t('appAutomation.report.query') }}</el-button>
+              <el-button @click="caseSearch = ''; caseStatusFilter = ''; caseProjectFilter = null; loadCaseReports()">{{ t('appAutomation.report.reset') }}</el-button>
             </el-col>
           </el-row>
         </div>
 
         <!-- 用例报告列表 -->
         <el-table :data="caseReports" v-loading="caseLoading" border stripe>
-          <el-table-column label="测试用例" min-width="140" show-overflow-tooltip>
+          <el-table-column :label="t('appAutomation.report.testCase')" min-width="140" show-overflow-tooltip>
             <template #default="{ row }">{{ row.case_name || '-' }}</template>
           </el-table-column>
-          <el-table-column label="设备" min-width="100">
+          <el-table-column :label="t('appAutomation.report.device')" min-width="100">
             <template #default="{ row }">{{ row.device_name || '-' }}</template>
           </el-table-column>
-          <el-table-column label="状态" min-width="80">
+          <el-table-column :label="t('appAutomation.report.status')" min-width="80">
             <template #default="{ row }">
               <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
                 {{ getDisplayStatus(row.status, row.result).text }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="步骤通过率" min-width="140">
+          <el-table-column :label="t('appAutomation.report.stepPassRate')" min-width="140">
             <template #default="{ row }">
               <el-progress
                 :percentage="row.pass_rate || 0"
@@ -172,31 +172,31 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="步骤统计" min-width="180">
+          <el-table-column :label="t('appAutomation.report.stepStats')" min-width="180">
             <template #default="{ row }">
               <div class="step-stats">
-                <span style="color:#67c23a">通过 {{ row.passed_steps || 0 }}</span>
+                <span style="color:#67c23a">{{ t('appAutomation.report.passed') }} {{ row.passed_steps || 0 }}</span>
                 <el-divider direction="vertical" />
-                <span style="color:#f56c6c">失败 {{ row.failed_steps || 0 }}</span>
+                <span style="color:#f56c6c">{{ t('appAutomation.report.failed') }} {{ row.failed_steps || 0 }}</span>
                 <el-divider direction="vertical" />
-                <span>总计 {{ row.total_steps || 0 }}</span>
+                <span>{{ t('appAutomation.report.total') }} {{ row.total_steps || 0 }}</span>
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="耗时" min-width="80">
+          <el-table-column :label="t('appAutomation.report.duration')" min-width="80">
             <template #default="{ row }">{{ formatDuration(row.duration) }}</template>
           </el-table-column>
-          <el-table-column label="执行人" min-width="80">
+          <el-table-column :label="t('appAutomation.report.executor')" min-width="80">
             <template #default="{ row }">{{ row.user_name || '-' }}</template>
           </el-table-column>
-          <el-table-column label="执行时间" min-width="150">
+          <el-table-column :label="t('appAutomation.report.executionTime')" min-width="150">
             <template #default="{ row }">{{ formatDateTime(row.started_at) }}</template>
           </el-table-column>
-          <el-table-column label="操作" min-width="150">
+          <el-table-column :label="t('appAutomation.common.operation')" min-width="150">
             <template #default="{ row }">
-              <el-button type="primary" link size="small" @click="viewCaseDetail(row)">详情</el-button>
-              <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">Allure报告</el-button>
-              <el-button type="danger" link size="small" @click="deleteCaseReport(row)">删除</el-button>
+              <el-button type="primary" link size="small" @click="viewCaseDetail(row)">{{ t('appAutomation.report.detail') }}</el-button>
+              <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">{{ t('appAutomation.report.allureReport') }}</el-button>
+              <el-button type="danger" link size="small" @click="deleteCaseReport(row)">{{ t('appAutomation.common.delete') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -216,22 +216,22 @@
     </el-tabs>
 
     <!-- ==================== 套件详情弹窗 ==================== -->
-    <el-dialog v-model="suiteDetailVisible" title="套件报告详情" width="750px">
+    <el-dialog v-model="suiteDetailVisible" :title="t('appAutomation.report.suiteDetail')" width="750px">
       <div v-if="selectedSuite">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="套件名称">{{ selectedSuite.name }}</el-descriptions-item>
-          <el-descriptions-item label="执行状态">
+          <el-descriptions-item :label="t('appAutomation.report.suiteName')">{{ selectedSuite.name }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.report.executionStatus')">
             <el-tag :type="getSuiteDisplayStatus(selectedSuite).type">
               {{ getSuiteDisplayStatus(selectedSuite).text }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="创建人">{{ selectedSuite.created_by_name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="最后执行">{{ formatDateTime(selectedSuite.last_run_at) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.report.creator')">{{ selectedSuite.created_by_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.report.lastRun')">{{ formatDateTime(selectedSuite.last_run_at) }}</el-descriptions-item>
         </el-descriptions>
 
         <!-- 用例级统计 -->
         <div class="detail-section">
-          <h4>用例统计</h4>
+          <h4>{{ t('appAutomation.report.caseStats') }}</h4>
           <el-row :gutter="20">
             <el-col :span="8">
               <div class="detail-stat success-bg">
@@ -380,6 +380,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, DataAnalysis } from '@element-plus/icons-vue'
 import {
@@ -388,6 +389,8 @@ import {
   getAppProjects,
 } from '@/api/app-automation.js'
 import { getExecutionStatusType, getExecutionStatusText, getDisplayStatus, formatDateTime } from '@/utils/app-automation-helpers.js'
+
+const { t } = useI18n()
 
 // ==================== 公共 ====================
 const activeTab = ref('suite')
@@ -425,10 +428,10 @@ const suiteStatsCards = computed(() => {
     ? Math.round(executed.reduce((sum, s) => sum + getSuitePassRate(s), 0) / executed.length)
     : 0
   return [
-    { label: '套件总数', value: suitePagination.total, color: '#409eff' },
-    { label: '已执行', value: executed.length, color: '#67c23a' },
-    { label: '最近失败', value: failed.length, color: '#f56c6c' },
-    { label: '平均通过率', value: avgRate + '%', color: '#e6a23c' },
+    { label: t('appAutomation.report.totalSuites'), value: suitePagination.total, color: '#409eff' },
+    { label: t('appAutomation.report.executed'), value: executed.length, color: '#67c23a' },
+    { label: t('appAutomation.report.recentFailed'), value: failed.length, color: '#f56c6c' },
+    { label: t('appAutomation.report.avgPassRate'), value: avgRate + '%', color: '#e6a23c' },
   ]
 })
 
@@ -529,10 +532,10 @@ const caseStatsCards = computed(() => {
     ? Math.round(data.reduce((sum, r) => sum + (r.pass_rate || 0), 0) / data.length)
     : 0
   return [
-    { label: '总报告数', value: casePagination.total, color: '#409eff' },
-    { label: '本页通过', value: success, color: '#67c23a' },
-    { label: '本页失败', value: failed, color: '#f56c6c' },
-    { label: '本页平均通过率', value: avgRate + '%', color: '#e6a23c' },
+    { label: t('appAutomation.report.totalReports'), value: casePagination.total, color: '#409eff' },
+    { label: t('appAutomation.report.pagePassed'), value: success, color: '#67c23a' },
+    { label: t('appAutomation.report.pageFailed'), value: failed, color: '#f56c6c' },
+    { label: t('appAutomation.report.pageAvgPassRate'), value: avgRate + '%', color: '#e6a23c' },
   ]
 })
 

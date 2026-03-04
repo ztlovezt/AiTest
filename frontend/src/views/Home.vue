@@ -78,8 +78,8 @@
           <div class="card-icon app-icon">
             <el-icon><Cellphone /></el-icon>
           </div>
-          <h3>APP自动化测试</h3>
-          <p>基于Airtest的Android APP自动化测试</p>
+          <h3>{{ $t('home.appAutomation') }}</h3>
+          <p>{{ $t('home.appAutomationDesc') }}</p>
         </div>
 
         <!-- AI 智能模式 -->

@@ -25,7 +25,8 @@ class CoreConfig(AppConfig):
         
         # 记录配置信息
         server_config = config_manager.get_server_config()
-        logger.info(f'服务器配置已加载: {server_config}')
+        import json
+        logger.info(f'服务器配置已加载: {json.dumps(server_config, ensure_ascii=False)}')
         
         # 注册自定义 Django Q Admin（中文化）
         self._register_django_q_admin()
@@ -36,9 +37,53 @@ class CoreConfig(AppConfig):
         """注册自定义的 Django Q Admin"""
         from django.contrib import admin
         from django.utils.translation import gettext_lazy as _
+        from django.utils.safestring import mark_safe
+        from django.contrib.admin import SimpleListFilter
         from django_q.models import Task, Schedule, Success, Failure
         from django_q.brokers import orm
         import json
+        
+        class ScheduleTypeFilter(SimpleListFilter):
+            title = _('调度类型')
+            parameter_name = 'schedule_type'
+            
+            def lookups(self, request, model_admin):
+                return [
+                    ('O', _('Once')),
+                    ('I', _('Minutes')),
+                    ('H', _('Hourly')),
+                    ('D', _('Daily')),
+                    ('W', _('Weekly')),
+                    ('BW', _('Biweekly')),
+                    ('M', _('Monthly')),
+                    ('BM', _('Bimonthly')),
+                    ('Q', _('Quarterly')),
+                    ('Y', _('Yearly')),
+                    ('C', _('Cron')),
+                ]
+            
+            def queryset(self, request, queryset):
+                if self.value():
+                    return queryset.filter(schedule_type=self.value())
+                return queryset
+        
+        class ModuleFilter(SimpleListFilter):
+            title = _('所属模块')
+            parameter_name = 'module'
+            
+            def lookups(self, request, model_admin):
+                return [
+                    ('API', _('API测试')),
+                    ('UI', _('UI测试')),
+                    ('APP', _('APP测试')),
+                ]
+            
+            def queryset(self, request, queryset):
+                if self.value():
+                    from apps.scheduler.models import ScheduleConfig
+                    schedule_ids = ScheduleConfig.objects.filter(module=self.value()).values_list('schedule_id', flat=True)
+                    return queryset.filter(id__in=schedule_ids)
+                return queryset
         
         # 检查是否已注册，如果已注册则先取消
         if admin.site.is_registered(Task):
@@ -106,15 +151,29 @@ class CoreConfig(AppConfig):
         
         @admin.register(Schedule)
         class ScheduleAdmin(admin.ModelAdmin):
-            list_display = ('col_id', 'col_name', 'col_func', 'col_schedule_type', 'col_repeats', 'col_cluster', 'col_next_run', 'col_last_run', 'col_success_count')
-            list_filter = ('schedule_type', 'cluster')
-            search_fields = ('name', 'func', 'group')
-            readonly_fields = ('id', 'name', 'func', 'hook', 'args', 'kwargs', 
-                               'schedule_type', 'minutes', 'repeats', 'next_run', 
-                               'cron', 'task', 'cluster')
+            list_display = ('col_id', 'col_name', 'col_module', 'col_task_type', 'col_schedule_type', 'col_status', 'col_next_run', 'col_last_run', 'col_success_count', 'col_actions')
+            list_filter = (ModuleFilter, 'schedule_type')
+            search_fields = ('name', 'func')
+            readonly_fields = ('id', 'task', 'cluster')
             list_per_page = 20
             verbose_name = _('定时任务')
             verbose_name_plural = _('定时任务')
+            fieldsets = (
+                (_('基本信息'), {
+                    'fields': ('id', 'name', 'func', 'hook')
+                }),
+                (_('调度配置'), {
+                    'fields': ('schedule_type', 'minutes', 'cron', 'repeats', 'next_run')
+                }),
+                (_('参数'), {
+                    'fields': ('args', 'kwargs'),
+                    'classes': ('collapse',),
+                }),
+                (_('其他'), {
+                    'fields': ('task', 'cluster'),
+                    'classes': ('collapse',),
+                }),
+            )
             
             @admin.display(description=_('ID'))
             def col_id(self, obj):
@@ -122,55 +181,218 @@ class CoreConfig(AppConfig):
             
             @admin.display(description=_('名称'))
             def col_name(self, obj):
-                return obj.name
+                return obj.name or '-'
             
-            @admin.display(description=_('函数'))
-            def col_func(self, obj):
-                return obj.func
+            @admin.display(description=_('所属模块'))
+            def col_module(self, obj):
+                try:
+                    config = obj.config
+                    return config.get_module_display()
+                except Exception:
+                    return '-'
+            
+            @admin.display(description=_('任务类型'))
+            def col_task_type(self, obj):
+                try:
+                    config = obj.config
+                    return config.get_task_type_display()
+                except Exception:
+                    return '-'
             
             @admin.display(description=_('调度类型'))
             def col_schedule_type(self, obj):
                 type_map = {
                     'O': _('单次'),
+                    'I': _('分钟间隔'),
                     'H': _('每小时'),
                     'D': _('每天'),
                     'W': _('每周'),
+                    'BW': _('双周'),
                     'M': _('每月'),
+                    'BM': _('双月'),
                     'Q': _('每季度'),
                     'Y': _('每年'),
                     'C': _('Cron'),
                 }
                 return type_map.get(obj.schedule_type, obj.schedule_type or '-')
             
-            @admin.display(description=_('重复次数'))
-            def col_repeats(self, obj):
-                return obj.repeats if obj.repeats != -1 else _('无限')
-            
-            @admin.display(description=_('集群'))
-            def col_cluster(self, obj):
-                return obj.cluster or '-'
+            @admin.display(description=_('状态'))
+            def col_status(self, obj):
+                try:
+                    config = obj.config
+                    status_map = {
+                        'ACTIVE': '<span style="color: green;">● 激活</span>',
+                        'PAUSED': '<span style="color: orange;">● 暂停</span>',
+                        'COMPLETED': '<span style="color: gray;">● 已完成</span>',
+                        'FAILED': '<span style="color: red;">● 失败</span>',
+                    }
+                    return mark_safe(status_map.get(config.status, config.status))
+                except Exception:
+                    if obj.enabled:
+                        return mark_safe('<span style="color: green;">● 启用</span>')
+                    return mark_safe('<span style="color: orange;">● 禁用</span>')
             
             @admin.display(description=_('下次运行'))
             def col_next_run(self, obj):
-                return obj.next_run or '-'
+                if obj.next_run:
+                    from django.utils import timezone
+                    return timezone.localtime(obj.next_run).strftime('%Y-%m-%d %H:%M:%S')
+                return '-'
             
             @admin.display(description=_('上次运行'))
             def col_last_run(self, obj):
-                if obj.task:
-                    from django.urls import reverse
-                    from django.utils.html import format_html
+                from django_q.models import Task
+                from django.utils import timezone
+                
+                try:
+                    # 获取所属模块作为group
+                    group_name = obj.name
                     try:
-                        url = reverse('admin:django_q_success_change', args=[obj.task])
-                        return format_html('<a href="{}">{}</a>', url, obj.task)
+                        config = obj.config
+                        group_name = config.get_module_display()
                     except Exception:
-                        return obj.task
+                        pass
+                    
+                    # 兼容多种group值：所属模块、任务名称、任务ID
+                    task = Task.objects.filter(group=group_name).order_by('-started').first()
+                    if not task:
+                        task = Task.objects.filter(group=obj.name).order_by('-started').first()
+                    if not task:
+                        task = Task.objects.filter(group=str(obj.id)).order_by('-started').first()
+                    
+                    if task and task.started:
+                        return timezone.localtime(task.started).strftime('%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    pass
                 return '-'
             
-            @admin.display(description=_('成功记录'))
+            @admin.display(description=_('成功/失败'))
             def col_success_count(self, obj):
-                from django_q.models import Success
-                count = Success.objects.filter(name=obj.name, func=obj.func).count()
-                return count if count > 0 else '-'
+                from django_q.models import Success, Failure
+                
+                # 只统计对应 id 的真实数据
+                group_value = str(obj.id)
+                success_count = Success.objects.filter(group=group_value).count()
+                failure_count = Failure.objects.filter(group=group_value).count()
+                
+                print(f'[col_success_count] obj.id={obj.id}, group_value={group_value}, success_count={success_count}, failure_count={failure_count}')
+                
+                if success_count == 0 and failure_count == 0:
+                    return '-'
+                return mark_safe(
+                    f'<span style="color: green;">{success_count}</span>/<span style="color: red;">{failure_count}</span>'
+                )
+            
+            @admin.display(description=_('操作'))
+            def col_actions(self, obj):
+                from django.urls import reverse
+                try:
+                    config = obj.config
+                    actions = []
+                    
+                    # 立即执行按钮
+                    url = reverse('admin:schedule_execute', args=[obj.id])
+                    actions.append(f'<a href="{url}" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">立即执行</a>')
+                    
+                    # 暂停/恢复按钮
+                    if config.status == 'ACTIVE':
+                        url = reverse('admin:schedule_toggle', args=[obj.id])
+                        actions.append(f'<a href="{url}" style="color: orange; text-decoration: underline;">暂停</a>')
+                    else:
+                        url = reverse('admin:schedule_toggle', args=[obj.id])
+                        actions.append(f'<a href="{url}" style="color: green; text-decoration: underline;">恢复</a>')
+                    
+                    return mark_safe(''.join(actions))
+                except Exception:
+                    return '-'
+            
+            def get_urls(self):
+                from django.urls import path
+                urls = super().get_urls()
+                custom_urls = [
+                    path('<int:schedule_id>/execute/', self.admin_site.admin_view(self.execute_view), name='schedule_execute'),
+                    path('<int:schedule_id>/toggle/', self.admin_site.admin_view(self.toggle_view), name='schedule_toggle'),
+                ]
+                return custom_urls + urls
+            
+            def execute_view(self, request, schedule_id):
+                """立即执行任务"""
+                from django.shortcuts import redirect
+                from django.contrib import messages
+                from django_q.tasks import async_task
+                
+                try:
+                    schedule = Schedule.objects.get(id=schedule_id)
+                    
+                    # 获取所属模块作为group
+                    group_name = schedule.name
+                    try:
+                        config = schedule.config
+                        group_name = config.get_module_display()
+                    except Exception:
+                        pass
+                    
+                    task_id = async_task(
+                        schedule.func, 
+                        *eval(schedule.args or '[]'), 
+                        **eval(schedule.kwargs or '{}'),
+                        name=schedule.name,
+                        group=group_name
+                    )
+                    messages.success(request, f'任务已提交执行，任务ID: {task_id}')
+                except Exception as e:
+                    messages.error(request, f'执行失败: {e}')
+                
+                return redirect('admin:django_q_schedule_changelist')
+            
+            def toggle_view(self, request, schedule_id):
+                """暂停/恢复任务"""
+                from django.shortcuts import redirect
+                from django.contrib import messages
+                
+                try:
+                    schedule = Schedule.objects.get(id=schedule_id)
+                    config = schedule.config
+                    
+                    if config.status == 'ACTIVE':
+                        config.pause()
+                        messages.success(request, f'任务已暂停')
+                    else:
+                        config.resume()
+                        messages.success(request, f'任务已恢复')
+                except Exception as e:
+                    messages.error(request, f'操作失败: {e}')
+                
+                return redirect('admin:django_q_schedule_changelist')
+            
+            def save_model(self, request, obj, form, change):
+                super().save_model(request, obj, form, change)
+                
+                if not change:
+                    return
+                
+                try:
+                    from django.utils import timezone
+                    config = obj.config
+                    if config.status == 'ACTIVE':
+                        # 激活状态，确保next_run有值
+                        if not obj.next_run:
+                            obj.next_run = timezone.now()
+                            obj.save()
+                    elif config.status == 'PAUSED':
+                        # 暂停状态，将next_run设置为None
+                        obj.next_run = None
+                        obj.save()
+                except Exception:
+                    pass
+            
+            def delete_model(self, request, obj):
+                try:
+                    config = obj.config
+                    config.delete()
+                except Exception:
+                    pass
+                super().delete_model(request, obj)
         
         @admin.register(Success)
         class SuccessAdmin(admin.ModelAdmin):
@@ -292,19 +514,6 @@ class CoreConfig(AppConfig):
                 verbose_name = _('队列任务')
                 verbose_name_plural = _('队列任务')
                 
-                def _parse_payload(self, obj):
-                    """解析 payload 数据"""
-                    try:
-                        if obj.payload:
-                            data = json.loads(obj.payload)
-                            if isinstance(data, list) and len(data) > 0:
-                                return data[0] if isinstance(data[0], dict) else {}
-                            elif isinstance(data, dict):
-                                return data
-                    except (json.JSONDecodeError, TypeError):
-                        pass
-                    return {}
-                
                 @admin.display(description=_('ID'))
                 def col_id(self, obj):
                     return obj.id
@@ -315,27 +524,26 @@ class CoreConfig(AppConfig):
                 
                 @admin.display(description=_('名称'))
                 def col_name(self, obj):
-                    data = self._parse_payload(obj)
-                    return data.get('name', '-')
+                    return obj.name() or '-'
                 
                 @admin.display(description=_('分组'))
                 def col_group(self, obj):
-                    data = self._parse_payload(obj)
-                    return data.get('group', '-')
+                    return obj.group() or '-'
                 
                 @admin.display(description=_('函数'))
                 def col_func(self, obj):
-                    data = self._parse_payload(obj)
-                    return data.get('func', '-')
+                    return obj.func() or '-'
                 
                 @admin.display(description=_('锁'))
                 def col_lock(self, obj):
-                    return obj.lock or '-'
+                    if obj.lock:
+                        from django.utils import timezone
+                        return timezone.localtime(obj.lock).strftime('%Y-%m-%d %H:%M:%S')
+                    return '-'
                 
                 @admin.display(description=_('任务ID'))
                 def col_task_id(self, obj):
-                    data = self._parse_payload(obj)
-                    return data.get('task_id', data.get('id', '-'))
+                    return obj.task_id() or '-'
                 
                 def has_add_permission(self, request):
                     return False

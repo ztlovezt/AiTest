@@ -2,7 +2,7 @@
   <div class="ui-flow-case-list">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h3>APP测试用例</h3>
+      <h3>{{ t('appAutomation.testCase.title') }}</h3>
       <div class="header-actions">
         <el-button
           type="primary"
@@ -11,7 +11,7 @@
           :loading="loading"
           @click="loadTestCases"
         >
-          刷新
+          {{ t('appAutomation.common.refresh') }}
         </el-button>
       </div>
     </div>
@@ -21,10 +21,10 @@
       <el-form :model="form" label-width="100px" size="small">
         <el-row :gutter="16">
           <el-col :span="5">
-            <el-form-item label="所属项目">
+            <el-form-item :label="t('appAutomation.testCase.project')">
               <el-select
                 v-model="form.projectId"
-                placeholder="全部项目"
+                :placeholder="t('appAutomation.testCase.allProjects')"
                 clearable
                 filterable
                 style="width: 100%"
@@ -40,10 +40,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="5">
-            <el-form-item label="选择设备" required>
+            <el-form-item :label="t('appAutomation.execution.device')" required>
               <el-select
                 v-model="form.deviceId"
-                placeholder="请选择设备"
+                :placeholder="t('appAutomation.testCase.selectDevice')"
                 filterable
                 style="width: 100%"
                 :loading="devicesLoading"
@@ -59,10 +59,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="5">
-            <el-form-item label="选择应用">
+            <el-form-item :label="t('appAutomation.testCase.selectApp')">
               <el-select
                 v-model="form.packageId"
-                placeholder="请选择应用（可选）"
+                :placeholder="t('appAutomation.testCase.selectAppPlaceholder')"
                 clearable
                 filterable
                 style="width: 100%"
@@ -77,10 +77,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="9">
-            <el-form-item label="搜索用例">
+            <el-form-item :label="t('appAutomation.testCase.searchPlaceholder')">
               <el-input
                 v-model="searchQuery"
-                placeholder="搜索测试用例名称"
+                :placeholder="t('appAutomation.testCase.searchPlaceholder')"
                 clearable
                 @clear="loadTestCases"
                 @keyup.enter="loadTestCases"
@@ -89,7 +89,7 @@
                   <el-icon><Search /></el-icon>
                 </template>
                 <template #append>
-                  <el-button :icon="Search" @click="loadTestCases">搜索</el-button>
+                  <el-button :icon="Search" @click="loadTestCases">{{ t('appAutomation.common.search') }}</el-button>
                 </template>
               </el-input>
             </el-form-item>
@@ -100,12 +100,12 @@
 
     <!-- 批量操作栏 -->
     <div v-if="selectedCases.length > 0" class="batch-bar">
-      <span>已选择 <strong>{{ selectedCases.length }}</strong> 个用例</span>
+      <span>{{ t('appAutomation.testCase.selectedCount', { count: selectedCases.length }) }}</span>
       <el-button type="success" size="small" @click="batchRun">
-        批量执行
+        {{ t('appAutomation.testCase.batchRun') }}
       </el-button>
       <el-button size="small" @click="clearSelection">
-        取消选择
+        {{ t('appAutomation.testCase.cancelSelection') }}
       </el-button>
     </div>
 
@@ -115,31 +115,31 @@
       v-loading="loading"
       :data="testCases"
       style="width: 100%; margin-top: 16px"
-      empty-text="暂无测试用例"
+      :empty-text="t('appAutomation.common.noData')"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="50" />
-      <el-table-column prop="name" label="用例名称" min-width="200" />
-      <el-table-column label="场景描述" min-width="250">
+      <el-table-column prop="name" :label="t('appAutomation.testCase.testCaseName')" min-width="200" />
+      <el-table-column :label="t('appAutomation.testCase.sceneDescription')" min-width="250">
         <template #default="{ row }">
           {{ row.description || '-' }}
         </template>
       </el-table-column>
-      <el-table-column prop="updated_at" label="更新时间" width="180">
+      <el-table-column prop="updated_at" :label="t('appAutomation.testCase.updateTime')" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updated_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="200">
+      <el-table-column :label="t('appAutomation.common.operation')" width="200">
         <template #default="{ row }">
           <el-button link type="success" size="small" @click="runCase(row)">
-            运行
+            {{ t('appAutomation.testCase.run') }}
           </el-button>
           <el-button link type="primary" size="small" @click="editCase(row)">
-            编辑
+            {{ t('appAutomation.common.edit') }}
           </el-button>
           <el-button link type="danger" size="small" @click="deleteCase(row)">
-            删除
+            {{ t('appAutomation.common.delete') }}
           </el-button>
         </template>
       </el-table-column>
@@ -162,13 +162,13 @@
     <el-card class="execution-card" style="margin-top: 20px">
       <template #header>
         <div class="card-header">
-          <span>最近测试执行记录</span>
+          <span>{{ t('appAutomation.testCase.recentExecutions') }}</span>
           <div class="card-actions">
             <el-button link type="primary" @click="refreshExecutions">
-              刷新
+              {{ t('appAutomation.common.refresh') }}
             </el-button>
             <el-button link type="primary" @click="viewAllExecutions">
-              查看全部
+              {{ t('appAutomation.testCase.viewAll') }}
             </el-button>
           </div>
         </div>
@@ -179,17 +179,17 @@
         :data="executionData.results"
         style="width: 100%"
       >
-        <el-table-column prop="case_name" label="测试用例" width="200" />
-        <el-table-column prop="device_name" label="设备" width="150" />
-        <el-table-column prop="user_name" label="测试人员" width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="case_name" :label="t('appAutomation.testCase.testCaseName')" width="200" />
+        <el-table-column prop="device_name" :label="t('appAutomation.execution.device')" width="150" />
+        <el-table-column prop="user_name" :label="t('appAutomation.testCase.tester')" width="120" />
+        <el-table-column prop="status" :label="t('appAutomation.execution.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
               {{ getDisplayStatus(row.status, row.result).text }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="执行进度" width="280">
+        <el-table-column :label="t('appAutomation.testCase.executionProgress')" width="280">
           <template #default="{ row }">
             <div class="progress-wrapper">
               <el-progress
@@ -203,17 +203,17 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="started_at" label="开始时间" width="180">
+        <el-table-column prop="started_at" :label="t('appAutomation.execution.startTime')" width="180">
           <template #default="{ row }">
             {{ formatDateTime(row.started_at) }}
           </template>
         </el-table-column>
-        <el-table-column prop="finished_at" label="结束时间" width="180">
+        <el-table-column prop="finished_at" :label="t('appAutomation.execution.endTime')" width="180">
           <template #default="{ row }">
             {{ row.finished_at ? formatDateTime(row.finished_at) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column :label="t('appAutomation.common.operation')" width="150">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'completed' || row.status === 'error'"
@@ -222,7 +222,7 @@
               size="small"
               @click="viewReport(row)"
             >
-              查看报告
+              {{ t('appAutomation.testCase.viewReport') }}
             </el-button>
             <el-button
               v-if="row.status === 'running'"
@@ -231,7 +231,7 @@
               size="small"
               @click="stopTest(row)"
             >
-              停止
+              {{ t('appAutomation.testCase.stop') }}
             </el-button>
           </template>
         </el-table-column>
@@ -243,6 +243,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Search } from '@element-plus/icons-vue'
 import {
@@ -260,6 +261,7 @@ import { getDeviceList } from '@/api/app-automation'
 import { getExecutionStatusType, getExecutionStatusText, getDisplayStatus, formatDateTime } from '@/utils/app-automation-helpers'
 
 const router = useRouter()
+const { t } = useI18n()
 
 // 响应式数据
 const loading = ref(false)

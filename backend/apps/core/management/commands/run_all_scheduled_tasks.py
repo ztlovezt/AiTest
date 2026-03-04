@@ -1,3 +1,17 @@
+"""
+已废弃的命令 - 请使用新的 Django-Q 调度器
+
+此命令已被废弃，请使用以下方式替代：
+
+1. 迁移现有任务：
+   python manage.py migrate_scheduled_tasks
+
+2. 启动 Django-Q worker：
+   python manage.py qcluster
+
+新的调度器基于 Django-Q 实现，提供更好的可靠性和管理功能。
+"""
+import warnings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 import time
@@ -8,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = '运行所有模块的定时任务调度器（API测试 + UI自动化 + APP自动化）'
+    help = '[已废弃] 运行所有模块的定时任务调度器 - 请使用 python manage.py qcluster 替代'
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -24,6 +38,34 @@ class Command(BaseCommand):
         )
 
     def handle(self, *args, **options):
+        self.stdout.write(self.style.WARNING('=' * 60))
+        self.stdout.write(self.style.WARNING('警告: 此命令已废弃！'))
+        self.stdout.write(self.style.WARNING('=' * 60))
+        self.stdout.write('')
+        self.stdout.write('请使用新的 Django-Q 调度器替代：')
+        self.stdout.write('')
+        self.stdout.write('  1. 迁移现有任务：')
+        self.stdout.write(self.style.SUCCESS('     python manage.py migrate_scheduled_tasks'))
+        self.stdout.write('')
+        self.stdout.write('  2. 启动 Django-Q worker：')
+        self.stdout.write(self.style.SUCCESS('     python manage.py qcluster'))
+        self.stdout.write('')
+        self.stdout.write('新的调度器提供以下优势：')
+        self.stdout.write('  - 更可靠的任务执行')
+        self.stdout.write('  - 内置任务重试机制')
+        self.stdout.write('  - 统一的任务管理界面')
+        self.stdout.write('  - 支持多种调度类型（Cron、间隔、单次）')
+        self.stdout.write('  - 完整的执行日志和统计')
+        self.stdout.write('')
+        self.stdout.write(self.style.WARNING('=' * 60))
+        self.stdout.write('')
+        
+        warnings.warn(
+            'run_all_scheduled_tasks 命令已废弃，请使用 Django-Q 调度器 (python manage.py qcluster)',
+            DeprecationWarning,
+            stacklevel=2
+        )
+        
         interval = options['interval']
         run_once = options['once']
 

@@ -198,7 +198,10 @@ testhub_platform/
 │   └── package.json
 ├── media/                          # 媒体文件（上传文件、截图等）
 ├── logs/                           # 日志文件
-│   └── scheduler.log              # 统一调度器日志
+│   ├── app.log                   # 主日志文件（不包含 ERROR 级别的日志）
+│   ├── error.log                 # 错误日志文件（只包含 ERROR 级别的日志）
+│   ├── django_task.log           # Django任务日志文件（任务队列和定时任务）
+│   └── orm_sql.log               # ORM SQL日志文件（数据库查询）
 ├── expand/                         # 扩展工具
 │   └── allure/                     # Allure 测试报告工具
 ├── backend/                        # Django 后端
@@ -396,40 +399,73 @@ echo "# This file is intentionally left empty" > apps/testcases/migrations/__ini
 python manage.py makemigrations
 python manage.py migrate
 
-# 创建超级用户
+# 创建超级用户（只需执行一次）
 python manage.py createsuperuser
 ```
 
-6. **初始化UI自动化测试定位策略**
+6. **初始化UI自动化测试定位策略**（只需执行一次）
 ```bash
 # 根目录执行
 python manage.py init_locator_strategies
 ```
-7. **初始化app自动化组件库**
+
+7. **初始化app自动化组件库**（只需执行一次）
 ```bash
 # 根目录执行
 python manage.py load_component_pack
 ```
 
-8. **启动定时任务**
+8. **启动定时任务**（只需执行一次）
 ```bash
-# 启动统一任务调度器(同时管理API和UI模块)
-python manage.py run_all_scheduled_tasks
+# 创建定时任务表
+python manage.py migrate scheduler
+# 迁移定时任务到 Django-Q
+python manage.py migrate_scheduled_tasks
 ```
 
-9. **启动服务**
+9. **启动服务**（每次开发都需要启动）
+
+**方式一：使用启动脚本（推荐）**
+
+Windows 用户可以使用提供的启动脚本同时启动两个服务：
+
+```bash
+# Windows: 双击运行启动脚本
+start.bat
+```
+
+Linux/Mac 用户可以使用提供的启动脚本同时启动两个服务：
+
+```bash
+# Linux/Mac: 运行启动脚本
+chmod +x start.sh
+./start.sh
+```
+
+启动脚本会自动：
+- 启动 Django 开发服务器（端口 8000）
+- 启动 Django-Q 任务队列服务
+- 在独立的命令行窗口中运行每个服务
+- 显示服务访问地址和提示信息
+
+**方式二：手动启动**
+
 ```bash
 # 启动 Django 开发服务器
 python manage.py runserver
-```
-10. **启动Celery服务**
-```bash
-# 启动 Celery 开发服务(可选，用于处理APP自动化任务)
-# celery -A backend worker -l info
+或
+python manage.py start_backend.py
+
+# 启动 Django-Q 任务队列服务（在另一个终端）
 python manage.py qcluster
 ```
 
-### 数据工厂模块初始化
+10. **启动任务队列服务**（每次需要异步任务时都需要启动）
+```bash
+python manage.py qcluster
+```
+
+### 数据工厂模块初始化（只需执行一次）
 
 数据工厂模块需要创建数据库表：
 
@@ -487,6 +523,7 @@ npm run build
 ## 📄 文档
 
 - **[更新日志 (CHANGELOG)](backend/docs/docs/CHANGELOG.md)**: 查看版本更新历史和重要变更
+- **[Django-Q定时任务管理指南](backend/docs/Django-Q定时任务管理指南.md)**: Django-Q 任务队列和定时任务管理指南
 - **[数据工厂使用说明](backend/docs/docs/数据工厂使用说明.md)**: 数据工厂功能完整介绍和使用技巧
 - **[数据工厂快速开始](backend/docs/docs/数据工厂快速开始.md)**: 数据工厂快速上手指南
 - **[数据工厂功能说明](backend/docs/docs/数据工厂功能说明.md)**: 数据工厂功能详细说明
@@ -504,11 +541,16 @@ npm run build
 `core` 模块是跨模块的通用功能模块，提供全局共享的管理命令和统一配置管理。
 
 **管理命令**:
-- `run_all_scheduled_tasks`: 统一定时任务调度器
-  - 同时调度 API 测试和 UI 自动化模块的定时任务
-  - 支持自定义检查间隔（默认60秒）
-  - 支持单次执行模式（`--once`）
-  - 详细日志输出，便于调试和监控
+- `qcluster`: Django-Q 任务队列和定时任务调度器
+  - 启动 Django-Q Cluster 处理异步任务和定时任务
+  - 自动调度和管理所有定时任务
+  - 支持任务重试和失败处理
+  - 内置任务监控和统计功能
+
+- `migrate_scheduled_tasks`: 迁移定时任务到 Django-Q
+  - 将旧的定时任务迁移到 Django-Q Schedule 表
+  - 支持增量迁移和全量迁移
+  - 保留任务配置和执行历史
 
 - `init_locator_strategies`: 初始化UI自动化元素定位策略
   - 创建/更新12种常用元素定位策略
@@ -532,7 +574,10 @@ npm run build
 - `/api/core/notification-configs/`: 统一通知配置管理
 
 **日志文件**:
-- `logs/scheduler.log`: 统一调度器运行日志
+- `logs/app.log`: 主日志文件（不包含 ERROR 级别的日志）
+- `logs/error.log`: 错误日志文件（只包含 ERROR 级别的日志）
+- `logs/django_task.log`: Django任务日志文件（任务队列和定时任务）
+- `logs/orm_sql.log`: ORM SQL日志文件（数据库查询）
 
 ### 2. AI 需求分析模块 (`requirement_analysis`)
 
