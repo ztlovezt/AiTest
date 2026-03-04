@@ -360,12 +360,12 @@ export default {
     },
 
     parseTestCases(content) {
-      // 复用RequirementAnalysisView中的解析逻辑
+      // 复用 RequirementAnalysisView 中的解析逻辑
       if (!content) return []
 
-      // 去除markdown加粗标记 **text**，保留纯文本
+      // 去除 markdown 加粗标记 **text**，保留纯文本
       // 注意：这可能会影响后续的表格解析（例如整行被加粗），但为了内容展示需要
-      cleanContent = cleanContent.replace(/\*\*([^*]+)\*\*/g, '$1')
+      let cleanContent = content.replace(/\*\*([^*]+)\*\*/g, '$1')
 
       const lines = cleanContent.split('\n').filter(line => line.trim())
       const testCases = []
@@ -429,7 +429,8 @@ export default {
           }
 
           headers.forEach((header, index) => {
-            const value = cleanBrTags(row[index] || '')
+            // 关键修复：如果 row[index] 为 undefined，使用空字符串，避免解析失败
+            const value = cleanBrTags((row[index] !== undefined ? row[index] : ''))
 
             // 使用更精确的匹配逻辑，避免误判
             const cleanHeader = header.trim().toLowerCase()
@@ -437,7 +438,7 @@ export default {
             // 优先级匹配，避免误判
             if (cleanHeader === '优先级' || cleanHeader === 'priority' || cleanHeader === 'priority（优先级）' || cleanHeader === '优先级（priority）') {
               testCase.priority = value
-            } else if (cleanHeader === '用例id' || cleanHeader === '编号' || cleanHeader === 'id' || cleanHeader.includes('用例id')) {
+            } else if (cleanHeader === '用例 id' || cleanHeader === '编号' || cleanHeader === 'id' || cleanHeader.includes('用例 id')) {
               testCase.caseId = value
             } else if (cleanHeader === '测试目标' || cleanHeader === '测试场景' || cleanHeader === '场景' || cleanHeader === '标题' || cleanHeader.includes('测试目标')) {
               testCase.scenario = value
@@ -453,14 +454,25 @@ export default {
             }
           })
 
-          if (testCase.scenario || testCase.caseId) {
+          // 关键修复：增强用例有效性检查，只要有任意关键字段就认为是有效用例
+          // 避免因为某些用例没有 scenario 或 caseId 而被过滤掉
+          const hasScenario = testCase.scenario && testCase.scenario.trim()
+          const hasCaseId = testCase.caseId && testCase.caseId.trim()
+          const hasSteps = testCase.steps && testCase.steps.trim()
+          const hasExpected = testCase.expected && testCase.expected.trim()
+          
+          if (hasScenario || hasCaseId || hasSteps || hasExpected) {
             // If steps field is empty, use scenario as default
             if (!testCase.steps && testCase.scenario) {
               testCase.steps = testCase.scenario
             }
-            // 如果没有priority，设置默认值
+            // 如果没有 priority，设置默认值
             if (!testCase.priority) {
               testCase.priority = 'P2'
+            }
+            // 如果没有 caseId，生成一个
+            if (!testCase.caseId) {
+              testCase.caseId = `TC${String(i).padStart(3, '0')}`
             }
             testCases.push(testCase)
           }
