@@ -16,10 +16,9 @@ logs/*
 .sql
 static_files/img/
 .bak
-# 忽略所有 app/*/migrations/ 目录下的所有内容 (包括文件和子目录)
-apps/*/migrations/*
-# 使用否定模式，例外地跟踪 __init__.py 文件
-!apps/*/migrations/__init__.py
+# migrations 文件需要提交到版本控制
+# apps/*/migrations/*
+# !apps/*/migrations/__init__.py
 
 # 忽略media下的子目录及文件，但保留.gitkeep文件
 ../expand/media/allure-reports/*
