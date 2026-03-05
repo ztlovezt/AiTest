@@ -234,54 +234,59 @@ class CoreConfig(AppConfig):
             
             @admin.display(description=_('下次运行'))
             def col_next_run(self, obj):
-                if obj.next_run:
-                    from django.utils import timezone
-                    return timezone.localtime(obj.next_run).strftime('%Y-%m-%d %H:%M:%S')
-                return '-'
+                from django.utils import timezone
+                from datetime import timedelta
+                
+                if not obj.next_run:
+                    return '-'
+                
+                now = timezone.now()
+                next_run = obj.next_run
+                
+                if next_run > now:
+                    return timezone.localtime(next_run).strftime('%Y-%m-%d %H:%M:%S')
+                
+                if obj.schedule_type == 'I' and obj.minutes:
+                    while next_run <= now:
+                        next_run = next_run + timedelta(minutes=obj.minutes)
+                    return mark_safe(f'<span style="color: #888;" title="原计划时间已过，显示计算的下一次时间">{timezone.localtime(next_run).strftime("%Y-%m-%d %H:%M:%S")}</span>')
+                elif obj.schedule_type == 'C' and obj.cron:
+                    try:
+                        from croniter import croniter
+                        cron = croniter(obj.cron, now)
+                        next_run = cron.get_next(type(now))
+                        return mark_safe(f'<span style="color: #888;" title="原计划时间已过，显示计算的下一次时间">{timezone.localtime(next_run).strftime("%Y-%m-%d %H:%M:%S")}</span>')
+                    except Exception:
+                        pass
+                
+                return mark_safe(f'<span style="color: red;" title="任务调度器可能未运行">{timezone.localtime(obj.next_run).strftime("%Y-%m-%d %H:%M:%S")}</span>')
             
             @admin.display(description=_('上次运行'))
             def col_last_run(self, obj):
-                from django_q.models import Task
                 from django.utils import timezone
                 
                 try:
-                    # 获取所属模块作为group
-                    group_name = obj.name
-                    try:
-                        config = obj.config
-                        group_name = config.get_module_display()
-                    except Exception:
-                        pass
-                    
-                    # 兼容多种group值：所属模块、任务名称、任务ID
-                    task = Task.objects.filter(group=group_name).order_by('-started').first()
-                    if not task:
-                        task = Task.objects.filter(group=obj.name).order_by('-started').first()
-                    if not task:
-                        task = Task.objects.filter(group=str(obj.id)).order_by('-started').first()
-                    
-                    if task and task.started:
-                        return timezone.localtime(task.started).strftime('%Y-%m-%d %H:%M:%S')
+                    config = obj.config
+                    if config.last_run_time:
+                        return timezone.localtime(config.last_run_time).strftime('%Y-%m-%d %H:%M:%S')
                 except Exception:
                     pass
                 return '-'
             
             @admin.display(description=_('成功/失败'))
             def col_success_count(self, obj):
-                from django_q.models import Success, Failure
-                
-                # 只统计对应 id 的真实数据
-                group_value = str(obj.id)
-                success_count = Success.objects.filter(group=group_value).count()
-                failure_count = Failure.objects.filter(group=group_value).count()
-                
-                print(f'[col_success_count] obj.id={obj.id}, group_value={group_value}, success_count={success_count}, failure_count={failure_count}')
-                
-                if success_count == 0 and failure_count == 0:
+                try:
+                    config = obj.config
+                    success_count = config.success_count
+                    failure_count = config.failure_count
+                    
+                    if success_count == 0 and failure_count == 0:
+                        return '-'
+                    return mark_safe(
+                        f'<span style="color: green;">{success_count}</span>/<span style="color: red;">{failure_count}</span>'
+                    )
+                except Exception:
                     return '-'
-                return mark_safe(
-                    f'<span style="color: green;">{success_count}</span>/<span style="color: red;">{failure_count}</span>'
-                )
             
             @admin.display(description=_('操作'))
             def col_actions(self, obj):
@@ -292,7 +297,7 @@ class CoreConfig(AppConfig):
                     
                     # 立即执行按钮
                     url = reverse('admin:schedule_execute', args=[obj.id])
-                    actions.append(f'<a href="{url}" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">立即执行</a>')
+                    actions.append(f'<a href="{url}" class="button" style="background-color: #00f6ff; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; margin-right: 5px;">立即执行</a>')
                     
                     # 暂停/恢复按钮
                     if config.status == 'ACTIVE':
@@ -320,15 +325,17 @@ class CoreConfig(AppConfig):
                 from django.shortcuts import redirect
                 from django.contrib import messages
                 from django_q.tasks import async_task
+                from django.utils import timezone
                 
                 try:
                     schedule = Schedule.objects.get(id=schedule_id)
                     
-                    # 获取所属模块作为group
                     group_name = schedule.name
                     try:
                         config = schedule.config
                         group_name = config.get_module_display()
+                        config.last_run_time = timezone.now()
+                        config.save(update_fields=['last_run_time'])
                     except Exception:
                         pass
                     

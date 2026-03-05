@@ -102,6 +102,16 @@ class ScheduleConfig(models.Model):
         auto_now=True, verbose_name='更新时间'
     )
     
+    last_run_time = models.DateTimeField(
+        null=True, blank=True, verbose_name='上次运行时间'
+    )
+    success_count = models.IntegerField(
+        default=0, verbose_name='成功次数'
+    )
+    failure_count = models.IntegerField(
+        default=0, verbose_name='失败次数'
+    )
+    
     class Meta:
         db_table = 'scheduler_schedule_config'
         verbose_name = '任务配置'
@@ -133,23 +143,15 @@ class ScheduleConfig(models.Model):
         from apps.scheduler.task_executor import execute_task
         return execute_task(self.schedule_id)
     
-    @property
-    def success_count(self):
-        """成功执行次数"""
-        from django_q.models import Success
-        return Success.objects.filter(
-            name=self.schedule.name, 
-            func=self.schedule.func
-        ).count()
-    
-    @property
-    def failure_count(self):
-        """失败执行次数"""
-        from django_q.models import Failure
-        return Failure.objects.filter(
-            name=self.schedule.name, 
-            func=self.schedule.func
-        ).count()
+    def update_stats(self, success=True):
+        """更新执行统计"""
+        from django.utils import timezone
+        self.last_run_time = timezone.now()
+        if success:
+            self.success_count += 1
+        else:
+            self.failure_count += 1
+        self.save(update_fields=['last_run_time', 'success_count', 'failure_count'])
 
 
 def get_task_function(task_type):
@@ -225,8 +227,14 @@ def create_scheduled_task(
         repeats=repeats,
     )
     
+    module_display = dict(ScheduleConfig.MODULE_CHOICES).get(module, module)
     schedule.args = []
-    schedule.kwargs = {'schedule_id': schedule.id}
+    schedule.kwargs = {
+        'schedule_id': schedule.id,
+        'q_options': {
+            'group': module_display
+        }
+    }
     schedule.save()
     
     config = ScheduleConfig.objects.create(

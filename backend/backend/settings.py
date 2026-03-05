@@ -31,6 +31,11 @@ class LoguruHandler(logging.Handler):
         if self.loguru_logger is None:
             return
 
+        # 不拦截 Django-Q 的日志（django-q, monitor, tasks, scheduler, worker, pusher）
+        django_q_loggers = ['django-q', 'monitor', 'tasks', 'scheduler', 'worker', 'pusher']
+        if record.name in django_q_loggers or any(record.name.startswith(logger) for logger in django_q_loggers):
+            return
+
         try:
             # 获取loguru对应的日志级别
             loguru_level = self._get_loguru_level(record.levelno)
@@ -91,9 +96,12 @@ class ORMSQLFilter(logging.Filter):
 # 自定义日志过滤器：只记录Django-Q任务日志
 class DjangoTaskFilter(logging.Filter):
     def filter(self, record):
-        result = record.name.startswith('django_q')
-        print(f'[DjangoTaskFilter] record.name={record.name}, result={result}')
-        return result
+        # Django-Q 的日志名称可能是：monitor, tasks, scheduler, worker, pusher 等
+        # 或者以 django_q 开头
+        django_q_loggers = ['monitor', 'tasks', 'scheduler', 'worker', 'pusher', 'cluster', 'broker']
+        return (record.name.startswith('django_q') or 
+                record.name in django_q_loggers or
+                any(record.name.startswith(logger) for logger in django_q_loggers))
 
 
 # 自定义日志过滤器：排除Django-Q相关日志
@@ -128,6 +136,10 @@ class ORMSQLHandler(logging.Handler):
     def emit(self, record):
         """将日志记录写入文件"""
         try:
+            # 检查过滤器是否通过
+            if not self.filter(record):
+                return
+            
             msg = self.format(record)
             self._ensure_log_dir()  # 每次写入前确保目录存在
             with open(self.filename, 'a', encoding='utf-8') as f:
@@ -152,7 +164,6 @@ class DjangoTaskHandler(logging.Handler):
         self.filename = str(filename)  # 转换为字符串以避免多进程环境下的路径问题
         self._ensure_log_dir()
         self.addFilter(DjangoTaskFilter())
-        print(f'[DjangoTaskHandler] 初始化: filename={self.filename}')
 
     def _ensure_log_dir(self):
         """确保日志目录存在（多进程环境安全）"""
@@ -162,16 +173,16 @@ class DjangoTaskHandler(logging.Handler):
 
     def emit(self, record):
         """将日志记录写入文件"""
-        print(f'[DjangoTaskHandler] emit 被调用: record.name={record.name}, level={record.levelno}')
         try:
+            # 检查过滤器是否通过
+            if not self.filter(record):
+                return
+            
             msg = self.format(record)
-            print(f'[DjangoTaskHandler] 格式化后的消息: {msg}')
             self._ensure_log_dir()  # 每次写入前确保目录存在
             with open(self.filename, 'a', encoding='utf-8') as f:
                 f.write(msg + '\n')
-            print(f'[DjangoTaskHandler] 写入成功: {record.name}')
-        except Exception as e:
-            print(f'[DjangoTaskHandler] 写入失败: {e}')
+        except Exception:
             self.handleError(record)
 
 
@@ -642,6 +653,16 @@ logging_config = config_loader.get_logging_config()
 debug_enabled = logging_config.get('debug_enabled', False)
 console_level = 'DEBUG' if debug_enabled else 'INFO'
 
+# 计算日志目录
+import os
+from pathlib import Path
+try:
+    log_dir = log_config.log_dir
+except:
+    log_dir = Path(__file__).parent.parent / 'logs'
+django_task_log_file = str(log_dir / 'django_task.log')
+os.makedirs(str(log_dir), exist_ok=True)
+
 # Logging
 LOGGING = {
     'version': 1,
@@ -679,13 +700,16 @@ LOGGING = {
             'formatter': 'verbose',
         },
         'orm_sql': {
-            'level': 'DEBUG',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'class': 'backend.settings.ORMSQLHandler',
             'formatter': 'verbose',
         },
         'django_task': {
-            'level': 'INFO',
-            'class': 'backend.settings.DjangoTaskHandler',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': django_task_log_file,
+            'mode': 'a',
+            'encoding': 'utf-8',
             'formatter': 'verbose',
         },
     },
@@ -693,27 +717,53 @@ LOGGING = {
         # django_task 日志配置（任务队列和定时任务）
         'django_q': {
             'handlers': ['django_task', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'django_q.cluster': {
             'handlers': ['django_task', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'django_q.monitor': {
             'handlers': ['django_task', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'django_q.worker': {
             'handlers': ['django_task', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'django_q.pusher': {
             'handlers': ['django_task', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
+        },
+        # Django-Q 实际使用的 logger 名称
+        'monitor': {
+            'handlers': ['django_task', 'console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
+        },
+        'tasks': {
+            'handlers': ['django_task', 'console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
+        },
+        'scheduler': {
+            'handlers': ['django_task', 'console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
+        },
+        'worker': {
+            'handlers': ['django_task', 'console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
+        },
+        'pusher': {
+            'handlers': ['django_task', 'console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         # ORM SQL 日志配置
@@ -725,35 +775,73 @@ LOGGING = {
         # 其他具体模块的 logger 配置
         'django': {
             'handlers': ['loguru', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.api_testing.views': {
             'handlers': ['loguru', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.data_factory.tools.json_tools': {
             'handlers': ['loguru', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools.encoding_tools': {
             'handlers': ['loguru', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools': {
             'handlers': ['loguru', 'console'],
-            'level': 'INFO',
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
     },
     'root': {
         'handlers': ['loguru', 'console'],
-        'level': 'INFO',
+        'level': 'DEBUG' if debug_enabled else 'INFO',
     },
 }
+
+# 手动重新配置 Django-Q 的 logger，确保使用 FileHandler
+import logging
+
+logger_names = ['django-q', 'monitor', 'tasks', 'scheduler', 'worker', 'pusher']
+for logger_name in logger_names:
+    logger = logging.getLogger(logger_name)
+    
+    # 清空现有的 handlers
+    logger.handlers = []
+    
+    # 设置日志级别和传播
+    logger.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+    logger.propagate = False
+    
+    # 添加 FileHandler
+    file_handler = logging.FileHandler(django_task_log_file, mode='a', encoding='utf-8')
+    file_handler.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+    file_handler.setFormatter(logging.Formatter(
+        '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+        style='{'
+    ))
+    logger.addHandler(file_handler)
+    
+    # 添加 StreamHandler
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
+    stream_handler.setFormatter(logging.Formatter(
+        '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+        style='{'
+    ))
+    logger.addHandler(stream_handler)
+
+# 移除根 logger 的 LoguruHandler，避免拦截所有日志
+root_logger = logging.getLogger()
+for handler in root_logger.handlers[:]:
+    if hasattr(handler, 'loguru_logger'):
+        root_logger.removeHandler(handler)
 
 # 指定simpleui默认的主题,指定一个文件名，相对路径就从simpleui的theme目录读取
 SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'

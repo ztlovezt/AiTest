@@ -8,6 +8,16 @@ from django_q.models import Schedule
 from loguru import logger
 
 
+def _update_task_stats(schedule_id, success=True):
+    """更新任务执行统计"""
+    try:
+        from apps.scheduler.models import ScheduleConfig
+        config = ScheduleConfig.objects.get(schedule__id=schedule_id)
+        config.update_stats(success=success)
+    except Exception as e:
+        logger.error(f"更新任务统计失败: {e}")
+
+
 def _generate_dingtalk_sign(webhook_url, timestamp):
     """生成钉钉机器人签名"""
     try:
@@ -59,15 +69,11 @@ def execute_task(schedule_id):
             logger.info(f"任务已暂停，跳过执行: {schedule.name}")
             return None
     except ScheduleConfig.DoesNotExist:
-        pass
+        config = None
     
-    # 获取所属模块作为group
     group_name = schedule.name
-    try:
-        config = ScheduleConfig.objects.get(schedule__id=schedule_id)
+    if config:
         group_name = config.get_module_display()
-    except Exception:
-        pass
     
     task_id = async_task(
         'apps.scheduler.task_executor.execute_scheduled_task',
@@ -131,6 +137,7 @@ def execute_api_test_suite(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.api_testing.models import TestSuite, Environment
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -162,6 +169,9 @@ def execute_api_test_suite(*args, **kwargs):
         
         logger.info(f"API测试套件执行完成: {test_suite.name}, 结果: {result}")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=result.get('success', False))
+        
         if config.notify_on_success or config.notify_on_failure:
             send_notification(config, result.get('success', False), result)
         
@@ -171,6 +181,9 @@ def execute_api_test_suite(*args, **kwargs):
     except Exception as e:
         logger.error(f"执行API测试套件失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         try:
             config = ScheduleConfig.objects.get(schedule__id=schedule_id)
             logger.error(f"任务配置: {config.schedule.name}, 模块: {config.get_module_display()}")
@@ -187,6 +200,7 @@ def execute_api_request(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.api_testing.models import ApiRequest, Environment
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -217,6 +231,9 @@ def execute_api_request(*args, **kwargs):
         
         logger.info(f"API请求执行完成: {api_request.name}")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=result.get('success', False))
+        
         if config.notify_on_success or config.notify_on_failure:
             send_notification(config, result.get('success', False), result)
         
@@ -226,6 +243,9 @@ def execute_api_request(*args, **kwargs):
     except Exception as e:
         logger.error(f"执行API请求失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         # 重新抛出异常以便 Django-Q 记录到 Failure 表
         raise
 
@@ -235,6 +255,7 @@ def execute_ui_test_suite(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.ui_automation.models import TestSuite
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -270,6 +291,9 @@ def execute_ui_test_suite(*args, **kwargs):
         
         logger.info(f"UI测试套件执行完成: {test_suite.name}")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=True)
+        
         if config.notify_on_success or config.notify_on_failure:
             send_notification(config, True, {})
         
@@ -279,6 +303,9 @@ def execute_ui_test_suite(*args, **kwargs):
     except Exception as e:
         logger.error(f"执行UI测试套件失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         try:
             config = ScheduleConfig.objects.get(schedule__id=schedule_id)
             logger.error(f"任务配置: {config.schedule.name}, 模块: {config.get_module_display()}")
@@ -295,6 +322,7 @@ def execute_ui_test_cases(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.ui_automation.models import TestCase as UiTestCase, TestSuite
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -338,12 +366,18 @@ def execute_ui_test_cases(*args, **kwargs):
         
         logger.info(f"UI测试用例执行完成")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=True)
+        
         # 返回结果以便 Django-Q 记录到 Success 表
         return {'success': True, 'message': 'UI测试用例执行完成'}
         
     except Exception as e:
         logger.error(f"执行UI测试用例失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         # 重新抛出异常以便 Django-Q 记录到 Failure 表
         raise
 
@@ -353,6 +387,7 @@ def execute_app_test_suite(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.app_automation.models import AppTestSuite
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -388,12 +423,18 @@ def execute_app_test_suite(*args, **kwargs):
         
         logger.info(f"APP测试套件执行完成: {test_suite.name}")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=True)
+        
         # 返回结果以便 Django-Q 记录到 Success 表
         return {'success': True, 'message': 'APP测试套件执行完成'}
         
     except Exception as e:
         logger.error(f"执行APP测试套件失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         # 重新抛出异常以便 Django-Q 记录到 Failure 表
         raise
 
@@ -403,6 +444,7 @@ def execute_app_test_cases(*args, **kwargs):
     from apps.scheduler.models import ScheduleConfig
     from apps.app_automation.models import AppTestCase, AppTestSuite
     
+    schedule_id = None
     try:
         # 优先使用 kwargs 中的 schedule_id（新数据）
         schedule_id = kwargs.get('schedule_id')
@@ -444,12 +486,18 @@ def execute_app_test_cases(*args, **kwargs):
         
         logger.info(f"APP测试用例执行完成")
         
+        # 更新执行统计
+        _update_task_stats(schedule_id, success=True)
+        
         # 返回结果以便 Django-Q 记录到 Success 表
         return {'success': True, 'message': 'APP测试用例执行完成'}
         
     except Exception as e:
         logger.error(f"执行APP测试用例失败: {e}", exc_info=True)
         logger.error(f"任务ID: {schedule_id}, 错误类型: {type(e).__name__}")
+        # 更新执行统计（失败）
+        if schedule_id:
+            _update_task_stats(schedule_id, success=False)
         # 重新抛出异常以便 Django-Q 记录到 Failure 表
         raise
 

@@ -21,6 +21,12 @@ def only_errors(record):
     return record["level"].name == "ERROR"
 
 
+def only_orm_sql(record):
+    """过滤器：只记录 ORM SQL 日志"""
+    name = record["extra"].get("name", "")
+    return name == "django.db.backends"
+
+
 class LogConfig:
     """Loguru日志配置类"""
     
@@ -86,13 +92,14 @@ class LogConfig:
         )
         
         # 主日志文件 - 保留7天（不包含 ERROR 级别的日志）
+        app_log_level = "DEBUG" if self.debug_enabled else "INFO"
         logger.add(
             self.log_dir / "app.log",
             rotation="00:00",  # 每天午夜轮转
             retention="7 days",  # 保留7天
             compression="zip",  # 自动压缩旧日志
             encoding="utf-8",
-            level="INFO",
+            level=app_log_level,
             format=self.log_format,
             filter=exclude_errors,  # 过滤掉 ERROR 级别的日志
             backtrace=True,
@@ -127,7 +134,8 @@ class LogConfig:
                 format=self.log_format,
                 backtrace=True,
                 diagnose=True,
-                enqueue=True
+                enqueue=True,
+                filter=only_orm_sql
             )
         else:
             logger.add(
@@ -140,7 +148,8 @@ class LogConfig:
                 format=self.log_format,
                 backtrace=True,
                 diagnose=True,
-                enqueue=True
+                enqueue=True,
+                filter=only_orm_sql
             )
     
     def get_logger(self, name=None):

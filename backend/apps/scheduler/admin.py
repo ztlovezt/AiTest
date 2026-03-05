@@ -60,15 +60,15 @@ class ScheduleConfigInline(admin.StackedInline):
 
 class ScheduleAdmin(admin.ModelAdmin):
     """Django-Q Schedule Admin 配置"""
-    list_display = ['name', 'enabled', 'task_type', 'next_run', 'execute_now_button']
-    list_filter = ['enabled', 'task_type']
+    list_display = ['name', 'status_display', 'task_type', 'next_run', 'success_count', 'failure_count', 'execute_now_button']
+    list_filter = []
     search_fields = ['name', 'func']
     readonly_fields = ['last_run', 'next_run', 'success_count', 'failure_count', 'execute_now_button']
     inlines = [ScheduleConfigInline]
     
     fieldsets = (
         (_('基本信息'), {
-            'fields': ('name', 'func', 'args', 'kwargs', 'enabled')
+            'fields': ('name', 'func', 'args', 'kwargs')
         }),
         (_('调度配置'), {
             'fields': ('cron', 'schedule_type', 'minutes', 'repeats', 'next_run')
@@ -83,6 +83,15 @@ class ScheduleAdmin(admin.ModelAdmin):
         }),
     )
     
+    def status_display(self, obj):
+        """获取任务状态"""
+        try:
+            config = ScheduleConfig.objects.get(schedule=obj)
+            return config.get_status_display()
+        except ScheduleConfig.DoesNotExist:
+            return '-'
+    status_display.short_description = _('状态')
+    
     def task_type(self, obj):
         """获取任务类型"""
         try:
@@ -95,22 +104,14 @@ class ScheduleAdmin(admin.ModelAdmin):
     def last_run(self, obj):
         """上次运行时间"""
         try:
-            from django_q.models import Success, Failure
+            from django_q.models import Task
             
-            # 查询最后一次成功或失败的执行记录
-            last_success = Success.objects.filter(func=obj.func).order_by('-started').first()
-            last_failure = Failure.objects.filter(func=obj.func).order_by('-started').first()
+            # 使用 group 字段过滤（group 是任务名称）
+            last_task = Task.objects.filter(group=obj.name).order_by('-started').first()
             
-            if last_success and last_failure:
-                last_run = last_success if last_success.started > last_failure.started else last_failure
-            elif last_success:
-                last_run = last_success
-            elif last_failure:
-                last_run = last_failure
-            else:
-                return '-'
-            
-            return last_run.started.strftime('%Y-%m-%d %H:%M:%S')
+            if last_task:
+                return last_task.started.strftime('%Y-%m-%d %H:%M:%S')
+            return '-'
         except Exception as e:
             return '-'
     last_run.short_description = _('上次运行')
@@ -118,8 +119,8 @@ class ScheduleAdmin(admin.ModelAdmin):
     def success_count(self, obj):
         """成功次数"""
         try:
-            from django_q.models import Success
-            return Success.objects.filter(func=obj.func).count()
+            from django_q.models import Task
+            return Task.objects.filter(group=obj.name, success=True).count()
         except Exception:
             return 0
     success_count.short_description = _('成功次数')
@@ -127,8 +128,8 @@ class ScheduleAdmin(admin.ModelAdmin):
     def failure_count(self, obj):
         """失败次数"""
         try:
-            from django_q.models import Failure
-            return Failure.objects.filter(func=obj.func).count()
+            from django_q.models import Task
+            return Task.objects.filter(group=obj.name, success=False).count()
         except Exception:
             return 0
     failure_count.short_description = _('失败次数')
