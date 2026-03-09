@@ -58,10 +58,10 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="notification_type_display" :label="$t('uiAutomation.scheduledTask.notificationType')" width="130">
+        <el-table-column prop="notification_type_display" :label="$t('uiAutomation.scheduledTask.notificationType')" width="120">
           <template #default="scope">
-            <el-tag v-if="scope.row.notification_type_display && scope.row.notification_type_display !== '-'"
-                    :type="getNotificationTypeTagType(scope.row.notification_type_display)"
+            <el-tag v-if="scope.row.notification_type_display && scope.row.notification_type_display !== '未配置'" 
+                    :type="getNotificationTypeTag(scope.row.notification_type_display)"
                     size="small">
               {{ scope.row.notification_type_display }}
             </el-tag>
@@ -364,27 +364,32 @@
         </el-form-item>
 
         <el-form-item v-if="taskForm.notify_on_success || taskForm.notify_on_failure" :label="$t('uiAutomation.scheduledTask.notificationType')">
-          <el-select v-model="taskForm.notification_type" :placeholder="$t('uiAutomation.scheduledTask.selectNotificationType')">
-            <el-option :label="$t('uiAutomation.scheduledTask.notificationTypes.email')" value="email" />
-            <el-option :label="$t('uiAutomation.scheduledTask.notificationTypes.webhook')" value="webhook" />
-            <el-option :label="$t('uiAutomation.scheduledTask.notificationTypes.both')" value="both" />
-          </el-select>
+          <el-checkbox v-model="taskForm.notify_on_email">{{ $t('uiAutomation.scheduledTask.notifyOnEmail') }}</el-checkbox>
+          <el-checkbox v-model="taskForm.notify_on_webhook">{{ $t('uiAutomation.scheduledTask.notifyOnWebhook') }}</el-checkbox>
         </el-form-item>
 
-        <el-form-item v-if="(taskForm.notify_on_success || taskForm.notify_on_failure) && (taskForm.notification_type === 'email' || taskForm.notification_type === 'both')" :label="$t('uiAutomation.scheduledTask.notifyEmails')">
-          <el-select
-            v-model="taskForm.notify_emails"
-            multiple
+        <el-form-item v-if="taskForm.notify_on_email || taskForm.notify_on_webhook" :label="$t('uiAutomation.scheduledTask.notificationConfig')">
+          <el-select 
+            v-model="taskForm.notification_config_ids" 
+            :placeholder="$t('uiAutomation.scheduledTask.selectNotificationConfig')"
             filterable
-            :placeholder="$t('uiAutomation.scheduledTask.selectNotifyEmails')"
+            clearable
+            multiple
+            style="width: 100%"
           >
             <el-option
-              v-for="user in users"
-              :key="user.id"
-              :label="user.display_name"
-              :value="user.email"
-            />
+              v-for="config in filteredNotificationConfigs"
+              :key="config.id"
+              :label="config.name"
+              :value="config.id"
+            >
+              <span>{{ config.name }}</span>
+              <span style="color: #909399; font-size: 12px; margin-left: 8px;">({{ config.config_type_display }})</span>
+            </el-option>
           </el-select>
+          <div class="form-item-hint" v-if="!filteredNotificationConfigs.length">
+            {{ $t('uiAutomation.scheduledTask.noMatchingNotificationConfig') }}
+          </div>
         </el-form-item>
       </el-form>
 
@@ -415,6 +420,7 @@ import {
   getTestCases,
   getUiUsers
 } from '@/api/ui_automation.js'
+import { getUnifiedNotificationConfigs } from '@/api/core'
 
 const { t, locale } = useI18n()
 
@@ -428,6 +434,30 @@ const loading = ref(false)
 const submitting = ref(false)
 const showCreateDialog = ref(false)
 const editingTask = ref(null)
+const notificationConfigs = ref([])
+
+const filteredNotificationConfigs = computed(() => {
+  const notifyOnEmail = taskForm.notify_on_email
+  const notifyOnWebhook = taskForm.notify_on_webhook
+  
+  if (!notifyOnEmail && !notifyOnWebhook) {
+    return []
+  }
+  
+  return notificationConfigs.value.filter(config => {
+    if (!config.is_active) return false
+    
+    if (notifyOnEmail && notifyOnWebhook) {
+      return true
+    } else if (notifyOnEmail) {
+      return config.config_type === 'email'
+    } else if (notifyOnWebhook) {
+      return config.config_type !== 'email'
+    }
+    
+    return false
+  })
+})
 
 // 筛选条件
 const filters = reactive({
@@ -475,8 +505,10 @@ const taskForm = reactive({
   browser: 'chrome',
   headless: false,
   notify_on_success: false,
-  notify_on_failure: false,
-  notify_emails: []
+  notify_on_failure: true,
+  notify_on_email: false,
+  notify_on_webhook: false,
+  notification_config_ids: []
 })
 
 // 获取调度类型文本
@@ -497,6 +529,20 @@ const getScheduleTypeText = (type) => {
   return typeMap[type] || type
 }
 
+const getNotificationTypeTag = (notificationTypeDisplay) => {
+  if (!notificationTypeDisplay || notificationTypeDisplay === '未配置') {
+    return 'info'
+  }
+  if (notificationTypeDisplay.includes('+')) {
+    return 'warning'
+  } else if (notificationTypeDisplay.includes('邮箱') || notificationTypeDisplay.includes('邮件')) {
+    return 'success'
+  } else if (notificationTypeDisplay.includes('Webhook')) {
+    return 'primary'
+  }
+  return 'info'
+}
+
 // 获取状态文本
 const getStatusText = (status) => {
   const statusMap = {
@@ -515,22 +561,22 @@ const getStatusType = (status) => {
   return 'info'
 }
 
-// 获取通知类型文本
-const getNotificationTypeText = (type) => {
-  const typeMap = {
-    'email': t('uiAutomation.scheduledTask.notificationTypes.email'),
-    'webhook': t('uiAutomation.scheduledTask.notificationTypes.webhook'),
-    'both': t('uiAutomation.scheduledTask.notificationTypes.both')
-  }
-  return typeMap[type] || type
-}
-
 // 生命周期
 onMounted(() => {
   loadTasks()
   loadProjects()
   loadUsers()
+  loadNotificationConfigs()
 })
+
+const loadNotificationConfigs = async () => {
+  try {
+    const response = await getUnifiedNotificationConfigs()
+    notificationConfigs.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('加载通知配置失败:', error)
+  }
+}
 
 // 加载任务列表
 const loadTasks = async () => {
@@ -623,9 +669,10 @@ const resetTaskForm = () => {
     engine: 'playwright',
     browser: 'chrome',
     headless: false,
-    notify_on_success: false,
-    notify_on_failure: false,
-    notify_emails: []
+    notify_on_email: false,
+    notify_on_webhook: false,
+    webhook_url: '',
+    notification_config_ids: []
   })
 }
 
@@ -695,8 +742,9 @@ const submitTaskForm = async () => {
       },
       notify_on_success: taskForm.notify_on_success,
       notify_on_failure: taskForm.notify_on_failure,
-      notify_emails: (taskForm.notify_on_success || taskForm.notify_on_failure) && (taskForm.notification_type === 'email' || taskForm.notification_type === 'both') ? taskForm.notify_emails : [],
-      use_webhook: (taskForm.notify_on_success || taskForm.notify_on_failure) && (taskForm.notification_type === 'webhook' || taskForm.notification_type === 'both')
+      notify_on_email: taskForm.notify_on_email,
+      notify_on_webhook: taskForm.notify_on_webhook,
+      notification_config_ids: taskForm.notification_config_ids
     }
 
     // 根据触发器类型添加对应字段
@@ -847,19 +895,6 @@ const formatDateTime = (dateString) => {
   }).replace(/\//g, '-')
 }
 
-// 获取通知类型标签类型
-const getNotificationTypeTagType = (typeDisplay) => {
-  const typeMap = {
-    '邮箱通知': '',
-    'Email Notification': '',
-    'Webhook机器人': 'primary',
-    'Webhook Robot': 'primary',
-    '两者都发送': 'warning',
-    'Both': 'warning'
-  }
-  return typeMap[typeDisplay] || 'info'
-}
-
 // 处理任务操作
 const handleTaskAction = (command, task) => {
   switch (command) {
@@ -881,16 +916,6 @@ const handleTaskAction = (command, task) => {
 // 编辑任务
 const editTask = async (task) => {
   editingTask.value = task
-  
-  // 根据后端返回的数据设置 notification_type
-  const hasEmail = task.config?.notify_emails && task.config.notify_emails.length > 0
-  const hasWebhook = task.config?.use_webhook
-  let notificationType = 'email'
-  if (hasEmail && hasWebhook) {
-    notificationType = 'both'
-  } else if (!hasEmail && hasWebhook) {
-    notificationType = 'webhook'
-  }
   
   // 从 cron 表达式中解析时间字段
   let hour_minute = 0
@@ -982,10 +1007,11 @@ const editTask = async (task) => {
     engine: task.engine || 'playwright',
     browser: task.browser || 'chrome',
     headless: task.config?.task_config?.headless || false,
-    notify_on_success: task.config?.notify_on_success || false,
-    notify_on_failure: task.config?.notify_on_failure || true,
-    notify_emails: task.config?.notify_emails || [],
-    notification_type: notificationType
+    notify_on_success: task.config?.notify_on_success ?? false,
+    notify_on_failure: task.config?.notify_on_failure ?? true,
+    notify_on_email: task.config?.notify_on_email ?? false,
+    notify_on_webhook: task.config?.notify_on_webhook ?? false,
+    notification_config_ids: task.config?.notification_config_ids || []
   })
 
   // 加载项目相关数据

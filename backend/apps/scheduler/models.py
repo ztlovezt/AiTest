@@ -81,6 +81,19 @@ class ScheduleConfig(models.Model):
     notify_on_failure = models.BooleanField(
         default=True, verbose_name='失败时通知'
     )
+    notify_on_email = models.BooleanField(
+        default=False, verbose_name='邮箱通知'
+    )
+    notify_on_webhook = models.BooleanField(
+        default=False, verbose_name='Webhook机器人通知'
+    )
+    notification_configs = models.ManyToManyField(
+        'core.UnifiedNotificationConfig',
+        blank=True,
+        verbose_name='通知配置',
+        related_name='schedules',
+        help_text='选择通知配置，用于发送通知时使用'
+    )
     notify_emails = models.JSONField(
         default=list, blank=True, verbose_name='通知邮箱'
     )
@@ -89,6 +102,15 @@ class ScheduleConfig(models.Model):
     )
     webhook_url = models.URLField(
         blank=True, default='', verbose_name='Webhook地址'
+    )
+    notification_template = models.ForeignKey(
+        'core.NotificationTemplate',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='通知模板',
+        related_name='schedule_configs',
+        help_text='选择通知模板，用于发送通知时使用'
     )
     
     created_by = models.ForeignKey(
@@ -184,8 +206,10 @@ def create_scheduled_task(
     description='',
     notify_on_success=False,
     notify_on_failure=True,
+    notification_config=None,
     notify_emails=None,
     webhook_url='',
+    notification_template=None,
 ):
     """
     创建定时任务的统一入口
@@ -207,8 +231,10 @@ def create_scheduled_task(
         description: 描述
         notify_on_success: 成功时通知
         notify_on_failure: 失败时通知
+        notification_config: 通知配置对象
         notify_emails: 通知邮箱列表
         webhook_url: Webhook地址
+        notification_template: 通知模板
     
     Returns:
         (Schedule, ScheduleConfig) 元组
@@ -249,8 +275,10 @@ def create_scheduled_task(
         description=description,
         notify_on_success=notify_on_success,
         notify_on_failure=notify_on_failure,
+        notification_config=notification_config,
         notify_emails=notify_emails or [],
         webhook_url=webhook_url,
+        notification_template=notification_template,
         created_by=created_by,
     )
     

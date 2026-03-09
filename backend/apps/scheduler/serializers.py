@@ -4,6 +4,7 @@
 from rest_framework import serializers
 from django_q.models import Schedule
 from .models import ScheduleConfig
+from apps.core.models import NotificationTemplate, UnifiedNotificationConfig
 
 
 class ScheduleConfigSerializer(serializers.ModelSerializer):
@@ -15,11 +16,39 @@ class ScheduleConfigSerializer(serializers.ModelSerializer):
     schedule_name = serializers.CharField(source='schedule.name', read_only=True)
     success_count = serializers.IntegerField(read_only=True)
     failure_count = serializers.IntegerField(read_only=True)
+    notification_template_name = serializers.SerializerMethodField()
+    notification_config_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=UnifiedNotificationConfig.objects.all(),
+        required=False,
+        source='notification_configs'
+    )
     
     class Meta:
         model = ScheduleConfig
-        fields = '__all__'
+        fields = [
+            'id', 'schedule', 'module', 'task_type', 'project_id', 'target_id', 
+            'environment_id', 'task_config', 'status', 'description',
+            'notify_on_success', 'notify_on_failure', 'notify_on_email', 'notify_on_webhook',
+            'notify_emails', 'use_webhook', 'webhook_url', 'notification_template',
+            'created_by', 'created_at', 'updated_at', 'last_run_time',
+            'success_count', 'failure_count',
+            'module_display', 'task_type_display', 'status_display', 'created_by_name',
+            'schedule_name', 'notification_template_name', 'notification_config_ids'
+        ]
         read_only_fields = ('created_at', 'updated_at')
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if 'notification_config_ids' in data:
+            data['notification_config_ids'] = [obj.id for obj in instance.notification_configs.all()]
+        return data
+    
+    def get_notification_template_name(self, obj):
+        """获取通知模板名称"""
+        if hasattr(obj, 'notification_template') and obj.notification_template:
+            return obj.notification_template.name
+        return None
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
@@ -30,6 +59,9 @@ class ScheduleSerializer(serializers.ModelSerializer):
     last_run_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
     notification_type_display = serializers.SerializerMethodField()
+    notification_config_name = serializers.SerializerMethodField()
+    notify_on_email = serializers.SerializerMethodField()
+    notify_on_webhook = serializers.SerializerMethodField()
     module = serializers.SerializerMethodField()
     task_type = serializers.SerializerMethodField()
     target_name = serializers.SerializerMethodField()
@@ -44,7 +76,8 @@ class ScheduleSerializer(serializers.ModelSerializer):
             'schedule_type', 'schedule_type_display', 'minutes', 'cron',
             'repeats', 'next_run', 'next_run_display', 'last_run_display', 
             'cluster', 'task', 'config', 'status_display', 
-            'notification_type_display', 'module', 'task_type', 'target_name',
+            'notification_type_display', 'notification_config_name', 'notify_on_email', 'notify_on_webhook',
+            'module', 'task_type', 'target_name',
             'engine', 'browser', 'device_name'
         ]
         read_only_fields = ('id', 'task')
@@ -79,22 +112,36 @@ class ScheduleSerializer(serializers.ModelSerializer):
     def get_notification_type_display(self, obj):
         if hasattr(obj, 'config') and obj.config:
             config = obj.config
-            has_email = bool(config.notify_emails)
-            has_webhook = bool(config.use_webhook)
-            has_notification = config.notify_on_success or config.notify_on_failure
-            
-            if not has_notification:
-                return '-'
-            
-            if has_email and has_webhook:
-                return '邮件+Webhook'
-            elif has_email:
-                return '邮件'
-            elif has_webhook:
-                return 'Webhook'
-            else:
-                return '邮件'
-        return '-'
+            notification_types = []
+            if getattr(config, 'notify_on_email', False):
+                notification_types.append('邮箱通知')
+            if getattr(config, 'notify_on_webhook', False) or getattr(config, 'use_webhook', False):
+                notification_types.append('Webhook')
+            if notification_types:
+                return ' + '.join(notification_types)
+        return '未配置'
+    
+    def get_notify_on_email(self, obj):
+        """获取是否启用邮箱通知"""
+        if hasattr(obj, 'config') and obj.config:
+            return getattr(obj.config, 'notify_on_email', False)
+        return False
+    
+    def get_notify_on_webhook(self, obj):
+        """获取是否启用Webhook通知"""
+        if hasattr(obj, 'config') and obj.config:
+            return getattr(obj.config, 'notify_on_webhook', False)
+        return False
+    
+    def get_notification_config_name(self, obj):
+        if hasattr(obj, 'config') and obj.config:
+            config = obj.config
+            try:
+                if hasattr(config, 'notification_configs') and config.notification_configs.exists():
+                    return ', '.join([nc.name for nc in config.notification_configs.all()])
+            except Exception as e:
+                pass
+        return None
     
     def get_last_run_display(self, obj):
         """获取上次执行时间"""
@@ -226,10 +273,19 @@ class ScheduleCreateSerializer(serializers.Serializer):
     repeats = serializers.IntegerField(default=-1)
     
     description = serializers.CharField(required=False, allow_blank=True, default='')
-    notify_on_success = serializers.BooleanField(default=False)
-    notify_on_failure = serializers.BooleanField(default=True)
-    notify_emails = serializers.ListField(child=serializers.EmailField(), required=False, default=list)
-    use_webhook = serializers.BooleanField(default=False)
+    
+    notify_on_success = serializers.BooleanField(default=False, help_text='成功时通知')
+    notify_on_failure = serializers.BooleanField(default=True, help_text='失败时通知')
+    notify_on_email = serializers.BooleanField(default=False, help_text='邮箱通知')
+    notify_on_webhook = serializers.BooleanField(default=False, help_text='Webhook机器人通知')
+    
+    notification_config_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        help_text='统一通知配置ID列表'
+    )
+    notification_template_id = serializers.IntegerField(required=False, allow_null=True)
     
     def validate(self, data):
         schedule_type = data.get('schedule_type')

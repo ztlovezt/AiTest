@@ -10,6 +10,7 @@ from django.utils.html import format_html
 from django.contrib import messages
 from django_q.models import Schedule
 from .models import ScheduleConfig
+from apps.core.admin_mixins import StandardAdminMixin
 
 
 @staff_member_required
@@ -57,8 +58,7 @@ class ScheduleConfigInline(admin.StackedInline):
 # 注销Django-Q的默认ScheduleAdmin，注册自定义的ScheduleAdmin
 # 注意：ScheduleAdmin的注册现在在apps.py的ready()方法中处理
 
-
-class ScheduleAdmin(admin.ModelAdmin):
+class ScheduleAdmin(StandardAdminMixin, admin.ModelAdmin):
     """Django-Q Schedule Admin 配置"""
     list_display = ['name', 'status_display', 'task_type', 'next_run', 'success_count', 'failure_count', 'execute_now_button']
     list_filter = []

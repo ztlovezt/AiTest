@@ -14,7 +14,6 @@ from .views import (
     AppPackageViewSet,
     AppTestCaseViewSet,
     AppTestSuiteViewSet,
-    AppScheduledTaskViewSet,
     AppNotificationLogViewSet,
     AppTestExecutionViewSet,
     AppDashboardViewSet,
@@ -34,7 +33,6 @@ router.register(r'component-packages', AppComponentPackageViewSet, basename='app
 router.register(r'packages', AppPackageViewSet, basename='app-package')
 router.register(r'test-cases', AppTestCaseViewSet, basename='app-test-case')
 router.register(r'test-suites', AppTestSuiteViewSet, basename='app-test-suite')
-router.register(r'scheduled-tasks', AppScheduledTaskViewSet, basename='app-scheduled-task')
 router.register(r'notification-logs', AppNotificationLogViewSet, basename='app-notification-log')
 router.register(r'executions', AppTestExecutionViewSet, basename='app-execution')
 

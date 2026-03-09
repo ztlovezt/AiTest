@@ -12,7 +12,7 @@ export default {
     testSuites: '测试套件',
     executions: '执行记录',
     scheduledTasks: '定时任务',
-    reports: '测试报告',
+    reports: '报告管理',
     elements: '元素管理'
   },
 
@@ -71,7 +71,9 @@ export default {
     query: '查询',
     detail: '详情',
     ipAddress: 'IP地址',
-    copy: '复制'
+    copy: '复制',
+    yes: '是',
+    no: '否'
   },
 
   // 项目管理
@@ -681,6 +683,11 @@ export default {
     selectAppPackage: '请选择应用包',
     enableTask: '启用任务',
     notificationSettings: '通知设置',
+    notifyOnEmail: '邮箱通知',
+    notifyOnWebhook: 'Webhook机器人通知',
+    notificationConfig: '通知配置',
+    selectNotificationConfig: '请选择通知配置',
+    noMatchingNotificationConfig: '没有匹配的通知配置，请先前往配置中心创建通知配置',
     notifyOnSuccess: '执行成功时通知',
     notifyOnFailure: '执行失败时通知',
     notifyEmails: '通知邮箱',

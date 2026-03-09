@@ -14,178 +14,6 @@ LOG_DIR = log_config.log_dir
 os.makedirs(LOG_DIR, exist_ok=True)
 
 
-# Loguru Handler - 桥接Django logging和loguru
-class LoguruHandler(logging.Handler):
-    """自定义Handler，将Django logging桥接到loguru"""
-
-    def __init__(self, level=logging.NOTSET):
-        super().__init__(level)
-        try:
-            from loguru import logger
-            self.loguru_logger = logger
-        except ImportError:
-            self.loguru_logger = None
-
-    def emit(self, record):
-        """将日志记录发送到loguru"""
-        if self.loguru_logger is None:
-            return
-
-        # 不拦截 Django-Q 的日志（django-q, monitor, tasks, scheduler, worker, pusher）
-        django_q_loggers = ['django-q', 'monitor', 'tasks', 'scheduler', 'worker', 'pusher']
-        if record.name in django_q_loggers or any(record.name.startswith(logger) for logger in django_q_loggers):
-            return
-
-        try:
-            # 获取loguru对应的日志级别
-            loguru_level = self._get_loguru_level(record.levelno)
-
-            # 构建日志消息
-            msg = self.format(record)
-
-            # 添加额外信息
-            extra = {
-                'name': record.name,
-                'function': record.funcName,
-                'line': record.lineno,
-            }
-
-            # 发送到loguru，使用 bind 绑定额外信息，避免解析消息中的花括号
-            self.loguru_logger.bind(**extra).log(
-                loguru_level,
-                msg
-            )
-        except Exception:
-            self.handleError(record)
-
-    def _get_loguru_level(self, levelno):
-        """将Python logging级别映射到loguru级别"""
-        if levelno >= logging.CRITICAL:
-            return "CRITICAL"
-        elif levelno >= logging.ERROR:
-            return "ERROR"
-        elif levelno >= logging.WARNING:
-            return "WARNING"
-        elif levelno >= logging.INFO:
-            return "INFO"
-        elif levelno >= logging.DEBUG:
-            return "DEBUG"
-        else:
-            return "TRACE"
-
-
-# 自定义日志过滤器：过滤掉ERROR级别的日志
-class ExcludeErrorsFilter(logging.Filter):
-    def filter(self, record):
-        return record.levelno < logging.ERROR
-
-
-class DebugOrErrorFilter(logging.Filter):
-    def filter(self, record):
-        if DEBUG:
-            return True
-        return record.levelno >= logging.ERROR
-
-
-# 自定义日志过滤器：只记录数据库SQL日志
-class ORMSQLFilter(logging.Filter):
-    def filter(self, record):
-        return record.name == 'django.db.backends'
-
-
-# 自定义日志过滤器：只记录Django-Q任务日志
-class DjangoTaskFilter(logging.Filter):
-    def filter(self, record):
-        # Django-Q 的日志名称可能是：monitor, tasks, scheduler, worker, pusher 等
-        # 或者以 django_q 开头
-        django_q_loggers = ['monitor', 'tasks', 'scheduler', 'worker', 'pusher', 'cluster', 'broker']
-        return (record.name.startswith('django_q') or 
-                record.name in django_q_loggers or
-                any(record.name.startswith(logger) for logger in django_q_loggers))
-
-
-# 自定义日志过滤器：排除Django-Q相关日志
-class ExcludeDjangoQFilter(logging.Filter):
-    def filter(self, record):
-        return not record.name.startswith('django_q')
-
-
-class ORMSQLHandler(logging.Handler):
-    """专门用于 ORM SQL 日志的 Handler"""
-
-    def __init__(self, filename=None, level=logging.NOTSET):
-        super().__init__(level)
-        if filename is None:
-            import os
-            from pathlib import Path
-            try:
-                log_dir = log_config.log_dir
-            except:
-                log_dir = Path(__file__).parent.parent / 'logs'
-            filename = log_dir / 'orm_sql.log'
-        self.filename = str(filename)  # 转换为字符串以避免多进程环境下的路径问题
-        self._ensure_log_dir()
-        self.addFilter(ORMSQLFilter())
-
-    def _ensure_log_dir(self):
-        """确保日志目录存在（多进程环境安全）"""
-        log_dir = os.path.dirname(self.filename)
-        if log_dir:
-            os.makedirs(log_dir, exist_ok=True)
-
-    def emit(self, record):
-        """将日志记录写入文件"""
-        try:
-            # 检查过滤器是否通过
-            if not self.filter(record):
-                return
-            
-            msg = self.format(record)
-            self._ensure_log_dir()  # 每次写入前确保目录存在
-            with open(self.filename, 'a', encoding='utf-8') as f:
-                f.write(msg + '\n')
-        except Exception:
-            self.handleError(record)
-
-
-class DjangoTaskHandler(logging.Handler):
-    """专门用于 Django 任务日志的 Handler"""
-
-    def __init__(self, filename=None, level=logging.NOTSET):
-        super().__init__(level)
-        if filename is None:
-            import os
-            from pathlib import Path
-            try:
-                log_dir = log_config.log_dir
-            except:
-                log_dir = Path(__file__).parent.parent / 'logs'
-            filename = log_dir / 'django_task.log'
-        self.filename = str(filename)  # 转换为字符串以避免多进程环境下的路径问题
-        self._ensure_log_dir()
-        self.addFilter(DjangoTaskFilter())
-
-    def _ensure_log_dir(self):
-        """确保日志目录存在（多进程环境安全）"""
-        log_dir = os.path.dirname(self.filename)
-        if log_dir:
-            os.makedirs(log_dir, exist_ok=True)
-
-    def emit(self, record):
-        """将日志记录写入文件"""
-        try:
-            # 检查过滤器是否通过
-            if not self.filter(record):
-                return
-            
-            msg = self.format(record)
-            self._ensure_log_dir()  # 每次写入前确保目录存在
-            with open(self.filename, 'a', encoding='utf-8') as f:
-                f.write(msg + '\n')
-        except Exception:
-            self.handleError(record)
-
-
 SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
                                                             'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm9'))
 
@@ -193,6 +21,9 @@ DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bo
 
 # 后端服务端口（开发环境）
 BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8000), cast=int)
+
+# 前端服务URL（用于生成报告链接等）
+FRONTEND_URL = config('FRONTEND_URL', default=config_loader.get('server.frontend_url', 'http://localhost:3000'))
 
 # 根据DEBUG模式设置ALLOWED_HOSTS，生产环境不应使用通配符
 if DEBUG:
@@ -216,7 +47,6 @@ THIRD_PARTY_APPS = [
     'rest_framework.authtoken',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    'corsheaders',
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
@@ -246,14 +76,15 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'backend.middleware.DisableCSRFMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'backend.middleware.async_middleware.AsyncRequestTimingMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -275,7 +106,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'backend.wsgi.application'
+# WSGI_APPLICATION = 'backend.wsgi.application'
 ASGI_APPLICATION = 'backend.asgi.application'
 
 db_config = config_loader.get_database_config()
@@ -287,9 +118,14 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=db_config.get('password', '')),
         'HOST': config('DB_HOST', default=db_config.get('host', '127.0.0.1')),
         'PORT': config('DB_PORT', default=db_config.get('port', 3306)),
+        'CONN_MAX_AGE': 60,
+        'ATOMIC_REQUESTS': True,
         'OPTIONS': {
             'charset': db_config.get('charset', 'utf8mb4'),
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+08:00'",
+            'connect_timeout': 10,
+            'read_timeout': 30,
+            'write_timeout': 30,
         },
     }
 }
@@ -310,9 +146,6 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-# Supported language codes: 'en-us' (English), 'zh-hans' (Simplified Chinese), 'ja' (Japanese), 'ko' (Korean), etc.
-# See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for timezone list
 LANGUAGE_CODE = config('LANGUAGE_CODE', default='zh-hans')
 TIME_ZONE = config('TIME_ZONE', default='Asia/Shanghai')
 USE_I18N = True
@@ -331,6 +164,10 @@ LOCALE_PATHS = [
 
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# Whitenoise 配置 - 用于在生产环境提供静态文件
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_IGNORE_REGEX = r'^(?!/static/).*\.html$'
 
 # 静态文件目录配置 - 不能包含 STATIC_ROOT
 STATICFILES_DIRS = [
@@ -471,9 +308,11 @@ else:
     CSRF_COOKIE_HTTPONLY = True
     CSRF_COOKIE_SAMESITE = 'Strict'
 
-# CORS Settings
-# 优先使用 config.yaml 中的跨域配置
-cors_origins_config = config_loader.get('cors.allowed_origins', [])
+
+# CORS Settings (Django 6 内置) 优先使用 config.yaml 中的跨域配置
+cors_config = config_loader.get_cors_config()
+
+cors_origins_config = cors_config.get('allowed_origins', [])
 # 如果 config.yaml 中没有配置，再从环境变量中获取
 if not cors_origins_config:
     cors_origins_config = config('CORS_ALLOWED_ORIGINS', default='')
@@ -497,9 +336,9 @@ if DEBUG:
         "http://127.0.0.1:8080",
     ]
     # 从 config.yaml 中读取 CORS 配置
-    CORS_ALLOW_CREDENTIALS = config_loader.get('cors.allow_credentials', True)
+    CORS_ALLOW_CREDENTIALS = cors_config.get('allow_credentials', True)
     # 从 config.yaml 中读取允许的请求头
-    allowed_headers = config_loader.get('cors.allowed_headers', [])
+    allowed_headers = cors_config.get('allowed_headers', [])
     # 如果 config.yaml 中没有配置，使用默认值
     if not allowed_headers:
         allowed_headers = [
@@ -525,9 +364,9 @@ else:
         CORS_ALLOW_ALL_ORIGINS = True
 
     # 从 config.yaml 中读取 CORS 配置
-    CORS_ALLOW_CREDENTIALS = config_loader.get('cors.allow_credentials', True)
+    CORS_ALLOW_CREDENTIALS = cors_config.get('allow_credentials', True)
     # 从 config.yaml 中读取允许的请求头
-    allowed_headers = config_loader.get('cors.allowed_headers', [])
+    allowed_headers = cors_config.get('allowed_headers', [])
     # 如果 config.yaml 中没有配置，使用默认值
     if not allowed_headers:
         allowed_headers = [
@@ -552,61 +391,98 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
 ]
 
+# Security Settings (Django 6 安全特性)
+if not DEBUG:
+    # 内容安全策略 (CSP)
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+
+    # SSL/HTTPS 配置
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Session 安全
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
+    # 密码哈希改进 (Django 6)
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+        'django.contrib.auth.hashers.Argon2PasswordHasher',
+    ]
+
+# Data Upload Settings - 增加最大字段数限制
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 # Spectacular Settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TestHub API',
     'DESCRIPTION': 'Test Case Management Platform API',
-    'VERSION': '1.0.0',
+    'VERSION': '1.0.3',
     'SERVE_INCLUDE_SCHEMA': False,
-    # 使用sidecar中的静态文件
     'SWAGGER_UI_DIST': 'SIDECAR',
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
     'REDOC_DIST': 'SIDECAR',
 }
 
-# Channels Configuration
-if DEBUG:
-    # 开发环境使用本地Redis
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': ['redis://127.0.0.1:6379/0'],
-            },
+# Redis配置，开发环境和生产环境都使用配置的Redis
+redis_config = config_loader.get_redis_config()
+REDIS_URL = redis_config.get('url', 'redis://127.0.0.1:6379/')
+
+# 从Redis URL中提取基础URL（去掉末尾的数据库编号）
+def get_redis_base_url(url):
+    """从Redis URL中提取基础URL"""
+    if url.endswith('/'):
+        return url
+    last_slash = url.rfind('/')
+    if last_slash > 0:
+        return url[:last_slash + 1]
+    return url
+
+REDIS_BASE_URL = get_redis_base_url(REDIS_URL)
+
+# 缓存Redis配置（使用config.yaml中的cache_db）
+REDIS_CACHE_URL = f"{REDIS_BASE_URL}{redis_config.get('cache_db', 1)}"
+
+# 会话Redis配置（使用config.yaml中的session_db）
+REDIS_SESSION_URL = f"{REDIS_BASE_URL}{redis_config.get('session_db', 2)}"
+
+# Session配置：使用Redis存储会话（通过sessions缓存）
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'sessions'
+
+# Channels Configuration - 统一使用config.yaml中的Redis配置
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}"],
         },
-    }
-else:
-    # 生产环境使用配置的Redis
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [config_loader.get('redis.url', 'redis://127.0.0.1:6379/0')],
-            },
-        },
-    }
+    },
+}
 
 # Cache配置，使用 Redis 缓存（生产环境推荐）
 cache_config = config_loader.get_cache_config()
 
-# Redis配置，开发环境和生产环境都使用配置的Redis
-redis_config = config_loader.get_redis_config()
-REDIS_URL = redis_config.get('url', 'redis://127.0.0.1:6379/0')
-
 # 任务队列配置
 Q_CLUSTER = {
     'name': 'testhub',
-    'workers': 1,           # 工作进程数，根据服务器配置做调整
-    'timeout': 90,          # 任务超时时间（秒）
-    'retry': 120,           # 重试时间（秒）
-    'queue_limit': 50,      # 队列限制
-    'bulk': 10,             # 批量处理数量
-    'orm': 'default',       # 数据库配置
-    'save_limit': 250,      # 保存限制
-    'cpu_affinity': 1,      # CPU 亲和性
-    'label': '任务队列',     # Admin 菜单显示名称
-    'redis': REDIS_URL,     # Redis 配置
-    'sync': False,          # False异步模式，True同步模式
+    'workers': 1,  # 工作进程数，根据服务器配置做调整
+    'timeout': 90,  # 任务超时时间（秒）
+    'retry': 180,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
+    'queue_limit': 50,  # 队列限制
+    'bulk': 10,  # 批量处理数量
+    'orm': 'default',  # 数据库配置
+    'save_limit': 250,  # 保存限制
+    'cpu_affinity': 1,  # CPU 亲和性
+    'label': '任务管理',  # 菜单名称
+    'redis': f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}",  # Redis 配置
+    'sync': False,  # False异步模式，True同步模式
 }
 
 if DEBUG:
@@ -617,24 +493,44 @@ if DEBUG:
             'LOCATION': 'unique-snowflake',
             'KEY_PREFIX': cache_config.get('key_prefix', 'testhub'),
             'TIMEOUT': cache_config.get('default_timeout', 300),
-        }
+        },
+        'sessions': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake-sessions',
+            'KEY_PREFIX': 'session',
+            'TIMEOUT': 604800,  # 7天（秒）
+        },
     }
 else:
     # 生产环境使用Redis（Django 6 内置）
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': config_loader.get('redis.url', 'redis://127.0.0.1:6379/1'),
+            'LOCATION': REDIS_CACHE_URL,
             'KEY_PREFIX': cache_config.get('key_prefix', 'testhub'),
             'TIMEOUT': cache_config.get('default_timeout', 300),
-        }
+            # Django 6 内置 Redis 配置
+            'OPTIONS': {
+                'socket_connect_timeout': 5,
+                'socket_timeout': 5,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            },
+        },
+        'sessions': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_SESSION_URL,
+            'KEY_PREFIX': 'session',
+            'TIMEOUT': 604800,  # 7天（秒）
+            'OPTIONS': {
+                'socket_connect_timeout': 5,
+                'socket_timeout': 5,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            },
+        },
     }
 
-# Session Configuration
-# 使用Redis存储会话
-if not DEBUG:
-    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-    SESSION_CACHE_ALIAS = 'default'
 
 # Email Configuration
 email_config = config_loader.get_email_config()
@@ -653,17 +549,7 @@ logging_config = config_loader.get_logging_config()
 debug_enabled = logging_config.get('debug_enabled', False)
 console_level = 'DEBUG' if debug_enabled else 'INFO'
 
-# 计算日志目录
-import os
-from pathlib import Path
-try:
-    log_dir = log_config.log_dir
-except:
-    log_dir = Path(__file__).parent.parent / 'logs'
-django_task_log_file = str(log_dir / 'django_task.log')
-os.makedirs(str(log_dir), exist_ok=True)
-
-# Logging
+# Logging - 使用log_config.py统一配置
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -677,167 +563,43 @@ LOGGING = {
             'style': '{',
         },
     },
-    'filters': {
-        'exclude_errors': {
-            '()': 'backend.settings.ExcludeErrorsFilter',
-        },
-        'debug_or_error': {
-            '()': 'backend.settings.DebugOrErrorFilter',
-        },
-        'exclude_django_q': {
-            '()': 'backend.settings.ExcludeDjangoQFilter',
-        },
-    },
     'handlers': {
-        'loguru': {
-            'level': 'DEBUG',
-            'class': 'backend.settings.LoguruHandler',
-            'filters': ['exclude_django_q'],
-        },
         'console': {
             'level': console_level,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'orm_sql': {
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'class': 'backend.settings.ORMSQLHandler',
-            'formatter': 'verbose',
-        },
-        'django_task': {
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': django_task_log_file,
-            'mode': 'a',
-            'encoding': 'utf-8',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
-        # django_task 日志配置（任务队列和定时任务）
-        'django_q': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'django_q.cluster': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'django_q.monitor': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'django_q.worker': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'django_q.pusher': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        # Django-Q 实际使用的 logger 名称
-        'monitor': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'tasks': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'scheduler': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'worker': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        'pusher': {
-            'handlers': ['django_task', 'console'],
-            'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': False,
-        },
-        # ORM SQL 日志配置
-        'django.db.backends': {
-            'handlers': ['orm_sql'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
         # 其他具体模块的 logger 配置
         'django': {
-            'handlers': ['loguru', 'console'],
+            'handlers': ['console'],
             'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.api_testing.views': {
-            'handlers': ['loguru', 'console'],
+            'handlers': ['console'],
             'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.data_factory.tools.json_tools': {
-            'handlers': ['loguru', 'console'],
+            'handlers': ['console'],
             'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools.encoding_tools': {
-            'handlers': ['loguru', 'console'],
+            'handlers': ['console'],
             'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
-        'apps.data_factory.tools': {
-            'handlers': ['loguru', 'console'],
+        'apps.scheduler.task_executor': {
+            'handlers': ['console'],
             'level': 'DEBUG' if debug_enabled else 'INFO',
-            'propagate': True,
+            'propagate': False,
         },
-    },
-    'root': {
-        'handlers': ['loguru', 'console'],
-        'level': 'DEBUG' if debug_enabled else 'INFO',
     },
 }
 
-# 手动重新配置 Django-Q 的 logger，确保使用 FileHandler
-import logging
-
-logger_names = ['django-q', 'monitor', 'tasks', 'scheduler', 'worker', 'pusher']
-for logger_name in logger_names:
-    logger = logging.getLogger(logger_name)
-    
-    # 清空现有的 handlers
-    logger.handlers = []
-    
-    # 设置日志级别和传播
-    logger.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
-    logger.propagate = False
-    
-    # 添加 FileHandler
-    file_handler = logging.FileHandler(django_task_log_file, mode='a', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
-    file_handler.setFormatter(logging.Formatter(
-        '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-        style='{'
-    ))
-    logger.addHandler(file_handler)
-    
-    # 添加 StreamHandler
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.DEBUG if debug_enabled else logging.INFO)
-    stream_handler.setFormatter(logging.Formatter(
-        '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-        style='{'
-    ))
-    logger.addHandler(stream_handler)
-
-# 移除根 logger 的 LoguruHandler，避免拦截所有日志
 root_logger = logging.getLogger()
 for handler in root_logger.handlers[:]:
     if hasattr(handler, 'loguru_logger'):

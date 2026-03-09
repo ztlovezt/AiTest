@@ -26,7 +26,7 @@ export default {
     reviewList: '评审列表',
     reviewTemplates: '评审模板',
     testPlan: '测试计划',
-    testReport: '测试报告',
+    testReport: '报告管理',
 
     // 接口测试
     dashboard: '数据看板',
@@ -55,7 +55,7 @@ export default {
     testCases: '测试用例',
     testSuites: '测试套件',
     executionRecords: '执行记录',
-    testReports: '测试报告',
+    testReports: '报告管理',
     scheduledTasks: '定时任务',
     notificationList: '通知列表',
 
@@ -72,7 +72,7 @@ export default {
     uiEnvConfig: 'UI环境配置',
     appEnvConfig: 'APP环境配置',
     aiModeConfig: 'AI智能模式配置',
-    scheduledTaskConfig: '定时任务配置',
+    scheduledTaskConfig: '消息通知配置',
     difyConfig: 'AI评测师配置'
   }
 }

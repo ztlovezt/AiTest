@@ -125,7 +125,24 @@ class CoreConfig(AppConfig):
             
             @admin.display(description=_('函数'))
             def col_func(self, obj):
-                return obj.func
+                if obj.func:
+                    func_str = str(obj.func)
+                    # 处理方法绑定对象，提取友好名称
+                    if 'bound method' in func_str or '<bound method' in func_str:
+                        try:
+                            # 提取方法名称
+                            import re
+                            match = re.search(r"method\s+(\w+\.?\w*)", func_str)
+                            if match:
+                                return match.group(1)
+                            # 尝试提取最后一个方法名
+                            match = re.search(r"'(\w+)'", func_str)
+                            if match:
+                                return match.group(1)
+                        except Exception:
+                            pass
+                    return func_str
+                return '-'
             
             @admin.display(description=_('分组'))
             def col_group(self, obj):
@@ -221,16 +238,14 @@ class CoreConfig(AppConfig):
                 try:
                     config = obj.config
                     status_map = {
-                        'ACTIVE': '<span style="color: green;">● 激活</span>',
-                        'PAUSED': '<span style="color: orange;">● 暂停</span>',
-                        'COMPLETED': '<span style="color: gray;">● 已完成</span>',
-                        'FAILED': '<span style="color: red;">● 失败</span>',
+                        'ACTIVE': '<span style="color: green;">激活</span>',
+                        'PAUSED': '<span style="color: orange;">暂停</span>',
+                        'COMPLETED': '<span style="color: gray;">已完成</span>',
+                        'FAILED': '<span style="color: red;">失败</span>',
                     }
                     return mark_safe(status_map.get(config.status, config.status))
                 except Exception:
-                    if obj.enabled:
-                        return mark_safe('<span style="color: green;">● 启用</span>')
-                    return mark_safe('<span style="color: orange;">● 禁用</span>')
+                    return mark_safe('<span style="color: green;">启用</span>')
             
             @admin.display(description=_('下次运行'))
             def col_next_run(self, obj):
@@ -423,7 +438,24 @@ class CoreConfig(AppConfig):
             
             @admin.display(description=_('函数'))
             def col_func(self, obj):
-                return obj.func
+                if obj.func:
+                    func_str = str(obj.func)
+                    # 处理方法绑定对象，提取友好名称
+                    if 'bound method' in func_str or '<bound method' in func_str:
+                        try:
+                            # 提取方法名称
+                            import re
+                            match = re.search(r"method\s+(\w+\.?\w*)", func_str)
+                            if match:
+                                return match.group(1)
+                            # 尝试提取最后一个方法名
+                            match = re.search(r"'(\w+)'", func_str)
+                            if match:
+                                return match.group(1)
+                        except Exception:
+                            pass
+                    return func_str
+                return '-'
             
             @admin.display(description=_('集群'))
             def col_cluster(self, obj):
@@ -480,7 +512,24 @@ class CoreConfig(AppConfig):
             
             @admin.display(description=_('函数'))
             def col_func(self, obj):
-                return obj.func
+                if obj.func:
+                    func_str = str(obj.func)
+                    # 处理方法绑定对象，提取友好名称
+                    if 'bound method' in func_str or '<bound method' in func_str:
+                        try:
+                            # 提取方法名称
+                            import re
+                            match = re.search(r"method\s+(\w+\.?\w*)", func_str)
+                            if match:
+                                return match.group(1)
+                            # 尝试提取最后一个方法名
+                            match = re.search(r"'(\w+)'", func_str)
+                            if match:
+                                return match.group(1)
+                        except Exception:
+                            pass
+                    return func_str
+                return '-'
             
             @admin.display(description=_('集群'))
             def col_cluster(self, obj):
@@ -539,7 +588,25 @@ class CoreConfig(AppConfig):
                 
                 @admin.display(description=_('函数'))
                 def col_func(self, obj):
-                    return obj.func() or '-'
+                    func = obj.func()
+                    if func:
+                        func_str = str(func)
+                        # 处理方法绑定对象，提取友好名称
+                        if 'bound method' in func_str or '<bound method' in func_str:
+                            try:
+                                # 提取方法名称
+                                import re
+                                match = re.search(r"method\s+(\w+\.?\w*)", func_str)
+                                if match:
+                                    return match.group(1)
+                                # 尝试提取最后一个方法名
+                                match = re.search(r"'(\w+)'", func_str)
+                                if match:
+                                    return match.group(1)
+                            except Exception:
+                                pass
+                        return func_str
+                    return '-'
                 
                 @admin.display(description=_('锁'))
                 def col_lock(self, obj):

@@ -1,18 +1,17 @@
 airtest>=1.4.3
 asgiref==3.11.1
+#argon2-cffi  # 可选
 barcode_generator==0.1rc15
 browser_use
 channels==4.3.2
 chardet==6.0.0.post1
 croniter==6.0.0
-# celery==5.6.2  # 替换为 django-q2
 django-q2>=1.6.0
 daphne==4.2.1
 Django==6.0.2
 django-simpleui>=2026.1.13
 djangorestframework==3.16.1
 djangorestframework-simplejwt
-django-cors-headers==4.9.0
 django-filter==25.2
 drf_spectacular_sidecar==2026.1.1
 docx==0.2.4
@@ -27,8 +26,8 @@ loguru>=0.7.3
 numpy>=1.26.0,<2.0
 opencv_python
 Pillow
-redis==7.2.1
-channels_redis==4.3.0
+channels==4.3.2
+channels_redis==4.3.0  # 保留用于 WebSocket
 playwright==1.58.0
 psutil==7.2.2
 pycryptodome==3.23.0
@@ -47,3 +46,4 @@ Requests
 rest_framework_simplejwt==0.0.2
 selenium==4.41.0
 webdriver_manager==4.0.2
+whitenoise==6.12.0

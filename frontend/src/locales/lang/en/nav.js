@@ -26,7 +26,7 @@ export default {
     reviewList: 'Review List',
     reviewTemplates: 'Review Templates',
     testPlan: 'Test Plan',
-    testReport: 'Test Report',
+    testReport: 'Report Management',
 
     // API Testing
     dashboard: 'Dashboard',
@@ -55,7 +55,7 @@ export default {
     testCases: 'Test Cases',
     testSuites: 'Test Suites',
     executionRecords: 'Execution Records',
-    testReports: 'Test Reports',
+    testReports: 'Report Management',
     scheduledTasks: 'Scheduled Tasks',
     notificationList: 'Notification List',
 
@@ -72,7 +72,7 @@ export default {
     uiEnvConfig: 'UI Environment Configuration',
     appEnvConfig: 'APP Environment Configuration',
     aiModeConfig: 'AI Mode Configuration',
-    scheduledTaskConfig: 'Scheduled Task Configuration',
+    scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration'
   }
 }

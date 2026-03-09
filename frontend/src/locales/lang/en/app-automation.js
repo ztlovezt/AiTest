@@ -12,7 +12,7 @@ export default {
     testSuites: 'Test Suites',
     executions: 'Execution Records',
     scheduledTasks: 'Scheduled Tasks',
-    reports: 'Test Reports',
+    reports: 'Report Management',
     elements: 'Element Management'
   },
 
@@ -71,7 +71,9 @@ export default {
     query: 'Query',
     detail: 'Detail',
     ipAddress: 'IP Address',
-    copy: 'Copy'
+    copy: 'Copy',
+    yes: 'Yes',
+    no: 'No'
   },
 
   // Project Management
@@ -679,6 +681,11 @@ export default {
     selectAppPackage: 'Please select app package',
     enableTask: 'Enable Task',
     notificationSettings: 'Notification Settings',
+    notifyOnEmail: 'Email Notification',
+    notifyOnWebhook: 'Webhook Bot Notification',
+    notificationConfig: 'Notification Configuration',
+    selectNotificationConfig: 'Please select notification configuration',
+    noMatchingNotificationConfig: 'No matching notification configuration found, please create notification configuration in the Configuration Center first',
     notifyOnSuccess: 'Notify on success',
     notifyOnFailure: 'Notify on failure',
     notifyEmails: 'Notification Emails',

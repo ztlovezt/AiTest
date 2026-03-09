@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('scheduler', '0003_add_use_webhook'),
+        ('scheduler', '0001_initial'),
     ]
 
     operations = [

@@ -4,10 +4,11 @@ from .models import (
     GeneratedTestCase, AnalysisTask, AIModelConfig, PromptConfig,
     GenerationConfig, TestCaseGenerationTask
 )
+from apps.core.admin_mixins import StandardAdminMixin
 
 
 @admin.register(RequirementDocument)
-class RequirementDocumentAdmin(admin.ModelAdmin):
+class RequirementDocumentAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['title', 'document_type', 'status', 'uploaded_by', 'created_at']
     list_filter = ['document_type', 'status', 'created_at']
     search_fields = ['title', 'uploaded_by__username']
@@ -15,7 +16,7 @@ class RequirementDocumentAdmin(admin.ModelAdmin):
 
 
 @admin.register(RequirementAnalysis)
-class RequirementAnalysisAdmin(admin.ModelAdmin):
+class RequirementAnalysisAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['document', 'requirements_count', 'analysis_time', 'created_at']
     list_filter = ['created_at']
     search_fields = ['document__title']
@@ -23,7 +24,7 @@ class RequirementAnalysisAdmin(admin.ModelAdmin):
 
 
 @admin.register(BusinessRequirement)
-class BusinessRequirementAdmin(admin.ModelAdmin):
+class BusinessRequirementAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['requirement_id', 'requirement_name', 'requirement_type', 'requirement_level', 'module']
     list_filter = ['requirement_type', 'requirement_level', 'module', 'created_at']
     search_fields = ['requirement_id', 'requirement_name', 'description']
@@ -31,7 +32,7 @@ class BusinessRequirementAdmin(admin.ModelAdmin):
 
 
 @admin.register(GeneratedTestCase)
-class GeneratedTestCaseAdmin(admin.ModelAdmin):
+class GeneratedTestCaseAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['case_id', 'title', 'priority', 'status', 'generated_by_ai', 'reviewed_by_ai']
     list_filter = ['priority', 'status', 'generated_by_ai', 'reviewed_by_ai', 'created_at']
     search_fields = ['case_id', 'title', 'requirement__requirement_name']
@@ -39,7 +40,7 @@ class GeneratedTestCaseAdmin(admin.ModelAdmin):
 
 
 @admin.register(AnalysisTask)
-class AnalysisTaskAdmin(admin.ModelAdmin):
+class AnalysisTaskAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['task_id', 'task_type', 'status', 'progress', 'created_at']
     list_filter = ['task_type', 'status', 'created_at']
     search_fields = ['task_id', 'document__title']
@@ -47,7 +48,7 @@ class AnalysisTaskAdmin(admin.ModelAdmin):
 
 
 @admin.register(AIModelConfig)
-class AIModelConfigAdmin(admin.ModelAdmin):
+class AIModelConfigAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'model_type', 'role', 'model_name', 'is_active', 'created_at']
     list_filter = ['model_type', 'role', 'is_active', 'created_at']
     search_fields = ['name', 'model_name']
@@ -55,7 +56,7 @@ class AIModelConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(PromptConfig)
-class PromptConfigAdmin(admin.ModelAdmin):
+class PromptConfigAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'prompt_type', 'is_active', 'created_by', 'created_at']
     list_filter = ['prompt_type', 'is_active', 'created_at']
     search_fields = ['name', 'content']
@@ -63,7 +64,7 @@ class PromptConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(GenerationConfig)
-class GenerationConfigAdmin(admin.ModelAdmin):
+class GenerationConfigAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = [
         'name', 'default_output_mode', 'enable_auto_review', 'is_active', 'updated_at'
     ]
@@ -92,7 +93,7 @@ class GenerationConfigAdmin(admin.ModelAdmin):
 
 
 @admin.register(TestCaseGenerationTask)
-class TestCaseGenerationTaskAdmin(admin.ModelAdmin):
+class TestCaseGenerationTaskAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['task_id', 'title', 'status', 'progress', 'output_mode', 'created_at']
     list_filter = ['status', 'output_mode', 'created_at']
     search_fields = ['task_id', 'title', 'requirement_text']

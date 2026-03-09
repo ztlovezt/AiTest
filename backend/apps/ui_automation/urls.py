@@ -16,7 +16,6 @@ from .views import (
     TestCaseViewSet,
     TestCaseStepViewSet,
     TestCaseExecutionViewSet,
-    UiScheduledTaskViewSet,
     AIExecutionRecordViewSet,
     AICaseViewSet,
     UiNotificationLogViewSet,
@@ -40,7 +39,6 @@ router.register(r'screenshots', ScreenshotViewSet)
 router.register(r'test-cases', TestCaseViewSet)
 router.register(r'test-case-steps', TestCaseStepViewSet)
 router.register(r'test-case-executions', TestCaseExecutionViewSet)
-router.register(r'scheduled-tasks', UiScheduledTaskViewSet)
 router.register(r'ai-execution-records', AIExecutionRecordViewSet)
 router.register(r'ai-cases', AICaseViewSet, basename='ai-cases')
 router.register(r'ai-case-generation', AICaseViewSet, basename='ai-case-generation')

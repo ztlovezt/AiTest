@@ -17,6 +17,7 @@ from .serializers import (
     ScheduleConfigSerializer, ScheduleExecuteSerializer,
     ScheduleToggleSerializer
 )
+from apps.core.models import NotificationTemplate
 
 
 class ScheduleViewSet(viewsets.ModelViewSet):
@@ -35,6 +36,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         
         # 使用 select_related 优化查询，避免 N+1 查询问题
         queryset = queryset.select_related('config')
+        # 预加载多对多关系
+        queryset = queryset.prefetch_related('config__notification_configs')
         
         # 筛选模块
         module = self.request.query_params.get('module')
@@ -105,16 +108,39 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 current_config = config.task_config or {}
                 current_config.update(data['task_config'])
                 config.task_config = current_config
+            
             if 'notify_on_success' in data:
                 config.notify_on_success = data['notify_on_success']
+            
             if 'notify_on_failure' in data:
                 config.notify_on_failure = data['notify_on_failure']
-            if 'notify_emails' in data:
-                config.notify_emails = data['notify_emails']
-            if 'use_webhook' in data:
-                config.use_webhook = data['use_webhook']
+            
+            if 'notify_on_email' in data:
+                config.notify_on_email = data['notify_on_email']
+            
+            if 'notify_on_webhook' in data:
+                config.notify_on_webhook = data['notify_on_webhook']
+            
+            if 'notification_template_id' in data:
+                try:
+                    template = NotificationTemplate.objects.get(id=data['notification_template_id'])
+                    config.notification_template = template
+                except NotificationTemplate.DoesNotExist:
+                    return Response(
+                        {'error': _('通知模板不存在')},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # 处理通知配置
+            if 'notification_config_ids' in data:
+                config.notification_configs.set(data['notification_config_ids'])
             
             config.save()
+            
+            # 重新加载 schedule 对象以获取最新的 config 数据
+            schedule.refresh_from_db()
+            # 重新预加载关系
+            schedule = Schedule.objects.select_related('config').prefetch_related('config__notification_configs').get(id=schedule.id)
             
             return Response(
                 ScheduleSerializer(schedule).data,
@@ -122,7 +148,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             )
         except Exception as e:
             logger.error(f"更新定时任务失败: {e}", exc_info=True)
-            logger.error(f"任务ID: {pk}, 错误类型: {type(e).__name__}")
+            logger.error(f"任务ID: {schedule.id}, 错误类型: {type(e).__name__}")
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -136,6 +162,22 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
         
         try:
+            # 处理通知模板
+            notification_template = None
+            if 'notification_template_id' in data and data['notification_template_id']:
+                try:
+                    notification_template = NotificationTemplate.objects.get(id=data['notification_template_id'])
+                except NotificationTemplate.DoesNotExist:
+                    return Response(
+                        {'error': _('通知模板不存在')},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # 处理通知配置
+            notification_config_ids = []
+            if 'notification_config_ids' in data and data['notification_config_ids']:
+                notification_config_ids = data['notification_config_ids']
+            
             schedule, config = create_scheduled_task(
                 name=data['name'],
                 module=data['module'],
@@ -153,9 +195,28 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 description=data.get('description', ''),
                 notify_on_success=data.get('notify_on_success', False),
                 notify_on_failure=data.get('notify_on_failure', True),
-                notify_emails=data.get('notify_emails', []),
-                webhook_url=data.get('webhook_url', ''),
+                notification_config=None,
+                notify_emails=[],
+                webhook_url='',
+                notification_template=notification_template,
             )
+            
+            # 设置通知配置
+            if notification_config_ids:
+                try:
+                    from core.models import UnifiedNotificationConfig
+                    configs = UnifiedNotificationConfig.objects.filter(id__in=notification_config_ids)
+                    config.notification_configs.set(configs)
+                except Exception as e:
+                    logger.error(f"设置通知配置失败: {e}")
+            
+            if 'notify_on_email' in data:
+                config.notify_on_email = data['notify_on_email']
+                config.save()
+            
+            if 'notify_on_webhook' in data:
+                config.notify_on_webhook = data['notify_on_webhook']
+                config.save()
             
             return Response(
                 ScheduleSerializer(schedule).data,

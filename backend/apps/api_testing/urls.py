@@ -6,8 +6,7 @@ from .views import (
     ApiProjectViewSet, ApiCollectionViewSet, ApiRequestViewSet,
     EnvironmentViewSet, RequestHistoryViewSet, TestSuiteViewSet,
     TestSuiteRequestViewSet, TestExecutionViewSet, UserViewSet,
-    ScheduledTaskViewSet, TaskExecutionLogViewSet, NotificationLogViewSet,
-    TaskNotificationSettingViewSet, OperationLogViewSet,
+    NotificationLogViewSet, OperationLogViewSet,
     ApiDashboardViewSet, AIServiceConfigViewSet
 )
 
@@ -22,10 +21,7 @@ router.register(r'test-suites', TestSuiteViewSet)
 router.register(r'test-suite-requests', TestSuiteRequestViewSet)
 router.register(r'test-executions', TestExecutionViewSet)
 router.register(r'users', UserViewSet)
-router.register(r'scheduled-tasks', ScheduledTaskViewSet, basename='scheduledtask')
-router.register(r'task-execution-logs', TaskExecutionLogViewSet, basename='taskexecutionlog')
 router.register(r'notification-logs', NotificationLogViewSet)
-router.register(r'task-notification-settings', TaskNotificationSettingViewSet)
 router.register(r'operation-logs', OperationLogViewSet)
 router.register(r'ai-service-configs', AIServiceConfigViewSet, basename='aiserviceconfig')
 

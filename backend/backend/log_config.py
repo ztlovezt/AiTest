@@ -3,6 +3,7 @@ Loguru日志配置模块，提供统一的日志接口
 """
 import sys
 import os
+import logging
 from pathlib import Path
 
 from loguru import logger
@@ -36,7 +37,8 @@ class LogConfig:
         self.log_format = self._get_log_format()
         self.debug_enabled = self._get_debug_enabled()
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        self._configure_logger()
+        self._configure_loguru_logger()
+        self._configure_django_logging()
     
     def _get_log_dir(self):
         """获取日志目录"""
@@ -73,7 +75,7 @@ class LogConfig:
             logger.warning(f"读取日志格式配置失败，使用默认格式: {e}")
             return "{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level} - {message}"
     
-    def _configure_logger(self):
+    def _configure_loguru_logger(self):
         """配置loguru logger"""
         logger.remove()  # 移除默认的handler
         
@@ -151,6 +153,43 @@ class LogConfig:
                 enqueue=True,
                 filter=only_orm_sql
             )
+    
+    def _configure_django_logging(self):
+        """配置Django标准logging系统"""
+        # 配置ORM SQL日志
+        orm_logger = logging.getLogger('django.db.backends')
+        orm_logger.setLevel(logging.DEBUG)
+        orm_handler = logging.FileHandler(
+            self.log_dir / 'orm_sql.log',
+            encoding='utf-8'
+        )
+        orm_handler.setLevel(logging.DEBUG)
+        orm_handler.setFormatter(logging.Formatter(
+            '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            style='{'
+        ))
+        orm_logger.addHandler(orm_handler)
+        orm_logger.propagate = False
+        
+        # 配置Django-Q任务日志
+        django_q_loggers = ['django_q', 'django_q.cluster', 'django_q.monitor', 
+                           'django_q.worker', 'django_q.pusher', 'monitor', 
+                           'tasks', 'scheduler', 'worker', 'pusher']
+        
+        for logger_name in django_q_loggers:
+            q_logger = logging.getLogger(logger_name)
+            q_logger.setLevel(logging.DEBUG)
+            q_handler = logging.FileHandler(
+                self.log_dir / 'django_task.log',
+                encoding='utf-8'
+            )
+            q_handler.setLevel(logging.DEBUG)
+            q_handler.setFormatter(logging.Formatter(
+                '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+                style='{'
+            ))
+            q_logger.addHandler(q_handler)
+            q_logger.propagate = False
     
     def get_logger(self, name=None):
         """

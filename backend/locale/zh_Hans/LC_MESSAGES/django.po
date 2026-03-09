@@ -10,7 +10,7 @@ msgstr ""
 
 # 应用名称
 msgid "Django Q"
-msgstr "任务队列"
+msgstr "任务管理"
 
 # Task 模型
 msgid "task"

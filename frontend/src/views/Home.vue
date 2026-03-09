@@ -6,7 +6,7 @@
           <span class="el-dropdown-link">
             <span class="language-icon">{{ currentLanguage === 'zh-cn' ? '🇨🇳' : '🇺🇸' }}</span>
             <span class="language-text">{{ $t('home.language.current') }}</span>
-            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            <el-icon class="el-icon--right"><arrow-down/></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -22,9 +22,9 @@
 
         <el-dropdown @command="handleCommand">
           <span class="el-dropdown-link">
-            <el-avatar :size="32" :icon="UserFilled" />
+            <el-avatar :size="32" :icon="UserFilled"/>
             <span class="username">{{ userStore.user?.username || $t('home.user') }}</span>
-            <el-icon class="el-icon--right"><arrow-down /></el-icon>
+            <el-icon class="el-icon--right"><arrow-down/></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -40,7 +40,9 @@
         <!-- AI用例生成 -->
         <div class="nav-card" @click="handleNavigate('ai')" role="button" tabindex="0">
           <div class="card-icon ai-icon">
-            <el-icon><MagicStick /></el-icon>
+            <el-icon>
+              <MagicStick/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.aiCaseGeneration') }}</h3>
           <p>{{ $t('home.aiCaseGenerationDesc') }}</p>
@@ -49,7 +51,9 @@
         <!-- 接口测试 -->
         <div class="nav-card" @click="handleNavigate('api')" role="button" tabindex="0">
           <div class="card-icon api-icon">
-            <el-icon><Link /></el-icon>
+            <el-icon>
+              <Link/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.apiTesting') }}</h3>
           <p>{{ $t('home.apiTestingDesc') }}</p>
@@ -58,50 +62,64 @@
         <!-- UI自动化测试 -->
         <div class="nav-card" @click="handleNavigate('ui')" role="button" tabindex="0">
           <div class="card-icon ui-icon">
-            <el-icon><Monitor /></el-icon>
+            <el-icon>
+              <Monitor/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.uiAutomation') }}</h3>
           <p>{{ $t('home.uiAutomationDesc') }}</p>
         </div>
 
-        <!-- 数据工厂 -->
-        <div class="nav-card" @click="handleNavigate('data')" role="button" tabindex="0">
-          <div class="card-icon data-icon">
-            <el-icon><DataLine /></el-icon>
-          </div>
-          <h3>{{ $t('home.dataFactory') }}</h3>
-          <p>{{ $t('home.dataFactoryDesc') }}</p>
-        </div>
-
         <!-- APP自动化测试 -->
         <div class="nav-card" @click="handleNavigate('app')" role="button" tabindex="0">
           <div class="card-icon app-icon">
-            <el-icon><Cellphone /></el-icon>
+            <el-icon>
+              <Cellphone/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.appAutomation') }}</h3>
           <p>{{ $t('home.appAutomationDesc') }}</p>
         </div>
 
+        <!-- 数据工厂 -->
+        <div class="nav-card" @click="handleNavigate('data')" role="button" tabindex="0">
+          <div class="card-icon data-icon">
+            <el-icon>
+              <DataLine/>
+            </el-icon>
+          </div>
+          <h3>{{ $t('home.dataFactory') }}</h3>
+          <p>{{ $t('home.dataFactoryDesc') }}</p>
+        </div>
+
         <!-- AI 智能模式 -->
         <div class="nav-card" @click="handleNavigate('ai-intelligent')" role="button" tabindex="0">
           <div class="card-icon ai-intelligent-icon">
-            <el-icon><Cpu /></el-icon>
+            <el-icon>
+              <Cpu/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.aiIntelligentMode') }}</h3>
           <p>{{ $t('home.aiIntelligentModeDesc') }}</p>
         </div>
+
         <!-- AI评测师 -->
         <div class="nav-card" @click="handleNavigate('assistant')" role="button" tabindex="0">
           <div class="card-icon assistant-icon">
-            <el-icon><ChatDotRound /></el-icon>
+            <el-icon>
+              <ChatDotRound/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.aiEvaluator') }}</h3>
           <p>{{ $t('home.aiEvaluatorDesc') }}</p>
         </div>
+
         <!-- 配置中心 -->
         <div class="nav-card" @click="handleNavigate('config')" role="button" tabindex="0">
           <div class="card-icon config-icon">
-            <el-icon><Setting /></el-icon>
+            <el-icon>
+              <Setting/>
+            </el-icon>
           </div>
           <h3>{{ $t('home.configCenter') }}</h3>
           <p>{{ $t('home.configCenterDesc') }}</p>
@@ -112,16 +130,27 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useUserStore } from '@/stores/user'
-import { useAppStore } from '@/stores/app'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { MagicStick, Link, Monitor, DataLine, Cpu, Setting, ChatDotRound, UserFilled, ArrowDown, Cellphone } from '@element-plus/icons-vue'
+import {computed} from 'vue'
+import {useRouter} from 'vue-router'
+import {useI18n} from 'vue-i18n'
+import {useUserStore} from '@/stores/user'
+import {useAppStore} from '@/stores/app'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {
+  MagicStick,
+  Link,
+  Monitor,
+  DataLine,
+  Cpu,
+  Setting,
+  ChatDotRound,
+  UserFilled,
+  ArrowDown,
+  Cellphone
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
-const { t } = useI18n()
+const {t} = useI18n()
 const userStore = useUserStore()
 const appStore = useAppStore()
 
@@ -148,7 +177,8 @@ const handleLogout = () => {
     userStore.logout()
     router.push('/login')
     ElMessage.success(t('home.logoutSuccess'))
-  }).catch(() => {})
+  }).catch(() => {
+  })
 }
 
 const handleNavigate = (type) => {
@@ -164,7 +194,7 @@ const handleNavigate = (type) => {
   }
 
   if (routes[type]) {
-    const routeData = router.resolve({ path: routes[type] })
+    const routeData = router.resolve({path: routes[type]})
     window.open(routeData.href, '_blank')
   }
 }
@@ -365,11 +395,11 @@ const handleNavigate = (type) => {
   .main-title {
     font-size: 3.2rem;
   }
-  
+
   .subtitle {
     font-size: 1.4rem;
   }
-  
+
   .cards-container {
     gap: 28px;
     padding: 18px;
@@ -380,17 +410,17 @@ const handleNavigate = (type) => {
   .main-title {
     font-size: 3rem;
   }
-  
+
   .subtitle {
     font-size: 1.3rem;
   }
-  
+
   .cards-container {
     gap: 26px;
     padding: 16px;
     grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   }
-  
+
   .nav-card {
     padding: 35px 18px;
   }
@@ -400,25 +430,25 @@ const handleNavigate = (type) => {
   .main-title {
     font-size: 2.8rem;
   }
-  
+
   .subtitle {
     font-size: 1.2rem;
   }
-  
+
   .cards-container {
     gap: 24px;
     padding: 14px;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
-  
+
   .nav-card {
     padding: 30px 16px;
-    
+
     h3 {
       font-size: 1.4rem;
     }
   }
-  
+
   .card-icon {
     width: 70px;
     height: 70px;
@@ -430,25 +460,25 @@ const handleNavigate = (type) => {
   .main-title {
     font-size: 2.6rem;
   }
-  
+
   .subtitle {
     font-size: 1.1rem;
   }
-  
+
   .cards-container {
     gap: 22px;
     padding: 12px;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
-  
+
   .nav-card {
     padding: 28px 14px;
-    
+
     h3 {
       font-size: 1.3rem;
     }
   }
-  
+
   .card-icon {
     width: 65px;
     height: 65px;
@@ -460,25 +490,25 @@ const handleNavigate = (type) => {
   .main-title {
     font-size: 2.4rem;
   }
-  
+
   .subtitle {
     font-size: 1rem;
   }
-  
+
   .cards-container {
     gap: 20px;
     padding: 12px;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
-  
+
   .nav-card {
     padding: 25px 12px;
-    
+
     h3 {
       font-size: 1.2rem;
     }
   }
-  
+
   .card-icon {
     width: 60px;
     height: 60px;
@@ -490,40 +520,40 @@ const handleNavigate = (type) => {
   .home-container {
     padding: 15px;
   }
-  
+
   .main-title {
     font-size: 2.2rem;
   }
-  
+
   .subtitle {
     font-size: 1rem;
     margin-bottom: 3rem;
   }
-  
+
   .cards-container {
     gap: 18px;
     padding: 10px;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
-  
+
   .nav-card {
     padding: 20px 10px;
-    
+
     h3 {
       font-size: 1.1rem;
     }
-    
+
     p {
       font-size: 0.9rem;
     }
   }
-  
+
   .card-icon {
     width: 55px;
     height: 55px;
     font-size: 28px;
   }
-  
+
   .header-actions {
     padding: 8px;
   }
@@ -533,51 +563,51 @@ const handleNavigate = (type) => {
   .home-container {
     padding: 10px;
   }
-  
+
   .content-wrapper {
     max-width: 100%;
   }
-  
+
   .main-title {
     font-size: 1.8rem;
     letter-spacing: 1px;
   }
-  
+
   .subtitle {
     font-size: 0.9rem;
     margin-bottom: 2rem;
   }
-  
+
   .cards-container {
     gap: 15px;
     padding: 8px;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
-  
+
   .nav-card {
     padding: 18px 8px;
     border-radius: 12px;
-    
+
     h3 {
       font-size: 1rem;
       margin: 15px 0 8px;
     }
-    
+
     p {
       font-size: 0.8rem;
       line-height: 1.3;
     }
   }
-  
+
   .card-icon {
     width: 50px;
     height: 50px;
     font-size: 24px;
   }
-  
+
   .header-actions {
     padding: 5px;
-    
+
     .username {
       display: none;
     }
@@ -588,43 +618,43 @@ const handleNavigate = (type) => {
   .home-container {
     padding: 8px;
   }
-  
+
   .main-title {
     font-size: 1.5rem;
   }
-  
+
   .subtitle {
     font-size: 0.8rem;
     margin-bottom: 1.5rem;
   }
-  
+
   .cards-container {
     gap: 12px;
     padding: 6px;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   }
-  
+
   .nav-card {
     padding: 15px 6px;
     border-radius: 10px;
-    
+
     h3 {
       font-size: 0.9rem;
       margin: 12px 0 6px;
     }
-    
+
     p {
       font-size: 0.75rem;
       line-height: 1.2;
     }
   }
-  
+
   .card-icon {
     width: 45px;
     height: 45px;
     font-size: 22px;
   }
-  
+
   .header-actions {
     padding: 3px;
   }
