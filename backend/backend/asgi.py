@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 try:
     from channels.auth import AuthMiddlewareStack
     from channels.routing import ProtocolTypeRouter, URLRouter
-    from backend.apps.apps.app_automation import routing as app_automation_routing
+    from apps.app_automation import routing as app_automation_routing
 
     application = ProtocolTypeRouter({
         "http": django_asgi_app,

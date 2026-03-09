@@ -134,7 +134,7 @@ LOCAL_APPS = [
 ```python
 urlpatterns = [
     # ... 现有路由 ...
-    path('api/app-automation/', include('backend.apps.apps.app_automation.urls')),  # ✅ 新增
+    path('api/app-automation/', include('apps.app_automation.urls')),  # ✅ 新增
 ]
 ```
 
