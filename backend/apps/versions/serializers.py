@@ -31,7 +31,7 @@ class VersionCreateSerializer(serializers.ModelSerializer):
         fields = ['name', 'description', 'is_baseline', 'project_ids']
     
     def validate_project_ids(self, value):
-        from backend.apps.projects.models import Project
+        from apps.projects.models import Project
         if not value:
             raise serializers.ValidationError("至少需要关联一个项目")
         

@@ -291,7 +291,6 @@ export default {
       pageUpdateFailed: 'Failed to update page',
       pageDeleteSuccess: 'Page deleted successfully',
       validateSuccess: 'Element locator validation passed',
-      validateFailed: 'Validation failed',
       elementsLoaded: 'Loaded {count} elements',
       insertCode: 'Insert element code',
       validatePassed: 'Element validation passed',
@@ -774,14 +773,6 @@ export default {
       testCaseShort: 'Test Case',
       aiCase: 'AI Case'
     },
-    triggerTypes: {
-      cron: 'Cron Expression',
-      interval: 'Fixed Interval',
-      once: 'One-time Execution',
-      cronShort: 'Cron',
-      intervalShort: 'Interval',
-      onceShort: 'Once'
-    },
     notificationTypes: {
       email: 'Email Notification',
       webhook: 'Webhook Robot',
@@ -891,7 +882,7 @@ export default {
       botName: 'Robot Name',
       enable: 'Enable',
       isDefault: 'Set as Default',
-      platform: 'Platform Type',
+      platformType: 'Platform Type',
       businessType: 'Business Type',
       uiAutomationTest: 'UI Automation Test',
       apiTest: 'API Test',
@@ -906,7 +897,6 @@ export default {
       emptyHint: 'Select a robot from the left or add a new one',
       status: 'Status',
       platformNotEditable: 'Platform type cannot be modified after creation',
-      webhookPlaceholder: 'Please enter Webhook URL',
       testSend: 'Test Send',
       testSendSuccess: 'Test message sent successfully',
       testSendFailed: 'Test message failed to send',
