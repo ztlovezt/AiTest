@@ -94,19 +94,20 @@ class LogConfig:
         )
         
         # 主日志文件 - 保留7天（不包含 ERROR 级别的日志）
+        # 使用 serialize=True 确保多进程安全，禁用压缩避免 Windows 文件锁定问题
         app_log_level = "DEBUG" if self.debug_enabled else "INFO"
         logger.add(
             self.log_dir / "app.log",
             rotation="00:00",  # 每天午夜轮转
             retention="7 days",  # 保留7天
-            compression="zip",  # 自动压缩旧日志
             encoding="utf-8",
             level=app_log_level,
             format=self.log_format,
             filter=exclude_errors,  # 过滤掉 ERROR 级别的日志
             backtrace=True,
             diagnose=True,
-            enqueue=True  # 异步写入
+            enqueue=True,  # 异步写入
+            serialize=True  # 多进程安全
         )
         
         # 错误日志文件 - 保留7天（只记录 ERROR 级别的日志）
@@ -114,14 +115,14 @@ class LogConfig:
             self.log_dir / "error.log",
             rotation="00:00",
             retention="7 days",
-            compression="zip",
             encoding="utf-8",
             level="ERROR",
             format=self.log_format,
             filter=only_errors,  # 只记录 ERROR 级别的日志
             backtrace=True,
             diagnose=True,
-            enqueue=True  # 异步写入
+            enqueue=True,  # 异步写入
+            serialize=True  # 多进程安全
         )
         
         # ORM SQL日志文件 - 保留7天（仅在debug_enabled为True时记录DEBUG日志）
@@ -130,13 +131,13 @@ class LogConfig:
                 self.log_dir / "orm_sql.log",
                 rotation="00:00",
                 retention="7 days",
-                compression="zip",
                 encoding="utf-8",
                 level="DEBUG",
                 format=self.log_format,
                 backtrace=True,
                 diagnose=True,
                 enqueue=True,
+                serialize=True,  # 多进程安全
                 filter=only_orm_sql
             )
         else:
@@ -144,13 +145,13 @@ class LogConfig:
                 self.log_dir / "orm_sql.log",
                 rotation="00:00",
                 retention="7 days",
-                compression="zip",
                 encoding="utf-8",
                 level="INFO",
                 format=self.log_format,
                 backtrace=True,
                 diagnose=True,
                 enqueue=True,
+                serialize=True,  # 多进程安全
                 filter=only_orm_sql
             )
     

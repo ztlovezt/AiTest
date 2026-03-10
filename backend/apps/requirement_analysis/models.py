@@ -1164,14 +1164,17 @@ class AIModelService:
 
         lines = test_cases_content.split('\n')
 
-        # 找到表格分隔线
+        # 找到表格分隔线（支持多种格式：| --- |, |:---|, |---|）
         separator_line = None
         separator_index = -1
         for i, line in enumerate(lines):
-            if line.strip().startswith('|') and '|' in line and '---' in line:
-                separator_line = line
-                separator_index = i
-                break
+            stripped = line.strip()
+            if stripped.startswith('|') and (':' in stripped or '---' in stripped):
+                # 检查是否是分隔线（包含 --- 或 :---）
+                if re.search(r'\|[\s]*:?-+:?[\s]*\|', stripped):
+                    separator_line = line
+                    separator_index = i
+                    break
 
         if not separator_line:
             logger.warning("未找到表格分隔线，无法重新编号")
