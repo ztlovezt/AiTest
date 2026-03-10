@@ -169,14 +169,15 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 WHITENOISE_USE_FINDERS = True
 WHITENOISE_IGNORE_REGEX = r'^(?!/static/).*\.html$'
 
-# 静态文件目录配置 - 不能包含 STATIC_ROOT
-STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static_files'),
-]
+# 静态文件目录配置
+STATIC_FILES_ROOT = os.path.join(BASE_DIR, 'static_files')
+STATICFILES_DIRS = [STATIC_FILES_ROOT]
+
+# 自动创建静态文件目录（如果不存在）
+os.makedirs(STATIC_FILES_ROOT, exist_ok=True)
 
 # 数据工厂的静态文件目录
 STATIC_FILES_URL = '/static_files/'
-STATIC_FILES_ROOT = os.path.join(BASE_DIR, 'static_files')
 
 MEDIA_URL = '/media/'
 

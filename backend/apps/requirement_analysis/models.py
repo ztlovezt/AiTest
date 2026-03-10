@@ -8,9 +8,9 @@ import os
 from pathlib import Path
 import httpx
 from typing import Dict, Any, List, AsyncIterator
-import logging
 
 from django.core.files.storage import FileSystemStorage
+from backend.log_config import get_logger
 
 # 自定义存储类，用于存储需求文档到expand/document目录
 class RequirementDocsStorage(FileSystemStorage):
@@ -37,7 +37,7 @@ def requirement_docs_upload_path(instance, filename):
     month = now.strftime('%m')
     return f'requirement_docs/{year}/{month}/{filename}'
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RequirementDocument(models.Model):
@@ -716,7 +716,12 @@ class AIModelService:
             rf"6. **⚠️ 特殊字符处理（关键）**：\n"
             rf"   - **如果在表格内容（如操作步骤、预期结果）中出现管道符 '|'，请使用HTML实体 '&#124;' 代替**。\n"
             rf"   - **绝对不要使用反斜杠转义（如 '\|'），这会导致输出混乱**。\n"
-            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n\n"
+            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n"
+            f"7. **⚠️ 格式禁止事项（必须严格执行）**：\n"
+            f"   - **绝对禁止使用 Markdown 加粗语法（即 **文字** 格式）**\n"
+            f"   - 测试用例标题、步骤、预期结果等内容都不要加粗\n"
+            f"   - 正确示例：验证回车键触发登录\n"
+            f"   - 错误示例：**验证回车键触发登录**\n\n"
             f"【需求文档内容】\n{task.requirement_text}"
         )
 
@@ -807,7 +812,12 @@ class AIModelService:
             rf"6. **⚠️ 特殊字符处理（关键）**：\n"
             rf"   - **如果在表格内容（如操作步骤、预期结果）中出现管道符 '|'，请使用HTML实体 '&#124;' 代替**。\n"
             rf"   - **绝对不要使用反斜杠转义（如 '\|'），这会导致输出混乱**。\n"
-            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n\n"
+            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n"
+            f"7. **⚠️ 格式禁止事项（必须严格执行）**：\n"
+            f"   - **绝对禁止使用 Markdown 加粗语法（即 **文字** 格式）**\n"
+            f"   - 测试用例标题、步骤、预期结果等内容都不要加粗\n"
+            f"   - 正确示例：验证回车键触发登录\n"
+            f"   - 错误示例：**验证回车键触发登录**\n\n"
             f"【需求文档内容】\n{task.requirement_text}"
         )
 
@@ -815,6 +825,10 @@ class AIModelService:
             {"role": "system", "content": writer_prompt},
             {"role": "user", "content": user_message}
         ]
+
+        # 记录请求信息
+        logger.info(f"流式生成测试用例 - 模型: {task.writer_model_config.model_name}, base_url: {task.writer_model_config.base_url}")
+        logger.info(f"流式生成测试用例 - 需求文本长度: {len(task.requirement_text)}, max_tokens: {task.writer_model_config.max_tokens}")
 
         # 流式调用API，确保正确关闭生成器
         # 使用配置的max_tokens，不硬编码限制
@@ -842,6 +856,10 @@ class AIModelService:
                 logger.warning(f"关闭generator时出错: {close_error}")
 
         logger.info(f"流式生成完成: 总chunk数={chunk_count}, 总字符数={len(full_content)}")
+
+        # 如果生成内容为空，记录警告
+        if not full_content:
+            logger.warning(f"流式生成返回空内容! chunk数={chunk_count}, 检查API配置和网络连接")
 
         # 统计生成的用例数量
         case_count = full_content.count('TC-') + full_content.count('TEST-') + full_content.count('测试用例')
@@ -944,32 +962,24 @@ class AIModelService:
             f"3. 修正不合理的预期结果\n"
             f"4. 删除冗余的测试用例\n"
             f"5. 保持测试用例的格式规范\n"
-            f"6. **加粗标记规则（必须严格执行）**：\n"
-            f"   **6.1 新增测试用例**：对整个新增的测试用例进行加粗\n"
-            f"   - 示例：**TC-004 测试用例标题**\\n**测试步骤：**\\n**1. 步骤内容**\\n**预期结果：**\\n**2. 预期内容**\n"
-            f"   - 注意：新增用例的编号、标题、步骤、预期结果等所有内容都要加粗\n"
-            f"   **6.2 修改现有用例**：只对被修改的具体部分进行加粗\n"
-            f"   - 修改标题：**TC-001 修改后的新标题**（其他内容保持原样）\n"
-            f"   - 修改步骤：1. 原步骤\\n2. **修改后的步骤内容**（只有步骤2加粗）\n"
-            f"   - 修改预期结果：预期结果：**修改后的预期内容**（只有预期内容加粗）\n"
-            f"   - 新增步骤：1. 原步骤\\n**2. 新增的步骤内容**（新增的步骤整体加粗）\n"
-            f"   **6.3 注意事项**：\n"
-            f"   - 未修改的部分不要加粗\n"
-            f"   - 原始测试用例中已经存在的用例，如果没有改动就不要加粗\n"
-            f"   - 只有根据评审意见新增或修改的部分才需要加粗\n"
-            f"7. **⚠️ 输出顺序要求（必须严格执行）**：\n"
+            f"6. **⚠️ 输出顺序要求（必须严格执行）**：\n"
             f"   - **必须按用例编号从小到大的顺序输出**（如：001, 002, 003...或LOGIN_001, LOGIN_002, LOGIN_003...）\n"
             f"   - **绝对不能跳号、重复或乱序输出**\n"
             f"   - **编号必须连续，中间不能有遗漏**\n"
             f"   - **所有用例必须一次性完整输出，不能中断**\n"
-            f"8. **必须输出完整**：请确保输出所有改进后的测试用例，不要因为篇幅原因省略任何用例，"
+            f"7. **必须输出完整**：请确保输出所有改进后的测试用例，不要因为篇幅原因省略任何用例，"
             f"即使是第30条、第40条甚至更多的用例，也必须完整输出。\n"
-            f"9. **测试用例编号规则**：新增的测试用例必须按照原有编号规则继续编号（例如原最后一个用例是TC-003，新增的第一个用例应该是TC-004），"
+            f"8. **测试用例编号规则**：新增的测试用例必须按照原有编号规则继续编号（例如原最后一个用例是TC-003，新增的第一个用例应该是TC-004），"
             f"绝不能使用'新增'、'用例1'等作为编号，必须是正式的测试用例编号。\n"
-            rf"10. **⚠️ 特殊字符处理（关键）**：\n"
+            rf"9. **⚠️ 特殊字符处理（关键）**：\n"
             rf"   - **如果在表格内容（如操作步骤、预期结果）中出现管道符 '|'，请使用HTML实体 '&#124;' 代替**。\n"
             rf"   - **绝对不要使用反斜杠转义（如 '\|'），这会导致输出混乱**。\n"
-            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n\n"
+            rf"   - 示例：应输入 'a&#124;b' 而不是 'a|b' 或 'a\|b'。\n"
+            f"10. **⚠️ 格式禁止事项（必须严格执行）**：\n"
+            f"   - **绝对禁止使用 Markdown 加粗语法（即 **文字** 格式）**\n"
+            f"   - 测试用例标题、步骤、预期结果等内容都不要加粗\n"
+            f"   - 正确示例：验证回车键触发登录\n"
+            f"   - 错误示例：**验证回车键触发登录**\n\n"
             f"请直接输出改进后的完整测试用例，不要包含任何说明性文字。"
         )
 
@@ -1189,16 +1199,18 @@ class AIModelService:
             logger.warning("无法解析第一列")
             return test_cases_content
 
-        # 获取第一列的编号（例如：IMMSG001）
+        # 获取第一列的编号（例如：IMMSG001, LOGIN_001, TC-001）
         first_id = parts[1].strip()
 
-        # 提取编号格式前缀（例如：IMMSG）
-        id_match = re.match(r'^([A-Z]+)(\d+)$', first_id)
+        # 提取编号格式前缀和分隔符（例如：IMMSG, LOGIN, TC）
+        # 支持多种格式：IMMSG001, LOGIN_001, TC-001
+        id_match = re.match(r'^([A-Z]+)([-_]?)(\d+)$', first_id)
         if not id_match:
             logger.warning(f"无法识别编号格式: {first_id}")
             return test_cases_content
 
-        prefix = id_match.group(1)  # 例如：IMMSG
+        prefix = id_match.group(1)  # 例如：IMMSG, LOGIN, TC
+        separator = id_match.group(2)  # 分隔符：'', '_', '-'
         total_cases = 0
 
         # 重新编号所有数据行
@@ -1224,7 +1236,7 @@ class AIModelService:
 
             # 这是一个数据行，重新编号
             total_cases += 1
-            new_id = f"{prefix}{total_cases:03d}"  # 格式：IMMSG001
+            new_id = f"{prefix}{separator}{total_cases:03d}"  # 格式：IMMSG001, LOGIN_001, TC-001
 
             # 替换第一列的编号，保持原有格式
             parts = line.split('|')
