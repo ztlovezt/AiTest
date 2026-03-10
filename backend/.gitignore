@@ -43,3 +43,7 @@ docker-compose*.yml
 nginx.conf
 Makefile
 build-multiplatform.sh
+
+# 忽略程序运行时生成的pid文件
+.django_server.pid
+.qcluster.pid
