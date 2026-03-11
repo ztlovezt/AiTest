@@ -963,6 +963,7 @@ class BaseBrowserAgent:
         self.provider = model_config.get('provider', 'openai')
 
         if not self.api_key:
+            logger.error(f"❌ 未找到API Key配置")
             raise ValueError(f"No API Key found for mode: {execution_mode}")
 
         # 智能temperature处理：特殊模型强制使用特定temperature值
@@ -996,6 +997,7 @@ class BaseBrowserAgent:
                 final_temperature = 0.0
                 logger.info(f"⚙️ 使用默认 temperature={final_temperature}")
 
+        logger.info(f"🎛️ 最终配置: temperature={final_temperature}")
         self.llm = ChatOpenAI(
             model=self.model_name,
             api_key=self.api_key,
@@ -1013,6 +1015,14 @@ class BaseBrowserAgent:
                 self.llm.__pydantic_extra__ = {}
             self.llm.__pydantic_extra__['provider'] = self.provider
             self.llm.__pydantic_extra__['model'] = self.model_name
+
+        # 记录LLM初始化完成
+        logger.info(f"🤖 AI执行模型初始化完成:")
+        logger.info(f"  Model: {self.model_name}")
+        logger.info(f"  Provider: {self.provider}")
+        logger.info(f"  Base URL: {self.base_url}")
+        logger.info(f"  API Key: {'*' * 20 if self.api_key else 'None'}")
+        logger.info(f"  Temperature: {final_temperature}")
 
     def _format_action(self, action):
         try:
@@ -1062,12 +1072,19 @@ class BaseBrowserAgent:
     async def _verify_execution_llm(self):
         """在真正启动执行前做一次轻量连通性检查，避免浏览器启动后反复空转失败。"""
         try:
-            await asyncio.wait_for(
+            logger.info(f"🔍 验证LLM连接: model={self.model_name}, base_url={self.base_url}")
+            response = await asyncio.wait_for(
                 self.llm.ainvoke("Reply with OK."),
-                timeout=20.0
+                timeout=30.0  # 增加超时时间到30秒
             )
+            logger.info(f"✅ LLM连接验证成功")
+            return response
+        except asyncio.TimeoutError as e:
+            logger.error(f"❌ LLM连接超时(30秒): model={self.model_name}, base_url={self.base_url}")
+            raise RuntimeError(f"Execution LLM unavailable: 连接超时，请检查网络或API配置") from e
         except Exception as e:
-            raise RuntimeError(f"Execution LLM unavailable: {e}") from e
+            logger.error(f"❌ LLM连接失败: {type(e).__name__}: {str(e)}, model={self.model_name}, base_url={self.base_url}")
+            raise RuntimeError(f"Execution LLM unavailable: {str(e)}") from e
 
     def _extract_structured_steps(self, text: str):
         """从原始任务文本中稳定提取步骤，作为 LLM 拆分失败时的兜底。"""
