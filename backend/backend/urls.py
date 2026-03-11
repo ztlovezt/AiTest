@@ -34,6 +34,11 @@ urlpatterns = [
     path('api/data-factory/', include('apps.data_factory.urls')),
 ]
 
+# 媒体文件服务（不受DEBUG限制）
+urlpatterns += [
+    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
+]
+
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_FILES_URL, document_root=settings.STATIC_FILES_ROOT)

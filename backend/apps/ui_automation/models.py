@@ -853,6 +853,7 @@ class AIExecutionRecord(models.Model):
         ('running', '执行中'),
         ('passed', '成功'),
         ('failed', '失败'),
+        ('stopped', '已停止'),
     ]
 
     project = models.ForeignKey(UiProject, on_delete=models.CASCADE, null=True, blank=True, verbose_name='所属项目')

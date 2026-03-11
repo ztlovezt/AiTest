@@ -620,6 +620,8 @@ export default {
       // GIF
       viewGif: 'View GIF Playback',
       gifPlayback: 'GIF Playback',
+      loadingGif: 'Loading GIF...',
+      loadGifFailed: 'Failed to load GIF',
       exportReport: 'Export Report',
       // Action types
       actions: {

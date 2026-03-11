@@ -620,6 +620,8 @@ export default {
       // GIF
       viewGif: '查看GIF回放',
       gifPlayback: 'GIF回放',
+      loadingGif: '正在加载GIF...',
+      loadGifFailed: '加载GIF失败',
       exportReport: '导出报告',
       // 操作类型
       actions: {
