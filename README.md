@@ -91,7 +91,7 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **组件化编排**: 基础组件定义、自定义组件组合、组件包导入导出
 - **UI Flow**: JSON 格式的 UI 流程编排，支持10+ Airtest动作
 - **变量管理**: 支持 global/local/outputs 作用域，{{variable}} 语法
-- **测试执行**: Celery异步执行 + pytest + Allure 报告生成
+- **测试执行**: Django-Q2 异步执行 + pytest + Allure 报告生成
 - **执行引擎**: AirtestBase + UiFlowRunner + AppTestExecutor 完整实现
 - **进度追踪**: 实时执行进度、步骤统计、通过率计算
 - **使用统计**: 元素使用次数追踪，优化元素管理
@@ -159,9 +159,10 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
     - browser-use 0.11.7: AI 驱动的浏览器自动化
     - langchain-openai 1.1.7: LLM 集成框架
     - 多模型支持：OpenAI 2.16.0、Anthropic 0.77.0、Google Gemini 1.61.0、DeepSeek、Ollama 0.6.1
-- **自动化测试**: Selenium 4.40.0, Playwright 1.58.0, Allure 2.15.3
+- **自动化测试**: Selenium 4.41.0, Playwright 1.58.0, Allure 2.15.3
 - **HTTP 客户端**: httpx 0.28.1 (异步 HTTP)
-- **定时任务**: Celery 5.6.2 + Redis 7.1.0
+- **WebSocket**: Channels 4.3.2 + Channels Redis 4.3.0
+- **定时任务**: Django-Q2 1.6.0+ (任务队列和定时任务)
 
 ### 前端技术栈
 
@@ -287,7 +288,7 @@ testhub_platform/
 - **Node.js**: 18+(开发环境必须安装Node.js用于构建前端项目,生产可不安装)
 - **MySQL**: 8.0+(必须安装MySQL客户端，用于执行数据库迁移等操作)
 - **Java**: 17+ (可选,用于运行浏览器驱动、Allure 报告生成等，否则会生成报告失败)
-- **Redis**: 6.0+ (可选,用于APP自动化测试相关)
+- **Redis**: 6.0+ (用于缓存和消息队列)
 - **浏览器驱动**: ChromeDriver / GeckoDriver (用于 UI 自动化,建议提前下载好)
 
 ### 后端依赖
@@ -301,9 +302,10 @@ testhub_platform/
 - **django-filter**: 25.2
 - **django-cors-headers**: 4.9.0
 - **mysqlclient**: 2.2.7 (MySQL 数据库驱动)
-- **celery**: 5.6.2 (异步任务队列)
-- **redis**: 7.1.0 (缓存和消息队列)
-- **selenium**: 4.40.0 (UI 自动化测试)
+- **django-q2**: 1.6.0+ (任务队列和定时任务)
+- **channels**: 4.3.2 (WebSocket 支持)
+- **channels_redis**: 4.3.0 (Redis 支持 for WebSocket)
+- **selenium**: 4.41.0 (UI 自动化测试)
 - **playwright**: 1.58.0 (UI 自动化测试)
 - **browser-use**: 0.11.7 (AI 智能浏览器自动化)
 - **langchain-openai**: 1.1.7 (LLM 集成)
@@ -501,7 +503,7 @@ chmod +x start.sh
 启动脚本会自动：
 
 - 启动 Django 开发服务器（端口 8000）
-- 启动 Django-Q 任务队列服务
+- 启动 Django-Q2 任务队列服务
 - 在独立的命令行窗口中运行每个服务
 - 显示服务访问地址和提示信息
 
@@ -513,7 +515,7 @@ python manage.py runserver
 或
 python manage.py start_backend.py
 
-# 启动 Django-Q 任务队列服务（在另一个终端）
+# 启动 Django-Q2 任务队列服务（在另一个终端）
 python manage.py qcluster
 ```
 
@@ -546,7 +548,7 @@ python manage.py aggregate_performance_stats
 
 ### 定时任务管理
 
-系统使用 Django-Q 作为任务队列框架，需要启动 qcluster 服务来执行定时任务：
+系统使用 Django-Q2 作为任务队列框架，需要启动 qcluster 服务来执行定时任务：
 
 ```bash
 # 启动任务队列服务（需要持续运行）
@@ -636,7 +638,8 @@ npm run build
 ## 📄 文档
 
 - **[更新日志 (CHANGELOG)](backend/docs/docs/CHANGELOG.md)**: 查看版本更新历史和重要变更
-- **[Django-Q定时任务管理指南](backend/docs/Django-Q定时任务管理指南.md)**: Django-Q 任务队列和定时任务管理指南
+- **[Django-Q定时任务管理指南](backend/docs/Django-Q定时任务管理指南.md)**: Django-Q2 任务队列和定时任务管理指南
+- **[消息模板变量使用教程](backend/docs/消息模板变量使用教程.md)**: 详细的消息模板变量使用指南
 - **[数据工厂使用说明](backend/docs/docs/数据工厂使用说明.md)**: 数据工厂功能完整介绍和使用技巧
 - **[数据工厂快速开始](backend/docs/docs/数据工厂快速开始.md)**: 数据工厂快速上手指南
 - **[数据工厂功能说明](backend/docs/docs/数据工厂功能说明.md)**: 数据工厂功能详细说明
@@ -655,8 +658,8 @@ npm run build
 
 **管理命令**:
 
-- `qcluster`: Django-Q 任务队列和定时任务调度器
-    - 启动 Django-Q Cluster 处理异步任务和定时任务
+- `qcluster`: Django-Q2 任务队列和定时任务调度器
+    - 启动 Django-Q2 Cluster 处理异步任务和定时任务
     - 自动调度和管理所有定时任务
     - 支持任务重试和失败处理
     - 内置任务监控和统计功能
