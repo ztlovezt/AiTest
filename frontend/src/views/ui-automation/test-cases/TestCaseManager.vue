@@ -158,17 +158,36 @@
                             <el-option :label="t('uiAutomation.testCase.actionWait')" value="wait" />
                             <el-option :label="t('uiAutomation.testCase.actionSwitchTab')" value="switchTab" />
                           </el-select>
+                          <!-- 页面筛选下拉框 -->
+                          <el-select
+                            v-if="needsElement(element.action_type)"
+                            v-model="element.selectedPage"
+                            :placeholder="t('uiAutomation.testCase.selectPage')"
+                            size="small"
+                            style="width: 110px"
+                            clearable
+                            @change="onPageFilterChange(element)"
+                          >
+                            <el-option :label="t('uiAutomation.testCase.allPages')" value="" />
+                            <el-option
+                              v-for="page in uniquePages"
+                              :key="page"
+                              :label="page"
+                              :value="page"
+                            />
+                          </el-select>
+                          <!-- 元素选择下拉框（带模糊匹配） -->
                           <el-select
                             v-if="needsElement(element.action_type)"
                             v-model="element.element_id"
                             :placeholder="t('uiAutomation.testCase.selectElement')"
                             size="small"
-                            style="width: 200px"
+                            style="width: 220px"
                             filterable
                             @change="onElementChange(element)"
                           >
                             <el-option
-                              v-for="elem in availableElements"
+                              v-for="elem in getFilteredElements(element)"
                               :key="elem.id"
                               :label="`${elem.name} (${elem.locator_value})`"
                               :value="elem.id"
@@ -585,6 +604,17 @@ const parsedExecutionLogs = computed(() => {
   }
 })
 
+// 获取所有不重复的页面列表（用于页面筛选）
+const uniquePages = computed(() => {
+  const pages = new Set()
+  availableElements.value.forEach(elem => {
+    if (elem.page && elem.page.trim()) {
+      pages.add(elem.page.trim())
+    }
+  })
+  return Array.from(pages).sort()
+})
+
 // 方法定义
 const loadProjects = async () => {
   try {
@@ -644,11 +674,15 @@ const selectTestCase = (testCase) => {
   selectedTestCase.value = testCase
   // 确保步骤数据格式正确，添加前端需要的字段
   if (testCase.steps && testCase.steps.length > 0) {
-    currentSteps.value = testCase.steps.map(step => ({
-      ...step,
-      element_id: step.element || '',
-      expanded: false
-    }))
+    currentSteps.value = testCase.steps.map(step => {
+      const element = availableElements.value.find(e => e.id === step.element)
+      return {
+        ...step,
+        element_id: step.element || '',
+        selectedPage: element?.page || '',  // 新增：从元素自动填充页面
+        expanded: false
+      }
+    })
   } else {
     currentSteps.value = []
   }
@@ -661,6 +695,7 @@ const addStep = () => {
   const newStep = {
     id: Date.now(),
     action_type: 'click',
+    selectedPage: '',  // 新增：页面筛选
     element_id: '',
     input_value: '',
     wait_time: 1000,
@@ -701,6 +736,27 @@ const onElementChange = (step) => {
   if (element && !step.description) {
     step.description = `${getActionTypeText(step.action_type)}${element.name}`
   }
+  // 如果选择了元素且没有选择页面，自动填充页面
+  if (element && element.page && !step.selectedPage) {
+    step.selectedPage = element.page
+  }
+}
+
+// 根据选择的页面筛选元素列表
+const getFilteredElements = (step) => {
+  let filtered = availableElements.value
+  if (step.selectedPage) {
+    filtered = filtered.filter(elem => elem.page === step.selectedPage)
+  }
+  return filtered
+}
+
+// 页面筛选变化时的处理
+const onPageFilterChange = (step) => {
+  // 切换页面后清空已选择的元素
+  step.element_id = null
+  // 清空描述
+  step.description = ''
 }
 
 const needsInputValue = (actionType) => {
