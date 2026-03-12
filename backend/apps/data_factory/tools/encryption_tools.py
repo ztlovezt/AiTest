@@ -141,8 +141,18 @@ class EncryptionTools:
             return {'error': f'Base64解码失败: {str(e)}'}
 
     @staticmethod
-    def aes_encrypt(text: str, password: str, mode: str = 'CBC') -> Dict[str, Any]:
-        """AES加密"""
+    def aes_encrypt(text: str, password: str, mode: str = 'CBC', iv: str = '') -> Dict[str, Any]:
+        """AES加密
+        
+        Args:
+            text: 待加密的文本
+            password: 加密密码
+            mode: AES模式，默认CBC
+            iv: 初始化向量，十六进制字符串，如果为空则随机生成
+            
+        Returns:
+            加密结果字典
+        """
         if not CRYPTO_AVAILABLE:
             return {'error': 'pycryptodome模块未安装，请先安装！'}
 
@@ -152,21 +162,31 @@ class EncryptionTools:
             key = PBKDF2(password, salt, dkLen=32, count=100000)
 
             # 初始化向量
-            iv = get_random_bytes(16)
+            if iv:
+                # 使用用户提供的IV（十六进制字符串）
+                try:
+                    iv_bytes = bytes.fromhex(iv)
+                    if len(iv_bytes) != 16:
+                        return {'error': 'IV长度必须为16字节（32个十六进制字符）'}
+                except ValueError:
+                    return {'error': 'IV必须是有效的十六进制字符串'}
+            else:
+                # 随机生成IV
+                iv_bytes = get_random_bytes(16)
 
             # 加密
             if mode == 'CBC':
-                cipher = AES.new(key, AES.MODE_CBC, iv)
+                cipher = AES.new(key, AES.MODE_CBC, iv_bytes)
                 ct_bytes = cipher.encrypt(pad(text.encode('utf-8'), AES.block_size))
             elif mode == 'ECB':
                 cipher = AES.new(key, AES.MODE_ECB)
                 ct_bytes = cipher.encrypt(pad(text.encode('utf-8'), AES.block_size))
-                iv = b''  # ECB不需要IV
+                iv_bytes = b''  # ECB不需要IV
             else:
                 return {'error': f'不支持的AES模式: {mode}'}
 
             # 组合salt、iv和密文
-            encrypted_data = salt + iv + ct_bytes
+            encrypted_data = salt + iv_bytes + ct_bytes
 
             # 转换为Base64字符串
             encrypted_str = base64.b64encode(encrypted_data).decode('utf-8')
@@ -174,14 +194,25 @@ class EncryptionTools:
             return {
                 'result': encrypted_str,
                 'algorithm': f'AES-{mode}',
-                'key_length': 256
+                'key_length': 256,
+                'iv': iv_bytes.hex() if iv_bytes else ''
             }
         except Exception as e:
             return {'error': f'AES加密失败: {str(e)}'}
 
     @staticmethod
-    def aes_decrypt(encrypted_text: str, password: str, mode: str = 'CBC') -> Dict[str, Any]:
-        """AES解密"""
+    def aes_decrypt(encrypted_text: str, password: str, mode: str = 'CBC', iv: str = '') -> Dict[str, Any]:
+        """AES解密
+        
+        Args:
+            encrypted_text: 加密的文本（Base64编码）
+            password: 解密密码
+            mode: AES模式，默认CBC
+            iv: 初始化向量，十六进制字符串，如果为空则从密文中提取
+            
+        Returns:
+            解密结果字典
+        """
         if not CRYPTO_AVAILABLE:
             return {'error': 'pycryptodome模块未安装，请先安装！'}
 
@@ -193,18 +224,29 @@ class EncryptionTools:
             salt = encrypted_data[:16]
 
             if mode == 'ECB':
-                iv = b''
+                iv_bytes = b''
                 ct_bytes = encrypted_data[16:]
             else:  # CBC
-                iv = encrypted_data[16:32]
-                ct_bytes = encrypted_data[32:]
+                if iv:
+                    # 使用用户提供的IV（十六进制字符串）
+                    try:
+                        iv_bytes = bytes.fromhex(iv)
+                        if len(iv_bytes) != 16:
+                            return {'error': 'IV长度必须为16字节（32个十六进制字符）'}
+                        ct_bytes = encrypted_data[16:]  # 跳过salt，使用用户提供的IV
+                    except ValueError:
+                        return {'error': 'IV必须是有效的十六进制字符串'}
+                else:
+                    # 从密文中提取IV
+                    iv_bytes = encrypted_data[16:32]
+                    ct_bytes = encrypted_data[32:]
 
             # 使用PBKDF2从密码生成密钥
             key = PBKDF2(password, salt, dkLen=32, count=100000)
 
             # 解密
             if mode == 'CBC':
-                cipher = AES.new(key, AES.MODE_CBC, iv)
+                cipher = AES.new(key, AES.MODE_CBC, iv_bytes)
             elif mode == 'ECB':
                 cipher = AES.new(key, AES.MODE_ECB)
             else:

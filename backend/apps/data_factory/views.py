@@ -404,7 +404,7 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             elif tool_name == 'hash_comparison':
                 input_data = {'text': input_data, 'hash_value': ''}
             elif tool_name in ['aes_encrypt', 'aes_decrypt']:
-                input_data = {'text': input_data, 'password': 'default_password', 'mode': 'CBC'}
+                input_data = {'text': input_data, 'password': 'default_password', 'mode': 'CBC', 'iv': ''}
             else:
                 input_data = {'text': input_data}
         return tool_mapping[tool_name](**input_data)
@@ -924,8 +924,8 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'sha256_hash': '${sha256_hash(text)}',
             'sha512_hash': '${sha512_hash(text)}',
             'hash_comparison': '${hash_comparison(hash1, hash2)}',
-            'aes_encrypt': '${aes_encrypt(text, password, mode)}',
-            'aes_decrypt': '${aes_decrypt(encrypted_text, password, mode)}',
+            'aes_encrypt': '${aes_encrypt(text, password, mode, iv)}',
+            'aes_decrypt': '${aes_decrypt(encrypted_text, password, mode, iv)}',
             'jwt_decode': '${jwt_decode(token, verify, secret)}',
             'password_strength': '${password_strength(password)}',
             'generate_salt': '${generate_salt(length)}',
@@ -1017,8 +1017,8 @@ class DataFactoryViewSet(viewsets.ModelViewSet):
             'sha256_hash': '${sha256_hash(123456)}',
             'sha512_hash': '${sha512_hash(123456)}',
             'hash_comparison': '${hash_comparison(hash1, hash2)}',
-            'aes_encrypt': '${aes_encrypt(hello, password, CBC)}',
-            'aes_decrypt': '${aes_decrypt(encrypted, password, CBC)}',
+            'aes_encrypt': '${aes_encrypt(hello, password, CBC, iv)}',
+            'aes_decrypt': '${aes_decrypt(encrypted, password, CBC, iv)}',
             'jwt_decode': '${jwt_decode(token, false, secret)}',
             'password_strength': '${password_strength(myPassword123)}',
             'generate_salt': '${generate_salt(16)}',

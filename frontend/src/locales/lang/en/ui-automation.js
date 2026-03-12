@@ -1202,7 +1202,7 @@ export default {
     noPage: 'Uncategorized',
     selectElement: 'Select Element',
     inputValue: 'Input Value:',
-    inputPlaceholder: 'Enter content, supports variables like \'{random_phone()}\'',
+    inputPlaceholder: 'Enter content, supports variables like {\'{random_phone()}\'}',
     urlPlaceholder: 'Enter URL to navigate, e.g. https://example.com',
     switchTabPlaceholder: 'Enter index (0,1...) or leave empty for latest',
     insertVariable: 'Insert Dynamic Variable',
