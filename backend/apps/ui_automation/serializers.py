@@ -246,7 +246,7 @@ class TestExecutionSerializer(serializers.ModelSerializer):
     def get_test_suite_name(self, obj):
         """获取测试套件名称"""
         return obj.test_suite.name if obj.test_suite else '-'
-    
+
     def get_executed_by_name(self, obj):
         """获取执行人姓名"""
         return obj.executed_by.username if obj.executed_by else '-'
@@ -480,7 +480,8 @@ class ScriptStepSerializer(serializers.ModelSerializer):
         action_type = data.get('action_type')
 
         # 某些操作类型需要指定目标元素
-        if action_type in ['CLICK', 'INPUT', 'SELECT', 'HOVER', 'VERIFY'] and not target_element_id and not page_object_id:
+        if action_type in ['CLICK', 'INPUT', 'SELECT', 'HOVER',
+                           'VERIFY'] and not target_element_id and not page_object_id:
             raise serializers.ValidationError("此操作类型需要指定目标元素或页面对象")
 
         return data
@@ -515,8 +516,10 @@ class ElementValidationSerializer(serializers.Serializer):
 
 class CodeGenerationSerializer(serializers.Serializer):
     """代码生成序列化器"""
-    language = serializers.ChoiceField(choices=[('javascript', 'JavaScript'), ('python', 'Python')], default='javascript')
-    framework = serializers.ChoiceField(choices=[('playwright', 'Playwright'), ('selenium', 'Selenium')], default='playwright')
+    language = serializers.ChoiceField(choices=[('javascript', 'JavaScript'), ('python', 'Python')],
+                                       default='javascript')
+    framework = serializers.ChoiceField(choices=[('playwright', 'Playwright'), ('selenium', 'Selenium')],
+                                        default='playwright')
     include_comments = serializers.BooleanField(default=True)
 
     def validate(self, data):
@@ -573,11 +576,11 @@ class TestCaseExecutionSerializer(serializers.ModelSerializer):
             'created_by', 'created_by_name', 'created_at'
         ]
         read_only_fields = ['created_by']
-    
+
     def get_test_suite_name(self, obj):
         """获取测试套件名称"""
         return obj.test_suite.name if obj.test_suite else None
-    
+
     def get_created_by_name(self, obj):
         """获取创建人姓名"""
         return obj.created_by.username if obj.created_by else '-'
@@ -661,7 +664,6 @@ class AIExecutionRecordSerializer(serializers.ModelSerializer):
         read_only_fields = ('start_time', 'end_time', 'duration', 'executed_by', 'gif_path', 'screenshots_sequence')
 
 
-
 class UiNotificationLogSerializer(serializers.ModelSerializer):
     """UI通知日志序列化器"""
     recipient_names = serializers.SerializerMethodField()
@@ -727,4 +729,3 @@ class UiNotificationLogSerializer(serializers.ModelSerializer):
                 return '邮箱通知'
 
         return '-'
-
