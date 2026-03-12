@@ -157,6 +157,7 @@
                             <el-option :label="t('uiAutomation.testCase.actionAssert')" value="assert" />
                             <el-option :label="t('uiAutomation.testCase.actionWait')" value="wait" />
                             <el-option :label="t('uiAutomation.testCase.actionSwitchTab')" value="switchTab" />
+                            <el-option :label="t('uiAutomation.testCase.actionNavigateTo')" value="navigateTo" />
                           </el-select>
                           <!-- 页面筛选下拉框 -->
                           <el-select
@@ -217,7 +218,7 @@
                           <div style="display: flex; gap: 5px; flex: 1">
                             <el-input
                               v-model="element.input_value"
-                              :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
+                              :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : element.action_type === 'navigateTo' ? t('uiAutomation.testCase.urlPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
                               size="small"
                             >
                               <template #append>
@@ -760,7 +761,7 @@ const onPageFilterChange = (step) => {
 }
 
 const needsInputValue = (actionType) => {
-  return ['fill', 'switchTab'].includes(actionType)
+  return ['fill', 'switchTab', 'navigateTo'].includes(actionType)
 }
 
 const needsWaitTime = (actionType) => {
@@ -768,7 +769,7 @@ const needsWaitTime = (actionType) => {
 }
 
 const needsElement = (actionType) => {
-  return !['wait', 'switchTab', 'screenshot'].includes(actionType)
+  return !['wait', 'switchTab', 'screenshot', 'navigateTo'].includes(actionType)
 }
 
 const expandAllSteps = () => {

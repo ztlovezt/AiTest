@@ -465,6 +465,35 @@ class SeleniumTestEngine:
             else:
                 timeout_seconds = 5
 
+            # navigateTo：跳转到指定URL（不需要元素定位器）
+            if action_type == 'navigateTo':
+                target_url = resolved_input_value if resolved_input_value else ''
+
+                if not target_url:
+                    return False, "❌ 跳转失败: 未提供URL地址", None
+
+                try:
+                    # 设置页面加载超时为15秒
+                    self.driver.set_page_load_timeout(15)
+                    start_nav = time.time()
+                    self.driver.get(target_url)
+                    execution_time = round(time.time() - start_nav, 2)
+
+                    # 获取当前页面标题
+                    page_title = ""
+                    try:
+                        page_title = self.driver.title
+                    except:
+                        page_title = "（无法获取标题）"
+
+                    log = f"✓ 跳转URL成功\n"
+                    log += f"  - URL: {target_url}\n"
+                    log += f"  - 页面标题: {page_title}\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+                except Exception as e:
+                    return False, f"❌ 跳转URL失败: {str(e)}", None
+
             # 获取定位器
             by_type, by_value = self._get_locator(locator_strategy, locator_value)
 

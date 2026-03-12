@@ -1092,6 +1092,55 @@ class TestExecutor:
                     print(f"  - 页面标题: {self.current_page.title()}")
                     print(f"  - self.current_page已更新为新页面")
 
+                elif step_data['action_type'] == 'navigateTo':
+                    # 跳转到指定URL（无需元素）
+                    target_url = step_data.get('input_value', '')
+
+                    if not target_url:
+                        step_result['error'] = '❌ 跳转失败: 未提供URL地址'
+                        step_result['success'] = False
+                    else:
+                        try:
+                            start_nav = time.time()
+                            self.current_page.goto(target_url, timeout=15000)
+                            execution_time = round(time.time() - start_nav, 2)
+
+                            # 等待页面加载
+                            try:
+                                self.current_page.wait_for_load_state('networkidle', timeout=15000)
+                                print(f"  - 页面加载状态: networkidle")
+                            except Exception as e:
+                                try:
+                                    self.current_page.wait_for_load_state('domcontentloaded', timeout=15000)
+                                    print(f"  - 页面加载状态: domcontentloaded")
+                                except Exception as e2:
+                                    print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
+
+                            page_title = ""
+                            try:
+                                page_title = self.current_page.title()
+                            except Exception:
+                                page_title = "（无法获取标题）"
+
+                            log = f"✓ 跳转URL成功\n"
+                            log += f"  - URL: {target_url}\n"
+                            log += f"  - 页面标题: {page_title}\n"
+                            log += f"  - 执行时间: {execution_time}秒"
+
+                            print(f"✓ 跳转URL成功")
+                            print(f"  - URL: {target_url}")
+                            print(f"  - 页面标题: {page_title}")
+                            print(f"  - 执行时间: {execution_time}秒")
+
+                            step_result['success'] = True
+                            step_result['log'] = log
+                            step_result['screenshot'] = None
+                        except Exception as e:
+                            error_msg = f"❌ 跳转URL失败: {str(e)}"
+                            print(error_msg)
+                            step_result['error'] = error_msg
+                            step_result['success'] = False
+
                 else:
                     step_result['error'] = f'⚠ 未知的操作类型: {step_data["action_type"]}'
 
@@ -1215,6 +1264,55 @@ class TestExecutor:
                     print(f"  - 目标索引: {final_target_index}")
                     print(f"  - 页面标题: {self.current_page.title()}")
                     print(f"  - self.current_page已更新为新页面")
+
+                elif step_data['action_type'] == 'navigateTo':
+                    # 跳转到指定URL（无需元素）
+                    target_url = step_data.get('input_value', '')
+
+                    if not target_url:
+                        step_result['error'] = '❌ 跳转失败: 未提供URL地址'
+                        step_result['success'] = False
+                    else:
+                        try:
+                            start_nav = time.time()
+                            self.current_page.goto(target_url, timeout=15000)
+                            execution_time = round(time.time() - start_nav, 2)
+
+                            # 等待页面加载
+                            try:
+                                self.current_page.wait_for_load_state('networkidle', timeout=15000)
+                                print(f"  - 页面加载状态: networkidle")
+                            except Exception as e:
+                                try:
+                                    self.current_page.wait_for_load_state('domcontentloaded', timeout=15000)
+                                    print(f"  - 页面加载状态: domcontentloaded")
+                                except Exception as e2:
+                                    print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
+
+                            page_title = ""
+                            try:
+                                page_title = self.current_page.title()
+                            except Exception:
+                                page_title = "（无法获取标题）"
+
+                            log = f"✓ 跳转URL成功\n"
+                            log += f"  - URL: {target_url}\n"
+                            log += f"  - 页面标题: {page_title}\n"
+                            log += f"  - 执行时间: {execution_time}秒"
+
+                            print(f"✓ 跳转URL成功")
+                            print(f"  - URL: {target_url}")
+                            print(f"  - 页面标题: {page_title}")
+                            print(f"  - 执行时间: {execution_time}秒")
+
+                            step_result['success'] = True
+                            step_result['log'] = log
+                            step_result['screenshot'] = None
+                        except Exception as e:
+                            error_msg = f"❌ 跳转URL失败: {str(e)}"
+                            print(error_msg)
+                            step_result['error'] = error_msg
+                            step_result['success'] = False
 
         except Exception as e:
             # 格式化为详细的错误信息，与playwright_engine.py保持一致

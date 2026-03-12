@@ -187,13 +187,35 @@ class PlaywrightTestEngine:
                 await target_page.bring_to_front()
                 # 更新引擎的当前页面引用
                 self.page = target_page
-                
+
                 execution_time = round(time.time() - start_time, 2)
                 log = f"✓ 切换标签页成功\n"
                 log += f"  - 目标索引: {final_target_index}\n"
                 log += f"  - 页面标题: {await self.page.title()}\n"
                 log += f"  - 执行时间: {execution_time}秒"
                 return True, log, None
+
+            elif action_type == 'navigateTo':
+                # 跳转到指定URL
+                target_url = resolved_input_value if resolved_input_value else ''
+
+                if not target_url:
+                    return False, "❌ 跳转失败: 未提供URL地址", None
+
+                # 页面导航使用固定的15秒最大超时
+                nav_timeout = 15000
+
+                try:
+                    start_nav = time.time()
+                    await self.page.goto(target_url, timeout=nav_timeout)
+                    execution_time = round(time.time() - start_nav, 2)
+                    log = f"✓ 跳转URL成功\n"
+                    log += f"  - URL: {target_url}\n"
+                    log += f"  - 页面标题: {await self.page.title()}\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+                except Exception as e:
+                    return False, f"❌ 跳转URL失败: {str(e)}", None
 
             # 其他操作需要元素定位器
             # 获取元素定位器
