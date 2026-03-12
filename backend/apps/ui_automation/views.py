@@ -273,6 +273,60 @@ class ElementViewSet(viewsets.ModelViewSet):
         suggestions = self._generate_element_suggestions(element)
         return Response({'suggestions': suggestions})
 
+    @action(detail=True, methods=['post'])
+    def copy(self, request, pk=None):
+        """复制元素"""
+        # 从数据库获取最新的元素数据（确保包含拖拽后的最新group_id）
+        element = Element.objects.get(pk=pk)
+
+        # 创建副本
+        new_element = Element()
+
+        # 复制所有字段
+        for field in element._meta.fields:
+            if field.name != 'id' and field.name != 'pk':
+                setattr(new_element, field.name, getattr(element, field.name))
+
+        # 设置新名称
+        new_element.name = f"{element.name} - 副本"
+
+        # 清空主键以创建新记录
+        new_element.pk = None
+        new_element.id = None
+
+        # 保存副本
+        new_element.save()
+
+        serializer = self.get_serializer(new_element)
+        # 记录操作
+        log_operation('create', 'element', new_element.id, new_element.name, self.request.user)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def batch_update(self, request):
+        """批量更新元素的顺序和所属页面"""
+        updates = request.data.get('updates', [])  # [{id, page, group_id, order}, ...]
+        for update in updates:
+            element_id = update.get('id')
+            if element_id:
+                try:
+                    element = Element.objects.get(id=element_id)
+                    if 'page' in update:
+                        element.page = update['page']
+                    if 'group_id' in update:
+                        group_id = update['group_id']
+                        # 处理 group_id 为 None 的情况（如"未关联页面"）
+                        if group_id == 'unassigned' or group_id is None:
+                            element.group_id = None
+                        else:
+                            element.group_id = int(group_id) if group_id else None
+                    if 'order' in update:
+                        element.order = update['order']
+                    element.save()
+                except Element.DoesNotExist:
+                    continue
+        return Response({'success': True})
+
     def _perform_element_validation(self, element):
         """执行元素验证（模拟实现）"""
         try:

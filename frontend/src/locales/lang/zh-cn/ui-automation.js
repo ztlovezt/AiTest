@@ -150,6 +150,7 @@ export default {
     startDate: '开始日期',
     endDate: '结束日期',
     selectDate: '选择日期',
+    selectProject: '选择项目',
     statusFilter: '状态筛选',
     searchPlaceholder: '搜索项目名称',
     projectDetail: '项目详情',
@@ -294,7 +295,11 @@ export default {
       elementsLoaded: '已加载 {count} 个元素',
       insertCode: '插入元素代码',
       validatePassed: '元素验证通过',
-      validateFailedReason: '元素验证失败'
+      validateFailedReason: '元素验证失败',
+      copySuccess: '复制成功',
+      copyFailed: '复制失败',
+      moveSuccess: '移动成功',
+      moveFailed: '移动失败'
     }
   },
 

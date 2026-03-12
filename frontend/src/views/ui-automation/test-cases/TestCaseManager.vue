@@ -1131,12 +1131,11 @@ const saveTestCaseForm = async () => {
       name: testCaseForm.name,
       description: testCaseForm.description,
       priority: testCaseForm.priority,
-      project: projectId.value,
-      steps: []
+      project: projectId.value
     }
 
     if (editingTestCase.value) {
-      // 编辑现有用例
+      // 编辑现有用例 - 不发送 steps 字段，避免覆盖现有步骤
       await updateTestCase(editingTestCase.value.id, data)
       ElMessage.success(t('uiAutomation.testCase.update.success'))
 
@@ -1146,7 +1145,8 @@ const saveTestCaseForm = async () => {
         testCases.value[index] = { ...testCases.value[index], ...data }
       }
     } else {
-      // 创建新用例
+      // 创建新用例 - 添加空的 steps 数组
+      data.steps = []
       const response = await createTestCase(data)
       ElMessage.success(t('uiAutomation.testCase.create.success'))
       testCases.value.push(response.data)

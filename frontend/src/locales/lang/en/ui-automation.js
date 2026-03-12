@@ -150,6 +150,7 @@ export default {
     startDate: 'Start Date',
     endDate: 'End Date',
     selectDate: 'Select Date',
+    selectProject: 'Select Project',
     statusFilter: 'Status Filter',
     searchPlaceholder: 'Search project name',
     projectDetail: 'Project Details',
@@ -294,7 +295,11 @@ export default {
       elementsLoaded: 'Loaded {count} elements',
       insertCode: 'Insert element code',
       validatePassed: 'Element validation passed',
-      validateFailedReason: 'Element validation failed'
+      validateFailedReason: 'Element validation failed',
+      copySuccess: 'Copy successful',
+      copyFailed: 'Copy failed',
+      moveSuccess: 'Move successful',
+      moveFailed: 'Move failed'
     }
   },
 

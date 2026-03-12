@@ -118,6 +118,23 @@ export function deleteElement(id) {
   })
 }
 
+// 复制UI元素
+export function copyElement(id) {
+  return request({
+    url: `/ui-automation/elements/${id}/copy/`,
+    method: 'post'
+  })
+}
+
+// 批量更新UI元素（用于拖拽后更新顺序和页面）
+export function batchUpdateElements(data) {
+  return request({
+    url: '/ui-automation/elements/batch_update/',
+    method: 'post',
+    data
+  })
+}
+
 // 测试脚本相关API
 
 // 获取测试脚本列表

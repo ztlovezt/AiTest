@@ -112,6 +112,7 @@ class Element(models.Model):
     )
 
     page = models.CharField(max_length=200, verbose_name='所属页面', blank=True)
+    order = models.IntegerField(default=0, verbose_name='排序')
     component_name = models.CharField(max_length=100, blank=True, verbose_name='组件名称', help_text='所属UI组件名称')
 
     # 元素层次关系
@@ -139,7 +140,7 @@ class Element(models.Model):
         db_table = 'ui_elements'
         verbose_name = 'UI元素'
         verbose_name_plural = 'UI元素'
-        ordering = ['page', 'name']
+        ordering = ['page', 'order', 'name']
         indexes = [
             models.Index(fields=['project', 'page']),
             models.Index(fields=['project', 'element_type']),

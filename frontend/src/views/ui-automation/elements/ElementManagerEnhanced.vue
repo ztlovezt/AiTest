@@ -31,10 +31,14 @@
             node-key="id"
             :expand-on-click-node="false"
             :default-expanded-keys="expandedKeys"
+            draggable
+            :allow-drag="checkAllowDrag"
+            :allow-drop="checkAllowDrop"
             @node-click="onNodeClick"
             @node-contextmenu="onNodeRightClick"
             @node-expand="onNodeExpand"
             @node-collapse="onNodeCollapse"
+            @node-drag-end="handleDragEnd"
           >
             <template #default="{ node, data }">
               <div class="tree-node">
@@ -63,6 +67,26 @@
                 <span v-if="data.type === 'element'" class="element-type-tag" :class="data.element_type?.toLowerCase()">
                   {{ getElementTypeLabel(data.element_type) }}
                 </span>
+
+                <!-- 复制按钮（仅元素节点显示） -->
+                <el-icon
+                  v-if="data.type === 'element'"
+                  class="copy-icon"
+                  @click.stop="handleCopyElement(data)"
+                  title="复制元素"
+                >
+                  <CopyDocument />
+                </el-icon>
+
+                <!-- 删除按钮（仅元素节点显示） -->
+                <el-icon
+                  v-if="data.type === 'element'"
+                  class="delete-icon"
+                  @click.stop="handleDeleteElement(data)"
+                  title="删除元素"
+                >
+                  <Delete />
+                </el-icon>
               </div>
             </template>
           </el-tree>
@@ -276,7 +300,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Plus, FolderAdd, Document, Search, Edit, Delete,
-  Folder, Document as DocumentIcon, Operation, DocumentCopy, ArrowDown
+  Folder, Document as DocumentIcon, Operation, DocumentCopy, ArrowDown, CopyDocument
 } from '@element-plus/icons-vue'
 import {
   getUiProjects,
@@ -285,6 +309,8 @@ import {
   getElementDetail,
   updateElement,
   deleteElement,
+  copyElement,
+  batchUpdateElements,
   getElementTree,
   getElementGroupTree,
   getElementGroups,
@@ -1119,6 +1145,127 @@ const cancelEdit = () => {
   editingNodeId.value = null
 }
 
+// 复制元素
+const handleCopyElement = async (elementData) => {
+  try {
+    await copyElement(elementData.id)
+    ElMessage.success(t('uiAutomation.element.messages.copySuccess'))
+    await loadElementTree()
+  } catch (error) {
+    ElMessage.error(t('uiAutomation.element.messages.copyFailed'))
+    console.error('复制元素失败:', error)
+  }
+}
+
+// 删除元素
+const handleDeleteElement = async (elementData) => {
+  try {
+    await ElMessageBox.confirm(
+      t('uiAutomation.element.messages.deleteConfirm').replace('{name}', elementData.name),
+      t('uiAutomation.element.messages.deleteConfirmTitle'),
+      {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning'
+      }
+    )
+    await deleteElement(elementData.id)
+    ElMessage.success(t('uiAutomation.element.messages.deleteSuccess'))
+
+    // 如果删除的是当前选中的元素，清空选中状态
+    if (selectedElement.value && selectedElement.value.id === elementData.id) {
+      selectedElement.value = null
+    }
+
+    await loadElementTree()
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error(t('uiAutomation.element.messages.deleteFailed'))
+      console.error('删除元素失败:', error)
+    }
+  }
+}
+
+// 拖拽控制：只允许拖拽元素节点，不允许拖拽页面节点
+const checkAllowDrag = (node) => {
+  return node.data.type === 'element'
+}
+
+// 拖拽控制：允许元素拖拽到页面节点或其他元素节点
+const checkAllowDrop = (draggingNode, dropNode, type) => {
+  if (type === 'inner') {
+    // 只能拖入页面节点
+    return dropNode.data.type === 'page'
+  }
+  return true
+}
+
+// 拖拽结束后保存
+const handleDragEnd = async (draggingNode, dropNode, dropType) => {
+  const updates = []
+
+  // 获取目标页面
+  let targetPage = null
+  let targetGroupId = null
+
+  if (dropType === 'inner') {
+    // 拖入页面节点
+    targetPage = dropNode.data.name
+    targetGroupId = dropNode.data.id
+  } else if (dropType === 'before' || dropType === 'after') {
+    // 拖到元素节点的前后，使用该元素所在的页面
+    if (dropNode.parent.data.type === 'page') {
+      targetPage = dropNode.parent.data.name
+      targetGroupId = dropNode.parent.data.id
+    } else {
+      // 如果父节点不是页面，继续向上查找
+      let parent = dropNode.parent
+      while (parent && parent.data.type !== 'page') {
+        parent = parent.parent
+      }
+      if (parent && parent.data.type === 'page') {
+        targetPage = parent.data.name
+        targetGroupId = parent.data.id
+      }
+    }
+  }
+
+  if (targetGroupId) {
+    // 更新被拖拽元素的页面和分组
+    updates.push({
+      id: draggingNode.data.id,
+      page: targetPage,
+      group_id: targetGroupId
+    })
+
+    // 更新同页面下所有元素的顺序
+    const siblings = dropType === 'inner'
+      ? (dropNode.data.children || [])
+      : (dropNode.parent.data.children || [])
+
+    siblings.forEach((node, index) => {
+      if (node.type === 'element') {
+        updates.push({
+          id: node.id,
+          order: index
+        })
+      }
+    })
+  }
+
+  try {
+    if (updates.length > 0) {
+      await batchUpdateElements({ updates })
+      ElMessage.success(t('uiAutomation.element.messages.moveSuccess'))
+      await loadElementTree()
+    }
+  } catch (error) {
+    ElMessage.error(t('uiAutomation.element.messages.moveFailed'))
+    console.error('移动元素失败:', error)
+    await loadElementTree() // 失败则重新加载
+  }
+}
+
 // 右键菜单操作函数
 // 新增元素
 const addContextElement = () => {
@@ -1385,6 +1532,31 @@ const updatePage = async () => {
   border-radius: 4px;
   background-color: #ecf5ff;
   color: #409eff;
+}
+
+.copy-icon {
+  margin-left: auto;
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s;
+  padding: 4px;
+}
+
+.copy-icon:hover {
+  color: #409eff;
+}
+
+.delete-icon {
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s;
+  padding: 4px;
+}
+
+.delete-icon:hover {
+  color: #f56c6c;
 }
 
 .main-content {
