@@ -529,6 +529,17 @@
                 <el-option label="ECB" value="ECB" />
               </el-select>
             </el-form-item>
+            <el-form-item v-if="['aes_encrypt', 'aes_decrypt'].includes(currentTool.name) && toolForm.mode === 'CBC'" :label="$t('dataFactory.form.iv')">
+              <el-input v-model="toolForm.iv" :placeholder="$t('dataFactory.form.ivPlaceholder')" maxlength="32" show-word-limit>
+                <template #append>
+                  <el-button type="primary" size="default" @click="generateRandomIV" style="background-color: #409eff; border-color: #409eff; color: white;">
+                    <el-icon><Refresh /></el-icon>
+                    {{ $t('dataFactory.actions.generateRandomIV') }}
+                  </el-button>
+                </template>
+              </el-input>
+              <span class="form-tip">{{ $t('dataFactory.form.ivTip') }}</span>
+            </el-form-item>
             <el-form-item v-if="currentTool.name === 'generate_salt'" :label="$t('dataFactory.form.length')">
               <el-input-number v-model="toolForm.length" :min="8" :max="64" />
             </el-form-item>
@@ -1096,6 +1107,7 @@ const toolForm = ref({
   algorithm: 'md5',
   password: '',
   mode: 'CBC',
+  iv: '',
   json_str: '',
   json_str1: '',
   json_str2: '',
@@ -1515,8 +1527,8 @@ const buildInputData = () => {
     if (toolName === 'sha256_hash') return { text: form.text }
     if (toolName === 'sha512_hash') return { text: form.text }
     if (toolName === 'hash_comparison') return { text: form.text, hash_value: form.hash_value, algorithm: form.algorithm }
-    if (toolName === 'aes_encrypt') return { text: form.text, password: form.password, mode: form.mode }
-    if (toolName === 'aes_decrypt') return { encrypted_text: form.text, password: form.password, mode: form.mode }
+    if (toolName === 'aes_encrypt') return { text: form.text, password: form.password, mode: form.mode, iv: form.iv || '' }
+    if (toolName === 'aes_decrypt') return { encrypted_text: form.text, password: form.password, mode: form.mode, iv: form.iv || '' }
     if (toolName === 'password_strength') return { password: form.text }
     if (toolName === 'generate_salt') return { length: form.length }
   }
@@ -1654,6 +1666,7 @@ const resetToolForm = () => {
     algorithm: 'md5',
     password: '',
     mode: 'CBC',
+    iv: '',
     json_str: '',
     json_str1: '',
     json_str2: '',
@@ -1874,6 +1887,16 @@ const getInputStats = () => {
     chars: text.length,
     lines: text.split('\n').length
   }
+}
+
+const generateRandomIV = () => {
+  const chars = '0123456789abcdef'
+  let iv = ''
+  for (let i = 0; i < 32; i++) {
+    iv += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  toolForm.value.iv = iv
+  ElMessage.success('已生成随机IV')
 }
 
 const getOutputStats = () => {
