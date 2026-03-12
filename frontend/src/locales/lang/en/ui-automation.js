@@ -1214,6 +1214,7 @@ export default {
     assertIsVisible: 'Element Visible',
     assertExists: 'Element Exists',
     assertHasAttribute: 'Attribute Value',
+    assertUrlContains: 'URL Contains',
     expectedValue: 'Expected Value',
     stepDescription: 'Step Description:',
     stepDescPlaceholder: 'Describe the purpose of this step',

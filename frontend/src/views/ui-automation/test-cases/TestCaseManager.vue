@@ -161,7 +161,7 @@
                           </el-select>
                           <!-- 页面筛选下拉框 -->
                           <el-select
-                            v-if="needsElement(element.action_type)"
+                            v-if="needsElement(element)"
                             v-model="element.selectedPage"
                             :placeholder="t('uiAutomation.testCase.selectPage')"
                             size="small"
@@ -179,7 +179,7 @@
                           </el-select>
                           <!-- 元素选择下拉框（带模糊匹配） -->
                           <el-select
-                            v-if="needsElement(element.action_type)"
+                            v-if="needsElement(element)"
                             v-model="element.element_id"
                             :placeholder="t('uiAutomation.testCase.selectElement')"
                             size="small"
@@ -260,6 +260,7 @@
                             <el-option :label="t('uiAutomation.testCase.assertIsVisible')" value="isVisible" />
                             <el-option :label="t('uiAutomation.testCase.assertExists')" value="exists" />
                             <el-option :label="t('uiAutomation.testCase.assertHasAttribute')" value="hasAttribute" />
+                            <el-option :label="t('uiAutomation.testCase.assertUrlContains')" value="urlContains" />
                           </el-select>
                           <div style="display: flex; align-items: center; margin-left: 10px; width: 240px">
                             <el-input
@@ -521,7 +522,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Plus, Edit, Delete, Check, CaretRight, ArrowUp, ArrowDown, Rank, Picture, Warning, View, ZoomIn, Refresh, WarningFilled, MagicStick
@@ -722,8 +723,11 @@ const onActionTypeChange = (step) => {
   if (step.action_type !== 'fill') {
     step.input_value = ''
   }
-  if (step.action_type !== 'wait') {
+  if (!['wait', 'waitFor'].includes(step.action_type)) {
     step.wait_time = 1000
+  } else if (step.action_type === 'waitFor' && (!step.wait_time || step.wait_time === 1000)) {
+    // waitFor 默认等待更长，避免登录跳转等场景过快超时
+    step.wait_time = 5000
   }
   if (step.action_type !== 'assert') {
     step.assert_type = 'textContains'
@@ -768,8 +772,15 @@ const needsWaitTime = (actionType) => {
   return ['wait', 'waitFor'].includes(actionType)
 }
 
-const needsElement = (actionType) => {
-  return !['wait', 'switchTab', 'screenshot', 'navigateTo'].includes(actionType)
+const needsElement = (step) => {
+  if (!step) return true
+  if (['wait', 'switchTab', 'screenshot', 'navigateTo'].includes(step.action_type)) {
+    return false
+  }
+  if (step.action_type === 'assert' && step.assert_type === 'urlContains') {
+    return false
+  }
+  return true
 }
 
 const expandAllSteps = () => {
@@ -1262,6 +1273,14 @@ onMounted(async () => {
   if (projects.value.length > 0) {
     projectId.value = projects.value[0].id
     await onProjectChange()
+  }
+})
+
+// 每次组件激活时刷新元素列表，确保从元素管理页面返回后能获取最新的页面信息
+onActivated(async () => {
+  console.log('TestCaseManager onActivated 刷新元素列表...')
+  if (projectId.value) {
+    await loadElements()
   }
 })
 </script>
