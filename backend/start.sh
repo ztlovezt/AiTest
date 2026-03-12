@@ -1,131 +1,133 @@
 #!/bin/bash
 
-# 设置 UTF-8 编码（Mac/Linux）
+# Set UTF-8 encoding (Mac/Linux)
 export LANG=en_US.UTF-8
 
 echo "========================================"
-echo "   TestHub 服务启动脚本 (Linux/Mac)"
+echo "   TestHub Service Startup Script (Linux/Mac)"
 echo "========================================"
 echo ""
 
-# 获取脚本所在目录
+# Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-# 检测 Python 环境
-echo "检测 Python 环境..."
+# Check Python environment
+echo "Checking Python environment..."
 
-# 优先使用虚拟环境中的 Python
+# Use virtual environment if available
 if [ -f "venv/bin/python" ]; then
-    echo "找到虚拟环境：venv"
+    echo "Found virtual environment: venv"
     PYTHON_CMD="venv/bin/python"
 elif [ -f ".venv/bin/python" ]; then
-    echo "找到虚拟环境：.venv"
+    echo "Found virtual environment: .venv"
     PYTHON_CMD=".venv/bin/python"
 elif [ -n "$VIRTUAL_ENV" ]; then
-    echo "已在虚拟环境中"
+    echo "Already in virtual environment"
     PYTHON_CMD="python"
 else
-    # 使用指定的虚拟环境
+    # Use specified virtual environment
     VENV_PATH="/d/ENV/TestHub"
     if [ -f "$VENV_PATH/bin/python" ]; then
-        echo "使用指定虚拟环境：$VENV_PATH"
+        echo "Using specified virtual environment: $VENV_PATH"
         PYTHON_CMD="$VENV_PATH/bin/python"
     else
-        echo "错误：未找到虚拟环境！"
-        echo "请确保已创建虚拟环境或激活虚拟环境"
-        echo "期望路径：$VENV_PATH"
+        echo "Error: Virtual environment not found!"
+        echo "Please create virtual environment or activate virtual environment"
+        echo "Expected path: $VENV_PATH"
         exit 1
     fi
 fi
 
-echo "Python 命令：$PYTHON_CMD"
+echo "Python command: $PYTHON_CMD"
 echo ""
 
-# 激活虚拟环境（可选，用于设置环境变量）
+# Activate virtual environment (optional, for setting environment variables)
 if [ -f "$VENV_PATH/bin/activate" ]; then
     source "$VENV_PATH/bin/activate"
 fi
 
-# 检查配置文件
-if [ ! -f "config.yaml" ]; then
-    echo "错误：配置文件 config.yaml 不存在"
+# Check configuration file
+# Note: Script is in backend directory, need to read config.yaml from parent directory
+if [ ! -f "../config.yaml" ]; then
+    echo "Error: Configuration file ../config.yaml not found"
     exit 1
 fi
 
-# 从 config.yaml 读取端口配置
-BACKEND_PORT=$(grep "backend_port:" config.yaml | awk '{print $2}' | tr -d ' ')
+# Read port configuration from config.yaml
+# Note: Script is in backend directory, need to read config.yaml from parent directory
+BACKEND_PORT=$(grep "backend_port:" ../config.yaml | awk '{print $2}' | tr -d ' ')
 
-# 如果没有找到端口配置，使用默认端口
+# Use default port if not found
 if [ -z "$BACKEND_PORT" ]; then
     BACKEND_PORT=8000
 fi
 
-echo "[1/2] 启动 Django 开发服务器..."
-echo "正在启动后端服务器，端口：$BACKEND_PORT"
+echo "[1/2] Starting Django development server..."
+echo "Starting backend server, port: $BACKEND_PORT"
 
-# 启动 Django 服务器
+# Start Django server
 "$PYTHON_CMD" manage.py runserver 0.0.0.0:"$BACKEND_PORT" &
 DJANGO_PID=$!
 
 sleep 2
 
-# 检查进程是否成功启动
+# Check if process started successfully
 if kill -0 $DJANGO_PID 2>/dev/null; then
-    echo "✓ Django 服务器已启动 (PID: $DJANGO_PID)"
+    echo "✓ Django server started (PID: $DJANGO_PID)"
 else
-    echo "✗ Django 服务器启动失败"
+    echo "✗ Django server startup failed"
     exit 1
 fi
 
-echo "[2/2] 启动 Django-Q 任务队列服务..."
+echo "[2/2] Starting Django-Q task queue service..."
 
-# 启动 Django-Q
+# Start Django-Q
 "$PYTHON_CMD" manage.py qcluster &
 QCLUSTER_PID=$!
 
 sleep 2
 
-# 检查进程是否成功启动
+# Check if process started successfully
 if kill -0 $QCLUSTER_PID 2>/dev/null; then
-    echo "✓ Django-Q 集群已启动 (PID: $QCLUSTER_PID)"
+    echo "✓ Django-Q cluster started (PID: $QCLUSTER_PID)"
 else
-    echo "✗ Django-Q 集群启动失败"
+    echo "✗ Django-Q cluster startup failed"
     kill $DJANGO_PID 2>/dev/null
     exit 1
 fi
 
 echo ""
 echo "========================================"
-echo "   所有服务已启动！"
+echo "   All services started!"
 echo "========================================"
 echo ""
-echo "进程信息："
+echo "Process information:"
 echo "  - Django Server: PID $DJANGO_PID"
 echo "  - Django-Q Cluster: PID $QCLUSTER_PID"
 echo ""
-echo "提示："
-echo "  - 停止服务：kill $DJANGO_PID $QCLUSTER_PID"
-echo "  - 查看日志：tail -f logs/django_server.log"
-echo "  - 查看日志：tail -f logs/django_q.log"
+echo "Tips:"
+echo "  - Stop services: kill $DJANGO_PID $QCLUSTER_PID"
+echo "  - View logs: tail -f logs/django_server.log"
+echo "  - View logs: tail -f logs/django_q.log"
 echo ""
 
-# 保存 PID 到文件
+# Save PID to file
 echo "$DJANGO_PID" > django_server.pid
 echo "$QCLUSTER_PID" > django_qcluster.pid
 
-# 监控进程
+# Monitor process
 trap cleanup SIGINT SIGTERM
 
 cleanup() {
     echo ""
-    echo "正在关闭服务..."
+    echo "Stopping services..."
     kill $DJANGO_PID 2>/dev/null
     kill $QCLUSTER_PID 2>/dev/null
     rm -f django_server.pid django_qcluster.pid
-    echo "所有服务已停止"
+    echo "All services stopped"
     exit 0
 }
 
-# 保持脚本运行（可选，如果希望脚本持续运行）
+# Keep script running (optional, if you want script to continue running)
 wait

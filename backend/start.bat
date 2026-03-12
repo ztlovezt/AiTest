@@ -1,81 +1,82 @@
 @echo off
 chcp 65001 >nul
-title TestHub 启动脚本
+title TestHub Startup Script
 
 echo ========================================
-echo    TestHub 服务启动脚本
+echo    TestHub Service Startup Script
 echo ========================================
 echo.
 
 cd /d "%~dp0"
 
-REM 检测 Python 环境
-echo 检测 Python 环境...
+REM Check Python environment
+echo Checking Python environment...
 
-REM 优先使用虚拟环境中的 Python
+REM Use virtual environment if available
 if exist "venv\Scripts\python.exe" (
-    echo 找到虚拟环境：venv
+    echo Found virtual environment: venv
     set PYTHON_CMD=venv\Scripts\python.exe
     goto :found_python
 )
 
 if exist ".venv\Scripts\python.exe" (
-    echo 找到虚拟环境：.venv
+    echo Found virtual environment: .venv
     set PYTHON_CMD=.venv\Scripts\python.exe
     goto :found_python
 )
 
-REM 检查是否在虚拟环境中
+REM Check if already in virtual environment
 if defined VIRTUAL_ENV (
-    echo 已在虚拟环境中
+    echo Already in virtual environment
     set PYTHON_CMD=python
     goto :found_python
 )
 
-REM 使用指定的虚拟环境
+REM Use specified virtual environment
 set VENV_PATH=D:\ENV\TestHub
 if exist "%VENV_PATH%\Scripts\python.exe" (
-    echo 使用指定虚拟环境：%VENV_PATH%
+    echo Using specified virtual environment: %VENV_PATH%
     set PYTHON_CMD=%VENV_PATH%\Scripts\python.exe
     goto :found_python
 )
 
-echo 错误：未找到虚拟环境！
-echo 请确保已创建虚拟环境或激活虚拟环境
-echo 期望路径：%VENV_PATH%
+echo Error: Virtual environment not found!
+echo Please create virtual environment or activate virtual environment
+echo Expected path: %VENV_PATH%
 pause
 exit /b 1
 
 :found_python
-echo Python 命令：%PYTHON_CMD%
+echo Python command: %PYTHON_CMD%
 echo.
 
-REM 激活虚拟环境（可选，用于设置环境变量）
+REM Activate virtual environment (optional, for setting environment variables)
 call "%VENV_PATH%\Scripts\activate.bat"
 
-echo [1/2] 启动 Django 开发服务器...
+echo [1/2] Starting Django development server...
 
-REM 从 config.yaml 读取端口配置
-for /f "tokens=2 delims=: " %%a in ('type config.yaml ^| findstr /C:"backend_port"') do set BACKEND_PORT=%%a
+REM Read port configuration from config.yaml
+REM Note: Script is in backend directory, need to read config.yaml from parent directory
+for /f "tokens=2 delims=: " %%a in ('type ..\config.yaml ^| findstr /i "backend_port"') do set BACKEND_PORT=%%a
 
-REM 如果没有找到端口配置，使用默认端口
+REM Use default port if not found
 if "%BACKEND_PORT%"=="" set BACKEND_PORT=8000
 
-echo 正在启动后端服务器，端口：%BACKEND_PORT%
+echo Starting backend server, port: %BACKEND_PORT%
 start "Django Server" cmd /k "%PYTHON_CMD% manage.py runserver 0.0.0.0:%BACKEND_PORT%"
 
 timeout /t 2 /nobreak >nul
 
-echo [2/2] 启动 Django-Q 任务队列服务...
+echo [2/2] Starting Django-Q task queue service...
 start "Django-Q Cluster" cmd /k "%PYTHON_CMD% manage.py qcluster"
 
 echo.
 echo ========================================
-echo    所有服务已启动！
+echo    All services started!
 echo ========================================
 echo.
-echo 提示：
-echo   - 按 Ctrl+C 停止所有服务
-echo   - 查看日志请查看 logs/ 目录下的日志文件
+echo Tips:
+echo   - Press Ctrl+C to stop all services
+echo   - Check logs in logs/ directory
 echo.
 rem pause
