@@ -422,6 +422,22 @@ class ElementGroupViewSet(viewsets.ModelViewSet):
                                                                                            'parent_group').order_by(
             'order', 'name')
 
+    def update(self, request, *args, **kwargs):
+        """更新分组时，同步更新所有关联元素的page字段"""
+        group = self.get_object()
+        old_name = group.name
+        new_name = request.data.get('name', old_name)
+
+        # 先调用父类的update方法更新分组
+        response = super().update(request, *args, **kwargs)
+
+        # 如果名称发生了变化，同步更新所有关联元素的page字段
+        if old_name != new_name:
+            Element.objects.filter(group_id=group.id).update(page=new_name)
+            print(f"✓ 已将分组 '{old_name}' 下的 {Element.objects.filter(group_id=group.id).count()} 个元素的page字段更新为 '{new_name}'")
+
+        return response
+
     @action(detail=False, methods=['get'])
     def tree(self, request):
         """获取分组树形结构"""
@@ -1683,7 +1699,7 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                                             'error': None if success else step_log
                                         })
 
-                                        # 如果步骤失败,保存截图
+                                        # 如果步骤失败,保存截图并立即结束执行
                                         if not success:
                                             execution_logs.append(f"  [调试] 检测到步骤失败,准备处理...")
                                             execution_result['status'] = 'failed'
@@ -1707,15 +1723,15 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                                             if not screenshot_base64:
                                                 screenshot_base64 = await engine.capture_screenshot()
 
-                                        if screenshot_base64:
-                                            screenshots.append({
-                                                'url': screenshot_base64,
-                                                'description': f'步骤 {i} 失败截图: {description or action_type_text}',
-                                                'step_number': i,
-                                                'timestamp': timezone.now().isoformat()
-                                                # 移除 loaded 和 error 字段，让前端自行处理
-                                            })
-                                            execution_logs.append(f"  📸 失败截图已捕获")
+                                            if screenshot_base64:
+                                                screenshots.append({
+                                                    'url': screenshot_base64,
+                                                    'description': f'步骤 {i} 失败截图: {description or action_type_text}',
+                                                    'step_number': i,
+                                                    'timestamp': timezone.now().isoformat()
+                                                    # 移除 loaded 和 error 字段，让前端自行处理
+                                                })
+                                                execution_logs.append(f"  📸 失败截图已捕获")
 
                                             execution_logs.append(f"  [调试] 步骤失败,准备退出执行...")
                                             return False

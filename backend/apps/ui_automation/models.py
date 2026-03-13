@@ -627,6 +627,7 @@ class TestCaseStep(models.Model):
         ('isVisible', '元素可见'),
         ('exists', '元素存在'),
         ('hasAttribute', '属性值'),
+        ('urlContains', 'URL包含'),
     ]
 
     test_case = models.ForeignKey(TestCase, on_delete=models.CASCADE, related_name='steps', verbose_name='测试用例')
@@ -881,4 +882,3 @@ class AIExecutionRecord(models.Model):
 
     def __str__(self):
         return f"{self.case_name} - {self.get_status_display()}"
-

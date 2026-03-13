@@ -1214,6 +1214,7 @@ export default {
     assertIsVisible: '元素可见',
     assertExists: '元素存在',
     assertHasAttribute: '属性值',
+    assertUrlContains: 'URL包含',
     expectedValue: '期望值',
     stepDescription: '步骤描述：',
     stepDescPlaceholder: '描述这个步骤的作用',

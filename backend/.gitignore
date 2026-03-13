@@ -47,3 +47,5 @@ build-multiplatform.sh
 # 忽略程序运行时生成的pid文件
 .django_server.pid
 .qcluster.pid
+django_server.pid
+django_qcluster.pid

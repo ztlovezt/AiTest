@@ -217,6 +217,28 @@ class PlaywrightTestEngine:
                 except Exception as e:
                     return False, f"❌ 跳转URL失败: {str(e)}", None
 
+            elif action_type == 'assert' and step.assert_type == 'urlContains':
+                current_url = self.page.url or ''
+                if not resolved_assert_value:
+                    return False, "✗ 断言失败: URL包含断言缺少期望值", None
+
+                if resolved_assert_value in current_url:
+                    execution_time = round(time.time() - start_time, 2)
+                    log = f"✓ 断言通过: 当前URL包含 '{resolved_assert_value}'\n"
+                    if resolved_assert_value != step.assert_value:
+                        log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                    log += f"  - 当前URL: '{current_url}'\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+
+                screenshot = await self.page.screenshot()
+                screenshot_base64 = f"data:image/png;base64,{base64.b64encode(screenshot).decode()}"
+                log = f"✗ 断言失败: 当前URL不包含 '{resolved_assert_value}'\n"
+                if resolved_assert_value != step.assert_value:
+                    log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                log += f"  - 当前URL: '{current_url}'"
+                return False, log, screenshot_base64
+
             # 其他操作需要元素定位器
             # 获取元素定位器
             locator_strategy = element_data.get('locator_strategy', 'css')
