@@ -17,7 +17,353 @@ from langchain_openai import ChatOpenAI
 # 加载环境变量
 load_dotenv()
 
-TASK_STATUS_ACTIONS = {'mark_task_complete', 'mark_task_failed', 'mark_task_skipped'}
+# ============================================================================
+# 任务动作类型定义 - 统一管理所有动作类型
+# ============================================================================
+
+class ActionType:
+    """动作类型常量定义，统一管理所有浏览器动作和任务状态动作"""
+    # 浏览器动作
+    CLICK = 'click'
+    FILL = 'fill'
+    INPUT_TEXT = 'input_text'
+    INPUT = 'input'
+    GET_TEXT = 'getText'
+    WAIT_FOR = 'waitFor'
+    HOVER = 'hover'
+    SCROLL = 'scroll'
+    SCREENSHOT = 'screenshot'
+    WAIT = 'wait'
+    SWITCH_TAB = 'switch_tab'
+    NAVIGATE_TO = 'navigateTo'
+    GO_TO_URL = 'go_to_url'
+    OPEN_NEW_TAB = 'open_new_tab'
+    CLOSE_TAB = 'close_tab'
+    ASSERT = 'assert'
+
+    # 任务状态动作
+    MARK_TASK_COMPLETE = 'mark_task_complete'
+    MARK_TASK_FAILED = 'mark_task_failed'
+    MARK_TASK_SKIPPED = 'mark_task_skipped'
+    UPDATE_TASK_STATUS = 'update_task_status'
+    DONE = 'done'
+
+    # 常量集合
+    TASK_STATUS_ACTIONS = {MARK_TASK_COMPLETE, MARK_TASK_FAILED, MARK_TASK_SKIPPED}
+    TERMINAL_ACTIONS = TASK_STATUS_ACTIONS | {DONE}
+    BROWSER_ACTIONS = {
+        CLICK, FILL, INPUT_TEXT, INPUT, GET_TEXT, WAIT_FOR, HOVER,
+        SCROLL, SCREENSHOT, WAIT, SWITCH_TAB, NAVIGATE_TO, GO_TO_URL,
+        OPEN_NEW_TAB, CLOSE_TAB, ASSERT
+    }
+    ALL_ACTIONS = TERMINAL_ACTIONS | BROWSER_ACTIONS
+
+    @classmethod
+    def is_task_status_action(cls, action_name: str) -> bool:
+        """判断是否是任务状态动作"""
+        return action_name in cls.TASK_STATUS_ACTIONS
+
+    @classmethod
+    def is_terminal_action(cls, action_name: str) -> bool:
+        """判断是否是终端动作（会终止后续操作）"""
+        return action_name in cls.TERMINAL_ACTIONS
+
+    @classmethod
+    def is_browser_action(cls, action_name: str) -> bool:
+        """判断是否是浏览器业务动作"""
+        return action_name in cls.BROWSER_ACTIONS
+
+    @classmethod
+    def get_status_from_update(cls, action_params) -> str | None:
+        """从 update_task_status 参数中提取状态值"""
+        if not isinstance(action_params, dict):
+            return None
+        status = str(action_params.get('status', '')).strip().lower()
+        return status if status in {'completed', 'failed', 'skipped'} else None
+
+
+# 保持向后兼容的常量
+TASK_STATUS_ACTIONS = ActionType.TASK_STATUS_ACTIONS
+
+
+# ============================================================================
+# 动作信息提取和验证辅助函数
+# ============================================================================
+
+def _extract_action_dict(action):
+    """
+    从不同类型的 action 对象中提取动作字典
+
+    Args:
+        action: 可能是 dict、有 model_dump 方法的对象、或有 _action_dict 属性的对象
+
+    Returns:
+        dict: 提取出的动作字典，失败返回空字典
+    """
+    if isinstance(action, dict):
+        return action
+    if hasattr(action, 'model_dump'):
+        try:
+            dumped = action.model_dump()
+            if isinstance(dumped, list):
+                if dumped and isinstance(dumped[0], dict):
+                    return dumped[0]
+                return {}
+            return dumped if isinstance(dumped, dict) else {}
+        except Exception:
+            return {}
+    if hasattr(action, '_action_dict'):
+        extracted = getattr(action, '_action_dict', {})
+        if isinstance(extracted, list):
+            if extracted and isinstance(extracted[0], dict):
+                return extracted[0]
+            return {}
+        return extracted if isinstance(extracted, dict) else {}
+    return {}
+
+
+def _extract_action_info(action):
+    """
+    统一提取动作信息
+
+    Args:
+        action: 动作对象（可能是 dict、有 model_dump 方法的对象等）
+
+    Returns:
+        dict: 包含以下键的字典:
+            - action_name: 动作名称
+            - action_params: 动作参数
+            - is_terminal: 是否是终端动作
+            - task_id: 关联的任务ID（仅任务状态动作有）
+            - status: 任务状态（仅 update_task_status 有）
+            - raw_action: 原始动作字典
+    """
+    action_dict = _extract_action_dict(action)
+
+    if not action_dict or not isinstance(action_dict, dict):
+        return {
+            'action_name': None,
+            'action_params': None,
+            'is_terminal': False,
+            'task_id': None,
+            'status': None,
+            'raw_action': action_dict
+        }
+
+    # 提取动作名称和参数
+    action_name = next(iter(action_dict.keys()), None)
+    action_params = action_dict.get(action_name, {})
+
+    # 判断是否是终端动作
+    is_terminal = False
+    task_id = None
+    status = None
+
+    if ActionType.is_task_status_action(action_name):
+        is_terminal = True
+        if isinstance(action_params, dict):
+            task_id = action_params.get('task_id')
+    elif action_name == ActionType.UPDATE_TASK_STATUS:
+        status = ActionType.get_status_from_update(action_params)
+        if status:
+            is_terminal = True
+            if isinstance(action_params, dict):
+                task_id = action_params.get('task_id')
+    elif action_name == ActionType.DONE:
+        is_terminal = True
+
+    return {
+        'action_name': action_name,
+        'action_params': action_params,
+        'is_terminal': is_terminal,
+        'task_id': task_id,
+        'status': status,
+        'raw_action': action_dict
+    }
+
+
+def _validate_task_id(task_id, planned_tasks):
+    """
+    验证 task_id 是否有效
+
+    Args:
+        task_id: 要验证的任务ID
+        planned_tasks: 计划任务列表
+
+    Returns:
+        tuple: (is_valid, task, error_message)
+            - is_valid: 是否有效
+            - task: 找到的任务对象（如果有效）
+            - error_message: 错误信息（如果无效）
+    """
+    if task_id is None:
+        return False, None, "task_id 为空"
+
+    if not planned_tasks:
+        return False, None, "planned_tasks 为空，无法验证 task_id"
+
+    # 查找任务
+    task = None
+    for t in planned_tasks:
+        # 防御性编程：如果 t 不是字典，尝试兼容或跳过
+        if not isinstance(t, dict):
+            if hasattr(t, 'model_dump'):
+                t = t.model_dump()
+            elif hasattr(t, '__dict__'):
+                t = t.__dict__
+            else:
+                continue
+                
+        if t.get('id') == task_id or str(t.get('id')) == str(task_id):
+            task = t
+            break
+
+    if task is None:
+        valid_ids = []
+        for t in planned_tasks:
+            if isinstance(t, dict):
+                valid_ids.append(t.get('id'))
+            elif hasattr(t, 'id'):
+                valid_ids.append(getattr(t, 'id'))
+        return False, None, f"task_id {task_id} 不在有效列表中，有效ID: {valid_ids}"
+
+    return True, task, None
+
+
+def _sanitize_planned_tasks(planned_tasks):
+    if not planned_tasks:
+        return []
+
+    if not isinstance(planned_tasks, list):
+        planned_tasks = [planned_tasks]
+
+    flattened = []
+    for item in planned_tasks:
+        if isinstance(item, list):
+            flattened.extend(item)
+        else:
+            flattened.append(item)
+
+    normalized = []
+    for task in flattened:
+        if isinstance(task, dict):
+            normalized.append(task)
+            continue
+        if hasattr(task, 'model_dump'):
+            try:
+                dumped = task.model_dump()
+                if isinstance(dumped, dict):
+                    normalized.append(dumped)
+                continue
+            except Exception:
+                continue
+        if hasattr(task, '__dict__'):
+            try:
+                task_dict = dict(task.__dict__)
+                if isinstance(task_dict, dict):
+                    normalized.append(task_dict)
+            except Exception:
+                continue
+    return normalized
+
+
+def _validate_task_status_value(status_value, action_name='update_task_status'):
+    """
+    验证任务状态值是否有效
+
+    Args:
+        status_value: 要验证的状态值
+        action_name: 动作名称（用于错误信息）
+
+    Returns:
+        tuple: (is_valid, normalized_status, error_message)
+            - is_valid: 是否有效
+            - normalized_status: 标准化后的状态值
+            - error_message: 错误信息（如果无效）
+    """
+    valid_statuses = {'completed', 'failed', 'skipped'}
+    normalized = str(status_value).strip().lower() if status_value else ''
+
+    if not normalized:
+        return False, None, f"{action_name}: status 值为空"
+
+    if normalized not in valid_statuses:
+        return False, None, f"{action_name}: status '{status_value}' 无效，有效值: {valid_statuses}"
+
+    return True, normalized, None
+
+
+def _all_tasks_in_terminal_status(planned_tasks):
+    """
+    检查是否所有计划任务都已达到终端状态
+
+    Args:
+        planned_tasks: 计划任务列表
+
+    Returns:
+        tuple: (all_terminal, completed_count, total_count, terminal_tasks)
+            - all_terminal: 是否全部达到终端状态
+            - completed_count: 已完成的任务数
+            - total_count: 总任务数
+            - terminal_tasks: 达到终端状态的任务列表
+    """
+    if not planned_tasks:
+        return True, 0, 0, []
+
+    terminal_statuses = {'completed', 'failed', 'skipped'}
+    terminal_tasks = []
+    completed_count = 0
+
+    for task in planned_tasks:
+        if not isinstance(task, dict):
+            if hasattr(task, 'model_dump'):
+                task = task.model_dump()
+            elif hasattr(task, '__dict__'):
+                task = task.__dict__
+            else:
+                continue
+                
+        status = str(task.get('status', 'pending')).lower()
+        if status in terminal_statuses:
+            terminal_tasks.append(task)
+            completed_count += 1
+
+    all_terminal = completed_count == len(planned_tasks)
+    return all_terminal, completed_count, len(planned_tasks), terminal_tasks
+
+
+def _get_pending_task_id(planned_tasks):
+    """
+    获取下一个待处理的任务ID
+
+    Args:
+        planned_tasks: 计划任务列表
+
+    Returns:
+        int or None: 下一个待处理任务的ID，如果没有则返回 None
+    """
+    if not planned_tasks:
+        return None
+
+    for task in planned_tasks:
+        if not isinstance(task, dict):
+            if hasattr(task, 'model_dump'):
+                task = task.model_dump()
+            elif hasattr(task, '__dict__'):
+                task = task.__dict__
+            else:
+                continue
+                
+        status = str(task.get('status', 'pending')).lower()
+        if status in {'pending', 'in_progress'}:
+            return task.get('id')
+
+    return None
+
+
+# ============================================================================
+# 向后兼容的函数（使用新的 ActionType 类）
+# ============================================================================
 
 
 def _normalize_action_params(action_name, action_params):
@@ -47,49 +393,295 @@ def _normalize_action_params(action_name, action_params):
 
 
 def _is_terminal_status_action(action_name, action_params):
-    if action_name in TASK_STATUS_ACTIONS:
+    """判断是否是终端状态动作（使用新的 ActionType 类）"""
+    if ActionType.is_task_status_action(action_name):
         return True
-    if action_name != 'update_task_status' or not isinstance(action_params, dict):
-        return False
-    return str(action_params.get('status', '')).strip().lower() in {'completed', 'failed', 'skipped'}
+    if action_name == ActionType.UPDATE_TASK_STATUS:
+        return ActionType.get_status_from_update(action_params) is not None
+    return False
 
 
 def _enforce_single_task_step(actions):
     """
-    Enforce single-task-per-step:
-    once a terminal task status action appears, discard any later business actions.
+    强制单任务步骤边界：
+    一旦出现终端任务状态动作，丢弃后续所有业务动作。
+
+    优化内容：
+    - 使用 ActionType 类进行统一的动作类型判断
+    - 添加详细的丢弃动作日志
+    - 修复 done 动作的 break 逻辑
+    - 返回包含丢弃动作信息的元组
+
+    Args:
+        actions: 动作列表
+
+    Returns:
+        tuple: (trimmed_actions, dropped_actions)
+            - trimmed_actions: 修剪后的动作列表
+            - dropped_actions: 被丢弃的动作列表（用于调试）
     """
     if not isinstance(actions, list):
-        return actions
+        return actions, []
 
-    trimmed_actions = []
-    terminal_seen = False
-    dropped_count = 0
+    # Relaxed logic: Do not drop actions after terminal action.
+    # Instead, rely on _validate_action_order to reorder them if needed.
+    # This prevents dropping valid business actions when AI outputs [Mark Task, Next Task Action].
+    return actions, []
 
-    for action in actions:
+    # Original strict logic (commented out for reference):
+    # trimmed_actions = []
+    # dropped_actions = []
+    # terminal_seen = False
+    # ... (rest of the original logic)
+
+
+# ============================================================================
+# 动作顺序验证配置
+# ============================================================================
+
+# 配置选项：是否严格检查动作顺序
+# True - 拒绝顺序错误的动作（终端动作必须在最后）
+# False - 仅记录警告，不拒绝执行
+STRICT_ACTION_ORDER = False
+
+
+def _validate_action_order(actions):
+    """
+    验证动作顺序是否正确
+
+    规则：
+    - 终端状态动作（mark_task_*、done）应该是步骤中最后一个动作
+    - 如果不是，根据 STRICT_ACTION_ORDER 配置决定行为
+
+    Args:
+        actions: 动作列表
+
+    Returns:
+        tuple: (is_valid, issues, reordered_actions)
+            - is_valid: 动作顺序是否有效
+            - issues: 发现的问题列表
+            - reordered_actions: 如果顺序错误且启用自动重排，返回重排后的动作；否则返回原动作
+    """
+    if not isinstance(actions, list) or len(actions) <= 1:
+        return True, [], actions
+
+    issues = []
+    terminal_action_indices = []
+    has_business_action_after_terminal = False
+
+    # 找出所有终端动作的位置
+    for i, action in enumerate(actions):
         if not isinstance(action, dict):
-            trimmed_actions.append(action)
             continue
 
-        if terminal_seen:
-            dropped_count += 1
-            continue
-
-        trimmed_actions.append(action)
         for action_name, action_params in action.items():
-            if _is_terminal_status_action(action_name, action_params):
-                terminal_seen = True
-                break
-            if action_name == 'done':
-                terminal_seen = True
-                break
+            is_terminal = False
 
-    if dropped_count:
+            if ActionType.is_task_status_action(action_name):
+                is_terminal = True
+            elif action_name == ActionType.UPDATE_TASK_STATUS:
+                status = ActionType.get_status_from_update(action_params)
+                is_terminal = (status is not None)
+            elif action_name == ActionType.DONE:
+                is_terminal = True
+
+            if is_terminal:
+                terminal_action_indices.append(i)
+                break  # 每个动作只需要检查一个键名
+
+    # 检查是否有业务动作在终端动作之后
+    if terminal_action_indices:
+        last_terminal_index = max(terminal_action_indices)
+        for i in range(last_terminal_index + 1, len(actions)):
+            action = actions[i]
+            if isinstance(action, dict):
+                action_info = _extract_action_info(action)
+                if action_info['action_name'] and action_info['action_name'] not in ActionType.TERMINAL_ACTIONS:
+                    has_business_action_after_terminal = True
+                    terminal_action = actions[last_terminal_index]
+                    terminal_name = next(iter(terminal_action.keys()))
+                    issues.append({
+                        'type': 'business_after_terminal',
+                        'terminal_action': terminal_name,
+                        'terminal_index': last_terminal_index,
+                        'business_action': action_info['action_name'],
+                        'business_index': i
+                    })
+
+    is_valid = not has_business_action_after_terminal
+
+    # 如果没有问题，直接返回
+    if is_valid:
+        return True, [], actions
+
+    # 记录警告
+    for issue in issues:
         logger.warning(
-            f"⚠️ Enforced single-task step boundary: dropped {dropped_count} action(s) after terminal status update"
+            f"⚠️ 动作顺序问题: 终端动作 '{issue['terminal_action']}' "
+            f"(位置 {issue['terminal_index']}) 后有业务动作 '{issue['business_action']}' "
+            f"(位置 {issue['business_index']})"
         )
 
-    return trimmed_actions
+    # 根据配置决定是否重新排序
+    if not STRICT_ACTION_ORDER:
+        # 自动重新排序：将所有业务动作移到终端动作之前
+        business_actions = []
+        terminal_actions = []
+        terminal_seen = False
+
+        for action in actions:
+            action_info = _extract_action_info(action)
+            action_name = action_info['action_name']
+
+            if not terminal_seen and action_name in ActionType.TERMINAL_ACTIONS:
+                terminal_seen = True
+
+            if terminal_seen:
+                terminal_actions.append(action)
+            else:
+                business_actions.append(action)
+
+        reordered = business_actions + terminal_actions
+        if len(reordered) != len(actions):
+            # 重排序失败，返回原始动作
+            return False, issues, actions
+
+        logger.info("🔄 自动重排动作：将业务动作移到终端动作之前")
+        return False, issues, reordered
+    else:
+        # 严格模式：拒绝执行
+        logger.error("❌ 动作顺序错误（严格模式已启用），拒绝执行")
+        return False, issues, actions
+
+
+# ============================================================================
+# 任务状态管理器 - 跟踪任务状态变更历史
+# ============================================================================
+
+class TaskStateManager:
+    """
+    任务状态管理器
+
+    跟踪计划任务的状态变更历史，提供状态查询和调试功能。
+    """
+
+    def __init__(self, planned_tasks):
+        """
+        初始化任务状态管理器
+
+        Args:
+            planned_tasks: 计划任务列表
+        """
+        self.planned_tasks = {t['id']: t for t in planned_tasks} if planned_tasks else {}
+        # 初始化状态历史
+        self.status_history = {}
+        for task_id, task in self.planned_tasks.items():
+            self.status_history[task_id] = [{
+                'from_status': None,
+                'to_status': task.get('status', 'pending'),
+                'step_number': 0,
+                'timestamp': None,
+                'trigger_action': None
+            }]
+
+    def update_status(self, task_id, new_status, step_number, trigger_action=None):
+        """
+        更新任务状态并记录历史
+
+        Args:
+            task_id: 任务ID
+            new_status: 新状态 ('completed', 'failed', 'skipped', 'in_progress')
+            step_number: 步骤编号
+            trigger_action: 触发状态变更的动作类型
+        """
+        if task_id not in self.status_history:
+            self.status_history[task_id] = [{
+                'from_status': None,
+                'to_status': 'pending',
+                'step_number': 0,
+                'timestamp': None,
+                'trigger_action': None
+            }]
+
+        # 获取当前状态
+        current_status = self.status_history[task_id][-1]['to_status']
+
+        # 只有状态真正改变时才记录
+        if current_status != new_status:
+            from datetime import datetime
+            status_change = {
+                'from_status': current_status,
+                'to_status': new_status,
+                'step_number': step_number,
+                'timestamp': datetime.now().isoformat(),
+                'trigger_action': trigger_action
+            }
+            self.status_history[task_id].append(status_change)
+
+            # 更新任务对象中的状态
+            if task_id in self.planned_tasks:
+                self.planned_tasks[task_id]['status'] = new_status
+
+            # 记录日志
+            logger.info(
+                f"📋 任务状态变更: task_id={task_id}, {current_status} -> {new_status}, "
+                f"step={step_number}, action={trigger_action}"
+            )
+
+    def get_status(self, task_id):
+        """获取任务当前状态"""
+        if task_id not in self.status_history:
+            return 'unknown'
+        return self.status_history[task_id][-1]['to_status']
+
+    def get_history(self, task_id=None):
+        """
+        获取状态变更历史
+
+        Args:
+            task_id: 任务ID，如果为 None 则返回所有任务的历史
+
+        Returns:
+            dict: 状态变更历史
+        """
+        if task_id is not None:
+            return self.status_history.get(task_id, [])
+        return self.status_history
+
+    def is_all_terminal(self):
+        """检查是否所有任务都处于终端状态"""
+        terminal_statuses = {'completed', 'failed', 'skipped'}
+        for task_id, history in self.status_history.items():
+            current_status = history[-1]['to_status']
+            if current_status not in terminal_statuses:
+                return False
+        return True
+
+    def get_summary(self):
+        """
+        获取任务执行摘要
+
+        Returns:
+            dict: 包含各状态任务数量的摘要
+        """
+        summary = {
+            'total': len(self.planned_tasks),
+            'pending': 0,
+            'in_progress': 0,
+            'completed': 0,
+            'failed': 0,
+            'skipped': 0,
+            'terminal': 0
+        }
+
+        for history in self.status_history.values():
+            current_status = history[-1]['to_status']
+            if current_status in summary:
+                summary[current_status] += 1
+            if current_status in {'completed', 'failed', 'skipped'}:
+                summary['terminal'] += 1
+
+        return summary
 
 
 def _get_task_status_action_task_id(action):
@@ -107,11 +699,13 @@ def _get_task_status_action_task_id(action):
 
 
 def _has_real_business_action(action):
-    if not isinstance(action, dict):
+    """判断动作是否包含真实的业务操作（使用新的 ActionType 类）"""
+    action_dict = _extract_action_dict(action)
+    if not action_dict:
         return False
     return any(
-        action_name not in {'mark_task_complete', 'mark_task_failed', 'mark_task_skipped', 'update_task_status', 'done'}
-        for action_name in action.keys()
+        action_name not in ActionType.TERMINAL_ACTIONS
+        for action_name in action_dict.keys()
     )
 
 
@@ -126,6 +720,8 @@ def _extract_task_literals(task_description):
     literals.extend(re.findall(r"'([^'\n]+)'", text))
     literals.extend(re.findall(r'https?://[^\s]+', text))
     literals.extend(re.findall(r'\b\d{1,2}/\d{1,2}/\d{2,4}\b', text))
+    # 提取冒号或顿号后面的内容（例如：版本名称输入：V8.020260316001456）
+    literals.extend(re.findall(r'[：:]([^，,。！\n]+)', text))
 
     deduped = []
     for item in literals:
@@ -177,10 +773,13 @@ def _enforce_pending_status_settlement(actions, pending_task_id, pending_task_de
     ]
 
     if settled_actions:
-        logger.warning(
-            f"⚠️ Settling pending task {pending_task_id} first: dropped business actions from the same step"
+        # Relaxed logic: Allow mixed actions (settle pending task + new business actions)
+        # Previously we dropped business actions, but this caused issues where tasks were marked completed
+        # but the next task's action (like clicking save) was dropped.
+        logger.info(
+            f"ℹ️ Settling pending task {pending_task_id} while executing new business actions in the same step"
         )
-        return settled_actions
+        return actions
 
     return actions
 
@@ -252,8 +851,12 @@ try:
         for attempt in range(max_retries):
             try:
                 # 添加超时控制，设置为60秒（支持硅基流动等大模型API的响应时间）
+                # 注意：ainvoke 不接受 session_id 参数，确保 kwargs 中不包含它
+                # 某些版本的 LangChain 或 LLM 包装器可能会传递额外参数
+                clean_kwargs = {k: v for k, v in kwargs.items() if k != 'session_id'}
+                
                 response = await asyncio.wait_for(
-                    self.llm.ainvoke(input_messages, **kwargs),
+                    self.llm.ainvoke(input_messages, **clean_kwargs),
                     timeout=60.0  # 超时时间60秒
                 )
                 break
@@ -264,6 +867,23 @@ try:
                     await asyncio.sleep(0.5)  # 重试间隔0.5秒
             except Exception as e:
                 last_exception = e
+                # 特殊处理 session_id 参数错误
+                if "unexpected keyword argument 'session_id'" in str(e):
+                    logger.warning(f"⚠️ Removing session_id and retrying...")
+                    if 'session_id' in kwargs:
+                        del kwargs['session_id']
+                    # 立即重试，不计入重试次数
+                    try:
+                        clean_kwargs = {k: v for k, v in kwargs.items() if k != 'session_id'}
+                        response = await asyncio.wait_for(
+                            self.llm.ainvoke(input_messages, **clean_kwargs),
+                            timeout=60.0
+                        )
+                        break
+                    except Exception as retry_e:
+                        last_exception = retry_e
+                        logger.warning(f"⚠️ Retry failed: {retry_e}")
+                
                 logger.warning(f"⚠️ LLM invocation failed (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(0.5)  # 重试间隔0.5秒
@@ -339,7 +959,14 @@ try:
                             normalized_action[action_name] = normalized_value
                         if normalized_action:  # 只添加非空的 action
                             normalized_actions.append(normalized_action)
-                    normalized_actions = _enforce_single_task_step(normalized_actions)
+                    normalized_actions, _dropped = _enforce_single_task_step(normalized_actions)
+
+                    # 验证动作顺序
+                    is_valid, issues, reordered_actions = _validate_action_order(normalized_actions)
+                    if not is_valid and issues:
+                        # 如果动作顺序有误，使用重排后的动作
+                        normalized_actions = reordered_actions
+
                     pending_task_id = getattr(self, '_pending_status_task_id', None)
                     pending_task_description = getattr(self, '_pending_status_task_description', None)
                     content_dict['action'] = _enforce_pending_status_settlement(
@@ -394,8 +1021,84 @@ try:
                     parsed.action = parsed.action[:self.settings.max_actions_per_step]
 
                 return parsed
+        except json_module.JSONDecodeError as je:
+            # JSON 解析失败，尝试从原始文本中提取任务状态动作
+            logger.warning(f"⚠️ JSON decode failed: {je}")
+
+            # 尝试从原始文本中提取字段和动作
+            if hasattr(response, 'content') and response.content:
+                content_text = response.content
+                # 移除 <thinking> 标签
+                import re
+                thinking_pattern = r'^<thinking>.*?</thinking>\s*'
+                if re.match(thinking_pattern, content_text, re.DOTALL):
+                    content_text = re.sub(thinking_pattern, '', content_text, count=1, flags=re.DOTALL)
+
+                # 尝试提取各个字段（即使 JSON 格式有问题）
+                extracted_fields = {}
+                field_patterns = {
+                    'thinking': r'"thinking"\s*:\s*"([^"]*(?:\\"[^"]*)*)"',
+                    'evaluation_previous_goal': r'"evaluation_previous_goal"\s*:\s*"([^"]*(?:\\"[^"]*)*)"',
+                    'memory': r'"memory"\s*:\s*"([^"]*(?:\\"[^"]*)*)"',
+                    'next_goal': r'"next_goal"\s*:\s*"([^"]*(?:\\"[^"]*)*)"',
+                }
+
+                for field_name, pattern in field_patterns.items():
+                    match = re.search(pattern, content_text)
+                    if match:
+                        extracted_fields[field_name] = match.group(1)
+
+                # 尝试修复截断的 JSON（处理 [Omitted long context line] 问题）
+                # 尝试提取 action 数组中的任务状态动作
+                # 注意：使用 [^\\]] 可能导致解析错误，使用更安全的方式
+                action_match = re.search(r'"action"\s*:\s*\[(?:(?!\]).)*?\]', content_text, re.DOTALL)
+                if action_match:
+                    try:
+                        # 尝试提取并修复 action 数组
+                        action_str = action_match.group(0)
+                        # 移除可能被截断的 plan_update 字段
+                        cleaned_action_str = re.sub(r'"plan_update"\s*:\s*\[[^\]]*\]\s*,?', '', action_str)
+                        # 尝试解析清理后的 action
+                        partial_match = re.search(r'"action"\s*:\s*\[(.*?)\]', cleaned_action_str, re.DOTALL)
+                        if partial_match:
+                            actions_content = '[' + partial_match.group(1) + ']'
+                            actions_data = json_module.loads(actions_content)
+
+                            # 构造一个简化的 AgentOutput，使用提取的字段
+                            parsed = AgentOutput.model_construct(
+                                thinking=extracted_fields.get('thinking'),
+                                evaluation_previous_goal=extracted_fields.get('evaluation_previous_goal'),
+                                memory=extracted_fields.get('memory'),
+                                next_goal=extracted_fields.get('next_goal'),
+                                action=[]
+                            )
+
+                            class _ActionWrapper:
+                                def __init__(self, action_dict):
+                                    self._action_dict = action_dict
+                                def model_dump(self, **kwargs):
+                                    return self._action_dict
+                                def get_index(self):
+                                    for action_params in self._action_dict.values():
+                                        if isinstance(action_params, dict) and 'index' in action_params:
+                                            return action_params['index']
+                                    return None
+
+                            action_list = []
+                            for action_dict in actions_data:
+                                action_list.append(_ActionWrapper(action_dict))
+
+                            object.__setattr__(parsed, 'action', action_list)
+
+                            logger.info(f"🔧 Successfully recovered {len(action_list)} actions and {len(extracted_fields)} fields from malformed JSON")
+                            return parsed
+                    except Exception as recovery_error:
+                        logger.warning(f"⚠️ Failed to recover actions from malformed JSON: {recovery_error}")
+
+            # 最后的回退：调用原始方法
+            return await _original_get_model_output(self, input_messages)
         except Exception as e:
-            # If our complex normalization fails, fall back to the original method
+            # 其他异常，直接回退到原始方法
             logger.warning(f"⚠️ Custom output normalization failed, falling back: {e}")
             return await _original_get_model_output(self, input_messages)
 
@@ -572,7 +1275,13 @@ try:
                         normalized_action[action_name] = normalized_value
                     if normalized_action:  # 只添加非空的 action
                         normalized_actions.append(normalized_action)
-                normalized_actions = _enforce_single_task_step(normalized_actions)
+                normalized_actions, _dropped = _enforce_single_task_step(normalized_actions)
+
+                # 验证动作顺序
+                is_valid, issues, reordered_actions = _validate_action_order(normalized_actions)
+                if not is_valid and issues:
+                    normalized_actions = reordered_actions
+
                 pending_task_id = getattr(llm, '_pending_status_task_id', None)
                 pending_task_description = getattr(llm, '_pending_status_task_description', None)
                 parsed_data['action'] = _enforce_pending_status_settlement(
@@ -966,6 +1675,30 @@ class BaseBrowserAgent:
             logger.error(f"❌ 未找到API Key配置")
             raise ValueError(f"No API Key found for mode: {execution_mode}")
 
+        # 确保 base_url 格式正确（去除末尾斜杠，添加 /v1 后缀如果缺失）
+        if self.base_url:
+            self.base_url = self.base_url.rstrip('/')
+            # 对于 OpenAI 兼容 API，如果 base_url 不包含 /v1，则添加
+            if not any(self.base_url.endswith(suffix) for suffix in ['/v1', '/chat/completions']):
+                if self.provider == 'openai' or self.base_url.startswith('https://api.openai.com'):
+                    if not self.base_url.endswith('/v1'):
+                        self.base_url += '/v1'
+                elif self.provider == 'siliconflow':
+                    if not self.base_url.endswith('/v1'):
+                        self.base_url += '/v1'
+                elif self.provider == 'deepseek':
+                    # DeepSeek 兼容 OpenAI API
+                    if not self.base_url.endswith('/v1'):
+                        self.base_url += '/v1'
+                elif self.provider == 'qwen':
+                    # 通义千问兼容 OpenAI API
+                    if not self.base_url.endswith('/v1'):
+                        self.base_url += '/v1'
+
+        if not self.api_key:
+            logger.error(f"❌ 未找到API Key配置")
+            raise ValueError(f"No API Key found for mode: {execution_mode}")
+
         # 智能temperature处理：特殊模型强制使用特定temperature值
         # 格式: {'模型名称关键字': temperature值}
         special_model_temperature_map = {
@@ -1037,6 +1770,9 @@ class BaseBrowserAgent:
                 action_dict = action
             else:
                 return str(action)
+            
+            if isinstance(action_dict, list):
+                action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
 
             if not action_dict: return "待机"
 
@@ -1072,18 +1808,32 @@ class BaseBrowserAgent:
     async def _verify_execution_llm(self):
         """在真正启动执行前做一次轻量连通性检查，避免浏览器启动后反复空转失败。"""
         try:
-            logger.info(f"🔍 验证LLM连接: model={self.model_name}, base_url={self.base_url}")
+            logger.info(f"🔍 验证LLM连接:")
+            logger.info(f"  Model: {self.model_name}")
+            logger.info(f"  Provider: {self.provider}")
+            logger.info(f"  Base URL: {self.base_url}")
+            logger.info(f"  API Key: {'*' * 20 if self.api_key else 'None'}")
+
             response = await asyncio.wait_for(
                 self.llm.ainvoke("Reply with OK."),
                 timeout=30.0  # 增加超时时间到30秒
             )
-            logger.info(f"✅ LLM连接验证成功")
+            logger.info(f"✅ LLM连接验证成功，响应: {response.content[:50] if hasattr(response, 'content') else 'OK'}...")
             return response
         except asyncio.TimeoutError as e:
             logger.error(f"❌ LLM连接超时(30秒): model={self.model_name}, base_url={self.base_url}")
+            logger.error(f"   提示: 1) 检查网络连接 2) 检查API地址是否正确 3) 检查API Key是否有效")
             raise RuntimeError(f"Execution LLM unavailable: 连接超时，请检查网络或API配置") from e
         except Exception as e:
             logger.error(f"❌ LLM连接失败: {type(e).__name__}: {str(e)}, model={self.model_name}, base_url={self.base_url}")
+            logger.error(f"   错误详情: {repr(e)[:200]}")
+            # 检查是否是认证错误
+            if '401' in str(e) or 'authentication' in str(e).lower():
+                logger.error(f"   提示: API Key 认证失败，请检查配置")
+            elif 'timeout' in str(e).lower():
+                logger.error(f"   提示: 连接超时，可能是网络问题或API服务不可达")
+            elif 'connection' in str(e).lower():
+                logger.error(f"   提示: 连接被拒绝，可能是base_url配置错误")
             raise RuntimeError(f"Execution LLM unavailable: {str(e)}") from e
 
     def _extract_structured_steps(self, text: str):
@@ -1505,6 +2255,8 @@ class BaseBrowserAgent:
         # Cleanup potential zombie processes before starting
         self._cleanup_zombie_chrome()
 
+        planned_tasks = _sanitize_planned_tasks(planned_tasks)
+
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -1513,6 +2265,9 @@ class BaseBrowserAgent:
         controller = Controller()
         _task_was_done = False
         active_task_statuses = {'pending', 'in_progress'}
+
+        # 创建任务状态管理器
+        task_manager = TaskStateManager(planned_tasks) if planned_tasks else None
 
         async def emit_callback(payload):
             if not callback:
@@ -1736,7 +2491,7 @@ class BaseBrowserAgent:
         known_tab_ids = set()
 
         async def on_step_end(agent_instance):
-            nonlocal last_processed_step, last_marked_task_id, known_tab_ids
+            nonlocal last_processed_step, last_marked_task_id, known_tab_ids, _task_was_done
 
             if should_stop:
                 do_stop = await should_stop() if asyncio.iscoroutinefunction(should_stop) else should_stop()
@@ -1757,6 +2512,151 @@ class BaseBrowserAgent:
                         if hasattr(step, 'model_output') and hasattr(step.model_output, 'action'):
                             raw = step.model_output.action
                             actions = raw if isinstance(raw, list) else [raw]
+
+                        # 后备机制：如果 action 列表为空，尝试从原始响应文本中提取任务状态动作
+                        if not actions:
+                            model_output = getattr(step, 'model_output', None)
+                            if model_output:
+                                # 从 model_output 的各个字段中提取任务状态动作
+                                import re
+                                text_content = ''
+                                for field_name in ['thinking', 'evaluation_previous_goal', 'memory', 'next_goal']:
+                                    value = getattr(model_output, field_name, None)
+                                    if value:
+                                        text_content += str(value) + ' '
+
+                                # 搜索模式: mark_task_complete(task_id=N), mark_task_failed(task_id=N), 等
+                                patterns = [
+                                    r'mark_task_complete\s*\(\s*task_id\s*=\s*(\d+)',
+                                    r'mark_task_complete\s*\(\s*"task_id"\s*:\s*(\d+)',
+                                    r'mark_task_complete\s*\(\s*{\s*"task_id"\s*:\s*(\d+)',
+                                    r'"mark_task_complete"\s*:\s*{\s*"task_id"\s*:\s*(\d+)',
+                                    r'mark_task_failed\s*\(\s*task_id\s*=\s*(\d+)',
+                                    r'mark_task_failed\s*\(\s*"task_id"\s*:\s*(\d+)',
+                                    r'"mark_task_failed"\s*:\s*{\s*"task_id"\s*:\s*(\d+)',
+                                    r'mark_task_skipped\s*\(\s*task_id\s*=\s*(\d+)',
+                                    r'mark_task_skipped\s*\(\s*"task_id"\s*:\s*(\d+)',
+                                    r'"mark_task_skipped"\s*:\s*{\s*"task_id"\s*:\s*(\d+)',
+                                ]
+
+                                for pattern in patterns:
+                                    match = re.search(pattern, text_content)
+                                    if match:
+                                        task_id = int(match.group(1))
+                                        # 确定动作类型
+                                        if 'complete' in pattern:
+                                            action_dict = {'mark_task_complete': {'task_id': task_id}}
+                                        elif 'failed' in pattern:
+                                            action_dict = {'mark_task_failed': {'task_id': task_id}}
+                                        elif 'skipped' in pattern:
+                                            action_dict = {'mark_task_skipped': {'task_id': task_id}}
+                                        else:
+                                            action_dict = {'mark_task_complete': {'task_id': task_id}}
+
+                                        # 创建一个简单的 action wrapper
+                                        class _FallbackAction:
+                                            def __init__(self, action_dict):
+                                                self._action_dict = action_dict
+                                            def model_dump(self, **kwargs):
+                                                return self._action_dict
+
+                                        actions = [_FallbackAction(action_dict)]
+                                        logger.info(
+                                            f"🔧 后备机制从文本中提取到任务状态动作: {action_dict} "
+                                            f"(step {i + 1})"
+                                        )
+                                        break
+
+                        # 第二级后备机制：即使 action 列表不为空，也检查 LLM 是否在 thinking/memory 中声明了任务完成
+                        # 但没有在 action 中包含 mark_task_complete
+                        model_output = getattr(step, 'model_output', None)
+                        # 调试日志：记录是否进入第二级后备机制
+                        if (i + 1) <= 5 or (i + 1) % 5 == 0:  # 记录前5步和每5步
+                            logger.info(f"🔍 第二级后备机制条件 (step {i + 1}): model_output={bool(model_output)}, planned_tasks={bool(planned_tasks)}, planned_count={len(planned_tasks) if planned_tasks else 0}")
+                        if model_output and planned_tasks:
+                            import re
+                            # 检查是否有任务在 thinking/memory 中被声明为完成，但 action 中没有标记
+                            # 匹配模式: "Task X completed", "任务X已完成", "Task X is done", 等
+                            memory_text = ''
+                            for field_name in ['thinking', 'memory', 'evaluation_previous_goal']:
+                                value = getattr(model_output, field_name, None)
+                                if value:
+                                    memory_text += str(value) + ' '
+
+                            # 调试日志：记录 memory_text（当包含 complete/completed/done/finished/完成 时）
+                            if any(keyword in memory_text.lower() for keyword in ['completed', 'done', 'finished', 'complete', '完成']):
+                                logger.info(f"🔍 第二级后备机制检查 (step {i + 1}): memory_text包含完成声明, 片段={memory_text[:150]}...")
+
+                            # 检查 action 中已经包含的任务状态动作
+                            action_task_ids = set()
+                            for action in actions:
+                                action_info = _extract_action_info(action)
+                                if action_info['action_name'] in ActionType.TASK_STATUS_ACTIONS:
+                                    if action_info['task_id']:
+                                        action_task_ids.add(action_info['task_id'])
+
+                            # 在 memory 中查找声明为完成但未在 action 中标记的任务
+                            # 匹配 "Task X completed", "任务X已完成", "task X done", "X and Y completed", "Tasks 1-2 completed"
+                            # 还要匹配 "Tasks 1 and 2 are complete", "Task 1 is complete" 等格式
+                            # 修复：只匹配明确的完成状态，避免 "Now starting task X" 被误判
+                            # 使用更严格的正则，确保 "task X" 后面紧跟着完成词，或者完成词紧跟着 "task X"
+                            completed_patterns = [
+                                r'task\s+(\d+)\s+(?:is\s+)?(?:completed|done|finished|complete)(?!\s*successfully\s*started)',
+                                r'tasks?\s+(\d+)\s+and\s+(\d+)\s+(?:are\s+)?(?:completed|done|finished|complete)',
+                                r'tasks?\s+(\d+)\s*(?:-|to|–|至)\s*(\d+)\s+(?:are\s+)?(?:completed|done|finished|complete)',
+                                r'(\d+)\s+and\s+(\d+)\s+(?:are\s+)?(?:completed|done|finished|complete)',
+                                r'任务\s*(\d+)\s*(已完成|完成|done)',
+                                r'task\s+(\d+)\s*,\s*task\s+(\d+)\s+completed',
+                            ]
+
+                            for pattern in completed_patterns:
+                                match = re.search(pattern, memory_text, re.IGNORECASE)
+                                if match:
+                                    groups = match.groups()
+                                    # 提取所有任务ID
+                                    task_ids_from_match = []
+                                    for g in groups:
+                                        if g and g.isdigit():
+                                            task_id = int(g)
+                                            # 只添加有效的任务ID（在 planned_tasks 范围内）
+                                            if 1 <= task_id <= len(planned_tasks):
+                                                task_ids_from_match.append(task_id)
+
+                                    # 特殊处理：如果有两个数字且它们形成范围（如 1-2），则生成范围内的所有任务ID
+                                    if len(task_ids_from_match) == 2:
+                                        start, end = task_ids_from_match
+                                        if start < end:  # 确保是有效范围
+                                            # 用范围内的所有任务替换原来的两个任务
+                                            task_ids_from_match = list(range(start, end + 1))
+
+                                    # 对于每个在 memory 中声明完成但没有在 action 中标记的任务，自动标记
+                                    for task_id in task_ids_from_match:
+                                        if task_id not in action_task_ids:
+                                            # 检查任务是否已经处于完成状态
+                                            task_already_completed = False
+                                            for task in planned_tasks:
+                                                if task.get('id') == task_id and task.get('status') in ['completed', 'failed', 'skipped']:
+                                                    task_already_completed = True
+                                                    break
+
+                                            if not task_already_completed:
+                                                # 自动添加标记任务完成的动作
+                                                action_dict = {'mark_task_complete': {'task_id': task_id}}
+
+                                                class _InferredAction:
+                                                    def __init__(self, action_dict):
+                                                        self._action_dict = action_dict
+                                                    def model_dump(self, **kwargs):
+                                                        return self._action_dict
+
+                                                # 将推断的动作添加到 actions 列表的末尾，确保所有推断动作都能被处理
+                                                actions.append(_InferredAction(action_dict))
+                                                logger.info(
+                                                    f"🔧 从 memory 推断并添加任务状态动作: {action_dict} "
+                                                    f"(step {i + 1}) - LLM声明了任务完成但未在action中标记"
+                                                )
+                                                # 更新 action_task_ids 以避免重复添加
+                                                action_task_ids.add(task_id)
 
                         current_active_task = get_next_active_task()
                         current_active_task_id = current_active_task.get('id') if current_active_task else None
@@ -1794,58 +2694,203 @@ class BaseBrowserAgent:
                             elif getattr(agent_instance, '_auth_failure_task_id', None) == current_active_task_id:
                                 agent_instance._auth_failure_count = 0
 
-                        # 检查这一步是否调用了任务状态更新动作
-                        step_has_task_complete = False
+                        # ============================================================
+                        # 任务状态动作检测和处理（使用新的辅助函数）
+                        # ============================================================
+                        step_has_terminal_action = False
                         step_marked_task_id = None
+                        step_marked_task_status = None
+                        detected_status_actions = []
+
                         for action in actions:
-                            action_dict = action.model_dump() if hasattr(action, 'model_dump') else getattr(action,
-                                                                                                            '_action_dict',
-                                                                                                            {})
-                            if 'mark_task_complete' in action_dict:
-                                step_has_task_complete = True
-                                step_marked_task_id = action_dict['mark_task_complete'].get('task_id')
-                            elif 'mark_task_failed' in action_dict:
-                                step_has_task_complete = True
-                                step_marked_task_id = action_dict['mark_task_failed'].get('task_id')
-                            elif 'mark_task_skipped' in action_dict:
-                                step_has_task_complete = True
-                                step_marked_task_id = action_dict['mark_task_skipped'].get('task_id')
-                            elif 'update_task_status' in action_dict:
-                                step_has_task_complete = True
-                                payload = action_dict['update_task_status']
-                                step_marked_task_id = payload.get('task_id')
+                            action_info = _extract_action_info(action)
 
-                            if step_has_task_complete:
-                                # 检查是否重复标记已完成的任务 - 提示但不自动修复
-                                if planned_tasks:
-                                    for task in planned_tasks:
-                                        if task['id'] == step_marked_task_id and task.get('status') in ['completed', 'failed', 'skipped']:
-                                            next_expected = last_marked_task_id + 1
-                                            logger.warning(
-                                                f"⚠️ Task {step_marked_task_id} is already terminal ({task.get('status')})! "
-                                                f"You should mark task {next_expected} instead.")
-                                            break
+                            # 检查是否是任务状态动作
+                            if action_info['action_name'] in ActionType.TERMINAL_ACTIONS:
+                                step_has_terminal_action = True
+                                task_id = action_info['task_id']
+                                task_status = action_info['status']
+
+                                # 记录检测到的状态动作
+                                detected_status_actions.append({
+                                    'action': action_info['action_name'],
+                                    'task_id': task_id,
+                                    'status': task_status
+                                })
+
+                                # 验证 task_id
+                                if task_id is not None and planned_tasks:
+                                    is_valid, task, error_msg = _validate_task_id(task_id, planned_tasks)
+                                    if not is_valid:
+                                        logger.warning(f"⚠️ 任务状态动作验证失败: {error_msg}")
+
+                                    # 对于 update_task_status，额外验证 status 值
+                                    if action_info['action_name'] == ActionType.UPDATE_TASK_STATUS:
+                                        status_params = action_info['action_params']
+                                        if isinstance(status_params, list):
+                                            status_params = status_params[0] if status_params and isinstance(status_params[0], dict) else {}
+                                        if not isinstance(status_params, dict):
+                                            status_params = {}
+                                        status_valid, normalized_status, status_error = _validate_task_status_value(
+                                            status_params.get('status'),
+                                            ActionType.UPDATE_TASK_STATUS
+                                        )
+                                        if not status_valid:
+                                            logger.warning(f"⚠️ {status_error}")
+
+                                # 记录当前步骤标记的任务ID和状态，用于后续处理
+                                step_marked_task_id = task_id
+                                step_marked_task_status = task_status
+
+                                # 不再 break，而是处理所有终端状态动作
+
+                        # 如果检测到任务状态动作，记录日志并更新状态
+                        if step_has_terminal_action and step_marked_task_id is not None:
+                            # 使用 TaskStateManager 记录状态变更
+                            if task_manager:
+                                # 确定新状态值
+                                new_status = step_marked_task_status
+                                if new_status is None:
+                                    # 根据动作类型推断状态
+                                    action_name = detected_status_actions[0]['action']
+                                    if action_name == ActionType.MARK_TASK_FAILED:
+                                        new_status = 'failed'
+                                    elif action_name == ActionType.MARK_TASK_SKIPPED:
+                                        new_status = 'skipped'
+                                    else:
+                                        new_status = 'completed'
+
+                                task_manager.update_status(
+                                    task_id=step_marked_task_id,
+                                    new_status=new_status,
+                                    step_number=i + 1,
+                                    trigger_action=detected_status_actions[0]['action']
+                                )
+
+                                # 发送状态更新事件到回调
+                                if callback:
+                                    status_payload = {
+                                        'type': 'task_status_update',
+                                        'task_id': step_marked_task_id,
+                                        'status': new_status,
+                                        'step_number': i + 1,
+                                        'trigger_action': detected_status_actions[0]['action']
+                                    }
+                                    if asyncio.iscoroutinefunction(callback):
+                                        await callback(status_payload)
+                                    else:
+                                        callback(status_payload)
+
+                            logger.info(
+                                f"📋 检测到任务状态动作: action={detected_status_actions[0]['action']}, "
+                                f"task_id={step_marked_task_id}, status={step_marked_task_status or 'completed/failed/skipped'}"
+                            )
+
+                            # 检查是否重复标记已完成的任务
+                            if planned_tasks:
+                                for task in planned_tasks:
+                                    if task['id'] == step_marked_task_id and task.get('status') in ['completed', 'failed', 'skipped']:
+                                        next_expected = last_marked_task_id + 1
+                                        logger.warning(
+                                            f"⚠️ Task {step_marked_task_id} is already terminal ({task.get('status')})! "
+                                            f"You should mark task {next_expected} instead."
+                                        )
+                                        break
+                                
+                                # ============================================================
+                                # 自动补全中间任务逻辑已移除
+                                # 原有逻辑过于激进，可能导致非必填项被错误标记完成
+                                # 现在采用更温和的策略：如果后续任务被标记，仅更新指针，不强制修改中间任务状态
+                                # ============================================================
+                                
+                            last_marked_task_id = step_marked_task_id
+
+                            # 清除待处理状态
+                            if getattr(agent_instance, '_pending_status_task_id', None) == step_marked_task_id:
+                                logger.info(f"🔄 清除待处理任务状态: task_id={step_marked_task_id}")
+                                agent_instance._pending_status_task_id = None
+                                agent_instance._pending_status_task_description = None
+                                
+                            # 重要修复：更新 last_marked_task_id 时，如果 AI 回溯标记了之前的任务（如先标4再标3），
+                            # 不能简单覆盖，而是应该确保 last_marked_task_id 总是记录已完成的"最大"任务ID，
+                            # 或者是当前正在执行的最前沿任务ID，防止后续告警逻辑（next_expected_task_id = last_marked_task_id + 1）混乱。
+                            # 更好的做法是：遍历 planned_tasks 找到所有状态为 completed/failed/skipped 的任务中的最大 ID。
+                            if planned_tasks:
+                                max_marked_id = 0
+                                for task in planned_tasks:
+                                    if task.get('status') in ['completed', 'failed', 'skipped'] and task.get('id', 0) > max_marked_id:
+                                        max_marked_id = task.get('id', 0)
+                                if max_marked_id > 0:
+                                    last_marked_task_id = max_marked_id
+                                else:
+                                    last_marked_task_id = step_marked_task_id
+                            else:
                                 last_marked_task_id = step_marked_task_id
-                                if getattr(agent_instance, '_pending_status_task_id', None) == step_marked_task_id:
-                                    agent_instance._pending_status_task_id = None
-                                    agent_instance._pending_status_task_description = None
-                                break
 
-                        # 检查这一步是否有实际操作（非mark_task_complete的操作）
+                            # ============================================================
+                            # 检查是否所有任务都已达到终端状态，如果是则设置完成标志
+                            # ============================================================
+                            if planned_tasks and step_marked_task_id:
+                                all_terminal, completed_count, total_count, terminal_tasks = _all_tasks_in_terminal_status(planned_tasks)
+
+                                if all_terminal:
+                                    logger.info(
+                                        f"✅ 所有任务已完成: {completed_count}/{total_count} 任务已达到终端状态"
+                                    )
+                                    # 设置 _task_was_done 标志，触发停止
+                                    _task_was_done = True
+                                    logger.info("🏁 设置 _task_was_done = True，将在下一步停止执行")
+                                else:
+                                    # 记录当前进度
+                                    pending_id = _get_pending_task_id(planned_tasks)
+                                    logger.info(
+                                        f"📊 任务进度: {completed_count}/{total_count} 已完成，"
+                                        f"下一个待处理任务: task_id={pending_id}"
+                                    )
+                                    # 更新 agent 实例上的跟踪变量
+                                    if pending_id:
+                                        agent_instance._current_task_id = pending_id
+                                        # 设置待处理任务状态
+                                        agent_instance._pending_status_task_id = pending_id
+                                        for task in planned_tasks:
+                                            if task.get('id') == pending_id:
+                                                agent_instance._pending_status_task_description = task.get('description', '')
+                                                break
+
+                        # 检查这一步是否有实际业务操作（非任务状态动作）
                         has_real_action = False
                         has_link_open_action = False
+                        
+                        # 记录所有真实的业务动作
+                        real_business_actions = []
+                        
                         for action in actions:
-                            action_dict = action.model_dump() if hasattr(action, 'model_dump') else getattr(action,
-                                                                                                            '_action_dict',
-                                                                                                            {})
-                            for key in action_dict.keys():
-                                if key not in ['mark_task_complete', 'mark_task_failed', 'mark_task_skipped', 'update_task_status', 'done']:
-                                    has_real_action = True
-                                if key in ['click', 'open_new_tab', 'navigate', 'go_to_url']:
+                            action_info = _extract_action_info(action)
+                            action_name = action_info['action_name']
+
+                            if action_name and action_name not in ActionType.TERMINAL_ACTIONS:
+                                has_real_action = True
+                                # 修复：将 action 转换为字典，避免 _ActionWrapper 序列化错误
+                                if hasattr(action, 'model_dump'):
+                                    real_business_actions.append(action.model_dump())
+                                elif hasattr(action, '_action_dict'):
+                                    real_business_actions.append(action._action_dict)
+                                elif isinstance(action, dict):
+                                    real_business_actions.append(action)
+                                else:
+                                    # Fallback: try to convert to dict or string
+                                    try:
+                                        real_business_actions.append(dict(action))
+                                    except:
+                                        real_business_actions.append(str(action))
+                                
+                                if action_name in ['click', 'open_new_tab', 'navigate', 'go_to_url']:
                                     has_link_open_action = True
-                                    break
+                                    # 注意：这里不再 break，因为我们需要收集所有业务动作
+                            
                             if has_real_action:
-                                break
+                                # 保持之前的逻辑：只要有一个真实动作就标记
+                                pass
 
                         action_str = " | ".join([self._format_action(a) for a in actions])
                         log_content = f"\n[Step {i + 1}]\n执行: {action_str}\n"
@@ -1886,8 +2931,151 @@ class BaseBrowserAgent:
                             except Exception as tab_error:
                                 logger.warning(f"⚠️ Failed to inspect/switch tabs after step {i + 1}: {tab_error}")
 
+                        # ============================================================
+                        # 智能任务状态推断：基于动作匹配的任务状态更新
+                        # 如果当前步骤有业务动作，但没有显式标记任务完成，
+                        # 尝试将这些动作匹配到当前待处理的任务上
+                        # ============================================================
+                        if has_real_action and not step_has_terminal_action and planned_tasks:
+                            # 获取下一个预期任务
+                            next_expected_task_id = last_marked_task_id + 1
+                            
+                            # 查找该任务的描述
+                            target_task = None
+                            for task in planned_tasks:
+                                if task.get('id') == next_expected_task_id and task.get('status') == 'pending':
+                                    target_task = task
+                                    break
+                            
+                            if target_task:
+                                task_desc = target_task.get('description', '')
+                                
+                                # 检查当前动作是否匹配任务描述
+                                # 1. 提取任务描述中的关键词/字面量
+                                task_literals = _extract_task_literals(task_desc)
+                                
+                                # 2. 检查动作是否包含这些字面量
+                                action_matches_task = False
+                                matched_literal = None
+                                
+                                for action in real_business_actions:
+                                    try:
+                                        if isinstance(action, str):
+                                            action_payload = action
+                                        else:
+                                            action_payload = json.dumps(action, ensure_ascii=False)
+                                    except:
+                                        action_payload = str(action)
+                                        
+                                    for literal in task_literals:
+                                        if literal in action_payload:
+                                            action_matches_task = True
+                                            matched_literal = literal
+                                            break
+                                    
+                                    # 增强推断：如果动作是 click，且任务描述包含 "点击" 或 "click"，并且没有其他更好的匹配
+                                    # 我们可以尝试放宽匹配（但这有风险，所以只在没有任何字面量匹配时使用）
+                                    if not action_matches_task and 'click' in action_payload:
+                                        # 从 step.model_output 获取 thinking
+                                        model_output = getattr(step, 'model_output', None)
+                                        thinking_text = getattr(model_output, 'thinking', '') if model_output else ''
+                                        
+                                        # 检查 thinking 中是否提到了任务描述中的关键词
+                                        # 1. 任务描述中的字面量匹配
+                                        for literal in task_literals:
+                                            if literal in thinking_text:
+                                                action_matches_task = True
+                                                matched_literal = f"thinking_match:{literal}"
+                                                break
+                                        
+                                        # 2. 如果任务描述包含 "选择"、"下拉" 等词，且 Thinking 中也有，则匹配
+                                        if not action_matches_task:
+                                            keywords = ['选择', 'select', '下拉', 'dropdown', 'project', '项目']
+                                            task_has_keyword = any(k in task_desc.lower() for k in keywords)
+                                            thinking_has_keyword = any(k in thinking_text.lower() for k in keywords)
+                                            if task_has_keyword and thinking_has_keyword:
+                                                 # 还需要确保 Thinking 中包含任务描述中的其他核心词（如“项目名”）
+                                                 # 简单的交叉检查：提取任务描述中的连续2个以上中文字符
+                                                 import re
+                                                 cn_phrases = re.findall(r'[\u4e00-\u9fa5]{2,}', task_desc)
+                                                 for phrase in cn_phrases:
+                                                     if phrase in thinking_text:
+                                                         action_matches_task = True
+                                                         matched_literal = f"thinking_context_match:{phrase}"
+                                                         break
+                                    
+                                    # 增强推断2：如果动作是 input，提取输入的 text
+                                    # 检查 text 是否包含在任务描述中（反向匹配）
+                                    if not action_matches_task and 'input' in action_payload and isinstance(action, dict) and 'input' in action:
+                                        input_text = action['input'].get('text', '')
+                                        # 1. 反向匹配：输入文本在任务描述中
+                                        if input_text and len(str(input_text)) > 2 and str(input_text) in task_desc:
+                                            action_matches_task = True
+                                            matched_literal = f"reverse_match:{input_text}"
+                                        
+                                        # 2. Thinking 匹配：如果任务描述包含 "填写"、"输入"，且 Thinking 包含任务描述中的关键词
+                                        if not action_matches_task:
+                                            model_output = getattr(step, 'model_output', None)
+                                            thinking_text = getattr(model_output, 'thinking', '') if model_output else ''
+                                            
+                                            keywords = ['填写', '输入', 'fill', 'enter', 'input', 'type']
+                                            task_has_keyword = any(k in task_desc.lower() for k in keywords)
+                                            
+                                            if task_has_keyword:
+                                                import re
+                                                cn_phrases = re.findall(r'[\u4e00-\u9fa5]{2,}', task_desc)
+                                                for phrase in cn_phrases:
+                                                    if phrase in thinking_text:
+                                                        action_matches_task = True
+                                                        matched_literal = f"thinking_input_match:{phrase}"
+                                                        break
+
+                                    if action_matches_task:
+                                        break
+                                
+                                if action_matches_task:
+                                    logger.info(
+                                        f"🤖 智能推断: 动作匹配到任务 {next_expected_task_id} "
+                                        f"(匹配关键词: '{matched_literal}')，自动标记为 completed"
+                                    )
+                                    
+                                    # 自动标记任务完成
+                                    if task_manager:
+                                        task_manager.update_status(
+                                            task_id=next_expected_task_id,
+                                            new_status='completed',
+                                            step_number=i + 1,
+                                            trigger_action='auto_inferred_from_action'
+                                        )
+                                        
+                                        # 发送状态更新事件
+                                        if callback:
+                                            status_payload = {
+                                                'type': 'task_status_update',
+                                                'task_id': next_expected_task_id,
+                                                'status': 'completed',
+                                                'step_number': i + 1,
+                                                'trigger_action': 'auto_inferred_from_action'
+                                            }
+                                            if asyncio.iscoroutinefunction(callback):
+                                                await callback(status_payload)
+                                            else:
+                                                callback(status_payload)
+                                    
+                                    # 更新 last_marked_task_id
+                                    last_marked_task_id = next_expected_task_id
+                                    
+                                    # 清除待处理状态
+                                    if getattr(agent_instance, '_pending_status_task_id', None) == next_expected_task_id:
+                                        agent_instance._pending_status_task_id = None
+                                        agent_instance._pending_status_task_description = None
+
                         # 记录未标记任务的步骤（不自动修复，仅警告）
-                        if has_real_action and not step_has_task_complete and planned_tasks:
+                        # 修改条件：只有在智能推断也没有生效的情况下才警告
+                        current_step_marked = (step_marked_task_id is not None) or \
+                                             (has_real_action and last_marked_task_id == next_expected_task_id)
+
+                        if has_real_action and not current_step_marked and planned_tasks:
                             next_expected_task_id = last_marked_task_id + 1
                             if next_expected_task_id <= len(planned_tasks):
                                 # 检查这个任务是否还没有被标记
@@ -1934,8 +3122,84 @@ class BaseBrowserAgent:
         history = getattr(agent, 'history', [])
         if history:
             logger.info("🔍 Performing final task status consistency check")
-            # 检查是否有任务执行了但未标记完成
-            executed_tasks_info = self._find_executed_tasks(history)
+            # 检查是否有任务执行了但未标记完成，并进行最终结算
+            # 注意：这里的 planned_tasks 参数必须是最新的任务列表（包含当前状态）
+            # 我们需要从 task_manager 获取最新的任务状态，或者传入正确的 planned_tasks
+            
+            # 如果 task_manager 存在，我们优先使用它里面的最新任务列表
+            latest_tasks = planned_tasks
+            if task_manager and hasattr(task_manager, 'tasks'):
+                latest_tasks = task_manager.tasks
+            latest_tasks = _sanitize_planned_tasks(latest_tasks)
+
+            try:
+                executed_tasks_info = self._find_executed_tasks(history, latest_tasks)
+                if not isinstance(executed_tasks_info, dict):
+                    executed_tasks_info = {
+                        'marked_tasks': [],
+                        'inferred_completed_tasks': [],
+                        'executed_actions': 0,
+                        'unmarked_actions': []
+                    }
+            except Exception as settlement_error:
+                logger.error(f"❌ Final consistency settlement failed: {settlement_error}", exc_info=True)
+                executed_tasks_info = {
+                    'marked_tasks': [],
+                    'inferred_completed_tasks': [],
+                    'executed_actions': 0,
+                    'unmarked_actions': []
+                }
+
+                has_done_success = False
+                for step in getattr(history, 'steps', []):
+                    for action in getattr(step, 'actions', []):
+                        action_dict = _extract_action_dict(action)
+                        if not isinstance(action_dict, dict):
+                            continue
+                        done_params = action_dict.get('done')
+                        if isinstance(done_params, dict) and done_params.get('success') is True:
+                            has_done_success = True
+                            break
+                    if has_done_success:
+                        break
+
+                if has_done_success and latest_tasks:
+                    fallback_inferred = []
+                    for task in latest_tasks:
+                        if task.get('status') in {'pending', 'in_progress'}:
+                            task_id = task.get('id')
+                            if task_id is not None:
+                                fallback_inferred.append(task_id)
+                    if fallback_inferred:
+                        logger.warning(
+                            f"⚠️ Settlement fallback enabled due to exception; "
+                            f"marking pending tasks as completed because done(success=True) exists: {fallback_inferred}"
+                        )
+                        executed_tasks_info['inferred_completed_tasks'] = fallback_inferred
+            
+            # 将推断出的完成任务同步到任务管理器
+            if executed_tasks_info.get('inferred_completed_tasks') and task_manager:
+                for task_id in executed_tasks_info['inferred_completed_tasks']:
+                    logger.info(f"🔄 自动同步结算状态: Task {task_id} -> completed")
+                    task_manager.update_status(
+                        task_id=task_id,
+                        new_status='completed',
+                        step_number=len(history.steps) if hasattr(history, 'steps') else 0,
+                        trigger_action='final_consistency_settlement'
+                    )
+                    if callback:
+                        status_payload = {
+                            'type': 'task_status_update',
+                            'task_id': task_id,
+                            'status': 'completed',
+                            'step_number': len(history.steps) if hasattr(history, 'steps') else 0,
+                            'trigger_action': 'final_consistency_settlement'
+                        }
+                        if asyncio.iscoroutinefunction(callback):
+                            await callback(status_payload)
+                        else:
+                            callback(status_payload)
+                            
             if (
                 executed_tasks_info
                 and executed_tasks_info.get('executed_actions', 0) > len(executed_tasks_info.get('marked_tasks', []))
@@ -1948,47 +3212,158 @@ class BaseBrowserAgent:
 
         return history
 
-    def _find_executed_tasks(self, history):
+    def _find_executed_tasks(self, history, planned_tasks=None):
         """
-        通过分析执行历史找出已执行但未标记完成的任务
+        通过分析执行历史找出已执行但未标记完成的任务，并进行最终一致性结算
         """
         if not history or not hasattr(history, 'steps'):
-            return []
+            return {
+                'marked_tasks': [],
+                'inferred_completed_tasks': [],
+                'executed_actions': 0,
+                'unmarked_actions': []
+            }
 
         executed_actions = {}  # 已执行的操作类型和索引，以及对应的步骤
         marked_tasks = set()  # 已标记完成的任务ID
+        action_footprints = [] # 记录所有动作的文本足迹
 
         # 分析执行历史
         for step_idx, step in enumerate(getattr(history, 'steps', [])):
+            # 提取 thinking 作为足迹的一部分
+            model_output = getattr(step, 'model_output', None)
+            thinking = getattr(model_output, 'thinking', '') if model_output else ''
+            if thinking:
+                action_footprints.append(thinking.lower())
+                
             # 检查每一步中的actions
             actions = getattr(step, 'actions', [])
             for action in actions:
+                # 提取动作相关的文本作为足迹
+                action_text = ""
+                
+                # 处理 action 是字典的情况 (兼容性增强)
+                try:
+                    action_dict = action if isinstance(action, dict) else (action.model_dump() if hasattr(action, 'model_dump') else {})
+                    if isinstance(action_dict, list):
+                        logger.warning(f"⚠️ action_dict is a list, converting to dict: {action_dict}")
+                        # 尝试提取第一个元素，如果它是字典
+                        action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to parse action_dict: {e}")
+                    action_dict = {}
+                
                 # 记录已执行的操作
-                if hasattr(action, 'input'):
+                # 兼容对象访问和字典访问
+                if hasattr(action, 'input') and action.input:
                     action_key = f"input_{action.input.index}"
                     executed_actions[action_key] = {
                         'step': step_idx,
                         'action': 'input',
-                        'index': action.input.index
+                        'index': action.input.index,
+                        'text': getattr(action.input, 'text', '')
                     }
-                elif hasattr(action, 'click'):
+                    action_text = getattr(action.input, 'text', '')
+                elif 'input' in action_dict:
+                     input_params = action_dict['input']
+                     if isinstance(input_params, list):
+                         input_params = input_params[0] if input_params else {}
+                     if not isinstance(input_params, dict):
+                         input_params = {}
+
+                     idx = input_params.get('index', 0)
+                     text = input_params.get('text', '')
+                     action_key = f"input_{idx}"
+                     executed_actions[action_key] = {
+                        'step': step_idx,
+                        'action': 'input',
+                        'index': idx,
+                        'text': text
+                     }
+                     action_text = text
+                     
+                elif hasattr(action, 'click') and action.click:
                     action_key = f"click_{action.click.index}"
                     executed_actions[action_key] = {
                         'step': step_idx,
                         'action': 'click',
                         'index': action.click.index
                     }
-                elif hasattr(action, 'switch_tab'):
+                elif 'click' in action_dict:
+                    click_params = action_dict['click']
+                    if isinstance(click_params, list):
+                        click_params = click_params[0] if click_params else {}
+                    if not isinstance(click_params, dict):
+                        click_params = {'index': click_params} if isinstance(click_params, int) else {}
+
+                    idx = click_params.get('index', 0)
+                    action_key = f"click_{idx}"
+                    executed_actions[action_key] = {
+                        'step': step_idx,
+                        'action': 'click',
+                        'index': idx
+                    }
+                    
+                elif hasattr(action, 'switch_tab') and action.switch_tab:
                     action_key = f"switch_tab_{action.switch_tab.tab_id}"
                     executed_actions[action_key] = {
                         'step': step_idx,
                         'action': 'switch_tab',
                         'tab_id': action.switch_tab.tab_id
                     }
+                elif 'switch_tab' in action_dict:
+                    switch_params = action_dict['switch_tab']
+                    if isinstance(switch_params, list):
+                        switch_params = switch_params[0] if switch_params else {}
+                    if not isinstance(switch_params, dict):
+                         # Handle raw string/int tab_id
+                         switch_params = {'tab_id': switch_params} if switch_params else {}
+
+                    tab_id = switch_params.get('tab_id', 0)
+                    action_key = f"switch_tab_{tab_id}"
+                    executed_actions[action_key] = {
+                        'step': step_idx,
+                        'action': 'switch_tab',
+                        'tab_id': tab_id
+                    }
+                
+                # 处理 done 动作
+                if hasattr(action, 'done') and action.done:
+                    # 如果有 done 动作，认为任务已全部完成
+                    pass
+                elif 'done' in action_dict:
+                    pass
+
+                if action_text:
+                    action_footprints.append(action_text.lower())
 
                 # 记录已标记完成的任务
-                if hasattr(action, 'mark_task_complete'):
-                    marked_tasks.add(action.mark_task_complete.task_id)
+                task_id_marked = None
+                if hasattr(action, 'mark_task_complete') and action.mark_task_complete:
+                    task_id_marked = action.mark_task_complete.task_id
+                elif 'mark_task_complete' in action_dict:
+                    mtc_params = action_dict['mark_task_complete']
+                    if isinstance(mtc_params, list):
+                        mtc_params = mtc_params[0] if mtc_params else {}
+                    if not isinstance(mtc_params, dict):
+                        mtc_params = {'task_id': mtc_params} if isinstance(mtc_params, int) else {}
+                    
+                    task_id_marked = mtc_params.get('task_id')
+                elif hasattr(action, 'update_task_status') and action.update_task_status:
+                    if str(getattr(action.update_task_status, 'status', '')).lower() == 'completed':
+                        task_id_marked = action.update_task_status.task_id
+                elif 'update_task_status' in action_dict:
+                    uts_params = action_dict['update_task_status']
+                    if isinstance(uts_params, list):
+                        uts_params = uts_params[0] if uts_params else {}
+                    if not isinstance(uts_params, dict):
+                        uts_params = {}
+                    
+                    if str(uts_params.get('status', '')).lower() == 'completed':
+                        task_id_marked = uts_params.get('task_id')
+                
+                if task_id_marked is not None:
+                    marked_tasks.add(task_id_marked)
 
         # 理想情况下应该有一个映射机制来关联操作和任务，但由于我们没有这个映射，
         # 我们只能记录未标记完成的执行操作作为调试信息
@@ -2000,8 +3375,127 @@ class BaseBrowserAgent:
                 'details': action_key
             })
 
+        # =====================================================================
+        # 最终一致性结算 (Final Consistency Settlement)
+        # 如果提供了 planned_tasks，则根据动作足迹进行状态修正
+        # =====================================================================
+        planned_tasks = _sanitize_planned_tasks(planned_tasks)
+        inferred_completed_tasks = set()
+        if planned_tasks:
+            # 获取最大已标记任务ID，用于判断是否到达终点
+            max_marked_id = max(marked_tasks) if marked_tasks else 0
+            
+            # 如果存在 done 动作，或者 max_marked_id > 1，开始结算
+            # 检查是否有 done 动作
+            has_done_action = False
+            for step in getattr(history, 'steps', []):
+                 actions = getattr(step, 'actions', [])
+                 for action in actions:
+                     try:
+                         action_dict = action if isinstance(action, dict) else (action.model_dump() if hasattr(action, 'model_dump') else {})
+                         if isinstance(action_dict, list):
+                             action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
+                     except Exception:
+                         action_dict = {}
+                         
+                     if hasattr(action, 'done') and action.done:
+                         has_done_action = True
+                         break
+                     elif 'done' in action_dict:
+                         has_done_action = True
+                         break
+                 if has_done_action: break
+            
+            # 如果有 done 动作，将 max_marked_id 视为无穷大（或最后一个任务ID）
+            if has_done_action:
+                max_planned_id = 0
+                try:
+                    # 安全地计算 max_planned_id，防止 planned_tasks 中包含非字典元素
+                    for t in planned_tasks:
+                        if isinstance(t, dict):
+                            tid = t.get('id', 0)
+                            if tid > max_planned_id:
+                                max_planned_id = tid
+                        # 兼容对象访问
+                        elif hasattr(t, 'id'):
+                            tid = getattr(t, 'id', 0)
+                            if tid > max_planned_id:
+                                max_planned_id = tid
+                        elif isinstance(t, list):
+                            logger.warning(f"⚠️ planned_tasks 包含 list 元素: {t}")
+                except Exception as e:
+                    logger.error(f"❌ 计算 max_planned_id 失败: {e}")
+                
+                max_marked_id = max(max_marked_id, max_planned_id + 1) # 确保覆盖所有任务
+                logger.info("✅ 检测到 done 动作，启动全量最终一致性结算")
+            
+            # 如果 AI 标记了 done 或者最大的 task_id，说明流程结束，开始结算
+            # (这里的判断比较简单，假设只要有 marked_tasks 就可能需要结算中间的)
+            if max_marked_id > 1:
+                import re
+                combined_footprint = " ".join(action_footprints)
+                
+                for task in planned_tasks:
+                    # 确保 task 是字典
+                    if not isinstance(task, dict):
+                        if hasattr(task, 'model_dump'):
+                             task = task.model_dump()
+                        elif hasattr(task, '__dict__'):
+                             task = task.__dict__
+                        else:
+                             # 如果是列表或其他无法转换的类型，跳过
+                             continue
+                    
+                    task_id = task.get('id')
+                    task_status = task.get('status', 'pending')
+                    task_desc = task.get('description', '').lower()
+                    
+                    # 只处理未标记的中间任务
+                    if task_id < max_marked_id and task_status == 'pending':
+                        is_matched = False
+                        
+                        # 策略1：使用之前强大的字面量提取逻辑
+                        literals = _extract_task_literals(task_desc)
+                        for literal in literals:
+                            if literal.lower() in combined_footprint:
+                                is_matched = True
+                                logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到字面量: '{literal}'")
+                                break
+                        
+                        # 策略2：提取核心中文词组，过滤掉常见动词/名词
+                        if not is_matched:
+                            # 过滤掉常见的导致误判或匹配失败的词
+                            stop_words = ['点击', '按钮', '填写', '输入', '选择', '下拉框', '验证', '是否', '页面', '进入', '打开', '当前时间戳', '新增的', '关联项目']
+                            clean_desc = task_desc
+                            for word in stop_words:
+                                clean_desc = clean_desc.replace(word, ' ')
+                                
+                            # 提取所有包含数字、字母或连续中文的片段，这些更有可能是关键信息
+                            key_phrases = re.findall(r'[a-zA-Z0-9.\-_]+|[\u4e00-\u9fa5]{2,}', clean_desc)
+                            
+                            # 只要有一个核心词组出现在足迹中，就认为匹配成功（降低阈值，因为核心词更有代表性）
+                            for phrase in key_phrases:
+                                if phrase and len(phrase) >= 2 and phrase in combined_footprint:
+                                    is_matched = True
+                                    logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到核心词: '{phrase}'")
+                                    break
+                                    
+                        # 策略3：非常短的描述直接匹配
+                        if not is_matched and 2 < len(task_desc) <= 6 and task_desc in combined_footprint:
+                             is_matched = True
+                             logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到短描述")
+
+                        if is_matched:
+                            inferred_completed_tasks.add(task_id)
+                            logger.info(f"✅ [最终一致性结算] 任务 {task_id} 未被显式标记，但足迹匹配成功，推断为 completed")
+                        else:
+                            # 没有匹配到足迹，说明可能是被跳过的非必填项
+                            logger.info(f"⏭️ [最终一致性结算] 任务 {task_id} 未被显式标记，且无足迹 (desc='{task_desc}')，推断为 skipped")
+                            # logger.debug(f"   Footprint sample: {combined_footprint[:200]}...")
+
         return {
             'marked_tasks': list(marked_tasks),
+            'inferred_completed_tasks': list(inferred_completed_tasks),
             'executed_actions': len(executed_actions),
             'unmarked_actions': unmarked_actions
         }
