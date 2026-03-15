@@ -15,7 +15,7 @@ export default {
     scriptGeneration: '脚本生成',
     runTests: '运行测试',
     executionRecords: '执行记录',
-    testReports: '测试报告',
+    testReports: '报告管理',
     coreFeatures: '核心功能',
     elementLocation: '元素定位',
     elementLocationDesc: '支持多种定位策略，包括ID、CSS Selector、XPath等，精确捕捉页面元素。',
@@ -94,7 +94,21 @@ export default {
     stop: '停止',
     rerun: '重跑',
     details: '详情',
-    query: '查询'
+    query: '查询',
+    enabled: '启用',
+    disabled: '禁用',
+    pleaseInput: '请输入',
+    required: '此项为必填项',
+    add: '添加',
+    warning: '警告',
+    fetchFailed: '获取数据失败',
+    saveFailed: '保存失败',
+    createSuccess: '创建成功',
+    updateSuccess: '更新成功',
+    deleteSuccess: '删除成功',
+    deleteFailed: '删除失败',
+    deleteConfirm: '确定要删除吗？此操作不可恢复。',
+    confirmDelete: '确认删除'
   },
 
   // 状态
@@ -136,6 +150,7 @@ export default {
     startDate: '开始日期',
     endDate: '结束日期',
     selectDate: '选择日期',
+    selectProject: '选择项目',
     statusFilter: '状态筛选',
     searchPlaceholder: '搜索项目名称',
     projectDetail: '项目详情',
@@ -238,18 +253,20 @@ export default {
       title: '提示：根据定位策略输入对应的定位值',
       id: 'ID: 输入元素的id属性值',
       css: 'CSS Selector: 输入CSS选择器，如 .class 或 #id',
-      xpath: 'XPath: 输入XPath表达式，如 //input[@name="username"]',
+      xpath: 'XPath: 输入XPath表达式，如 //div/button 或 //input[1]',
       other: '其他策略请输入对应属性的值'
     },
     rules: {
       nameRequired: '请输入元素名称',
-      nameLength: '元素名称长度在 2 到 100 个字符',
+      nameLength: '元素名称长度在 1 到 200 个字符',
       pageRequired: '请输入所属页面',
       pageNameRequired: '请输入页面名称',
       strategyRequired: '请选择定位策略',
-      locatorRequired: '请输入定位值'
+      locatorRequired: '请输入定位值',
+      locatorLength: '定位表达式长度在 1 到 500 个字符'
     },
     messages: {
+      validateFailed: '表单验证失败，请检查必填项',
       loadFailed: '获取元素列表失败',
       loadDetailFailed: '获取元素详情失败',
       getDetailFailed: '获取元素详情失败',
@@ -275,11 +292,14 @@ export default {
       pageUpdateFailed: '页面更新失败',
       pageDeleteSuccess: '页面删除成功',
       validateSuccess: '元素定位器验证通过',
-      validateFailed: '验证失败',
       elementsLoaded: '已加载 {count} 个元素',
       insertCode: '插入元素代码',
       validatePassed: '元素验证通过',
-      validateFailedReason: '元素验证失败'
+      validateFailedReason: '元素验证失败',
+      copySuccess: '复制成功',
+      copyFailed: '复制失败',
+      moveSuccess: '移动成功',
+      moveFailed: '移动失败'
     }
   },
 
@@ -605,6 +625,8 @@ export default {
       // GIF
       viewGif: '查看GIF回放',
       gifPlayback: 'GIF回放',
+      loadingGif: '正在加载GIF...',
+      loadGifFailed: '加载GIF失败',
       exportReport: '导出报告',
       // 操作类型
       actions: {
@@ -639,6 +661,20 @@ export default {
     taskDesc: '任务描述',
     taskDescPlaceholder: '请输入任务描述',
     taskType: '任务类型',
+    scheduleType: '调度类型',
+    scheduleTypes: {
+      cron: 'Cron',
+      once: '单次',
+      interval: '分钟间隔',
+      hourly: '每小时',
+      daily: '每天',
+      weekly: '每周',
+      biweekly: '双周',
+      monthly: '每月',
+      bimonthly: '双月',
+      quarterly: '每季度',
+      yearly: '每年'
+    },
     triggerType: '触发器类型',
     notificationType: '通知类型',
     status: '状态',
@@ -656,9 +692,31 @@ export default {
     selectTestCase: '请选择测试用例',
     cronPlaceholder: '0 0 * * *',
     intervalTime: '间隔时间',
-    intervalUnit: '秒',
+    intervalMinutes: '间隔分钟数',
+    intervalUnit: '分钟',
+    minutes: '分钟',
     executeTime: '执行时间',
+    executeMinute: '执行分钟',
     selectExecuteTime: '选择执行时间',
+    selectMinute: '选择分钟',
+    selectWeekday: '选择星期',
+    selectDate: '选择日期',
+    selectMonth: '选择月份',
+    weekdays: {
+      sunday: '周日',
+      monday: '周一',
+      tuesday: '周二',
+      wednesday: '周三',
+      thursday: '周四',
+      friday: '周五',
+      saturday: '周六'
+    },
+    unit: {
+      minute: '分',
+      day: '日',
+      month: '月',
+      year: '年'
+    },
     testEngine: '测试引擎',
     executionEngine: '执行引擎',
     selectEngine: '请选择测试引擎',
@@ -671,11 +729,19 @@ export default {
     headlessMode: '无头模式（后台运行）',
     enableTask: '启用任务',
     notificationSettings: '通知设置',
+    notifyOnEmail: '邮箱通知',
+    notifyOnWebhook: 'Webhook机器人通知',
     notifyOnSuccess: '执行成功时通知',
     notifyOnFailure: '执行失败时通知',
     notifyEmails: '通知邮箱',
     selectNotifyEmails: '请选择通知邮箱',
     selectNotificationType: '请选择通知类型',
+    notificationConfig: '通知配置',
+    selectNotificationConfig: '请选择通知配置',
+    webhookGroup: 'Webhook通知',
+    emailGroup: '邮件通知',
+    noNotificationConfig: '请先在通知配置页面添加通知配置',
+    noMatchingNotificationConfig: '没有匹配的通知配置，请先前往配置中心创建通知配置',
     cronHelp: {
       title: 'Cron帮助信息',
       format: 'Cron表达式格式: 分 时 日 月 周',
@@ -818,20 +884,46 @@ export default {
       editConfig: '编辑通知配置',
       configNamePlaceholder: '请输入配置名称',
       webhookPlaceholder: '请输入Webhook URL',
+      testSend: '测试发送',
+      testSendSuccess: '测试消息发送成功',
+      testSendFailed: '测试消息发送失败',
+      emailNotification: '邮件通知',
+      emailRecipients: '邮件收件人',
+      emailAttachReport: '附带测试报告',
+      emailAttachReportHint: '启用后邮件将附带HTML格式的测试报告附件',
+      recipientType: '收件人类型',
+      platformUser: '平台用户',
+      customEmail: '自定义邮箱',
+      selectUser: '请选择用户',
+      recipientExists: '该收件人已存在',
+      emailPlaceholder: '请输入邮箱地址',
+      emailRequired: '请输入邮箱地址',
+      emailInvalid: '请输入有效的邮箱地址',
       selectPlatform: '请选择平台',
       // 机器人配置
       botName: '机器人名称',
       enable: '启用',
+      isDefault: '设为默认',
+      platformType: '平台类型',
       businessType: '业务类型',
       uiAutomationTest: 'UI自动化测试',
       apiTest: '接口测试',
+      appAutomationTest: 'APP自动化测试',
       signatureSecret: '签名密钥',
       signatureSecretPlaceholder: '请输入钉钉机器人签名密钥（可选）',
       signatureSecretHint: '钉钉机器人的签名密钥，用于安全验证。如果机器人开启了"加签"安全设置，请填写此字段。',
+      selectBotHint: '请从左侧选择一个机器人进行编辑',
+      addNewBot: '添加新机器人',
+      editBot: '编辑机器人',
+      newBot: '新机器人',
+      emptyHint: '请选择左侧机器人或添加新机器人',
+      status: '状态',
+      platformNotEditable: '平台类型创建后不可修改',
       // Tab标签
       feishuBot: '飞书机器人',
       wechatBot: '企微机器人',
       dingtalkBot: '钉钉机器人',
+      genericWebhook: '通用Webhook',
       // 表单提示
       feishuBotNamePlaceholder: '请输入飞书机器人名称',
       feishuUrlHint: '飞书机器人Webhook URL格式：https://open.feishu.cn/open-apis/bot/v2/hook/...',
@@ -839,14 +931,20 @@ export default {
       wechatUrlHint: '企业微信机器人Webhook URL格式：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',
       dingtalkBotNamePlaceholder: '请输入钉钉机器人名称',
       dingtalkUrlHint: '钉钉机器人Webhook URL格式：https://oapi.dingtalk.com/robot/send?access_token=...',
+      genericWebhookNamePlaceholder: '请输入通用Webhook名称',
+      genericWebhookUrlHint: '通用Webhook URL格式：https://...',
+      messageTemplate: '消息模板',
+      selectTemplate: '请选择消息模板',
       // 保存按钮
       saveFeishuConfig: '保存飞书机器人配置',
       saveWechatConfig: '保存企微机器人配置',
       saveDingtalkConfig: '保存钉钉机器人配置',
+      saveGenericConfig: '保存通用Webhook配置',
       platforms: {
         feishu: '飞书',
         wechatWork: '企业微信',
-        dingtalk: '钉钉'
+        dingtalk: '钉钉',
+        generic: '通用Webhook'
       },
       rules: {
         nameRequired: '请输入配置名称',
@@ -874,6 +972,9 @@ export default {
         dingtalkUpdateSuccess: '钉钉机器人配置更新成功',
         dingtalkCreateSuccess: '钉钉机器人配置创建成功',
         dingtalkSaveFailed: '钉钉机器人配置保存失败',
+        genericUpdateSuccess: '通用Webhook配置更新成功',
+        genericCreateSuccess: '通用Webhook配置创建成功',
+        genericSaveFailed: '通用Webhook配置保存失败',
         noExistingConfig: '未找到现有Webhook配置，将创建新配置',
         getConfigFailed: '获取Webhook机器人配置失败',
         getAllConfigFailed: '获取所有Webhook机器人配置失败'
@@ -1053,6 +1154,17 @@ export default {
   // 测试用例管理
   testCase: {
     title: '测试用例管理',
+    // 测试用例运行相关
+    run: {
+      start: '开始运行测试用例 - {engine}引擎 / {browser}浏览器 / {mode}模式',
+      success: '测试用例运行成功',
+      failed: '测试用例运行失败',
+      failedWithMessage: '测试用例运行失败: {message}'
+    },
+    runMode: {
+      headless: '无头',
+      headed: '有头'
+    },
     newTestCase: '新建测试用例',
     testCaseList: '测试用例列表',
     searchPlaceholder: '搜索测试用例...',
@@ -1062,10 +1174,10 @@ export default {
     saveTestCase: '保存',
     selectEngine: '选择引擎',
     selectBrowser: '选择浏览器',
-    runMode: '运行模式',
+    runModeLabel: '运行模式',
     headedMode: '有头模式',
     headlessMode: '无头模式',
-    run: '运行',
+    runLabel: '运行',
     running: '执行中...',
     viewResult: '查看执行结果',
     editSteps: '编辑步骤',
@@ -1084,9 +1196,14 @@ export default {
     actionAssert: '断言',
     actionWait: '等待',
     actionSwitchTab: '切换标签页',
+    actionNavigateTo: '跳转URL',
+    selectPage: '选择页面',
+    allPages: '全部页面',
+    noPage: '未分类',
     selectElement: '选择元素',
     inputValue: '输入值：',
-    inputPlaceholder: '请输入内容，支持变量如 \'{random_phone()}\'',
+    inputPlaceholder: '请输入内容，支持变量如 {\'{random_phone()}\'}',
+    urlPlaceholder: '请输入要跳转的URL地址，如：https://example.com',
     switchTabPlaceholder: '输入索引(0,1...)或留空切换到最新',
     insertVariable: '插入动态变量',
     referenceDataFactory: '引用数据工厂',
@@ -1097,6 +1214,7 @@ export default {
     assertIsVisible: '元素可见',
     assertExists: '元素存在',
     assertHasAttribute: '属性值',
+    assertUrlContains: 'URL包含',
     expectedValue: '期望值',
     stepDescription: '步骤描述：',
     stepDescPlaceholder: '描述这个步骤的作用',
@@ -1145,9 +1263,12 @@ export default {
     },
     variables: {
       randomInt: '生成随机整数',
+      randomIntDesc: '生成指定范围内的随机整数，参数：最小值、最大值、数量',
       randomFloat: '生成随机浮点数',
+      randomFloatDesc: '生成指定范围内的随机浮点数，参数：最小值、最大值、小数位数、数量',
       randomDigits: '生成随机数字字符串',
       randomString: '生成随机字母数字字符串',
+      randomStringDesc: '生成随机字符串，参数：长度、字符类型(all/letter/number)、数量',
       randomLetters: '生成随机字母字符串',
       randomChinese: '生成随机中文字符',
       randomPhone: '生成随机手机号',
@@ -1188,6 +1309,68 @@ export default {
       createFailed: '保存失败',
       variableInserted: '已插入变量',
       dataFactorySelected: '已选择数据工厂: {toolName}'
+    },
+    // 操作类型（用于显示操作类型名称）
+    actionType: {
+      click: '点击',
+      fill: '填写',
+      getText: '获取文本',
+      waitFor: '等待元素',
+      hover: '悬停',
+      scroll: '滚动',
+      screenshot: '截图',
+      assert: '断言',
+      wait: '等待'
+    },
+    // 操作文本（用于执行日志中显示操作描述）
+    actionText: {
+      click: '点击',
+      fill: '输入文本',
+      getText: '获取文本',
+      waitFor: '等待元素',
+      hover: '悬停',
+      scroll: '滚动',
+      screenshot: '截图',
+      assert: '断言',
+      wait: '等待'
+    },
+    // 状态文本
+    status: {
+      draft: '草稿',
+      ready: '就绪',
+      running: '执行中',
+      passed: '通过',
+      failed: '失败',
+      unknown: '未知'
+    },
+    // 表单验证消息
+    form: {
+      nameRequired: '请输入测试用例名称'
+    },
+    // 保存操作消息
+    save: {
+      success: '测试用例保存成功',
+      failed: '保存测试用例失败'
+    },
+    // 删除操作消息
+    delete: {
+      confirm: '确定要删除测试用例"{name}"吗？',
+      title: '确认删除',
+      success: '删除成功'
+    },
+    // 复制操作消息
+    copy: {
+      confirm: '确定要复制测试用例"{name}"吗？',
+      title: '确认复制',
+      success: '复制成功'
+    },
+    // 创建操作消息
+    create: {
+      success: '测试用例创建成功'
+    },
+    // 更新操作消息
+    update: {
+      success: '测试用例更新成功'
     }
   },
 

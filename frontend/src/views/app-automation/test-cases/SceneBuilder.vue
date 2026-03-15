@@ -1,7 +1,7 @@
 <template>
     <div class="ui-test-scene-builder">
         <div class="page-header">
-            <h3>App自动化用例编排</h3>
+            <h3>{{ t('appAutomation.sceneBuilder.title') }}</h3>
             <div class="header-actions">
                 <el-button
                     type="primary"
@@ -10,10 +10,10 @@
                     :loading="saving"
                     @click="saveScene"
                 >
-                    保存用例
+                    {{ t('appAutomation.sceneBuilder.saveCase') }}
                 </el-button>
                 <el-button size="small" :icon="Refresh" @click="resetScene">
-                    重置
+                    {{ t('appAutomation.sceneBuilder.reset') }}
                 </el-button>
             </div>
         </div>
@@ -22,26 +22,26 @@
             <el-form :model="sceneForm" label-width="120px" size="small">
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="场景名称" required>
+                        <el-form-item :label="t('appAutomation.sceneBuilder.sceneName')" required>
                             <el-input
                                 v-model.trim="sceneForm.name"
-                                placeholder="请输入场景名称"
+                                :placeholder="t('appAutomation.sceneBuilder.sceneNamePlaceholder')"
                                 clearable
                             />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="所属项目">
-                            <el-select v-model="sceneForm.project" placeholder="请选择项目" clearable filterable style="width:100%">
+                        <el-form-item :label="t('appAutomation.sceneBuilder.project')">
+                            <el-select v-model="sceneForm.project" :placeholder="t('appAutomation.sceneBuilder.selectProject')" clearable filterable style="width:100%">
                                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="场景描述">
+                        <el-form-item :label="t('appAutomation.sceneBuilder.sceneDescription')">
                             <el-input
                                 v-model.trim="sceneForm.description"
-                                placeholder="可选"
+                                :placeholder="t('appAutomation.sceneBuilder.optional')"
                                 clearable
                             />
                         </el-form-item>
@@ -49,7 +49,7 @@
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="24">
-                        <el-form-item label="场景变量">
+                        <el-form-item :label="t('appAutomation.sceneBuilder.sceneVariables')">
                             <div class="scene-variables">
                                 <div
                                     v-for="(item, index) in sceneVariables"
@@ -58,14 +58,14 @@
                                 >
                                     <el-input
                                         v-model.trim="item.name"
-                                        placeholder="变量名"
+                                        :placeholder="t('appAutomation.sceneBuilder.variableName')"
                                         size="small"
                                     />
-                                    <el-select v-model="item.scope" placeholder="作用域" size="small">
+                                    <el-select v-model="item.scope" :placeholder="t('appAutomation.sceneBuilder.scope')" size="small">
                                         <el-option label="local" value="local" />
                                         <el-option label="global" value="global" />
                                     </el-select>
-                                    <el-select v-model="item.type" placeholder="类型" size="small">
+                                    <el-select v-model="item.type" :placeholder="t('appAutomation.sceneBuilder.type')" size="small">
                                         <el-option label="string" value="string" />
                                         <el-option label="number" value="number" />
                                         <el-option label="boolean" value="boolean" />
@@ -74,20 +74,20 @@
                                     </el-select>
                                     <el-input
                                         v-model.trim="item.value"
-                                        placeholder="默认值"
+                                        :placeholder="t('appAutomation.sceneBuilder.defaultValue')"
                                         size="small"
                                     />
                                     <el-input
                                         v-model.trim="item.description"
-                                        placeholder="说明"
+                                        :placeholder="t('appAutomation.sceneBuilder.description')"
                                         size="small"
                                     />
                                     <el-button link size="small" @click="removeSceneVariable(index)">
-                                        删除
+                                        {{ t('appAutomation.sceneBuilder.delete') }}
                                     </el-button>
                                 </div>
                                 <el-button link size="small" @click="addSceneVariable">
-                                    + 添加变量
+                                    {{ t('appAutomation.sceneBuilder.addVariable') }}
                                 </el-button>
                             </div>
                         </el-form-item>
@@ -106,21 +106,21 @@
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="8">
-                        <el-form-item label="重试次数">
+                        <el-form-item :label="t('appAutomation.sceneBuilder.retryTimes')">
                             <el-input
                                 v-model.number="sceneRuntime.retry_times"
                                 type="number"
-                                placeholder="0"
+                                :placeholder="t('appAutomation.sceneBuilder.retryPlaceholder')"
                                 size="small"
                             />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
-                        <el-form-item label="重试间隔(秒)">
+                        <el-form-item :label="t('appAutomation.sceneBuilder.retryInterval')">
                             <el-input
                                 v-model.number="sceneRuntime.retry_interval"
                                 type="number"
-                                placeholder="0.5"
+                                :placeholder="t('appAutomation.sceneBuilder.retryIntervalPlaceholder')"
                                 size="small"
                             />
                         </el-form-item>
@@ -134,19 +134,19 @@
                 <el-card class="palette-card" shadow="never">
                     <template #header>
                         <div class="card-title">
-                            <span>组件库</span>
+                            <span>{{ t('appAutomation.sceneBuilder.componentLibrary') }}</span>
                             <div class="palette-toolbar">
                                 <el-button type="primary" size="small" :icon="Upload" @click="openPackageDialog">
-                                    导入组件包
+                                    {{ t('appAutomation.sceneBuilder.importPackage') }}
                                 </el-button>
                                 <el-button type="success" size="small" :icon="Download" @click="openExportDialog">
-                                    导出组件包
+                                    {{ t('appAutomation.sceneBuilder.exportPackage') }}
                                 </el-button>
                             </div>
                         </div>
                     </template>
                     <el-tabs v-model="paletteTab" stretch>
-                        <el-tab-pane label="基础组件" name="base">
+                        <el-tab-pane :label="t('appAutomation.sceneBuilder.baseComponents')" name="base">
                             <draggable
                                 class="palette-list"
                                 :list="componentPalette"
@@ -165,12 +165,12 @@
                                 </template>
                                 <template #footer>
                                     <div v-if="componentPalette.length === 0" class="palette-empty">
-                                        暂无基础组件
+                                        {{ t('appAutomation.sceneBuilder.noBaseComponents') }}
                                     </div>
                                 </template>
                             </draggable>
                         </el-tab-pane>
-                        <el-tab-pane label="自定义组件" name="custom">
+                        <el-tab-pane :label="t('appAutomation.sceneBuilder.customComponents')" name="custom">
                             <draggable
                                 class="palette-list"
                                 :list="customComponentPalette"
@@ -189,7 +189,7 @@
                                         </div>
                                         <div class="palette-actions">
                                             <el-button link size="small" @click.stop="openEditCustomComponent(element)">
-                                                编辑
+                                                {{ t('appAutomation.sceneBuilder.edit') }}
                                             </el-button>
                                             <el-button
                                                 link
@@ -197,14 +197,14 @@
                                                 style="color: #f56c6c"
                                                 @click.stop="deleteCustomComponent(element)"
                                             >
-                                                删除
+                                                {{ t('appAutomation.sceneBuilder.delete') }}
                                             </el-button>
                                         </div>
                                     </div>
                                 </template>
                                 <template #footer>
                                     <div v-if="customComponentPalette.length === 0" class="palette-empty">
-                                        暂无自定义组件
+                                        {{ t('appAutomation.sceneBuilder.noCustomComponents') }}
                                     </div>
                                 </template>
                             </draggable>
@@ -217,7 +217,7 @@
                 <el-card class="scene-card" shadow="never">
                     <template #header>
                         <div class="card-title">
-                            <span>场景步骤</span>
+                            <span>{{ t('appAutomation.sceneBuilder.sceneSteps') }}</span>
                             <el-button
                                 type="primary"
                                 size="small"
@@ -225,12 +225,12 @@
                                 :disabled="scenarioSteps.length === 0"
                                 @click="openCustomComponentDialog"
                             >
-                                另存为自定义组件
+                                {{ t('appAutomation.sceneBuilder.saveAsCustom') }}
                             </el-button>
                         </div>
                     </template>
                     <div class="scene-hint" v-if="scenarioSteps.length === 0">
-                        从左侧拖动组件到此处，组成UI测试场景
+                        {{ t('appAutomation.sceneBuilder.dragHint') }}
                     </div>
                     <draggable
                         v-model="scenarioSteps"
@@ -315,7 +315,7 @@
                 <el-card class="config-card" shadow="never">
                     <template #header>
                         <div class="card-title">
-                            组件配置
+                            {{ t('appAutomation.sceneBuilder.componentConfig') }}
                             <el-button 
                                 type="success" 
                                 size="small" 
@@ -323,12 +323,12 @@
                                 style="margin-left: auto;"
                                 @click="openCaptureElementDialog"
                             >
-                                创建元素工具
+                                {{ t('appAutomation.sceneBuilder.createElementTool') }}
                             </el-button>
                         </div>
                     </template>
                     <div v-if="!activeStep" class="config-empty">
-                        请选择场景步骤进行配置
+                        {{ t('appAutomation.sceneBuilder.selectStepConfig') }}
                     </div>
                     <!-- 选中自定义组件父级时提示展开编辑 -->
                     <div v-else-if="activeParentStep && activeParentStep.kind === 'custom' && selectedSubIndex === null" class="config-form">
@@ -359,19 +359,19 @@
                             
                             
                             <div class="variable-hint" v-pre>
-                                支持变量：{{local.xxx}} / {{global.xxx}} / {{outputs.last.xxx}} / {{steps.step_id.xxx}}
+                                {{ t('appAutomation.sceneBuilder.variableSupport') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'image_exists_click'" class="variable-hint hint-danger">
-                                逻辑：先检测图片A，存在则点击A；不存在则点击B。
+                                {{ t('appAutomation.sceneBuilder.imageExistsClickLogic') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'image_exists_click_chain'" class="variable-hint hint-danger">
-                                逻辑：图片A存在则点击A，再点击B；不存在则直接点击B。
+                                {{ t('appAutomation.sceneBuilder.imageExistsClickChainLogic') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'foreach_assert'" class="variable-hint hint-danger">
-                                逻辑：先点击，后断言。
+                                {{ t('appAutomation.sceneBuilder.foreachAssertLogic') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'api_request'" class="api-template-block">
-                                <div class="tool-hint">API 示例模板</div>
+                                <div class="tool-hint">{{ t('appAutomation.sceneBuilder.apiTemplate') }}</div>
                                 <div class="template-list">
                                     <div v-for="item in apiRequestTemplates" :key="item.name" class="template-item">
                                         <span class="template-name">{{ item.name }}</span>
@@ -495,32 +495,32 @@
         />
 
         <el-dialog
-            title="导入组件包"
+            :title="t('appAutomation.sceneBuilder.importPackage')"
             v-model="packageDialogVisible"
             width="520px"
             :close-on-click-modal="false"
             @close="resetPackageDialog"
         >
             <el-form label-width="110px" size="small">
-                <el-form-item label="覆盖已有组件">
+                <el-form-item :label="t('appAutomation.sceneBuilder.overwriteExistingComponents')">
                     <el-switch v-model="packageOverwrite" />
                 </el-form-item>
-                <el-form-item label="选择文件">
+                <el-form-item :label="t('appAutomation.sceneBuilder.selectFile')">
                     <el-upload
                         :show-file-list="false"
                         :http-request="handlePackageUpload"
                         accept=".json,.yaml,.yml"
                     >
                         <el-button size="small" type="primary" :loading="packageUploading">
-                            选择组件包
+                            {{ t('appAutomation.sceneBuilder.selectPackage') }}
                         </el-button>
                         <template #tip>
-                            <div class="el-upload__tip">支持 .json/.yaml/.yml</div>
+                            <div class="el-upload__tip">{{ t('appAutomation.sceneBuilder.supportedFormats') }}</div>
                         </template>
                     </el-upload>
                 </el-form-item>
                 <el-divider></el-divider>
-                <div class="package-title">已导入组件包</div>
+                <div class="package-title">{{ t('appAutomation.sceneBuilder.importedPackages') }}</div>
                 <div class="package-list" v-loading="packageLoading">
                     <div v-for="item in packageList" :key="item.id" class="package-item">
                         <div class="package-name">{{ item.name }}</div>
@@ -540,22 +540,22 @@
         </el-dialog>
 
         <el-dialog
-            title="导出组件包"
+            :title="t('appAutomation.sceneBuilder.exportPackage')"
             v-model="exportDialogVisible"
             width="420px"
             :close-on-click-modal="false"
             @close="resetExportDialog"
         >
             <el-form label-width="110px" size="small">
-                <el-form-item label="导出含禁用">
+                <el-form-item :label="t('appAutomation.sceneBuilder.exportIncludeDisabled')">
                     <el-switch v-model="packageIncludeDisabled" />
                 </el-form-item>
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button type="primary" plain @click="exportPackage('yaml')">导出YAML</el-button>
-                    <el-button type="primary" plain @click="exportPackage('json')">导出JSON</el-button>
-                    <el-button @click="exportDialogVisible = false">关闭</el-button>
+                    <el-button type="primary" plain @click="exportPackage('yaml')">{{ t('appAutomation.sceneBuilder.exportYAML') }}</el-button>
+                    <el-button type="primary" plain @click="exportPackage('json')">{{ t('appAutomation.sceneBuilder.exportJSON') }}</el-button>
+                    <el-button @click="exportDialogVisible = false">{{ t('appAutomation.sceneBuilder.close') }}</el-button>
                 </div>
             </template>
         </el-dialog>
@@ -901,6 +901,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera } from '@element-plus/icons-vue'
 import draggable from "vuedraggable"
@@ -925,6 +926,9 @@ import {
 // Route
 const route = useRoute()
 const router = useRouter()
+
+// Internationalization
+const { t } = useI18n()
 
 // Reactive state
 const saving = ref(false)

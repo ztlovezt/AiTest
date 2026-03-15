@@ -529,6 +529,17 @@
                 <el-option label="ECB" value="ECB" />
               </el-select>
             </el-form-item>
+            <el-form-item v-if="['aes_encrypt', 'aes_decrypt'].includes(currentTool.name) && toolForm.mode === 'CBC'" :label="$t('dataFactory.form.iv')">
+              <el-input v-model="toolForm.iv" :placeholder="$t('dataFactory.form.ivPlaceholder')" maxlength="32" show-word-limit>
+                <template #append>
+                  <el-button type="primary" size="default" @click="generateRandomIV" style="background-color: #409eff; border-color: #409eff; color: white;">
+                    <el-icon><Refresh /></el-icon>
+                    {{ $t('dataFactory.actions.generateRandomIV') }}
+                  </el-button>
+                </template>
+              </el-input>
+              <span class="form-tip">{{ $t('dataFactory.form.ivTip') }}</span>
+            </el-form-item>
             <el-form-item v-if="currentTool.name === 'generate_salt'" :label="$t('dataFactory.form.length')">
               <el-input-number v-model="toolForm.length" :min="8" :max="64" />
             </el-form-item>
@@ -1002,7 +1013,7 @@ import {
   Document, List, Lock, User, MagicStick, VideoPlay, ChatDotSquare, Picture, Connection,
   Phone, Message, Location, Ticket, OfficeBuilding, CreditCard, CircleCheck, DocumentCopy, Search, Delete, Edit, Unlock, DataLine as DataLineIcon, Sort, Share, View, Upload
 } from '@element-plus/icons-vue'
-import axios from 'axios'
+import api from '@/utils/api'
 import { debounce } from 'lodash-es'
 
 // 缓存工具
@@ -1096,6 +1107,7 @@ const toolForm = ref({
   algorithm: 'md5',
   password: '',
   mode: 'CBC',
+  iv: '',
   json_str: '',
   json_str1: '',
   json_str2: '',
@@ -1195,7 +1207,7 @@ const getScenarioIcon = (scenario) => {
 
 const fetchCategories = async () => {
   try {
-    const response = await axios.get('/api/data-factory/categories/')
+    const response = await api.get('/data-factory/categories/')
     categories.value = response.data.categories
   } catch (error) {
     ElMessage.error(t('dataFactory.messages.fetchCategoriesFailed'))
@@ -1238,6 +1250,7 @@ const getScenarioDesc = (scenario) => {
 }
 
 const getToolDisplayName = (toolName) => {
+  if (!toolName) return ''
   return t(`dataFactory.tools.${toolName}`) || getToolDisplayNameOld(toolName) || toolName
 }
 
@@ -1327,6 +1340,7 @@ const getToolDisplayNameOld = (toolName) => {
 }
 
 const getToolDescription = (toolName) => {
+  if (!toolName) return ''
   return t(`dataFactory.toolDescs.${toolName}`) || getToolDescriptionOld(toolName) || ''
 }
 
@@ -1513,8 +1527,8 @@ const buildInputData = () => {
     if (toolName === 'sha256_hash') return { text: form.text }
     if (toolName === 'sha512_hash') return { text: form.text }
     if (toolName === 'hash_comparison') return { text: form.text, hash_value: form.hash_value, algorithm: form.algorithm }
-    if (toolName === 'aes_encrypt') return { text: form.text, password: form.password, mode: form.mode }
-    if (toolName === 'aes_decrypt') return { encrypted_text: form.text, password: form.password, mode: form.mode }
+    if (toolName === 'aes_encrypt') return { text: form.text, password: form.password, mode: form.mode, iv: form.iv || '' }
+    if (toolName === 'aes_decrypt') return { encrypted_text: form.text, password: form.password, mode: form.mode, iv: form.iv || '' }
     if (toolName === 'password_strength') return { password: form.text }
     if (toolName === 'generate_salt') return { length: form.length }
   }
@@ -1581,7 +1595,7 @@ const executeTool = async () => {
   try {
     const input_data = buildInputData()
     console.log('Executing tool:', currentTool.value.name, 'with input:', input_data)
-    const response = await axios.post('/api/data-factory/', {
+    const response = await api.post('/data-factory/', {
       tool_name: currentTool.value.name,
       tool_category: currentCategory.value,
       tool_scenario: currentTool.value.scenario || 'other',
@@ -1652,6 +1666,7 @@ const resetToolForm = () => {
     algorithm: 'md5',
     password: '',
     mode: 'CBC',
+    iv: '',
     json_str: '',
     json_str1: '',
     json_str2: '',
@@ -1700,7 +1715,7 @@ const handleJsonInput = async () => {
   debounceTimer = setTimeout(async () => {
     if (currentTool.value?.name === 'format_json' && toolForm.value.json_str) {
       try {
-        const response = await axios.post('/api/data-factory/', {
+        const response = await api.post('/data-factory/', {
           tool_name: 'format_json',
           tool_category: 'json',
           tool_scenario: 'data_validation',
@@ -1874,6 +1889,16 @@ const getInputStats = () => {
   }
 }
 
+const generateRandomIV = () => {
+  const chars = '0123456789abcdef'
+  let iv = ''
+  for (let i = 0; i < 32; i++) {
+    iv += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  toolForm.value.iv = iv
+  ElMessage.success('已生成随机IV')
+}
+
 const getOutputStats = () => {
   if (!toolResult.value || !toolResult.value.result) {
     return { chars: 0, lines: 0 }
@@ -1892,7 +1917,7 @@ const handleJsonDiffInput = async () => {
       return
     }
     try {
-      const response = await axios.post('/api/data-factory/', {
+      const response = await api.post('/data-factory/', {
         tool_name: 'json_diff_enhanced',
         tool_category: 'json',
         tool_scenario: 'data_validation',
@@ -1914,7 +1939,7 @@ const handleJsonDiffInput = async () => {
 const handleJsonPathInput = async () => {
   if (currentTool.value?.name === 'jsonpath_query' && toolForm.value.json_str && toolForm.value.jsonpath_expr) {
     try {
-      const response = await axios.post('/api/data-factory/', {
+      const response = await api.post('/data-factory/', {
         tool_name: 'jsonpath_query',
         tool_category: 'json',
         tool_scenario: 'data_validation',
@@ -2031,7 +2056,7 @@ const debouncedFetchHistory = debounce(async () => {
   
   historyLoading.value = true
   try {
-    const response = await axios.get('/api/data-factory/', {
+    const response = await api.get('/data-factory/', {
       params: {
         page: historyCurrentPage.value,
         page_size: historyPageSize.value,
@@ -2057,7 +2082,7 @@ const fetchHistoryImmediate = async () => {
   
   historyLoading.value = true
   try {
-    const response = await axios.get('/api/data-factory/', {
+    const response = await api.get('/data-factory/', {
       params: {
         page: historyCurrentPage.value,
         page_size: historyPageSize.value,
@@ -2090,7 +2115,7 @@ const fetchStatistics = async () => {
   
   statsLoading.value = true
   try {
-    const response = await axios.get('/api/data-factory/statistics/', {
+    const response = await api.get('/data-factory/statistics/', {
       params: {
         _t: Date.now()
       }
@@ -2111,7 +2136,7 @@ const deleteRecord = async (record) => {
       ElMessage.error('记录ID不存在')
       return
     }
-    const response = await axios.delete(`/api/data-factory/${record.id}/`)
+    const response = await api.delete(`/data-factory/${record.id}/`)
     ElMessage.success(t('dataFactory.history.deleteSuccess'))
     
     // 清除统计信息缓存

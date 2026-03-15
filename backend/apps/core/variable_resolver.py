@@ -486,9 +486,9 @@ class VariableResolver:
         elif func_name == 'hash_comparison':
             kwargs = {'text': args[0] if len(args) > 0 else '', 'hash_value': args[1] if len(args) > 1 else '', 'algorithm': args[2] if len(args) > 2 else 'md5'}
         elif func_name == 'aes_encrypt':
-            kwargs = {'text': args[0] if len(args) > 0 else '', 'password': args[1] if len(args) > 1 else '', 'mode': args[2] if len(args) > 2 else 'CBC'}
+            kwargs = {'text': args[0] if len(args) > 0 else '', 'password': args[1] if len(args) > 1 else '', 'mode': args[2] if len(args) > 2 else 'CBC', 'iv': args[3] if len(args) > 3 else ''}
         elif func_name == 'aes_decrypt':
-            kwargs = {'encrypted_text': args[0] if len(args) > 0 else '', 'password': args[1] if len(args) > 1 else '', 'mode': args[2] if len(args) > 2 else 'CBC'}
+            kwargs = {'encrypted_text': args[0] if len(args) > 0 else '', 'password': args[1] if len(args) > 1 else '', 'mode': args[2] if len(args) > 2 else 'CBC', 'iv': args[3] if len(args) > 3 else ''}
         
         if func_name in tool_mapping:
             result = tool_mapping[func_name](**kwargs)

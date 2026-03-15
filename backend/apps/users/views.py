@@ -1,4 +1,4 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, exceptions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.contrib.auth import login, logout
@@ -62,6 +62,31 @@ def login_view(request):
             'refresh': refresh_token,     # JWT refresh token
             'message': '登录成功'
         })
+    except exceptions.ValidationError as e:
+        # 处理验证错误（如用户名或密码错误）
+        error_message = None
+        if hasattr(e, 'detail'):
+            if isinstance(e.detail, dict):
+                # 检查 non_field_errors
+                if 'non_field_errors' in e.detail:
+                    errors = e.detail['non_field_errors']
+                    if errors and len(errors) > 0:
+                        error_message = str(errors[0])
+                # 检查其他字段错误
+                else:
+                    for field, errors in e.detail.items():
+                        if errors and len(errors) > 0:
+                            error_message = str(errors[0])
+                            break
+            elif isinstance(e.detail, list):
+                error_message = str(e.detail[0])
+            else:
+                error_message = str(e.detail)
+        
+        return Response({
+            'error': error_message or '用户名或密码错误',
+            'message': '登录失败'
+        }, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         import traceback
         traceback.print_exc()

@@ -15,7 +15,7 @@ export default {
     scriptGeneration: 'Scripts',
     runTests: 'Run Tests',
     executionRecords: 'Executions',
-    testReports: 'Reports',
+    testReports: 'Report Management',
     coreFeatures: 'Core Features',
     elementLocation: 'Element Location',
     elementLocationDesc: 'Supports multiple locator strategies including ID, CSS Selector, XPath, etc. for precise element capture.',
@@ -94,7 +94,21 @@ export default {
     stop: 'Stop',
     rerun: 'Rerun',
     details: 'Details',
-    query: 'Query'
+    query: 'Query',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    pleaseInput: 'Please input',
+    required: 'This field is required',
+    add: 'Add',
+    warning: 'Warning',
+    fetchFailed: 'Failed to fetch data',
+    saveFailed: 'Failed to save',
+    createSuccess: 'Created successfully',
+    updateSuccess: 'Updated successfully',
+    deleteSuccess: 'Deleted successfully',
+    deleteFailed: 'Failed to delete',
+    deleteConfirm: 'Are you sure you want to delete? This action cannot be undone.',
+    confirmDelete: 'Confirm Delete'
   },
 
   // Status
@@ -136,6 +150,7 @@ export default {
     startDate: 'Start Date',
     endDate: 'End Date',
     selectDate: 'Select Date',
+    selectProject: 'Select Project',
     statusFilter: 'Status Filter',
     searchPlaceholder: 'Search project name',
     projectDetail: 'Project Details',
@@ -238,18 +253,20 @@ export default {
       title: 'Tip: Enter locator value based on strategy',
       id: 'ID: Enter element id attribute value',
       css: 'CSS Selector: Enter CSS selector, e.g. .class or #id',
-      xpath: 'XPath: Enter XPath expression, e.g. //input[@name="username"]',
+      xpath: 'XPath: Enter XPath expression, e.g. //div/button or //input[1]',
       other: 'For other strategies, enter the corresponding attribute value'
     },
     rules: {
       nameRequired: 'Please enter element name',
-      nameLength: 'Element name must be 2-100 characters',
+      nameLength: 'Element name length should be between 1 and 200 characters',
       pageRequired: 'Please enter page name',
       pageNameRequired: 'Please enter page name',
       strategyRequired: 'Please select locator strategy',
-      locatorRequired: 'Please enter locator value'
+      locatorRequired: 'Please enter locator value',
+      locatorLength: 'Locator expression length should be between 1 and 500 characters'
     },
     messages: {
+      validateFailed: 'Form validation failed, please check required fields',
       loadFailed: 'Failed to load elements',
       loadDetailFailed: 'Failed to load element details',
       getDetailFailed: 'Failed to get element details',
@@ -275,11 +292,14 @@ export default {
       pageUpdateFailed: 'Failed to update page',
       pageDeleteSuccess: 'Page deleted successfully',
       validateSuccess: 'Element locator validation passed',
-      validateFailed: 'Validation failed',
       elementsLoaded: 'Loaded {count} elements',
       insertCode: 'Insert element code',
       validatePassed: 'Element validation passed',
-      validateFailedReason: 'Element validation failed'
+      validateFailedReason: 'Element validation failed',
+      copySuccess: 'Copy successful',
+      copyFailed: 'Copy failed',
+      moveSuccess: 'Move successful',
+      moveFailed: 'Move failed'
     }
   },
 
@@ -605,6 +625,8 @@ export default {
       // GIF
       viewGif: 'View GIF Playback',
       gifPlayback: 'GIF Playback',
+      loadingGif: 'Loading GIF...',
+      loadGifFailed: 'Failed to load GIF',
       exportReport: 'Export Report',
       // Action types
       actions: {
@@ -639,7 +661,29 @@ export default {
     taskDesc: 'Task Description',
     taskDescPlaceholder: 'Please enter task description',
     taskType: 'Task Type',
+    scheduleType: 'Schedule Type',
+    scheduleTypes: {
+      cron: 'Cron',
+      once: 'Once',
+      interval: 'Interval',
+      hourly: 'Hourly',
+      daily: 'Daily',
+      weekly: 'Weekly',
+      biweekly: 'Bi-weekly',
+      monthly: 'Monthly',
+      bimonthly: 'Bi-monthly',
+      quarterly: 'Quarterly',
+      yearly: 'Yearly'
+    },
     triggerType: 'Trigger Type',
+    triggerTypes: {
+      cron: 'Cron Expression',
+      interval: 'Fixed Interval',
+      once: 'One-time Execution',
+      cronShort: 'Cron',
+      intervalShort: 'Interval',
+      onceShort: 'Once'
+    },
     notificationType: 'Notification Type',
     status: 'Status',
     cronExpression: 'Cron Expression',
@@ -656,9 +700,31 @@ export default {
     selectTestCase: 'Please select test cases',
     cronPlaceholder: '0 0 * * *',
     intervalTime: 'Interval Time',
-    intervalUnit: 'seconds',
+    intervalMinutes: 'Interval Minutes',
+    intervalUnit: 'minutes',
+    minutes: 'minutes',
     executeTime: 'Execute Time',
+    executeMinute: 'Execution Minute',
     selectExecuteTime: 'Select execute time',
+    selectMinute: 'Select minute',
+    selectWeekday: 'Select weekday',
+    selectDate: 'Select date',
+    selectMonth: 'Select month',
+    weekdays: {
+      sunday: 'Sunday',
+      monday: 'Monday',
+      tuesday: 'Tuesday',
+      wednesday: 'Wednesday',
+      thursday: 'Thursday',
+      friday: 'Friday',
+      saturday: 'Saturday'
+    },
+    unit: {
+      minute: 'min',
+      day: 'day',
+      month: 'month',
+      year: 'year'
+    },
     testEngine: 'Test Engine',
     executionEngine: 'Execution Engine',
     selectEngine: 'Please select test engine',
@@ -671,11 +737,19 @@ export default {
     headlessMode: 'Headless Mode (Background)',
     enableTask: 'Enable Task',
     notificationSettings: 'Notification Settings',
+    notifyOnEmail: 'Email Notification',
+    notifyOnWebhook: 'Webhook Bot Notification',
     notifyOnSuccess: 'Notify on success',
     notifyOnFailure: 'Notify on failure',
     notifyEmails: 'Notification Emails',
     selectNotifyEmails: 'Please select notification emails',
     selectNotificationType: 'Please select notification type',
+    notificationConfig: 'Notification Config',
+    selectNotificationConfig: 'Please select notification config',
+    webhookGroup: 'Webhook Notification',
+    emailGroup: 'Email Notification',
+    noNotificationConfig: 'Please add notification config first',
+    noMatchingNotificationConfig: 'No matching notification configuration found, please create notification configuration in the Configuration Center first',
     cronHelp: {
       title: 'Cron Help',
       format: 'Cron format: minute hour day month weekday',
@@ -705,14 +779,6 @@ export default {
       testSuiteShort: 'Test Suite',
       testCaseShort: 'Test Case',
       aiCase: 'AI Case'
-    },
-    triggerTypes: {
-      cron: 'Cron Expression',
-      interval: 'Fixed Interval',
-      once: 'One-time Execution',
-      cronShort: 'Cron',
-      intervalShort: 'Interval',
-      onceShort: 'Once'
     },
     notificationTypes: {
       email: 'Email Notification',
@@ -822,16 +888,42 @@ export default {
       // Robot config
       botName: 'Robot Name',
       enable: 'Enable',
+      isDefault: 'Set as Default',
+      platformType: 'Platform Type',
       businessType: 'Business Type',
       uiAutomationTest: 'UI Automation Test',
       apiTest: 'API Test',
+      appAutomationTest: 'APP Automation Test',
       signatureSecret: 'Signature Secret',
       signatureSecretPlaceholder: 'Please enter DingTalk robot signature secret (optional)',
       signatureSecretHint: 'DingTalk robot signature secret for security verification. Fill this if the robot has enabled "Sign" security setting.',
+      selectBotHint: 'Please select a robot from the left panel to edit',
+      addNewBot: 'Add New Robot',
+      editBot: 'Edit Robot',
+      newBot: 'New Robot',
+      emptyHint: 'Select a robot from the left or add a new one',
+      status: 'Status',
+      platformNotEditable: 'Platform type cannot be modified after creation',
+      testSend: 'Test Send',
+      testSendSuccess: 'Test message sent successfully',
+      testSendFailed: 'Test message failed to send',
+      emailNotification: 'Email Notification',
+      emailRecipients: 'Email Recipients',
+      emailAttachReport: 'Attach Test Report',
+      emailAttachReportHint: 'When enabled, email will include HTML test report attachment',
+      recipientType: 'Recipient Type',
+      platformUser: 'Platform User',
+      customEmail: 'Custom Email',
+      selectUser: 'Please select user',
+      recipientExists: 'Recipient already exists',
+      emailPlaceholder: 'Please enter email address',
+      emailRequired: 'Please enter email address',
+      emailInvalid: 'Please enter a valid email address',
       // Tab labels
       feishuBot: 'Feishu Robot',
       wechatBot: 'WeCom Robot',
       dingtalkBot: 'DingTalk Robot',
+      genericWebhook: 'Generic Webhook',
       // Form hints
       feishuBotNamePlaceholder: 'Please enter Feishu robot name',
       feishuUrlHint: 'Feishu Webhook URL format: https://open.feishu.cn/open-apis/bot/v2/hook/...',
@@ -839,14 +931,20 @@ export default {
       wechatUrlHint: 'WeCom Webhook URL format: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=...',
       dingtalkBotNamePlaceholder: 'Please enter DingTalk robot name',
       dingtalkUrlHint: 'DingTalk Webhook URL format: https://oapi.dingtalk.com/robot/send?access_token=...',
+      genericWebhookNamePlaceholder: 'Please enter generic webhook name',
+      genericWebhookUrlHint: 'Generic Webhook URL format: https://...',
+      messageTemplate: 'Message Template',
+      selectTemplate: 'Please select message template',
       // Save buttons
       saveFeishuConfig: 'Save Feishu Robot Config',
       saveWechatConfig: 'Save WeCom Robot Config',
       saveDingtalkConfig: 'Save DingTalk Robot Config',
+      saveGenericConfig: 'Save Generic Webhook Config',
       platforms: {
         feishu: 'Feishu',
         wechatWork: 'WeCom',
-        dingtalk: 'DingTalk'
+        dingtalk: 'DingTalk',
+        generic: 'Generic Webhook'
       },
       rules: {
         nameRequired: 'Please enter config name',
@@ -874,6 +972,9 @@ export default {
         dingtalkUpdateSuccess: 'DingTalk robot config updated successfully',
         dingtalkCreateSuccess: 'DingTalk robot config created successfully',
         dingtalkSaveFailed: 'Failed to save DingTalk robot config',
+        genericUpdateSuccess: 'Generic webhook config updated successfully',
+        genericCreateSuccess: 'Generic webhook config created successfully',
+        genericSaveFailed: 'Failed to save generic webhook config',
         noExistingConfig: 'No existing Webhook config found, will create new config',
         getConfigFailed: 'Failed to get Webhook robot config',
         getAllConfigFailed: 'Failed to get all Webhook robot configs'
@@ -1053,6 +1154,17 @@ export default {
   // Test Case Management
   testCase: {
     title: 'Test Case Management',
+    // Test case run related
+    run: {
+      start: 'Starting test case - {engine} engine / {browser} browser / {mode} mode',
+      success: 'Test case executed successfully',
+      failed: 'Test case execution failed',
+      failedWithMessage: 'Test case execution failed: {message}'
+    },
+    runMode: {
+      headless: 'Headless',
+      headed: 'Headed'
+    },
     newTestCase: 'New Test Case',
     testCaseList: 'Test Case List',
     searchPlaceholder: 'Search test cases...',
@@ -1062,10 +1174,10 @@ export default {
     saveTestCase: 'Save',
     selectEngine: 'Select Engine',
     selectBrowser: 'Select Browser',
-    runMode: 'Run Mode',
+    runModeLabel: 'Run Mode',
     headedMode: 'Headed Mode',
     headlessMode: 'Headless Mode',
-    run: 'Run',
+    runLabel: 'Run',
     running: 'Running...',
     viewResult: 'View Execution Result',
     editSteps: 'Edit Steps',
@@ -1084,9 +1196,14 @@ export default {
     actionAssert: 'Assert',
     actionWait: 'Wait',
     actionSwitchTab: 'Switch Tab',
+    actionNavigateTo: 'Navigate to URL',
+    selectPage: 'Select Page',
+    allPages: 'All Pages',
+    noPage: 'Uncategorized',
     selectElement: 'Select Element',
     inputValue: 'Input Value:',
-    inputPlaceholder: 'Enter content, supports variables like \'{random_phone()}\'',
+    inputPlaceholder: 'Enter content, supports variables like {\'{random_phone()}\'}',
+    urlPlaceholder: 'Enter URL to navigate, e.g. https://example.com',
     switchTabPlaceholder: 'Enter index (0,1...) or leave empty for latest',
     insertVariable: 'Insert Dynamic Variable',
     referenceDataFactory: 'Reference Data Factory',
@@ -1097,6 +1214,7 @@ export default {
     assertIsVisible: 'Element Visible',
     assertExists: 'Element Exists',
     assertHasAttribute: 'Attribute Value',
+    assertUrlContains: 'URL Contains',
     expectedValue: 'Expected Value',
     stepDescription: 'Step Description:',
     stepDescPlaceholder: 'Describe the purpose of this step',
@@ -1145,9 +1263,12 @@ export default {
     },
     variables: {
       randomInt: 'Generate random integer',
+      randomIntDesc: 'Generate random integer in specified range, params: min, max, count',
       randomFloat: 'Generate random float',
+      randomFloatDesc: 'Generate random float in specified range, params: min, max, precision, count',
       randomDigits: 'Generate random digit string',
       randomString: 'Generate random alphanumeric string',
+      randomStringDesc: 'Generate random string, params: length, char_type(all/letter/number), count',
       randomLetters: 'Generate random letter string',
       randomChinese: 'Generate random Chinese characters',
       randomPhone: 'Generate random phone number',
@@ -1188,6 +1309,68 @@ export default {
       createFailed: 'Failed to save',
       variableInserted: 'Variable inserted',
       dataFactorySelected: 'Data factory selected: {toolName}'
+    },
+    // Action types (for displaying action type names)
+    actionType: {
+      click: 'Click',
+      fill: 'Fill',
+      getText: 'Get Text',
+      waitFor: 'Wait For',
+      hover: 'Hover',
+      scroll: 'Scroll',
+      screenshot: 'Screenshot',
+      assert: 'Assert',
+      wait: 'Wait'
+    },
+    // Action text (for displaying action descriptions in execution logs)
+    actionText: {
+      click: 'Click',
+      fill: 'Fill Text',
+      getText: 'Get Text',
+      waitFor: 'Wait For',
+      hover: 'Hover',
+      scroll: 'Scroll',
+      screenshot: 'Screenshot',
+      assert: 'Assert',
+      wait: 'Wait'
+    },
+    // Status text
+    status: {
+      draft: 'Draft',
+      ready: 'Ready',
+      running: 'Running',
+      passed: 'Passed',
+      failed: 'Failed',
+      unknown: 'Unknown'
+    },
+    // Form validation messages
+    form: {
+      nameRequired: 'Please enter test case name'
+    },
+    // Save operation messages
+    save: {
+      success: 'Test case saved successfully',
+      failed: 'Failed to save test case'
+    },
+    // Delete operation messages
+    delete: {
+      confirm: 'Are you sure to delete test case "{name}"?',
+      title: 'Confirm Delete',
+      success: 'Deleted successfully'
+    },
+    // Copy operation messages
+    copy: {
+      confirm: 'Are you sure to copy test case "{name}"?',
+      title: 'Confirm Copy',
+      success: 'Copied successfully'
+    },
+    // Create operation messages
+    create: {
+      success: 'Test case created successfully'
+    },
+    // Update operation messages
+    update: {
+      success: 'Test case updated successfully'
     }
   },
 

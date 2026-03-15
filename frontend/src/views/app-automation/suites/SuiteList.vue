@@ -2,13 +2,13 @@
   <div class="suite-list">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h3>测试套件</h3>
+      <h3>{{ t('appAutomation.testSuite.title') }}</h3>
       <div class="header-actions">
         <el-button type="primary" size="small" :icon="Plus" @click="showCreateDialog">
-          新建套件
+          {{ t('appAutomation.testSuite.newTestSuite') }}
         </el-button>
         <el-button size="small" :icon="Refresh" :loading="loading" @click="loadSuites">
-          刷新
+          {{ t('appAutomation.common.refresh') }}
         </el-button>
       </div>
     </div>
@@ -18,17 +18,17 @@
       <el-form :model="runConfig" label-width="100px" size="small">
         <el-row :gutter="16">
           <el-col :span="5">
-            <el-form-item label="所属项目">
-              <el-select v-model="projectFilter" placeholder="全部项目" clearable filterable style="width:100%" @change="loadSuites">
+            <el-form-item :label="t('appAutomation.testSuite.project')">
+              <el-select v-model="projectFilter" :placeholder="t('appAutomation.testSuite.allProjects')" clearable filterable style="width:100%" @change="loadSuites">
                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="7">
-            <el-form-item label="选择设备" required>
+            <el-form-item :label="t('appAutomation.execution.device')" required>
               <el-select
                 v-model="runConfig.deviceId"
-                placeholder="请选择设备"
+                :placeholder="t('appAutomation.testCase.selectDevice')"
                 filterable
                 style="width: 100%"
                 :loading="devicesLoading"
@@ -44,10 +44,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="选择应用">
+            <el-form-item :label="t('appAutomation.testSuite.selectApp')">
               <el-select
                 v-model="runConfig.packageName"
-                placeholder="请选择应用（可选）"
+                :placeholder="t('appAutomation.testSuite.selectAppPlaceholder')"
                 clearable
                 filterable
                 style="width: 100%"
@@ -62,10 +62,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="6">
-            <el-form-item label="搜索套件">
+            <el-form-item :label="t('appAutomation.testSuite.searchPlaceholder')">
               <el-input
                 v-model="searchQuery"
-                placeholder="搜索套件名称"
+                :placeholder="t('appAutomation.testSuite.searchPlaceholder')"
                 clearable
                 @clear="loadSuites"
                 @keyup.enter="loadSuites"
@@ -85,31 +85,31 @@
       v-loading="loading"
       :data="suites"
       style="width: 100%; margin-top: 16px"
-      empty-text="暂无测试套件"
+      :empty-text="t('appAutomation.common.noData')"
     >
-      <el-table-column prop="name" label="套件名称" min-width="180">
+      <el-table-column prop="name" :label="t('appAutomation.testSuite.suiteName')" min-width="180">
         <template #default="{ row }">
           <el-link type="primary" @click="showEditDialog(row)">{{ row.name }}</el-link>
         </template>
       </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="200">
+      <el-table-column prop="description" :label="t('appAutomation.testSuite.description')" min-width="200">
         <template #default="{ row }">
           {{ row.description || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="用例数" width="90" align="center">
+      <el-table-column :label="t('appAutomation.testSuite.testCaseCount')" width="90" align="center">
         <template #default="{ row }">
           <el-tag size="small">{{ row.test_case_count }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="执行状态" width="110" align="center">
+      <el-table-column :label="t('appAutomation.testSuite.executionStatus')" width="110" align="center">
         <template #default="{ row }">
           <el-tag :type="getSuiteDisplayStatus(row).type" size="small">
             {{ getSuiteDisplayStatus(row).text }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="通过/失败" width="110" align="center">
+      <el-table-column :label="t('appAutomation.testSuite.passFail')" width="110" align="center">
         <template #default="{ row }">
           <span v-if="row.execution_status !== 'not_run'" class="pass-fail">
             <span class="pass">{{ row.passed_count }}</span> /
@@ -118,29 +118,29 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column label="最后执行" width="170">
+      <el-table-column :label="t('appAutomation.testSuite.lastRun')" width="170">
         <template #default="{ row }">
           {{ row.last_run_at ? formatDateTime(row.last_run_at) : '-' }}
         </template>
       </el-table-column>
-      <el-table-column prop="updated_at" label="更新时间" width="170">
+      <el-table-column prop="updated_at" :label="t('appAutomation.testSuite.updateTime')" width="170">
         <template #default="{ row }">
           {{ formatDateTime(row.updated_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column :label="t('appAutomation.common.operation')" width="220" fixed="right">
         <template #default="{ row }">
           <el-button link type="success" size="small" @click="runSuite(row)">
-            执行
+            {{ t('appAutomation.testSuite.run') }}
           </el-button>
           <el-button link type="primary" size="small" @click="showEditDialog(row)">
-            编辑
+            {{ t('appAutomation.common.edit') }}
           </el-button>
           <el-button link type="warning" size="small" @click="showSuiteExecutions(row)">
-            历史
+            {{ t('appAutomation.testSuite.history') }}
           </el-button>
           <el-button link type="danger" size="small" @click="deleteSuite(row)">
-            删除
+            {{ t('appAutomation.common.delete') }}
           </el-button>
         </template>
       </el-table-column>
@@ -149,22 +149,22 @@
     <!-- 创建/编辑套件对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑测试套件' : '新建测试套件'"
+      :title="isEdit ? t('appAutomation.testSuite.editTestSuite') : t('appAutomation.testSuite.createTestSuite')"
       width="900px"
       :close-on-click-modal="false"
       destroy-on-close
     >
       <el-form :model="suiteForm" label-width="80px" size="default">
-        <el-form-item label="套件名称" required>
-          <el-input v-model="suiteForm.name" placeholder="请输入套件名称" />
+        <el-form-item :label="t('appAutomation.testSuite.suiteName')" required>
+          <el-input v-model="suiteForm.name" :placeholder="t('appAutomation.testSuite.suiteNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="所属项目">
-          <el-select v-model="suiteForm.project" placeholder="请选择项目" clearable filterable style="width:100%">
+        <el-form-item :label="t('appAutomation.testSuite.project')">
+          <el-select v-model="suiteForm.project" :placeholder="t('appAutomation.testSuite.selectProject')" clearable filterable style="width:100%">
             <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述">
-          <el-input v-model="suiteForm.description" type="textarea" :rows="2" placeholder="请输入套件描述" />
+        <el-form-item :label="t('appAutomation.testSuite.description')">
+          <el-input v-model="suiteForm.description" type="textarea" :rows="2" :placeholder="t('appAutomation.testSuite.descriptionPlaceholder')" />
         </el-form-item>
       </el-form>
 
@@ -172,10 +172,10 @@
       <div class="case-selector">
         <div class="selector-panel available-panel">
           <div class="panel-header">
-            <span>可选用例</span>
+            <span>{{ t('appAutomation.testSuite.availableCases') }}</span>
             <el-input
               v-model="caseSearchQuery"
-              placeholder="搜索用例"
+              :placeholder="t('appAutomation.testSuite.searchCases')"
               size="small"
               clearable
               style="width: 200px"
@@ -195,15 +195,15 @@
               <el-icon v-if="!selectedCaseIds.has(tc.id)" class="add-icon"><Plus /></el-icon>
               <el-icon v-else class="added-icon"><Check /></el-icon>
             </div>
-            <el-empty v-if="filteredAvailableCases.length === 0" description="暂无可选用例" :image-size="60" />
+            <el-empty v-if="filteredAvailableCases.length === 0" :description="t('appAutomation.testSuite.noAvailableCases')" :image-size="60" />
           </div>
         </div>
 
         <div class="selector-panel selected-panel">
           <div class="panel-header">
-            <span>已选用例 ({{ selectedCases.length }})</span>
+            <span>{{ t('appAutomation.testSuite.selectedCases', { count: selectedCases.length }) }}</span>
             <el-button v-if="selectedCases.length" link type="danger" size="small" @click="clearAllCases">
-              清空
+              {{ t('appAutomation.testSuite.clear') }}
             </el-button>
           </div>
           <div class="panel-body">
@@ -222,15 +222,15 @@
                 </div>
               </template>
             </draggable>
-            <el-empty v-if="selectedCases.length === 0" description="请从左侧添加用例" :image-size="60" />
+            <el-empty v-if="selectedCases.length === 0" :description="t('appAutomation.testSuite.addCasesTip')" :image-size="60" />
           </div>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ t('appAutomation.common.cancel') }}</el-button>
         <el-button type="primary" :loading="saving" @click="saveSuite">
-          {{ isEdit ? '保存' : '创建' }}
+          {{ isEdit ? t('appAutomation.common.save') : t('appAutomation.common.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -238,21 +238,21 @@
     <!-- 执行历史对话框 -->
     <el-dialog
       v-model="historyVisible"
-      :title="`执行历史 - ${currentSuiteName}`"
+      :title="`${t('appAutomation.testSuite.executionHistory')} - ${currentSuiteName}`"
       width="900px"
       destroy-on-close
     >
-      <el-table :data="suiteExecutions" v-loading="historyLoading" empty-text="暂无执行记录">
-        <el-table-column prop="case_name" label="测试用例" min-width="180" />
-        <el-table-column prop="device_name" label="设备" width="150" />
-        <el-table-column prop="status" label="状态" width="100" align="center">
+      <el-table :data="suiteExecutions" v-loading="historyLoading" :empty-text="t('appAutomation.testSuite.noExecutionRecords')">
+        <el-table-column prop="case_name" :label="t('appAutomation.testSuite.testCase')" min-width="180" />
+        <el-table-column prop="device_name" :label="t('appAutomation.execution.device')" width="150" />
+        <el-table-column prop="status" :label="t('appAutomation.execution.status')" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
               {{ getDisplayStatus(row.status, row.result).text }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="进度" width="200">
+        <el-table-column :label="t('appAutomation.testSuite.progress')" width="200">
           <template #default="{ row }">
             <el-progress
               :percentage="row.progress || 0"
@@ -261,19 +261,19 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="开始时间" width="170">
+        <el-table-column :label="t('appAutomation.execution.startTime')" width="170">
           <template #default="{ row }">
             {{ row.started_at ? formatDateTime(row.started_at) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column :label="t('appAutomation.common.operation')" width="100">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'completed' || row.status === 'error'"
               link type="primary" size="small"
               @click="viewReport(row)"
             >
-              查看报告
+              {{ t('appAutomation.testSuite.viewReport') }}
             </el-button>
           </template>
         </el-table-column>
@@ -284,6 +284,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh, Search, Check, Close, Rank } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
@@ -304,6 +305,8 @@ import {
   getAppProjects,
 } from '@/api/app-automation'
 import { getExecutionStatusType, getExecutionStatusText, getDisplayStatus, formatDateTime } from '@/utils/app-automation-helpers'
+
+const { t } = useI18n()
 
 // ===== 响应式数据 =====
 const loading = ref(false)
@@ -464,7 +467,7 @@ const showEditDialog = async (suite) => {
 
 const saveSuite = async () => {
   if (!suiteForm.value.name.trim()) {
-    ElMessage.warning('请输入套件名称')
+    ElMessage.warning(t('appAutomation.testSuite.pleaseEnterSuiteName'))
     return
   }
 

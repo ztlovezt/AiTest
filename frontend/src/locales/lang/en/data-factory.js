@@ -21,7 +21,8 @@ export default {
     expandAll: 'Expand All',
     collapseAll: 'Collapse All',
     selectImage: 'Select Image',
-    copy: 'Copy'
+    copy: 'Copy',
+    generateRandomIV: 'Random IV'
   },
 
   // Tool count
@@ -225,6 +226,9 @@ export default {
     password: 'Password',
     passwordPlaceholder: 'Enter password',
     mode: 'Mode',
+    iv: 'IV Offset',
+    ivPlaceholder: 'Enter IV (hex, 32 chars), leave empty to auto-generate',
+    ivTip: 'CBC mode requires 16-byte IV, ECB mode does not need IV',
     saltLength: 'Length',
 
     // JSON tools

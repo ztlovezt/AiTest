@@ -1,9 +1,10 @@
 from django.contrib import admin
 from .models import AssistantSession, AssistantMessage
+from apps.core.admin_mixins import StandardAdminMixin
 
 
 @admin.register(AssistantSession)
-class AssistantSessionAdmin(admin.ModelAdmin):
+class AssistantSessionAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['user', 'title', 'session_id', 'created_at', 'updated_at']
     list_filter = ['created_at', 'updated_at']
     search_fields = ['user__username', 'title', 'session_id']
@@ -11,7 +12,7 @@ class AssistantSessionAdmin(admin.ModelAdmin):
 
 
 @admin.register(AssistantMessage)
-class AssistantMessageAdmin(admin.ModelAdmin):
+class AssistantMessageAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['session', 'message_type', 'content_preview', 'created_at']
     list_filter = ['message_type', 'created_at']
     search_fields = ['session__title', 'content']

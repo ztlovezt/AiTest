@@ -185,10 +185,11 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
             suite.execution_status = 'running'
             suite.save(update_fields=['execution_status'])
 
-            # 触发 Celery 任务，顺序执行
-            from ..tasks import execute_app_suite_task
+            # 触发 Django-Q2 异步任务，顺序执行
+            from django_q.tasks import async_task
             execution_ids = [e.id for e in executions]
-            task = execute_app_suite_task.delay(
+            task_id = async_task(
+                'apps.app_automation.tasks_async.execute_app_suite_task',
                 suite_id=suite.id,
                 execution_ids=execution_ids,
                 package_name=package_name
@@ -196,7 +197,7 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
 
             # 记录 task_id 到第一个执行
             if executions:
-                executions[0].task_id = task.id
+                executions[0].task_id = task_id
                 executions[0].save(update_fields=['task_id'])
 
             logger.info(f"测试套件已提交执行: suite={suite.name}, "

@@ -9,6 +9,7 @@ export default {
     aiGeneration: 'AI Test Case Generation',
     apiTesting: 'API Testing',
     uiAutomation: 'UI Automation Testing',
+    appAutomation: 'APP Automation Testing',
     aiIntelligentMode: 'AI Intelligent Mode',
     configuration: 'Configuration Center'
   },
@@ -25,7 +26,7 @@ export default {
     reviewList: 'Review List',
     reviewTemplates: 'Review Templates',
     testPlan: 'Test Plan',
-    testReport: 'Test Report',
+    testReport: 'Report Management',
 
     // API Testing
     dashboard: 'Dashboard',
@@ -44,6 +45,20 @@ export default {
     suiteManagement: 'Suite Management',
     executionRecords: 'Execution Records',
 
+    // APP Automation
+    dashboard: 'Dashboard',
+    projectManagement: 'Project Management',
+    deviceManagement: 'Device Management',
+    packageManagement: 'Package Management',
+    elementManagement: 'Element Management',
+    sceneBuilder: 'Scene Builder',
+    testCases: 'Test Cases',
+    testSuites: 'Test Suites',
+    executionRecords: 'Execution Records',
+    testReports: 'Report Management',
+    scheduledTasks: 'Scheduled Tasks',
+    notificationList: 'Notification List',
+
     // AI Intelligent Mode
     aiIntelligentTesting: 'AI Intelligent Testing',
     aiCaseManagement: 'AI Case Management',
@@ -55,8 +70,9 @@ export default {
     promptConfig: 'Prompt Configuration',
     generationConfig: 'Generation Behavior Config',
     uiEnvConfig: 'UI Environment Configuration',
+    appEnvConfig: 'APP Environment Configuration',
     aiModeConfig: 'AI Mode Configuration',
-    scheduledTaskConfig: 'Scheduled Task Configuration',
+    scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration'
   }
 }

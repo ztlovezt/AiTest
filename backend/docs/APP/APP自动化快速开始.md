@@ -587,7 +587,7 @@ python
 manage.py
 shell
 
-from backend.apps.apps.app_automation.models import AppElement
+from apps.app_automation.models import AppElement
 
 elements = [
     {

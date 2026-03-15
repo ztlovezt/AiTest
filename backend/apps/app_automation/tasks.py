@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 APP自动化测试 Celery 任务
+
+注意：定时任务通知功能已迁移到 apps.scheduler.task_executor 模块统一处理
 """
 from celery import shared_task
 from django.utils import timezone
@@ -10,159 +12,6 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 logger = logging.getLogger(__name__)
-
-
-def send_scheduled_task_notification(task_id, success):
-    """发送定时任务执行通知（Webhook + 邮件）"""
-    try:
-        from .models import AppScheduledTask, AppNotificationLog
-
-        task = AppScheduledTask.objects.get(id=task_id)
-
-        if success and not task.notify_on_success:
-            return
-        if not success and not task.notify_on_failure:
-            return
-        if not task.notification_type:
-            return
-
-        status_text = '成功' if success else '失败'
-        last_result = task.last_result or {}
-        result_message = last_result.get('message', '')
-        local_run_time = timezone.localtime(task.last_run_time).strftime('%Y-%m-%d %H:%M:%S') if task.last_run_time else '未知'
-        device_name = (task.device.name or task.device.device_id) if task.device else '未指定'
-
-        detail_content = (
-            f"任务名称: {task.name}\n\n"
-            f"执行状态: {status_text}\n\n"
-            f"执行时间: {local_run_time}\n\n"
-            f"任务类型: {task.get_task_type_display()}\n\n"
-            f"执行设备: {device_name}"
-        )
-        if result_message:
-            detail_content += f"\n\n执行结果: {result_message}"
-
-        # Webhook 通知
-        if task.notification_type in ['webhook', 'both']:
-            _send_app_webhook_notification(task, detail_content, status_text)
-
-        # 邮件通知
-        if task.notification_type in ['email', 'both']:
-            _send_app_email_notification(task, detail_content, status_text)
-
-    except Exception as e:
-        logger.error(f"发送APP定时任务通知失败: {e}", exc_info=True)
-
-
-def _send_app_webhook_notification(task, detail_content, status_text):
-    """发送 Webhook 通知"""
-    import requests
-    import json
-    from .models import AppNotificationLog
-
-    try:
-        from apps.core.models import UnifiedNotificationConfig
-        configs = UnifiedNotificationConfig.objects.filter(
-            config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk'],
-            is_active=True
-        )
-    except Exception as e:
-        logger.error(f"获取通知配置失败: {e}")
-        return
-
-    all_bots = []
-    for config in configs:
-        for bot in config.get_webhook_bots():
-            if bot.get('enabled', True):
-                all_bots.append(bot)
-
-    if not all_bots:
-        return
-
-    for bot in all_bots:
-        webhook_url = bot.get('webhook_url')
-        if not webhook_url:
-            continue
-
-        bot_type = bot.get('type', 'unknown')
-        success = status_text == '成功'
-
-        if bot_type == 'wechat':
-            message_data = {"msgtype": "markdown", "markdown": {"content": f"**APP自动化定时任务执行{status_text}**\n\n{detail_content}"}}
-        elif bot_type == 'feishu':
-            message_data = {"msg_type": "interactive", "card": {"elements": [{"tag": "div", "text": {"content": f"**APP自动化定时任务执行{status_text}**\n\n{detail_content}", "tag": "lark_md"}}], "header": {"title": {"content": f"APP自动化定时任务执行{status_text}", "tag": "plain_text"}, "template": "green" if success else "red"}}}
-        elif bot_type == 'dingtalk':
-            message_data = {"msgtype": "markdown", "markdown": {"title": f"APP自动化定时任务执行{status_text}", "text": f"**APP自动化定时任务执行{status_text}**\n\n{detail_content}"}}
-            secret = bot.get('secret')
-            if secret:
-                import time as _time, hmac, hashlib, base64, urllib.parse
-                timestamp = str(round(_time.time() * 1000))
-                sign = urllib.parse.quote_plus(base64.b64encode(hmac.new(secret.encode('utf-8'), f'{timestamp}\n{secret}'.encode('utf-8'), digestmod=hashlib.sha256).digest()))
-                webhook_url += f'{"&" if "?" in webhook_url else "?"}timestamp={timestamp}&sign={sign}'
-        else:
-            continue
-
-        try:
-            resp = requests.post(webhook_url, json=message_data, headers={'Content-Type': 'application/json'}, timeout=10)
-            log_status = 'success' if resp.status_code == 200 else 'failed'
-            AppNotificationLog.objects.create(
-                task=task, task_name=task.name, task_type=task.task_type,
-                notification_type='task_execution', sender_name='系统Webhook通知',
-                sender_email='system@notification.com',
-                recipient_info=[{'name': bot.get('name', 'Unknown'), 'webhook_url': webhook_url}],
-                webhook_bot_info=bot,
-                notification_content=json.dumps(message_data, ensure_ascii=False),
-                status=log_status,
-                error_message='' if log_status == 'success' else f'HTTP {resp.status_code}: {resp.text}',
-                response_info={'status_code': resp.status_code, 'response': resp.text[:500]},
-                sent_at=timezone.now()
-            )
-        except Exception as e:
-            logger.error(f"发送Webhook失败: {e}")
-            AppNotificationLog.objects.create(
-                task=task, task_name=task.name, task_type=task.task_type,
-                notification_type='task_execution', sender_name='系统Webhook通知',
-                sender_email='system@notification.com',
-                recipient_info=[{'name': bot.get('name', 'Unknown')}],
-                webhook_bot_info=bot,
-                notification_content=json.dumps(message_data, ensure_ascii=False),
-                status='failed', error_message=str(e)
-            )
-
-
-def _send_app_email_notification(task, detail_content, status_text):
-    """发送邮件通知"""
-    from .models import AppNotificationLog
-
-    recipients = task.notify_emails if isinstance(task.notify_emails, list) else []
-    if not recipients:
-        return
-
-    try:
-        from django.core.mail import send_mail
-        from django.conf import settings
-
-        subject = f"APP自动化定时任务执行{status_text}: {task.name}"
-        from_email = settings.DEFAULT_FROM_EMAIL
-
-        send_mail(subject=subject, message=detail_content, from_email=from_email, recipient_list=recipients, fail_silently=False)
-
-        AppNotificationLog.objects.create(
-            task=task, task_name=task.name, task_type=task.task_type,
-            notification_type='task_execution', sender_name='系统邮件通知',
-            sender_email=from_email,
-            recipient_info=[{'email': e} for e in recipients],
-            notification_content=detail_content, status='success', sent_at=timezone.now()
-        )
-    except Exception as e:
-        logger.error(f"发送邮件失败: {e}", exc_info=True)
-        AppNotificationLog.objects.create(
-            task=task, task_name=task.name, task_type=task.task_type,
-            notification_type='task_execution', sender_name='系统邮件通知',
-            sender_email='',
-            recipient_info=[{'email': e} for e in recipients],
-            notification_content=f"发送失败: {e}", status='failed', error_message=str(e)
-        )
 
 
 def send_execution_update(execution_id, status=None, progress=None, message=None, report_path=None, finished_at=None, result=None):
@@ -296,22 +145,6 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
         )
         
         logger.info(f"APP测试执行完成: {test_case.name}, 状态: {execution.status}, 结果: {execution.result}")
-
-        # 定时任务通知
-        if scheduled_task_id:
-            try:
-                from .models import AppScheduledTask
-                st = AppScheduledTask.objects.get(id=scheduled_task_id)
-                is_success = execution.result == 'passed'
-                if is_success:
-                    st.successful_runs += 1
-                else:
-                    st.failed_runs += 1
-                st.last_result = {'status': execution.status, 'result': execution.result, 'message': f'{test_case.name} - {execution.result or execution.status}'}
-                st.save(update_fields=['successful_runs', 'failed_runs', 'last_result'])
-                send_scheduled_task_notification(scheduled_task_id, success=is_success)
-            except Exception as ne:
-                logger.error(f"更新定时任务状态失败: {ne}")
 
     except AppTestExecution.DoesNotExist:
         logger.error(f"执行记录不存在: {execution_id}")
@@ -507,26 +340,6 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
         suite.save(update_fields=['execution_status', 'execution_result', 'passed_count', 'failed_count', 'last_run_at'])
 
         logger.info(f"套件执行完成: {suite.name}, 通过: {passed}, 失败: {failed}")
-
-        # 定时任务通知
-        if scheduled_task_id:
-            try:
-                from .models import AppScheduledTask
-                st = AppScheduledTask.objects.get(id=scheduled_task_id)
-                is_success = failed == 0
-                if is_success:
-                    st.successful_runs += 1
-                else:
-                    st.failed_runs += 1
-                st.last_result = {
-                    'status': suite.execution_status,
-                    'result': suite.execution_result,
-                    'message': f'通过: {passed}, 失败: {failed}'
-                }
-                st.save(update_fields=['successful_runs', 'failed_runs', 'last_result'])
-                send_scheduled_task_notification(scheduled_task_id, success=is_success)
-            except Exception as ne:
-                logger.error(f"更新定时任务状态失败: {ne}")
 
     except AppTestSuite.DoesNotExist:
         logger.error(f"测试套件不存在: {suite_id}")

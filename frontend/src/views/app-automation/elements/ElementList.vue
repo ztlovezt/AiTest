@@ -6,22 +6,22 @@
         <div class="header-actions">
           <el-space wrap>
             <!-- 项目筛选 -->
-            <el-select v-model="projectFilter" placeholder="全部项目" clearable filterable style="width: 160px" @change="handleSearch">
+            <el-select v-model="projectFilter" :placeholder="t('appAutomation.element.allProjects')" clearable filterable style="width: 160px" @change="handleSearch">
               <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
 
             <!-- 类型切换 -->
             <el-radio-group v-model="typeFilter" @change="loadElements">
-              <el-radio-button value="">全部</el-radio-button>
-              <el-radio-button value="image">图片</el-radio-button>
-              <el-radio-button value="pos">坐标</el-radio-button>
-              <el-radio-button value="region">区域</el-radio-button>
+              <el-radio-button value="">{{ t('appAutomation.element.all') }}</el-radio-button>
+              <el-radio-button value="image">{{ t('appAutomation.element.image') }}</el-radio-button>
+              <el-radio-button value="pos">{{ t('appAutomation.element.position') }}</el-radio-button>
+              <el-radio-button value="region">{{ t('appAutomation.element.region') }}</el-radio-button>
             </el-radio-group>
             
             <!-- 搜索 -->
             <el-input
               v-model="searchQuery"
-              placeholder="搜索元素名称/标签"
+              :placeholder="t('appAutomation.element.searchPlaceholder2')"
               style="width: 250px"
               clearable
               @clear="handleSearch"
@@ -47,11 +47,11 @@
           <el-space>
             <el-button type="success" @click="showCaptureDialog">
               <el-icon><Camera /></el-icon>
-              从设备创建
+              {{ t('appAutomation.element.createFromDevice') }}
             </el-button>
             <el-button type="primary" @click="showCreateDialog">
               <el-icon><Plus /></el-icon>
-              手动创建
+              {{ t('appAutomation.element.manualCreate') }}
             </el-button>
           </el-space>
         </div>
@@ -66,7 +66,7 @@
       >
         <el-table-column type="selection" width="55" />
         
-        <el-table-column prop="name" label="元素名称" width="200" fixed="left">
+        <el-table-column prop="name" :label="t('appAutomation.element.elementName')" width="200" fixed="left">
           <template #default="{ row }">
             <el-link type="primary" @click="handleView(row)">
               {{ row.name }}
@@ -74,7 +74,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="element_type" label="类型" width="100">
+        <el-table-column prop="element_type" :label="t('appAutomation.element.type')" width="100">
           <template #default="{ row }">
             <el-tag :type="getTypeColor(row.element_type)">
               {{ getTypeName(row.element_type) }}
@@ -82,7 +82,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column label="图片分类" width="120">
+        <el-table-column :label="t('appAutomation.element.imageCategory')" width="120">
           <template #default="{ row }">
             <el-tag v-if="row.element_type === 'image' && row.config?.image_category" type="info" size="small">
               {{ row.config.image_category }}
@@ -91,7 +91,7 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="tags" label="标签" width="200">
+        <el-table-column prop="tags" :label="t('appAutomation.element.tags')" width="200">
           <template #default="{ row }">
             <el-tag
               v-for="tag in row.tags"
@@ -105,7 +105,7 @@
         </el-table-column>
         
         <!-- 预览 -->
-        <el-table-column label="预览" width="200" align="center">
+        <el-table-column :label="t('appAutomation.element.preview')" width="200" align="center">
           <template #default="{ row }">
             <!-- 图片类型 -->
             <div v-if="row.element_type === 'image'" class="preview-image">
@@ -142,24 +142,24 @@
           </template>
         </el-table-column>
         
-        <el-table-column prop="usage_count" label="使用次数" width="100" sortable />
+        <el-table-column prop="usage_count" :label="t('appAutomation.element.usageCount')" width="100" sortable />
         
-        <el-table-column prop="created_at" label="创建时间" width="180">
+        <el-table-column prop="created_at" :label="t('appAutomation.element.createTime')" width="180">
           <template #default="{ row }">
             {{ formatDateTime(row.created_at) }}
           </template>
         </el-table-column>
         
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column :label="t('appAutomation.common.operation')" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="handleEdit(row)">
-              编辑
+              {{ t('appAutomation.common.edit') }}
             </el-button>
             <el-button size="small" @click="handleDuplicate(row)">
-              复制
+              {{ t('appAutomation.common.copy') }}
             </el-button>
             <el-button size="small" type="danger" @click="handleDelete(row)">
-              删除
+              {{ t('appAutomation.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -168,9 +168,9 @@
       <!-- 批量操作栏 -->
       <div v-if="selectedElements.length > 0" class="batch-actions">
         <el-space>
-          <span>已选择 {{ selectedElements.length }} 项</span>
+          <span>{{ t('appAutomation.element.selectedCount', { count: selectedElements.length }) }}</span>
           <el-button type="danger" size="small" @click="handleBatchDelete">
-            批量删除
+            {{ t('appAutomation.element.batchDelete') }}
           </el-button>
         </el-space>
       </div>
@@ -206,26 +206,26 @@
     <!-- 查看详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="元素详情"
+      :title="t('appAutomation.element.elementDetail')"
       width="800px"
     >
       <el-descriptions :column="2" border v-if="viewingElement">
-        <el-descriptions-item label="元素名称">{{ viewingElement.name }}</el-descriptions-item>
-        <el-descriptions-item label="元素类型">
+        <el-descriptions-item :label="t('appAutomation.element.elementName')">{{ viewingElement.name }}</el-descriptions-item>
+        <el-descriptions-item :label="t('appAutomation.element.type')">
           <el-tag :type="getTypeColor(viewingElement.element_type)">
             {{ getTypeName(viewingElement.element_type) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="标签" :span="2">
+        <el-descriptions-item :label="t('appAutomation.element.tags')" :span="2">
           <el-tag v-for="tag in viewingElement.tags" :key="tag" size="small" style="margin-right: 5px">
             {{ tag }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="配置信息" :span="2">
+        <el-descriptions-item :label="t('appAutomation.element.config')" :span="2">
           <pre style="margin: 0; padding: 10px; background: #f5f7fa; border-radius: 4px;">{{ JSON.stringify(viewingElement.config, null, 2) }}</pre>
         </el-descriptions-item>
-        <el-descriptions-item label="使用次数">{{ viewingElement.usage_count || 0 }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ formatDateTime(viewingElement.created_at) }}</el-descriptions-item>
+        <el-descriptions-item :label="t('appAutomation.element.usageCount')">{{ viewingElement.usage_count || 0 }}</el-descriptions-item>
+        <el-descriptions-item :label="t('appAutomation.element.createTime')">{{ formatDateTime(viewingElement.created_at) }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
   </div>
@@ -233,6 +233,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAppElementList,
@@ -244,6 +245,8 @@ import { Search, Plus, Camera } from '@element-plus/icons-vue'
 import { formatDateTime } from '@/utils/app-automation-helpers'
 import CaptureElementDialog from './components/CaptureElementDialog.vue'
 import ManualElementDialog from './components/ManualElementDialog.vue'
+
+const { t } = useI18n()
 
 // 状态
 const loading = ref(false)
@@ -455,9 +458,9 @@ const getTypeColor = (type) => {
 
 const getTypeName = (type) => {
   const nameMap = {
-    'image': '图片',
-    'pos': '坐标',
-    'region': '区域'
+    'image': t('appAutomation.element.image'),
+    'pos': t('appAutomation.element.position'),
+    'region': t('appAutomation.element.region')
   }
   return nameMap[type] || type
 }

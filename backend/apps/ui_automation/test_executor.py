@@ -258,16 +258,24 @@ class TestExecutor:
 
                 # 为每个测试用例启动新的浏览器实例
                 try:
+                    # 公共浏览器参数
+                    common_args = [
+                        '--disable-blink-features=AutomationControlled',  # 避免被检测
+                        '--ignore-certificate-errors',  # 忽略证书错误
+                        '--allow-insecure-localhost',  # 允许不安全localhost
+                        '--disable-web-security',  # 禁用web安全限制（跨域）
+                    ]
+
                     # 选择浏览器
                     if self.browser == 'firefox':
-                        browser = p.firefox.launch(headless=self.headless)
+                        browser = p.firefox.launch(headless=self.headless, args=common_args)
                     elif self.browser == 'safari':
-                        browser = p.webkit.launch(headless=self.headless)
+                        browser = p.webkit.launch(headless=self.headless, args=common_args)
                     else:  # chrome or edge
                         # 添加防检测参数
                         browser = p.chromium.launch(
                             headless=self.headless,
-                            args=['--disable-blink-features=AutomationControlled']
+                            args=common_args
                         )
 
                     print(f"✓ 浏览器已启动")
@@ -428,15 +436,30 @@ class TestExecutor:
                     just_switched_tab = True
 
                 # 步骤执行完后添加短暂延迟，确保页面状态稳定
-                # 特别是点击操作后，可能触发动画、下拉框展开等
+                # 特别是点击操作后，可能触发动画、下拉框展开、页面跳转等
                 if step_result['success'] and step_data['action_type'] in ['click', 'fill', 'hover']:
-                    import asyncio
                     import time as sync_time
-                    # 点击操作后等待更长时间（下拉框展开动画）
+
                     if step_data['action_type'] == 'click':
-                        self.current_page.wait_for_timeout(800)  # 等待800ms，确保下拉框完全展开
+                        # 点击操作后尝试等待页面导航完成（例如登录、提交表单后的页面跳转）
+                        # 使用 try-except 避免在无导航的情况下报错
+                        try:
+                            # 先等待一小段时间让导航开始
+                            self.current_page.wait_for_timeout(500)
+
+                            # 尝试等待页面加载完成（使用较长的超时时间）
+                            # 优先等待 networkidle，如果超时则继续执行
+                            self.current_page.wait_for_load_state('domcontentloaded', timeout=8000)
+                            print(f"  ✓ 点击后页面加载完成")
+                        except Exception as load_wait_error:
+                            # 如果等待超时或失败，记录但继续执行
+                            # 这可能是因为点击没有触发页面导航，是正常情况
+                            print(f"  ℹ 点击后无页面导航或等待超时: {str(load_wait_error)}")
+                            # 再等待一个较短的时间，确保动画等效果完成
+                            self.current_page.wait_for_timeout(800)
                     else:
-                        self.current_page.wait_for_timeout(300)  # 其他操作等待300ms
+                        # 非点击操作，等待较短时间
+                        self.current_page.wait_for_timeout(300)
 
                 # 如果步骤失败，捕获失败截图
                 if not step_result['success']:
@@ -529,6 +552,20 @@ class TestExecutor:
                     'error': str(screenshot_error)
                 })
 
+        # 测试用例执行完成后，额外等待确保页面完全加载
+        # 特别是对于登录、提交表单等可能触发页面跳转的操作
+        try:
+            print("  🕐 等待页面完全稳定...")
+            # 先等待一小段时间确保导航开始
+            self.current_page.wait_for_timeout(1000)
+            # 等待页面加载完成
+            self.current_page.wait_for_load_state('domcontentloaded', timeout=10000)
+            print("  ✓ 页面加载完成")
+        except Exception as e:
+            print(f"  ℹ 最终等待超时，继续执行: {str(e)[:50]}")
+            # 即使等待失败，也等待一下再关闭浏览器
+            self.current_page.wait_for_timeout(2000)
+
         result['end_time'] = datetime.now().isoformat()
         return result
 
@@ -614,6 +651,22 @@ class TestExecutor:
         }
 
         try:
+            # URL 断言不依赖元素
+            if step_data['action_type'] == 'assert' and step_data.get('assert_type') == 'urlContains':
+                resolved_assert_value = resolve_variables(step_data.get('assert_value', ''))
+                current_url = self.current_page.url if self.current_page else ''
+                if not resolved_assert_value:
+                    step_result['error'] = "✗ 断言失败: URL包含断言缺少期望值"
+                    return step_result
+
+                if resolved_assert_value in current_url:
+                    step_result['success'] = True
+                else:
+                    log = f"✗ 断言失败: 当前URL不包含 '{resolved_assert_value}'\n"
+                    log += f"  - 当前URL: '{current_url}'"
+                    step_result['error'] = log
+                return step_result
+
             # 获取元素定位器
             if step_data['element']:
                 element = step_data['element']
@@ -1084,6 +1137,55 @@ class TestExecutor:
                     print(f"  - 页面标题: {self.current_page.title()}")
                     print(f"  - self.current_page已更新为新页面")
 
+                elif step_data['action_type'] == 'navigateTo':
+                    # 跳转到指定URL（无需元素）
+                    target_url = step_data.get('input_value', '')
+
+                    if not target_url:
+                        step_result['error'] = '❌ 跳转失败: 未提供URL地址'
+                        step_result['success'] = False
+                    else:
+                        try:
+                            start_nav = time.time()
+                            self.current_page.goto(target_url, timeout=15000)
+                            execution_time = round(time.time() - start_nav, 2)
+
+                            # 等待页面加载
+                            try:
+                                self.current_page.wait_for_load_state('networkidle', timeout=15000)
+                                print(f"  - 页面加载状态: networkidle")
+                            except Exception as e:
+                                try:
+                                    self.current_page.wait_for_load_state('domcontentloaded', timeout=15000)
+                                    print(f"  - 页面加载状态: domcontentloaded")
+                                except Exception as e2:
+                                    print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
+
+                            page_title = ""
+                            try:
+                                page_title = self.current_page.title()
+                            except Exception:
+                                page_title = "（无法获取标题）"
+
+                            log = f"✓ 跳转URL成功\n"
+                            log += f"  - URL: {target_url}\n"
+                            log += f"  - 页面标题: {page_title}\n"
+                            log += f"  - 执行时间: {execution_time}秒"
+
+                            print(f"✓ 跳转URL成功")
+                            print(f"  - URL: {target_url}")
+                            print(f"  - 页面标题: {page_title}")
+                            print(f"  - 执行时间: {execution_time}秒")
+
+                            step_result['success'] = True
+                            step_result['log'] = log
+                            step_result['screenshot'] = None
+                        except Exception as e:
+                            error_msg = f"❌ 跳转URL失败: {str(e)}"
+                            print(error_msg)
+                            step_result['error'] = error_msg
+                            step_result['success'] = False
+
                 else:
                     step_result['error'] = f'⚠ 未知的操作类型: {step_data["action_type"]}'
 
@@ -1207,6 +1309,55 @@ class TestExecutor:
                     print(f"  - 目标索引: {final_target_index}")
                     print(f"  - 页面标题: {self.current_page.title()}")
                     print(f"  - self.current_page已更新为新页面")
+
+                elif step_data['action_type'] == 'navigateTo':
+                    # 跳转到指定URL（无需元素）
+                    target_url = step_data.get('input_value', '')
+
+                    if not target_url:
+                        step_result['error'] = '❌ 跳转失败: 未提供URL地址'
+                        step_result['success'] = False
+                    else:
+                        try:
+                            start_nav = time.time()
+                            self.current_page.goto(target_url, timeout=15000)
+                            execution_time = round(time.time() - start_nav, 2)
+
+                            # 等待页面加载
+                            try:
+                                self.current_page.wait_for_load_state('networkidle', timeout=15000)
+                                print(f"  - 页面加载状态: networkidle")
+                            except Exception as e:
+                                try:
+                                    self.current_page.wait_for_load_state('domcontentloaded', timeout=15000)
+                                    print(f"  - 页面加载状态: domcontentloaded")
+                                except Exception as e2:
+                                    print(f"  - 页面加载状态: 超时，继续执行 ({str(e2)[:50]})")
+
+                            page_title = ""
+                            try:
+                                page_title = self.current_page.title()
+                            except Exception:
+                                page_title = "（无法获取标题）"
+
+                            log = f"✓ 跳转URL成功\n"
+                            log += f"  - URL: {target_url}\n"
+                            log += f"  - 页面标题: {page_title}\n"
+                            log += f"  - 执行时间: {execution_time}秒"
+
+                            print(f"✓ 跳转URL成功")
+                            print(f"  - URL: {target_url}")
+                            print(f"  - 页面标题: {page_title}")
+                            print(f"  - 执行时间: {execution_time}秒")
+
+                            step_result['success'] = True
+                            step_result['log'] = log
+                            step_result['screenshot'] = None
+                        except Exception as e:
+                            error_msg = f"❌ 跳转URL失败: {str(e)}"
+                            print(error_msg)
+                            step_result['error'] = error_msg
+                            step_result['success'] = False
 
         except Exception as e:
             # 格式化为详细的错误信息，与playwright_engine.py保持一致
@@ -1750,13 +1901,38 @@ class TestExecutor:
                 result['steps'].append(step_result)
 
                 # 步骤执行完后添加短暂延迟，确保页面状态稳定
-                # 特别是点击操作后，可能触发动画、下拉框展开等
+                # 特别是点击操作后，可能触发动画、下拉框展开、页面跳转等
                 if step_result['success'] and step_data['action_type'] in ['click', 'fill', 'hover']:
-                    # 点击操作后等待更长时间（下拉框展开动画）
+                    # 点击操作后等待更长时间（下拉框展开动画、页面跳转等）
                     if step_data['action_type'] == 'click':
-                        time.sleep(0.8)  # 等待800ms，确保下拉框完全展开
+                        # 点击操作后尝试等待页面导航完成（例如登录、提交表单后的页面跳转）
+                        # 使用 try-except 避免在无导航的情况下报错
+                        try:
+                            # 先等待一小段时间让导航开始
+                            time.sleep(0.5)
+
+                            # 尝试等待页面加载完成
+                            # 使用 set_script_timeout 和 execute_script 来检测页面状态
+                            from selenium.common.exceptions import TimeoutException
+                            try:
+                                        # 等待页面DOM内容加载完成
+                                        WebDriverWait(driver, 8).until(
+                                            lambda d: d.execute_script("return document.readyState") == "complete"
+                                        )
+                                        print(f"  ✓ 点击后页面加载完成")
+                            except TimeoutException:
+                                # 页面可能没有跳转，这是正常情况
+                                print(f"  ℹ 点击后无页面导航，继续执行")
+
+                            # 再等待一个较短的时间，确保动画等效果完成
+                            time.sleep(0.8)
+                        except Exception as e:
+                            print(f"  ℹ 点击后等待异常: {str(e)}")
+                            # 再等待一个较短的时间，确保动画等效果完成
+                            time.sleep(0.8)
                     else:
-                        time.sleep(0.3)  # 其他操作等待300ms
+                        # 非点击操作，等待较短时间
+                        time.sleep(0.3)
 
                 # 如果步骤失败,捕获失败截图
                 if not step_result['success']:
@@ -1878,6 +2054,22 @@ class TestExecutor:
         }
 
         try:
+            # URL 断言不依赖元素
+            if step_data['action_type'] == 'assert' and step_data.get('assert_type') == 'urlContains':
+                resolved_assert_value = resolve_variables(step_data.get('assert_value', ''))
+                current_url = driver.current_url if driver else ''
+                if not resolved_assert_value:
+                    step_result['error'] = "✗ 断言失败: URL包含断言缺少期望值"
+                    return step_result
+
+                if resolved_assert_value in current_url:
+                    step_result['success'] = True
+                else:
+                    log = f"✗ 断言失败: 当前URL不包含 '{resolved_assert_value}'\n"
+                    log += f"  - 当前URL: '{current_url}'"
+                    step_result['error'] = log
+                return step_result
+
             if step_data['element']:
                 element = step_data['element']
                 locator_value = element['locator_value']

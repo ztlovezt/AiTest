@@ -12,6 +12,8 @@ server:
   backend_port: 8000
   # 后端服务主机地址
   backend_host: "127.0.0.1"
+  # 前端服务URL（用于生成报告链接等）
+  frontend_url: "http://localhost:3000"
   # 是否启用后端debug
   debug: false
   # 后端SECRET_KEY，可使用backend/docs/key.py生成
@@ -39,7 +41,9 @@ database:
 # ================================
 redis:
   # Redis 连接 URL
-  url: "redis://127.0.0.1:6379/0"
+  url: "redis://127.0.0.1:6379/"
+  # Django任务队列
+  redis_db: 0
   # Redis 缓存数据库编号
   cache_db: 1
   # Redis 会话数据库编号
@@ -64,19 +68,21 @@ logging:
   dir: "backend/logs"
   # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
   level: INFO
+  # 是否启用DEBUG日志输出
+  debug_enabled: false
   # 日志文件最大大小（MB）
   max_bytes: 10
   # 日志文件备份数量
   backup_count: 10
-  # 日志格式
-  format: "{levelname} {asctime} {module} {process:d} {thread:d} {message}"
+  # 日志格式（统一格式：时间 - [模块-->函数:行号] - 级别 - 消息）
+  format: "{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level} - {message}"
 
 # ================================
 # JWT 配置
 # ================================
 jwt:
   # Access Token 有效期（分钟）
-  access_token_lifetime: 15
+  access_token_lifetime: 30
   # Refresh Token 有效期（天）
   refresh_token_lifetime: 7
   # 是否轮换 Refresh Token
@@ -178,7 +184,7 @@ allure:
   # Allure 命令行工具路径（不包含可执行文件名）
   bin_path: "expand/allure/bin"
   # Allure 静态资源目录
-  static_dir: "static"
+  static_dir: "allure-static"
   # Allure 报告输出目录
   reports_dir: "allure-reports"
   # Allure 测试结果目录

@@ -71,26 +71,51 @@ export function getResultText(result) {
  * 适用于列表中单列展示场景
  * @param {string} status - 任务状态
  * @param {string|null} result - 测试结果
+ * @param {Function} t - 国际化翻译函数（可选）
  * @returns {{ type: string, text: string }}
  */
-export function getDisplayStatus(status, result) {
+export function getDisplayStatus(status, result, t) {
   // 任务还在进行中，显示任务状态
   if (status === 'pending' || status === 'running') {
+    if (t && typeof t === 'function') {
+      return { 
+        type: EXECUTION_STATUS_MAP[status]?.type || 'info', 
+        text: t(`appAutomation.execution.statusMap.${status}`) 
+      }
+    }
     return EXECUTION_STATUS_MAP[status]
   }
   // 任务异常，显示异常状态
   if (status === 'error') {
+    if (t && typeof t === 'function') {
+      return { type: 'danger', text: t('appAutomation.execution.statusMap.error') }
+    }
     return { type: 'danger', text: '执行异常' }
   }
   // 任务已停止
   if (status === 'stopped') {
+    if (t && typeof t === 'function') {
+      return { type: 'info', text: t('appAutomation.execution.statusMap.stopped') }
+    }
     return { type: 'info', text: '已停止' }
   }
   // 任务已完成，显示测试结果
   if (result) {
+    if (t && typeof t === 'function') {
+      return { 
+        type: EXECUTION_RESULT_MAP[result]?.type || 'info', 
+        text: t(`appAutomation.execution.statusMap.${result}`) 
+      }
+    }
     return EXECUTION_RESULT_MAP[result] || { type: 'info', text: result }
   }
   // 兜底
+  if (t && typeof t === 'function') {
+    return { 
+      type: EXECUTION_STATUS_MAP[status]?.type || 'info', 
+      text: status ? t(`appAutomation.execution.statusMap.${status}`) : '-' 
+    }
+  }
   return EXECUTION_STATUS_MAP[status] || { type: 'info', text: status || '-' }
 }
 
@@ -106,9 +131,19 @@ export function getDeviceStatusType(status) {
 /**
  * 获取设备状态的中文文本
  * @param {string} status - 状态值
+ * @param {Function} t - 国际化翻译函数（可选）
  * @returns {string}
  */
-export function getDeviceStatusText(status) {
+export function getDeviceStatusText(status, t) {
+  if (t && typeof t === 'function') {
+    const statusMap = {
+      'available': t('appAutomation.device.statusMap.available'),
+      'locked': t('appAutomation.device.statusMap.locked'),
+      'online': t('appAutomation.device.statusMap.online'),
+      'offline': t('appAutomation.device.statusMap.offline')
+    }
+    return statusMap[status] || status
+  }
   return DEVICE_STATUS_MAP[status]?.text || status
 }
 

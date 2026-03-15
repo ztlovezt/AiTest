@@ -784,6 +784,27 @@ const handleClose = () => {
   border-radius: 8px;
 }
 
+.gif-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #909399;
+}
+
+.gif-loading .el-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.gif-error {
+  text-align: center;
+  padding: 40px 0;
+  color: #F56C6C;
+}
+
+
 .report-error {
   padding: 40px 0;
   text-align: center;

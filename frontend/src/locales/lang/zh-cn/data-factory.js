@@ -21,7 +21,8 @@ export default {
     expandAll: '全部展开',
     collapseAll: '全部收缩',
     selectImage: '选择图片',
-    copy: '复制'
+    copy: '复制',
+    generateRandomIV: '随机IV'
   },
 
   // 工具数量
@@ -225,6 +226,9 @@ export default {
     password: '密码',
     passwordPlaceholder: '请输入密码',
     mode: '模式',
+    iv: 'IV偏移量',
+    ivPlaceholder: '请输入IV（十六进制，32个字符），留空则自动生成',
+    ivTip: 'CBC模式需要16字节的IV，ECB模式不需要IV',
     saltLength: '长度',
 
     // JSON工具

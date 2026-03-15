@@ -23,5 +23,20 @@ export default {
   warning: '警告',
   selectProject: '选择项目',
   previous: '上一步',
-  next: '下一步'
+  next: '下一步',
+  unknown: '未知错误',
+  enabled: '启用',
+  disabled: '禁用',
+  yes: '是',
+  no: '否',
+  pleaseInput: '请输入',
+  required: '此项为必填项',
+  noData: '暂无数据',
+  fetchFailed: '获取数据失败',
+  saveFailed: '保存失败',
+  createSuccess: '创建成功',
+  updateSuccess: '更新成功',
+  deleteSuccess: '删除成功',
+  deleteFailed: '删除失败',
+  deleteConfirm: '确定要删除吗？此操作不可恢复。'
 }

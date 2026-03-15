@@ -118,6 +118,23 @@ export function deleteElement(id) {
   })
 }
 
+// 复制UI元素
+export function copyElement(id) {
+  return request({
+    url: `/ui-automation/elements/${id}/copy/`,
+    method: 'post'
+  })
+}
+
+// 批量更新UI元素（用于拖拽后更新顺序和页面）
+export function batchUpdateElements(data) {
+  return request({
+    url: '/ui-automation/elements/batch_update/',
+    method: 'post',
+    data
+  })
+}
+
 // 测试脚本相关API
 
 // 获取测试脚本列表
@@ -1056,5 +1073,68 @@ export function exportAIExecutionReportPDF(id, params = {}) {
     method: 'get',
     params,
     responseType: 'blob'
+  })
+}
+
+// ==================== Django-Q 统一调度器API ====================
+
+export function getSchedulerSchedules(params) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'get',
+    params
+  })
+}
+
+export function createSchedulerSchedule(data) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'post',
+    data
+  })
+}
+
+export function updateSchedulerSchedule(id, data) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+export function deleteSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'delete'
+  })
+}
+
+export function executeSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/execute/`,
+    method: 'post'
+  })
+}
+
+export function toggleSchedulerSchedule(id, action) {
+  return request({
+    url: `/scheduler/schedules/${id}/toggle/`,
+    method: 'post',
+    data: { action }
+  })
+}
+
+export function getSchedulerHistory(id, params = {}) {
+  return request({
+    url: `/scheduler/schedules/${id}/history/`,
+    method: 'get',
+    params
+  })
+}
+
+export function getSchedulerStatistics() {
+  return request({
+    url: '/scheduler/schedules/statistics/',
+    method: 'get'
   })
 }

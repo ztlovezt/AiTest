@@ -4,54 +4,54 @@
     <div class="filters">
       <el-row :gutter="20">
         <el-col :span="6">
-          <el-input v-model="searchForm.taskName" placeholder="搜索任务名称" clearable @clear="handleSearch" @keyup.enter="handleSearch">
+          <el-input v-model="searchForm.taskName" :placeholder="t('appAutomation.notification.searchPlaceholder')" clearable @clear="handleSearch" @keyup.enter="handleSearch">
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
         </el-col>
         <el-col :span="6">
-          <el-date-picker v-model="searchForm.dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" value-format="YYYY-MM-DD" @change="handleSearch" />
+          <el-date-picker v-model="searchForm.dateRange" type="daterange" :range-separator="t('appAutomation.notification.to')" :start-placeholder="t('appAutomation.notification.startDate')" :end-placeholder="t('appAutomation.notification.endDate')" value-format="YYYY-MM-DD" @change="handleSearch" />
         </el-col>
         <el-col :span="6">
-          <el-select v-model="searchForm.status" placeholder="发送状态" clearable @change="handleSearch">
-            <el-option label="全部" value="" />
-            <el-option label="发送成功" value="success" />
-            <el-option label="发送失败" value="failed" />
-            <el-option label="待发送" value="pending" />
+          <el-select v-model="searchForm.status" :placeholder="t('appAutomation.notification.statusFilter')" clearable @change="handleSearch">
+            <el-option :label="t('appAutomation.notification.all')" value="" />
+            <el-option :label="t('appAutomation.notification.statusMap.success')" value="success" />
+            <el-option :label="t('appAutomation.notification.statusMap.failed')" value="failed" />
+            <el-option :label="t('appAutomation.notification.statusMap.pending')" value="pending" />
           </el-select>
         </el-col>
         <el-col :span="6">
-          <el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>{{ t('appAutomation.notification.query') }}</el-button>
+          <el-button @click="handleReset">{{ t('appAutomation.notification.reset') }}</el-button>
         </el-col>
       </el-row>
     </div>
 
     <!-- 列表 -->
     <el-table :data="logsData" v-loading="loading" border stripe @sort-change="handleSortChange">
-      <el-table-column prop="task_name" label="任务名称" min-width="150" sortable="custom" />
-      <el-table-column label="任务类型" width="110">
+      <el-table-column prop="task_name" :label="t('appAutomation.notification.taskName')" min-width="150" sortable="custom" />
+      <el-table-column :label="t('appAutomation.notification.taskType')" width="110">
         <template #default="{ row }">
-          <el-tag type="info" size="small">{{ row.task_type_display }}</el-tag>
+          <el-tag type="info" size="small">{{ getTaskTypeText(row.task_type_display) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="通知类型" width="120">
+      <el-table-column :label="t('appAutomation.notification.notificationType')" width="120">
         <template #default="{ row }">
           <el-tag :type="getNotificationTypeTag(row.actual_notification_type_display)" size="small">
-            {{ row.actual_notification_type_display }}
+            {{ getNotificationTypeText(row.actual_notification_type_display) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="通知时间" width="180" sortable="custom">
+      <el-table-column prop="created_at" :label="t('appAutomation.notification.notificationTime')" width="180" sortable="custom">
         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
       </el-table-column>
-      <el-table-column label="状态" width="100" sortable="custom">
+      <el-table-column :label="t('appAutomation.notification.status')" width="100" sortable="custom">
         <template #default="{ row }">
-          <el-tag :type="getStatusTag(row.status)" size="small">{{ row.status_display }}</el-tag>
+          <el-tag :type="getStatusTag(row.status)" size="small">{{ getStatusText(row.status_display) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="100">
+      <el-table-column :label="t('appAutomation.common.operation')" fixed="right" width="100">
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
+          <el-button type="primary" link size="small" @click="viewDetail(row)">{{ t('appAutomation.notification.detail') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -70,40 +70,40 @@
     </div>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="通知详情" width="600px">
+    <el-dialog v-model="detailVisible" :title="t('appAutomation.notification.notificationDetail')" width="600px">
       <el-form v-if="selectedLog" label-position="top">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="任务名称"><span>{{ selectedLog.task_name }}</span></el-form-item>
+            <el-form-item :label="t('appAutomation.notification.taskName')"><span>{{ selectedLog.task_name }}</span></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="任务类型"><span>{{ selectedLog.task_type_display }}</span></el-form-item>
+            <el-form-item :label="t('appAutomation.notification.taskType')"><span>{{ getTaskTypeText(selectedLog.task_type_display) }}</span></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="通知类型">
+            <el-form-item :label="t('appAutomation.notification.notificationType')">
               <el-tag :type="getNotificationTypeTag(selectedLog.actual_notification_type_display)">
-                {{ selectedLog.actual_notification_type_display }}
+                {{ getNotificationTypeText(selectedLog.actual_notification_type_display) }}
               </el-tag>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="状态">
-              <el-tag :type="getStatusTag(selectedLog.status)">{{ selectedLog.status_display }}</el-tag>
+            <el-form-item :label="t('appAutomation.notification.status')">
+              <el-tag :type="getStatusTag(selectedLog.status)">{{ getStatusText(selectedLog.status_display) }}</el-tag>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="通知时间"><span>{{ formatDate(selectedLog.created_at) }}</span></el-form-item>
+            <el-form-item :label="t('appAutomation.notification.notificationTime')"><span>{{ formatDate(selectedLog.created_at) }}</span></el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="发送时间"><span>{{ selectedLog.sent_at ? formatDate(selectedLog.sent_at) : '-' }}</span></el-form-item>
+            <el-form-item :label="t('appAutomation.notification.sentTime')"><span>{{ selectedLog.sent_at ? formatDate(selectedLog.sent_at) : '-' }}</span></el-form-item>
           </el-col>
           <el-col :span="24" v-if="selectedLog.webhook_bot_info && (selectedLog.webhook_bot_info.type || selectedLog.webhook_bot_info.bot_type)">
-            <el-form-item label="Webhook机器人">
-              <el-tag size="small" type="info">{{ selectedLog.webhook_bot_info.name || '默认机器人' }}</el-tag>
+            <el-form-item :label="t('appAutomation.notification.webhookBot')">
+              <el-tag size="small" type="info">{{ selectedLog.webhook_bot_info.name || t('appAutomation.notification.defaultBot') }}</el-tag>
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="通知内容">
+            <el-form-item :label="t('appAutomation.notification.notificationContent')">
               <div class="content-box">
                 <div v-if="parsedContent" class="parsed-content">
                   <div v-for="(item, i) in parsedContent" :key="i" class="content-row">
@@ -116,14 +116,14 @@
             </el-form-item>
           </el-col>
           <el-col :span="24" v-if="selectedLog.error_message">
-            <el-form-item label="错误信息">
+            <el-form-item :label="t('appAutomation.notification.errorMessage')">
               <el-alert :title="selectedLog.error_message" type="error" show-icon :closable="false" />
             </el-form-item>
           </el-col>
         </el-row>
       </el-form>
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button @click="detailVisible = false">{{ t('appAutomation.common.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -131,9 +131,12 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getAppNotificationLogs } from '@/api/app-automation.js'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const logsData = ref([])
@@ -174,11 +177,56 @@ function viewDetail(row) { selectedLog.value = row; detailVisible.value = true }
 
 function formatDate(s) { return s ? new Date(s).toLocaleString('zh-CN') : '-' }
 function getStatusTag(s) { return { success: 'success', failed: 'danger', pending: 'info', sending: 'warning' }[s] || 'info' }
+function getStatusText(status) {
+  if (!status) return '-'
+  const statusMap = {
+    '发送成功': t('appAutomation.notification.statusMap.success'),
+    '发送失败': t('appAutomation.notification.statusMap.failed'),
+    '待发送': t('appAutomation.notification.statusMap.pending'),
+    'Sent Successfully': t('appAutomation.notification.statusMap.success'),
+    'Send Failed': t('appAutomation.notification.statusMap.failed'),
+    'Pending': t('appAutomation.notification.statusMap.pending'),
+    'success': t('appAutomation.notification.statusMap.success'),
+    'failed': t('appAutomation.notification.statusMap.failed'),
+    'pending': t('appAutomation.notification.statusMap.pending')
+  }
+  return statusMap[status] || status
+}
 function getNotificationTypeTag(t) {
   if (!t || t === '-') return 'info'
-  if (t.includes('邮箱')) return ''
-  if (t.includes('机器人') || t.includes('Webhook')) return 'primary'
+  if (t.includes('邮箱') || t.includes('Email')) return ''
+  if (t.includes('机器人') || t.includes('Webhook') || t.includes('Robot')) return 'primary'
   return 'info'
+}
+function getNotificationTypeText(notificationType) {
+  if (!notificationType) return '-'
+  const notificationTypeMap = {
+    '邮箱通知': t('appAutomation.notification.typeMap.email'),
+    'Webhook通知': t('appAutomation.notification.typeMap.webhook'),
+    '两者都发送': t('appAutomation.notification.typeMap.both'),
+    'Email Notification': t('appAutomation.notification.typeMap.email'),
+    'Webhook Notification': t('appAutomation.notification.typeMap.webhook'),
+    'Both': t('appAutomation.notification.typeMap.both'),
+    '邮箱': t('appAutomation.notification.typeMap.email'),
+    'Webhook': t('appAutomation.notification.typeMap.webhook'),
+    'Webhook机器人': t('appAutomation.notification.typeMap.webhook'),
+    'Webhook Robot': t('appAutomation.notification.typeMap.webhook')
+  }
+  return notificationTypeMap[notificationType] || notificationType
+}
+function getTaskTypeText(taskType) {
+  if (!taskType) return '-'
+  const taskTypeMap = {
+    '测试套件执行': t('appAutomation.scheduledTask.taskTypes.testSuite'),
+    '测试用例执行': t('appAutomation.scheduledTask.taskTypes.testCase'),
+    '测试套件': t('appAutomation.scheduledTask.taskTypes.testSuiteShort'),
+    '测试用例': t('appAutomation.scheduledTask.taskTypes.testCaseShort'),
+    'Test Suite Execution': t('appAutomation.scheduledTask.taskTypes.testSuite'),
+    'Test Case Execution': t('appAutomation.scheduledTask.taskTypes.testCase'),
+    'Test Suite': t('appAutomation.scheduledTask.taskTypes.testSuiteShort'),
+    'Test Case': t('appAutomation.scheduledTask.taskTypes.testCaseShort')
+  }
+  return taskTypeMap[taskType] || taskType
 }
 
 const parsedContent = computed(() => {

@@ -2,7 +2,6 @@ import subprocess
 import time
 import os
 import json
-import logging
 from datetime import datetime
 
 from rest_framework import viewsets, status
@@ -16,22 +15,17 @@ from django.db import models
 from django.utils import timezone
 from django.conf import settings
 import requests
+from loguru import logger
 
 from .models import (
     ApiProject, ApiCollection, ApiRequest, Environment,
     RequestHistory, TestSuite, TestExecution, TestSuiteRequest,
-    ScheduledTask, TaskExecutionLog, NotificationLog,
-    TaskNotificationSetting, OperationLog, AIServiceConfig,
+    NotificationLog, OperationLog, AIServiceConfig,
 )
 
 from .serializers import (
-    TaskExecutionLogSerializer,
-    NotificationLogSerializer, TaskNotificationSettingSerializer,
-    NotificationLogDetailSerializer,
-    TaskNotificationSettingDetailSerializer, OperationLogSerializer
+    NotificationLogSerializer, NotificationLogDetailSerializer, OperationLogSerializer
 )
-
-logger = logging.getLogger(__name__)
 
 from .utils import execute_assertions
 from .operation_logger import log_operation
@@ -40,7 +34,6 @@ from .serializers import (
     ApiProjectSerializer, ApiCollectionSerializer, ApiRequestSerializer,
     EnvironmentSerializer, RequestHistorySerializer, TestSuiteSerializer,
     TestSuiteRequestSerializer, TestExecutionSerializer, UserSerializer,
-    ScheduledTaskSerializer,
     AIServiceConfigSerializer
 )
 
@@ -863,6 +856,8 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
             execution.status = 'FAILED'
             execution.end_time = timezone.now()
             execution.save()
+            logger.error(f"执行测试套件失败: {e}", exc_info=True)
+            logger.error(f"测试套件ID: {test_suite.id}, 错误类型: {type(e).__name__}")
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def perform_create(self, serializer):
@@ -1563,133 +1558,722 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['username', 'email', 'first_name', 'last_name']
 
 
-class ScheduledTaskViewSet(viewsets.ModelViewSet):
-    """定时任务视图集"""
-    queryset = ScheduledTask.objects.all()
-    serializer_class = ScheduledTaskSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'description']
-    ordering_fields = ['created_at', 'updated_at', 'last_run_time']
-    ordering = ['-created_at']
+# ================ 通知管理相关辅助函数 ================
 
-    def get_queryset(self):
-        """根据用户权限过滤任务"""
-        queryset = super().get_queryset()
 
-        # 管理员可以看到所有任务
-        if self.request.user.is_staff:
-            return queryset
+def _execute_task_async(task, execution_log):
+    """异步执行任务"""
+    import threading
+    from datetime import datetime
 
-        # 普通用户只能看到自己创建的任务
-        return queryset.filter(created_by=self.request.user)
+    # 添加测试日志
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("=== _execute_task_async 方法被调用 ===")
 
-    @action(detail=True, methods=['post'])
-    def run_now(self, request, pk=None):
-        """立即执行定时任务"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.info("=== run_now 方法被调用 ===")
-
-        task = self.get_object()
-        logger.info(f"获取任务对象: {task.id} - {task.name}")
-
-        # 检查权限
-        if not request.user.is_staff and task.created_by != request.user:
-            logger.info("权限检查失败")
-            return Response(
-                {'error': '无权执行此任务'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
+    def execute():
         try:
-            # 创建执行日志
-            execution_log = TaskExecutionLog.objects.create(
-                task=task,
-                status='PENDING',
-                executed_by=request.user
-            )
-            logger.info(f"创建执行日志: {execution_log.id}")
+            # 更新执行状态
+            execution_log.status = 'RUNNING'
+            execution_log.start_time = timezone.now()
+            execution_log.save()
 
-            # 异步执行任务
-            logger.info("调用 _execute_task_async 方法")
-            self._execute_task_async(task, execution_log)
+            # 执行任务
+            if task.task_type == 'TEST_SUITE':
+                result = _execute_test_suite(task)
+            elif task.task_type == 'API_REQUEST':
+                result = _execute_api_request(task)
+            else:
+                raise ValueError(f"未知的任务类型: {task.task_type}")
 
-            logger.info("任务开始执行")
-            return Response(
-                {'message': '任务已开始执行', 'execution_id': execution_log.id},
-                status=status.HTTP_200_OK
-            )
+            # 更新执行结果
+            execution_log.status = 'COMPLETED'
+            execution_log.end_time = timezone.now()
+            execution_log.result = result
+            execution_log.save()
+
+            # 更新任务统计
+            task.update_run_stats(success=True)
+            task.last_result = result
+            task.save()
+
+            logger.info("=== 开始检查发送成功通知 ===")
+            # 发送通知（如果配置了）
+            # 检查任务是否有通知设置
+            notification_setting = None
+            if hasattr(task, 'notification_settings'):
+                try:
+                    notification_setting = task.notification_settings.first()
+                    logger.info(f"获取到通知设置: {notification_setting}")
+                    if notification_setting:
+                        logger.info(
+                            f"通知设置详情 - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 成功通知: {notification_setting.notify_on_success}")
+                    else:
+                        logger.info("没有找到通知设置")
+                except Exception as e:
+                    logger.error(f"获取任务通知设置时出错: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                logger.info("任务没有notification_settings属性")
+
+            if notification_setting and notification_setting.is_enabled:
+                logger.info("通知设置已启用，准备发送成功通知")
+                if notification_setting.notify_on_success:
+                    logger.info("调用 _send_notification 方法发送成功通知")
+                    _send_notification(task, execution_log, success=True)
+                else:
+                    logger.info("通知设置中未启用成功通知")
+            else:
+                logger.info("通知设置未启用或不存在，跳过成功通知")
+            logger.info("=== 结束检查发送成功通知 ===")
 
         except Exception as e:
-            return Response(
-                {'error': f'执行任务失败: {str(e)}'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            # 记录执行失败
+            execution_log.status = 'FAILED'
+            execution_log.end_time = timezone.now()
+            execution_log.error_message = str(e)
+            execution_log.save()
 
-    @action(detail=True, methods=['post'])
-    def activate(self, request, pk=None):
-        """激活定时任务"""
-        task = self.get_object()
+            # 更新任务统计
+            task.update_run_stats(success=False)
+            task.error_message = str(e)
+            task.save()
 
-        if task.status == 'ACTIVE':
-            return Response(
-                {'error': '任务已经是激活状态'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            logger.info("=== 开始检查发送失败通知 ===")
+            # 发送失败通知（如果配置了）
+            # 检查任务是否有通知设置
+            notification_setting = None
+            if hasattr(task, 'notification_settings'):
+                try:
+                    notification_setting = task.notification_settings.first()
+                    logger.info(f"获取到通知设置（失败情况）: {notification_setting}")
+                    if notification_setting:
+                        logger.info(
+                            f"通知设置详情（失败情况） - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}, 失败通知: {notification_setting.notify_on_failure}")
+                    else:
+                        logger.info("没有找到通知设置（失败情况）")
+                except Exception as e:
+                    logger.error(f"获取任务通知设置时出错（失败情况）: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                logger.info("任务没有notification_settings属性（失败情况）")
 
-        task.status = 'ACTIVE'
-        task.next_run_time = task.calculate_next_run()
-        task.save()
+            if notification_setting and notification_setting.is_enabled:
+                logger.info("通知设置已启用，准备发送失败通知")
+                if notification_setting.notify_on_failure:
+                    logger.info("调用 _send_notification 方法发送失败通知")
+                    _send_notification(task, execution_log, success=False)
+                else:
+                    logger.info("通知设置中未启用失败通知")
+            else:
+                logger.info("通知设置未启用或不存在，跳过失败通知")
+            logger.info("=== 结束检查发送失败通知 ===")
 
-        return Response(
-            {'message': '任务已激活', 'next_run_time': task.next_run_time},
-            status=status.HTTP_200_OK
+    # 在新线程中执行
+    thread = threading.Thread(target=execute)
+    thread.daemon = True
+    thread.start()
+
+
+def _execute_test_suite(task):
+    """执行测试套件"""
+    from .utils import execute_test_suite
+
+    result = execute_test_suite(
+        task.test_suite,
+        task.environment,
+        task.created_by
+    )
+    return result
+
+
+def _execute_api_request(task):
+    """执行API请求"""
+    from .utils import execute_api_request
+
+    result = execute_api_request(
+        task.api_request,
+        task.environment,
+        task.created_by
+    )
+    return result
+
+
+def _send_notification(task, execution_log, success=True):
+    """发送通知邮件"""
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        from django.core.mail import send_mail
+        from django.conf import settings
+
+        logger.info("=== _send_notification 方法被调用 ===")
+        logger.info(f"任务ID: {task.id}, 任务名称: {task.name}, 执行状态: {success}")
+
+        # 检查任务是否有通知设置
+        notification_setting = None
+        if hasattr(task, 'notification_settings'):
+            try:
+                notification_setting = task.notification_settings.first()
+                logger.info(f"获取到通知设置: {notification_setting}")
+            except Exception as e:
+                logger.error(f"获取任务通知设置时出错: {e}")
+                import traceback
+                traceback.print_exc()
+
+        if not notification_setting:
+            logger.warning(f"任务 {task.id} 没有通知设置")
+            return
+
+        logger.info(f"通知设置详情 - ID: {notification_setting.id}, 是否启用: {notification_setting.is_enabled}")
+
+        if not notification_setting.is_enabled:
+            logger.info(f"任务 {task.id} 的通知设置未启用")
+            return
+
+        # 检查是否应该发送通知
+        execution_status = 'success' if success else 'failed'
+        should_notify = notification_setting.should_notify(execution_status)
+        logger.info(f"执行状态: {execution_status}, should_notify结果: {should_notify}")
+        if not should_notify:
+            logger.info(f"根据执行状态 {execution_status}，不应该发送通知")
+            return
+
+        logger.info("通过了通知条件检查")
+
+        # 获取通知配置
+        notification_config = notification_setting.get_notification_config()
+
+        # 检查是否有通知配置或自定义配置
+        has_config = notification_config is not None
+        has_custom_bots = bool(notification_setting.custom_webhook_bots)
+        has_custom_recipients = notification_setting.custom_recipients.exists()
+
+        if not (has_config or has_custom_bots or has_custom_recipients):
+            logger.warning("没有找到通知配置且无自定义设置")
+            return
+
+        if notification_config:
+            logger.info(f"找到了通知配置: {notification_config.name}")
+        else:
+            logger.info("使用自定义通知设置")
+
+        # 根据通知类型发送不同类型的通知
+        logger.info(f"通知类型: {notification_setting.notification_type}")
+
+        if notification_setting.notification_type in ['email', 'both']:
+            logger.info("发送邮件通知")
+            _send_email_notification(task, execution_log, notification_setting, notification_config, success)
+
+        if notification_setting.notification_type in ['webhook', 'both']:
+            logger.info("发送Webhook通知")
+            _send_webhook_notification(task, execution_log, notification_setting, notification_config, success)
+
+    except Exception as e:
+        logger.error(f"发送通知失败: {str(e)}", exc_info=True)
+
+
+def _send_email_notification(task, execution_log, notification_setting, notification_config, success):
+    """发送邮件通知"""
+    try:
+        import logging
+        logger = logging.getLogger(__name__)
+        from services.email_tasks import send_task_notification_task
+        from services.email_service import email_service
+
+        logger.info("=== 开始发送邮件通知 ===")
+
+        # 准备邮件内容
+        status = 'success' if success else 'failed'
+        task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'
+        execution_time = timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')
+
+        # 过滤掉详细的测试结果数据，只保留概要信息
+        summary_info = '无详细信息'
+        if execution_log.result:
+            result_data = execution_log.result
+            # 只保留高级概要字段,过滤掉详细的'results'数组
+            summary_fields = {
+                'success': result_data.get('success'),
+                'execution_id': result_data.get('execution_id'),
+                'passed_count': result_data.get('passed_count'),
+                'failed_count': result_data.get('failed_count'),
+                'total_count': result_data.get('total_count')
+            }
+            # 只保留有值的字段
+            summary_info = '\n'.join([f'{k}: {v}' for k, v in summary_fields.items() if v is not None])
+
+        details = f"""
+执行时间: {execution_time}
+任务类型: {task_type_text}
+
+执行概要:
+{summary_info}
+
+错误信息:
+{execution_log.error_message if execution_log.error_message else '无错误信息'}
+            """
+
+        # 获取收件人列表
+        recipients = []
+        # 首先检查自定义收件人
+        if notification_setting.custom_recipients.exists():
+            recipients = [user.email for user in notification_setting.custom_recipients.all() if user.email]
+            logger.info(f"使用自定义收件人: {recipients}")
+
+        # 如果定时任务表单中指定了通知邮箱，也添加到收件人列表
+        if hasattr(task, 'notify_emails') and task.notify_emails:
+            if isinstance(task.notify_emails, list):
+                recipients.extend(task.notify_emails)
+            else:
+                recipients.append(task.notify_emails)
+            logger.info(f"添加任务表单中的通知邮箱: {task.notify_emails}")
+
+        # 去重收件人
+        recipients = list(set(recipients))
+        logger.info(f"最终收件人列表: {recipients}")
+
+        if not recipients:
+            logger.warning("没有找到任何邮件收件人")
+            return
+
+        # 使用 Django 6.0 内置 tasks 框架异步发送邮件
+        send_task_notification_task(
+            task.name,
+            'API自动化',
+            status,
+            recipients,
+            details,
+            execution_time,
+            summary_info
         )
 
-    @action(detail=True, methods=['post'])
-    def pause(self, request, pk=None):
-        """暂停定时任务"""
-        task = self.get_object()
-
-        if task.status == 'PAUSED':
-            return Response(
-                {'error': '任务已经是暂停状态'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        task.status = 'PAUSED'
-        task.next_run_time = None
-        task.save()
-
-        return Response(
-            {'message': '任务已暂停'},
-            status=status.HTTP_200_OK
+        # 记录通知日志
+        from .models import NotificationLog
+        from_email = email_service.default_from_email
+        NotificationLog.objects.create(
+            task_id=task.id,
+            task_name=task.name,
+            task_type=task.task_type,
+            notification_type='task_execution',
+            sender_name='系统邮件通知',
+            sender_email=from_email,
+            recipient_info=[{'email': email} for email in recipients],
+            notification_content=details,
+            status='success',
+            sent_at=timezone.now()
         )
+        logger.info(f"API自动化邮件通知任务已加入队列: {recipients}")
 
-    @action(detail=True, methods=['get'])
-    def execution_logs(self, request, pk=None):
-        """获取任务执行日志"""
-        task = self.get_object()
-
-        # 检查权限
-        if not request.user.is_staff and task.created_by != request.user:
-            return Response(
-                {'error': '无权查看此任务的执行日志'},
-                status=status.HTTP_403_FORBIDDEN
+    except Exception as e:
+        logger.error(f"发送邮件通知失败: {str(e)}", exc_info=True)
+        # 记录通知发送失败的日志
+        try:
+            from .models import NotificationLog
+            from services.email_service import email_service
+            from_email = email_service.default_from_email
+            NotificationLog.objects.create(
+                task_id=task.id,
+                task_name=task.name,
+                task_type=task.task_type,
+                notification_type='task_execution',
+                sender_name='系统邮件通知',
+                sender_email=from_email,
+                recipient_info=[{'email': email} for email in recipients] if 'recipients' in locals() else [],
+                notification_content=f"发送邮件通知失败: {str(e)}",
+                status='failed',
+                error_message=str(e)
             )
+        except:
+            pass
 
-        logs = TaskExecutionLog.objects.filter(task=task).order_by('-created_at')
-        page = self.paginate_queryset(logs)
 
-        if page is not None:
-            serializer = TaskExecutionLogSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+def _render_notification_template(template_content, context):
+    """渲染通知模板
+    
+    Args:
+        template_content: 模板内容（Markdown格式）
+        context: 上下文变量字典
+        
+    Returns:
+        str: 渲染后的内容
+    """
+    content = template_content
+    for key, value in context.items():
+        placeholder = f"{{{{{key}}}}}"
+        content = content.replace(placeholder, str(value) if value is not None else '')
+    return content
 
-        serializer = TaskExecutionLogSerializer(logs, many=True)
-        return Response(serializer.data)
 
-    def _execute_task_async(self, task, execution_log):
+def _build_notification_context(task, execution_log, success):
+    """构建通知模板上下文变量
+    
+    Args:
+        task: 定时任务对象
+        execution_log: 执行日志对象
+        success: 是否成功
+        
+    Returns:
+        dict: 上下文变量字典
+    """
+    status_text = '成功' if success else '失败'
+    task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'
+    
+    context = {
+        'title': f'定时任务执行{status_text}',
+        'task_name': task.name,
+        'task_type': task_type_text,
+        'status': status_text,
+        'execution_time': timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S'),
+        'success': '是' if success else '否',
+    }
+    
+    if hasattr(execution_log, 'start_time') and execution_log.start_time:
+        context['start_time'] = timezone.localtime(execution_log.start_time).strftime('%Y-%m-%d %H:%M:%S')
+    else:
+        context['start_time'] = context['execution_time']
+    
+    if hasattr(execution_log, 'end_time') and execution_log.end_time:
+        context['end_time'] = timezone.localtime(execution_log.end_time).strftime('%Y-%m-%d %H:%M:%S')
+    
+    if hasattr(execution_log, 'duration') and execution_log.duration:
+        duration_seconds = float(execution_log.duration)
+        minutes = int(duration_seconds // 60)
+        seconds = int(duration_seconds % 60)
+        context['duration'] = f"{minutes}分{seconds}秒" if minutes > 0 else f"{seconds}秒"
+    
+    if hasattr(execution_log, 'executed_by') and execution_log.executed_by:
+        context['executor'] = execution_log.executed_by.username
+        if hasattr(execution_log.executed_by, 'get_full_name') and execution_log.executed_by.get_full_name():
+            context['executor'] = execution_log.executed_by.get_full_name()
+    
+    total_cases = 0
+    passed_cases = 0
+    failed_cases = 0
+    error_cases = 0
+    skipped_cases = 0
+    
+    if hasattr(execution_log, 'total_cases'):
+        total_cases = execution_log.total_cases
+    if hasattr(execution_log, 'passed_cases'):
+        passed_cases = execution_log.passed_cases
+    if hasattr(execution_log, 'failed_cases'):
+        failed_cases = execution_log.failed_cases
+    if hasattr(execution_log, 'error_cases'):
+        error_cases = getattr(execution_log, 'error_cases', 0)
+    if hasattr(execution_log, 'skipped_cases'):
+        skipped_cases = getattr(execution_log, 'skipped_cases', 0)
+    
+    context['total_cases'] = total_cases
+    context['passed_cases'] = passed_cases
+    context['failed_cases'] = failed_cases
+    context['error_cases'] = error_cases
+    context['skipped_cases'] = skipped_cases
+    
+    if total_cases > 0:
+        pass_rate = (passed_cases / total_cases) * 100
+        context['pass_rate'] = f"{pass_rate:.1f}%"
+        coverage_rate = ((passed_cases + failed_cases) / total_cases) * 100
+        context['coverage_rate'] = f"{coverage_rate:.1f}%"
+    else:
+        context['pass_rate'] = "0%"
+        context['coverage_rate'] = "0%"
+    
+    try:
+        from apps.scheduler.models import ScheduleConfig
+        if hasattr(task, 'id'):
+            try:
+                schedule_config = ScheduleConfig.objects.filter(
+                    schedule__name=task.name
+                ).first()
+                
+                if schedule_config:
+                    if schedule_config.project_id:
+                        try:
+                            from apps.projects.models import Project
+                            project = Project.objects.get(id=schedule_config.project_id)
+                            context['project_name'] = project.name
+                        except Project.DoesNotExist:
+                            context['project_name'] = ''
+                    
+                    if schedule_config.environment_id:
+                        try:
+                            from apps.api_testing.models import Environment
+                            env = Environment.objects.get(id=schedule_config.environment_id)
+                            context['environment_name'] = env.name
+                        except Environment.DoesNotExist:
+                            context['environment_name'] = ''
+                    
+                    if schedule_config.created_by:
+                        context['creator'] = schedule_config.created_by.username
+                        if hasattr(schedule_config.created_by, 'get_full_name') and schedule_config.created_by.get_full_name():
+                            context['creator'] = schedule_config.created_by.get_full_name()
+            except Exception:
+                pass
+    except ImportError:
+        pass
+    
+    try:
+        from django.conf import settings
+        frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+        if hasattr(execution_log, 'id'):
+            context['report_url'] = f"{frontend_url}/reports/execution/{execution_log.id}"
+        elif hasattr(task, 'id'):
+            context['report_url'] = f"{frontend_url}/reports/task/{task.id}"
+    except Exception:
+        pass
+    
+    return context
+
+
+def _send_webhook_notification(task, execution_log, notification_setting, notification_config, success):
+    """发送Webhook通知"""
+    try:
+        import logging
+        import json
+        logger = logging.getLogger(__name__)
+
+        logger.info("=== 开始发送Webhook通知 ===")
+
+        all_webhook_bots = []
+
+        # 使用统一的通知配置
+        try:
+            from apps.core.models import UnifiedNotificationConfig
+            from services.notification_tasks import send_webhook_notification_task
+            all_webhook_configs = UnifiedNotificationConfig.objects.filter(
+                config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk', 'webhook_generic'],
+                is_active=True
+            )
+            logger.info("使用统一通知配置 (UnifiedNotificationConfig)")
+
+            for config in all_webhook_configs:
+                bots = config.get_webhook_bots()
+                for bot in bots:
+                    # 只添加启用了"接口测试"的机器人
+                    if bot.get('enabled', True) and bot.get('enable_api_testing', True):
+                        all_webhook_bots.append(bot)
+                        logger.info(f"从统一配置获取机器人: {bot.get('name')} (接口测试已启用)")
+                    elif bot.get('enabled', True):
+                        logger.info(f"统一配置机器人 {bot.get('name')} 未启用接口测试，跳过")
+
+        except ImportError:
+            logger.warning("无法导入统一配置，尝试使用 API 测试模块配置")
+            # 回退到旧的逻辑
+            if notification_config:
+                bots = notification_config.get_webhook_bots()
+                for bot in bots:
+                    if bot.get('enabled', True):
+                        all_webhook_bots.append(bot)
+                        logger.info(f"从 API 测试配置获取机器人: {bot.get('name')}")
+        except Exception as e:
+            logger.error(f"获取统一配置时出错: {e}")
+
+        # 获取自定义机器人配置 (覆盖同名/同类型或者是累加，这里选择累加)
+        if notification_setting.custom_webhook_bots:
+            logger.info(f"发现自定义Webhook机器人配置: {len(notification_setting.custom_webhook_bots)}个")
+            for bot_type, bot_config in notification_setting.custom_webhook_bots.items():
+                # 构造统一的bot结构
+                bot_data = {
+                    'type': bot_type,
+                    'name': bot_config.get('name', f'自定义{bot_type}机器人'),
+                    'webhook_url': bot_config.get('webhook_url'),
+                    'enabled': bot_config.get('enabled', True),
+                    'notification_template_id': bot_config.get('notification_template_id'),
+                }
+                if bot_type == 'dingtalk' and bot_config.get('secret'):
+                    bot_data['secret'] = bot_config.get('secret')
+
+                if bot_data.get('enabled', True) and bot_data.get('webhook_url'):
+                    all_webhook_bots.append(bot_data)
+
+        if not all_webhook_bots:
+            logger.warning("没有找到任何启用的webhook机器人配置")
+            return
+
+        logger.info(f"总共找到 {len(all_webhook_bots)} 个待发送的webhook机器人")
+
+        # 准备通知内容
+        status_text = '成功' if success else '失败'
+        status_color = 'green' if success else 'red'
+        
+        # 构建模板上下文
+        context = _build_notification_context(task, execution_log, success)
+
+        # 为不同的机器人平台准备消息格式
+        for bot in all_webhook_bots:
+            if not bot.get('enabled', True) or not bot.get('webhook_url'):
+                logger.info(f"跳过未启用或无URL的机器人: {bot.get('name', 'Unknown')}")
+                continue
+
+            bot_type = bot.get('type', 'unknown')
+            webhook_url = bot['webhook_url']
+            template_id = bot.get('notification_template_id')
+            logger.info(f"发送通知到 {bot_type} 机器人: {bot.get('name', 'Unknown')}, 模板ID: {template_id}")
+
+            # 获取模板内容
+            template_content = None
+            if template_id:
+                try:
+                    from apps.core.models import NotificationTemplate
+                    template = NotificationTemplate.objects.get(id=template_id)
+                    template_content = template.content
+                    logger.info(f"使用自定义模板: {template.name}")
+                except NotificationTemplate.DoesNotExist:
+                    logger.warning(f"模板不存在: {template_id}")
+
+            # 渲染模板内容
+            if template_content:
+                rendered_content = _render_notification_template(template_content, context)
+            else:
+                rendered_content = f"""**定时任务执行{status_text}**
+
+任务名称: {task.name}
+
+执行状态: {status_text}
+
+执行时间: {context['execution_time']}
+
+任务类型: {context['task_type']}"""
+
+            # 根据机器人类型构造消息格式
+            if bot_type == 'wechat':  # 企业微信
+                message_data = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "content": rendered_content
+                    }
+                }
+            elif bot_type == 'feishu':  # 飞书
+                message_data = {
+                    "msg_type": "interactive",
+                    "card": {
+                        "elements": [{
+                            "tag": "div",
+                            "text": {
+                                "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
+                                "tag": "lark_md"
+                            }
+                        }],
+                        "header": {
+                            "title": {
+                                "content": f"定时任务执行{status_text}",
+                                "tag": "plain_text"
+                            },
+                            "template": "green" if success else "red"
+                        }
+                    }
+                }
+            elif bot_type == 'dingtalk':  # 钉钉
+                message_data = {
+                    "msgtype": "markdown",
+                    "markdown": {
+                        "title": f"定时任务执行{status_text}",
+                        "text": rendered_content
+                    }
+                }
+
+                # 钉钉机器人签名验证
+                secret = bot.get('secret')
+                if secret:
+                    import time
+                    import hmac
+                    import hashlib
+                    import base64
+                    import urllib.parse
+
+                    timestamp = str(round(time.time() * 1000))
+                    string_to_sign = f'{timestamp}\n{secret}'
+                    string_to_sign_enc = string_to_sign.encode('utf-8')
+                    secret_enc = secret.encode('utf-8')
+                    hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
+                    sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
+
+                    # 在URL中添加签名参数
+                    if '?' in webhook_url:
+                        webhook_url += f'&timestamp={timestamp}&sign={sign}'
+                    else:
+                        webhook_url += f'?timestamp={timestamp}&sign={sign}'
+
+                    logger.info(f"钉钉机器人签名验证 - 时间戳: {timestamp}")
+                    logger.info(f"签名字符串: {string_to_sign}")
+                    logger.info(f"生成的签名: {sign}")
+                    logger.info(f"最终URL: {webhook_url}")
+                else:
+                    logger.info("钉钉机器人未配置签名密钥，使用无签名模式")
+            else:  # 通用格式
+                message_data = {
+                    "text": rendered_content
+                }
+
+            # 发送webhook请求
+            try:
+                # 使用 Django 6.0 内置 tasks 框架异步发送Webhook
+                send_webhook_notification_task(
+                    webhook_url=webhook_url,
+                    message=message_data,
+                    bot_type=f'webhook_{bot_type}',
+                    group='API测试'
+                )
+                logger.info(f"API自动化Webhook通知任务已加入队列: {bot_type} - {webhook_url}")
+
+                # 记录成功的通知日志
+                from .models import NotificationLog
+                NotificationLog.objects.create(
+                    task_id=task.id,
+                    task_name=task.name,
+                    task_type=task.task_type,
+                    notification_type='task_execution',
+                    sender_name=f'系统Webhook通知-{bot_type}',
+                    sender_email='',
+                    recipient_info=[],
+                    webhook_bot_info={
+                        'bot_type': bot_type,
+                        'bot_name': bot.get('name', 'Unknown'),
+                        'webhook_url': webhook_url[:50] + '...' if len(webhook_url) > 50 else webhook_url,
+                        'template_id': template_id,
+                    },
+                    notification_content=json.dumps(message_data, ensure_ascii=False),
+                    status='success',
+                    sent_at=timezone.now()
+                )
+
+            except Exception as e:
+                logger.error(f"Webhook通知发送失败 - {bot_type}: {str(e)}")
+
+                # 记录失败的通知日志
+                try:
+                    from .models import NotificationLog
+                    NotificationLog.objects.create(
+                        task_id=task.id,
+                        task_name=task.name,
+                        task_type=task.task_type,
+                        notification_type='task_execution',
+                        sender_name=f'系统Webhook通知-{bot_type}',
+                        sender_email='',
+                        recipient_info=[],
+                        webhook_bot_info={
+                            'bot_type': bot_type,
+                            'bot_name': bot.get('name', 'Unknown'),
+                            'webhook_url': webhook_url[:50] + '...' if len(webhook_url) > 50 else webhook_url
+                        },
+                        notification_content=json.dumps(message_data, ensure_ascii=False),
+                        status='failed',
+                        error_message=str(e),
+                        sent_at=timezone.now()
+                    )
+                except:
+                    pass
+
+        logger.info("=== 结束发送Webhook通知 ===")
+
+    except Exception as e:
+        logger.error(f"发送Webhook通知失败: {str(e)}", exc_info=True)
+
+
+# ================ 通知管理相关视图集 ================
         """异步执行任务"""
         import threading
         from datetime import datetime
@@ -1904,13 +2488,15 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
         try:
             import logging
             logger = logging.getLogger(__name__)
-            from django.core.mail import send_mail
-            from django.conf import settings
+            from services.email_tasks import send_task_notification_task
+            from services.email_service import email_service
 
             logger.info("=== 开始发送邮件通知 ===")
 
             # 准备邮件内容
-            subject = f"定时任务执行{'成功' if success else '失败'}: {task.name}"
+            status = 'success' if success else 'failed'
+            task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'
+            execution_time = timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')
 
             # 过滤掉详细的测试结果数据，只保留概要信息
             summary_info = '无详细信息'
@@ -1927,17 +2513,15 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                 # 只保留有值的字段
                 summary_info = '\n'.join([f'{k}: {v}' for k, v in summary_fields.items() if v is not None])
 
-            message = f"""
-            任务名称: {task.name}
-            执行状态: {'成功' if success else '失败'}
-            执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
-            任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}
+            details = f"""
+执行时间: {execution_time}
+任务类型: {task_type_text}
 
-            执行概要:
-            {summary_info}
+执行概要:
+{summary_info}
 
-            错误信息:
-            {execution_log.error_message if execution_log.error_message else '无错误信息'}
+错误信息:
+{execution_log.error_message if execution_log.error_message else '无错误信息'}
             """
 
             # 获取收件人列表
@@ -1963,45 +2547,48 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                 logger.warning("没有找到任何邮件收件人")
                 return
 
-            # 发送邮件
-            from_email = settings.DEFAULT_FROM_EMAIL
-            logger.info(f"准备发送邮件，发件人: {from_email}, 收件人: {recipients}")
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=from_email,
-                recipient_list=recipients,
-                fail_silently=False,
+            # 使用 Django 6.0 内置 tasks 框架异步发送邮件
+            send_task_notification_task(
+                task.name,
+                'API自动化',
+                status,
+                recipients,
+                details,
+                execution_time,
+                summary_info
             )
-            logger.info("邮件发送成功")
 
             # 记录通知日志
             from .models import NotificationLog
+            from_email = email_service.default_from_email
             NotificationLog.objects.create(
-                task=task,
+                task_id=task.id,
                 task_name=task.name,
                 task_type=task.task_type,
                 notification_type='task_execution',
                 sender_name='系统邮件通知',
                 sender_email=from_email,
                 recipient_info=[{'email': email} for email in recipients],
-                notification_content=message,
+                notification_content=details,
                 status='success',
                 sent_at=timezone.now()
             )
+            logger.info(f"API自动化邮件通知任务已加入队列: {recipients}")
 
         except Exception as e:
             logger.error(f"发送邮件通知失败: {str(e)}", exc_info=True)
             # 记录通知发送失败的日志
             try:
                 from .models import NotificationLog
+                from services.email_service import email_service
+                from_email = email_service.default_from_email
                 NotificationLog.objects.create(
-                    task=task,
+                    task_id=task.id,
                     task_name=task.name,
                     task_type=task.task_type,
                     notification_type='task_execution',
                     sender_name='系统邮件通知',
-                    sender_email=settings.DEFAULT_FROM_EMAIL,
+                    sender_email=from_email,
                     recipient_info=[{'email': email} for email in recipients] if 'recipients' in locals() else [],
                     notification_content=f"发送邮件通知失败: {str(e)}",
                     status='failed',
@@ -2010,11 +2597,146 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
             except:
                 pass
 
+    def _render_notification_template(self, template_content, context):
+        """渲染通知模板
+        
+        Args:
+            template_content: 模板内容（Markdown格式）
+            context: 上下文变量字典
+            
+        Returns:
+            str: 渲染后的内容
+        """
+        content = template_content
+        for key, value in context.items():
+            placeholder = f"{{{{{key}}}}}"
+            content = content.replace(placeholder, str(value) if value is not None else '')
+        return content
+    
+    def _build_notification_context(self, task, execution_log, success):
+        """构建通知模板上下文变量
+        
+        Args:
+            task: 定时任务对象
+            execution_log: 执行日志对象
+            success: 是否成功
+            
+        Returns:
+            dict: 上下文变量字典
+        """
+        status_text = '成功' if success else '失败'
+        task_type_text = '测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'
+        
+        context = {
+            'title': f'定时任务执行{status_text}',
+            'task_name': task.name,
+            'task_type': task_type_text,
+            'status': status_text,
+            'execution_time': timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S'),
+            'success': '是' if success else '否',
+        }
+        
+        if hasattr(execution_log, 'start_time') and execution_log.start_time:
+            context['start_time'] = timezone.localtime(execution_log.start_time).strftime('%Y-%m-%d %H:%M:%S')
+        else:
+            context['start_time'] = context['execution_time']
+        
+        if hasattr(execution_log, 'end_time') and execution_log.end_time:
+            context['end_time'] = timezone.localtime(execution_log.end_time).strftime('%Y-%m-%d %H:%M:%S')
+        
+        if hasattr(execution_log, 'duration') and execution_log.duration:
+            duration_seconds = float(execution_log.duration)
+            minutes = int(duration_seconds // 60)
+            seconds = int(duration_seconds % 60)
+            context['duration'] = f"{minutes}分{seconds}秒" if minutes > 0 else f"{seconds}秒"
+        
+        if hasattr(execution_log, 'executed_by') and execution_log.executed_by:
+            context['executor'] = execution_log.executed_by.username
+            if hasattr(execution_log.executed_by, 'get_full_name') and execution_log.executed_by.get_full_name():
+                context['executor'] = execution_log.executed_by.get_full_name()
+        
+        total_cases = 0
+        passed_cases = 0
+        failed_cases = 0
+        error_cases = 0
+        skipped_cases = 0
+        
+        if hasattr(execution_log, 'total_cases'):
+            total_cases = execution_log.total_cases
+        if hasattr(execution_log, 'passed_cases'):
+            passed_cases = execution_log.passed_cases
+        if hasattr(execution_log, 'failed_cases'):
+            failed_cases = execution_log.failed_cases
+        if hasattr(execution_log, 'error_cases'):
+            error_cases = getattr(execution_log, 'error_cases', 0)
+        if hasattr(execution_log, 'skipped_cases'):
+            skipped_cases = getattr(execution_log, 'skipped_cases', 0)
+        
+        context['total_cases'] = total_cases
+        context['passed_cases'] = passed_cases
+        context['failed_cases'] = failed_cases
+        context['error_cases'] = error_cases
+        context['skipped_cases'] = skipped_cases
+        
+        if total_cases > 0:
+            pass_rate = (passed_cases / total_cases) * 100
+            context['pass_rate'] = f"{pass_rate:.1f}%"
+            coverage_rate = ((passed_cases + failed_cases) / total_cases) * 100
+            context['coverage_rate'] = f"{coverage_rate:.1f}%"
+        else:
+            context['pass_rate'] = "0%"
+            context['coverage_rate'] = "0%"
+        
+        try:
+            from apps.scheduler.models import ScheduleConfig
+            if hasattr(task, 'id'):
+                try:
+                    schedule_config = ScheduleConfig.objects.filter(
+                        schedule__name=task.name
+                    ).first()
+                    
+                    if schedule_config:
+                        if schedule_config.project_id:
+                            try:
+                                from apps.projects.models import Project
+                                project = Project.objects.get(id=schedule_config.project_id)
+                                context['project_name'] = project.name
+                            except Project.DoesNotExist:
+                                context['project_name'] = ''
+                        
+                        if schedule_config.environment_id:
+                            try:
+                                from apps.api_testing.models import Environment
+                                env = Environment.objects.get(id=schedule_config.environment_id)
+                                context['environment_name'] = env.name
+                            except Environment.DoesNotExist:
+                                context['environment_name'] = ''
+                        
+                        if schedule_config.created_by:
+                            context['creator'] = schedule_config.created_by.username
+                            if hasattr(schedule_config.created_by, 'get_full_name') and schedule_config.created_by.get_full_name():
+                                context['creator'] = schedule_config.created_by.get_full_name()
+                except Exception:
+                    pass
+        except ImportError:
+            pass
+        
+        try:
+            from django.conf import settings
+            frontend_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
+            if hasattr(execution_log, 'id'):
+                context['report_url'] = f"{frontend_url}/reports/execution/{execution_log.id}"
+            elif hasattr(task, 'id'):
+                context['report_url'] = f"{frontend_url}/reports/task/{task.id}"
+        except Exception:
+            pass
+        
+        return context
+
     def _send_webhook_notification(self, task, execution_log, notification_setting, notification_config, success):
         """发送Webhook通知"""
         try:
             import logging
-            import requests
             import json
             logger = logging.getLogger(__name__)
 
@@ -2025,8 +2747,9 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
             # 使用统一的通知配置
             try:
                 from apps.core.models import UnifiedNotificationConfig
+                from services.notification_tasks import send_webhook_notification_task
                 all_webhook_configs = UnifiedNotificationConfig.objects.filter(
-                    config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk'],
+                    config_type__in=['webhook_wechat', 'webhook_feishu', 'webhook_dingtalk', 'webhook_generic'],
                     is_active=True
                 )
                 logger.info("使用统一通知配置 (UnifiedNotificationConfig)")
@@ -2062,7 +2785,8 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         'type': bot_type,
                         'name': bot_config.get('name', f'自定义{bot_type}机器人'),
                         'webhook_url': bot_config.get('webhook_url'),
-                        'enabled': bot_config.get('enabled', True)
+                        'enabled': bot_config.get('enabled', True),
+                        'notification_template_id': bot_config.get('notification_template_id'),
                     }
                     if bot_type == 'dingtalk' and bot_config.get('secret'):
                         bot_data['secret'] = bot_config.get('secret')
@@ -2079,6 +2803,9 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
             # 准备通知内容
             status_text = '成功' if success else '失败'
             status_color = 'green' if success else 'red'
+            
+            # 构建模板上下文
+            context = self._build_notification_context(task, execution_log, success)
 
             # 为不同的机器人平台准备消息格式
             for bot in all_webhook_bots:
@@ -2088,22 +2815,40 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
 
                 bot_type = bot.get('type', 'unknown')
                 webhook_url = bot['webhook_url']
-                logger.info(f"发送通知到 {bot_type} 机器人: {bot.get('name', 'Unknown')}")
+                template_id = bot.get('notification_template_id')
+                logger.info(f"发送通知到 {bot_type} 机器人: {bot.get('name', 'Unknown')}, 模板ID: {template_id}")
+
+                # 获取模板内容
+                template_content = None
+                if template_id:
+                    try:
+                        from apps.core.models import NotificationTemplate
+                        template = NotificationTemplate.objects.get(id=template_id)
+                        template_content = template.content
+                        logger.info(f"使用自定义模板: {template.name}")
+                    except NotificationTemplate.DoesNotExist:
+                        logger.warning(f"模板不存在: {template_id}")
+
+                # 渲染模板内容
+                if template_content:
+                    rendered_content = self._render_notification_template(template_content, context)
+                else:
+                    rendered_content = f"""**定时任务执行{status_text}**
+
+任务名称: {task.name}
+
+执行状态: {status_text}
+
+执行时间: {context['execution_time']}
+
+任务类型: {context['task_type']}"""
 
                 # 根据机器人类型构造消息格式
                 if bot_type == 'wechat':  # 企业微信
                     message_data = {
                         "msgtype": "markdown",
                         "markdown": {
-                            "content": f"""**定时任务执行{status_text}**
-
-任务名称: {task.name}
-
-执行状态: {status_text}
-
-执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
-
-任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"""
+                            "content": rendered_content
                         }
                     }
                 elif bot_type == 'feishu':  # 飞书
@@ -2113,7 +2858,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                             "elements": [{
                                 "tag": "div",
                                 "text": {
-                                    "content": f"**定时任务执行{status_text}**\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}",
+                                    "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
                                     "tag": "lark_md"
                                 }
                             }],
@@ -2131,15 +2876,7 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         "msgtype": "markdown",
                         "markdown": {
                             "title": f"定时任务执行{status_text}",
-                            "text": f"""**定时任务执行{status_text}**
-
-任务名称: {task.name}
-
-执行状态: {status_text}
-
-执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}
-
-任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"""
+                            "text": rendered_content
                         }
                     }
 
@@ -2173,24 +2910,24 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         logger.info("钉钉机器人未配置签名密钥，使用无签名模式")
                 else:  # 通用格式
                     message_data = {
-                        "text": f"定时任务执行{status_text}\n任务名称: {task.name}\n执行状态: {status_text}\n执行时间: {timezone.localtime(execution_log.created_at).strftime('%Y-%m-%d %H:%M:%S')}\n任务类型: {'测试套件执行' if task.task_type == 'TEST_SUITE' else 'API请求执行'}"
+                        "text": rendered_content
                     }
 
                 # 发送webhook请求
                 try:
-                    response = requests.post(
-                        webhook_url,
-                        json=message_data,
-                        headers={'Content-Type': 'application/json'},
-                        timeout=settings.TIMEOUTS_API_REQUEST
+                    # 使用 Django 6.0 内置 tasks 框架异步发送Webhook
+                    send_webhook_notification_task(
+                        webhook_url=webhook_url,
+                        message=message_data,
+                        bot_type=f'webhook_{bot_type}',
+                        group='API测试'
                     )
-                    response.raise_for_status()
-                    logger.info(f"Webhook通知发送成功 - {bot_type}: {response.status_code}")
+                    logger.info(f"API自动化Webhook通知任务已加入队列: {bot_type} - {webhook_url}")
 
                     # 记录成功的通知日志
                     from .models import NotificationLog
                     NotificationLog.objects.create(
-                        task=task,
+                        task_id=task.id,
                         task_name=task.name,
                         task_type=task.task_type,
                         notification_type='task_execution',
@@ -2200,25 +2937,22 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
                         webhook_bot_info={
                             'bot_type': bot_type,
                             'bot_name': bot.get('name', 'Unknown'),
-                            'webhook_url': webhook_url[:50] + '...' if len(webhook_url) > 50 else webhook_url
+                            'webhook_url': webhook_url[:50] + '...' if len(webhook_url) > 50 else webhook_url,
+                            'template_id': template_id,
                         },
                         notification_content=json.dumps(message_data, ensure_ascii=False),
                         status='success',
-                        sent_at=timezone.now(),
-                        response_info={
-                            'status_code': response.status_code,
-                            'response_text': response.text[:500]
-                        }
+                        sent_at=timezone.now()
                     )
 
-                except requests.exceptions.RequestException as e:
+                except Exception as e:
                     logger.error(f"Webhook通知发送失败 - {bot_type}: {str(e)}")
 
                     # 记录失败的通知日志
                     try:
                         from .models import NotificationLog
                         NotificationLog.objects.create(
-                            task=task,
+                            task_id=task.id,
                             task_name=task.name,
                             task_type=task.task_type,
                             notification_type='task_execution',
@@ -2244,22 +2978,6 @@ class ScheduledTaskViewSet(viewsets.ModelViewSet):
             logger.error(f"发送Webhook通知失败: {str(e)}", exc_info=True)
 
 
-class TaskExecutionLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """任务执行日志视图集"""
-    queryset = TaskExecutionLog.objects.all()
-    serializer_class = TaskExecutionLogSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['task', 'status']
-    ordering = ['-created_at']
-
-    def get_queryset(self):
-        user = self.request.user
-        return TaskExecutionLog.objects.filter(
-            task__created_by=user
-        ).select_related('task', 'executed_by')
-
-
 # ================ 通知管理相关视图集 ================
 
 
@@ -2274,62 +2992,13 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        # 修复查询逻辑：通过任务的创建者或相关项目过滤通知日志
-        return NotificationLog.objects.filter(
-            models.Q(
-                task__test_suite__project__in=ApiProject.objects.filter(
-                    models.Q(owner=user) | models.Q(members=user)
-                )
-            ) | models.Q(
-                task__api_request__collection__project__in=ApiProject.objects.filter(
-                    models.Q(owner=user) | models.Q(members=user)
-                )
-            ) | models.Q(
-                task__created_by=user
-            )
-        ).distinct()
+        return NotificationLog.objects.filter(sender_email=user.email).distinct()
 
     @action(detail=True, methods=['get'], url_path='detail')
     def get_notification_detail(self, request, pk=None):
         """获取通知详情"""
         notification = self.get_object()
         serializer = NotificationLogDetailSerializer(notification)
-        return Response(serializer.data)
-
-
-class TaskNotificationSettingViewSet(viewsets.ModelViewSet):
-    """定时任务通知设置视图集"""
-    queryset = TaskNotificationSetting.objects.all()
-    serializer_class = TaskNotificationSettingSerializer
-    permission_classes = [IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['task', 'is_enabled']
-    ordering = ['-created_at']
-
-    def get_queryset(self):
-        user = self.request.user
-        return TaskNotificationSetting.objects.filter(
-            models.Q(
-                task__test_suite__project__in=ApiProject.objects.filter(
-                    models.Q(owner=user) | models.Q(members=user)
-                )
-            ) | models.Q(
-                task__api_request__collection__project__in=ApiProject.objects.filter(
-                    models.Q(owner=user) | models.Q(members=user)
-                )
-            ) | models.Q(
-                task__created_by=user
-            )
-        ).distinct()
-
-    @action(detail=True, methods=['post'], url_path='update-settings')
-    def update_notification_settings(self, request, pk=None):
-        """更新通知设置"""
-        setting = self.get_object()
-        serializer = TaskNotificationSettingDetailSerializer(setting, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
         return Response(serializer.data)
 
 

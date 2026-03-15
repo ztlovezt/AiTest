@@ -4,7 +4,7 @@ import os
 import yaml
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from .....apps.app_automation.models import AppComponent
+from apps.app_automation.models import AppComponent
 
 
 class Command(BaseCommand):

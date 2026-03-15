@@ -10,11 +10,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
-import logging
 
 from django.conf import settings
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 class AppTestExecutor:
@@ -76,14 +74,14 @@ class AppTestExecutor:
             env['PYTHONUTF8'] = '1'
             env['PYTHONIOENCODING'] = 'utf-8'
 
-            # 传递执行参数到 pytest
+            # 传递执行参数到 pytest（确保所有值都是字符串）
             env['APP_TEST_CASE_ID'] = str(test_case_id)
-            env['APP_DEVICE_ID'] = device_id
-            env['APP_PACKAGE_NAME'] = package_name
+            env['APP_DEVICE_ID'] = str(device_id) if device_id else '1'
+            env['APP_PACKAGE_NAME'] = str(package_name) if package_name else ''
             if execution_id:
                 env['APP_EXECUTION_ID'] = str(execution_id)
             if username:
-                env['APP_USERNAME'] = username
+                env['APP_USERNAME'] = str(username)
 
             # Allure 结果目录
             allure_results_dir = self._get_allure_results_dir(execution_id)
@@ -273,7 +271,7 @@ class AppTestExecutor:
         """查找项目内置的 Allure 命令 - 使用配置项"""
         import platform
 
-        project_root = Path(__file__).resolve().parent.parent.parent.parent
+        project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
         allure_bin_path = settings.ALLURE_BIN_PATH
 
         if platform.system() == 'Windows':
@@ -287,11 +285,13 @@ class AppTestExecutor:
         else:
             builtin_allure = project_root / allure_bin_path / allure_executable
 
+        logger.info(f"查找 Allure 命令: {builtin_allure}, exists: {builtin_allure.exists()}")
+        
         if builtin_allure.exists():
             logger.info(f"使用项目内置 Allure: {builtin_allure}")
             return str(builtin_allure)
 
-        logger.warning("未找到项目内置 Allure，请确认 allure 目录存在")
+        logger.warning(f"未找到项目内置 Allure，请确认 allure 目录存在: {builtin_allure}")
         return None
 
     def _parse_allure_results(self, results_dir: str) -> Dict[str, Any]:
