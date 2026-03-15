@@ -2,13 +2,15 @@
   <div class="page-container">
     <div class="page-header">
       <h1 class="page-title">{{ $t('uiAutomation.suite.title') }}</h1>
-      <el-select v-model="projectId" :placeholder="$t('uiAutomation.common.selectProject')" style="width: 200px; margin-right: 15px" @change="onProjectChange">
-        <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
-      </el-select>
-      <el-button type="primary" @click="handleNewSuite">
-        <el-icon><Plus /></el-icon>
-        {{ $t('uiAutomation.suite.newSuite') }}
-      </el-button>
+      <div class="header-actions">
+        <el-select v-model="projectId" :placeholder="$t('uiAutomation.common.selectProject')" style="width: 200px; margin-right: 15px" @change="onProjectChange">
+          <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
+        </el-select>
+        <el-button type="primary" @click="handleNewSuite">
+          <el-icon><Plus /></el-icon>
+          {{ $t('uiAutomation.suite.newSuite') }}
+        </el-button>
+      </div>
     </div>
 
     <div class="card-container">
@@ -140,13 +142,6 @@
                       </el-tag>
                     </template>
                   </el-table-column>
-                  <el-table-column prop="status" :label="$t('uiAutomation.common.status')" width="80">
-                    <template #default="{ row }">
-                      <el-tag size="small" :type="getCaseStatusTag(row.status)">
-                        {{ getCaseStatusText(row.status) }}
-                      </el-tag>
-                    </template>
-                  </el-table-column>
                   <el-table-column :label="$t('uiAutomation.common.operation')" width="80">
                     <template #default="{ row }">
                       <el-button size="small" text @click.stop="addTestCase(row)">
@@ -236,8 +231,8 @@
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.suite.executionMode')">
           <el-radio-group v-model="runConfig.headless">
-            <el-radio :label="false">{{ $t('uiAutomation.suite.headedMode') }}</el-radio>
-            <el-radio :label="true">{{ $t('uiAutomation.suite.headlessMode') }}</el-radio>
+            <el-radio :value="false">{{ $t('uiAutomation.suite.headedMode') }}</el-radio>
+            <el-radio :value="true">{{ $t('uiAutomation.suite.headlessMode') }}</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>

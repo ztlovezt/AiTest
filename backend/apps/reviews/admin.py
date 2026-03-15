@@ -1,9 +1,10 @@
 from django.contrib import admin
 from .models import TestCaseReview, ReviewAssignment, TestCaseReviewComment, ReviewTemplate
+from apps.core.admin_mixins import StandardAdminMixin
 
 
 @admin.register(TestCaseReview)
-class TestCaseReviewAdmin(admin.ModelAdmin):
+class TestCaseReviewAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['title', 'get_projects', 'creator', 'status', 'priority', 'created_at']
     list_filter = ['status', 'priority', 'created_at']
     search_fields = ['title', 'description']
@@ -16,19 +17,19 @@ class TestCaseReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(ReviewAssignment)  
-class ReviewAssignmentAdmin(admin.ModelAdmin):
+class ReviewAssignmentAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['review', 'reviewer', 'status', 'assigned_at', 'reviewed_at']
     list_filter = ['status', 'assigned_at', 'reviewed_at']
 
 
 @admin.register(TestCaseReviewComment)
-class TestCaseReviewCommentAdmin(admin.ModelAdmin):
+class TestCaseReviewCommentAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['review', 'author', 'comment_type', 'is_resolved', 'created_at']
     list_filter = ['comment_type', 'is_resolved', 'created_at']
 
 
 @admin.register(ReviewTemplate)
-class ReviewTemplateAdmin(admin.ModelAdmin):
+class ReviewTemplateAdmin(StandardAdminMixin, admin.ModelAdmin):
     list_display = ['name', 'get_projects', 'creator', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']

@@ -49,7 +49,12 @@ class PlaywrightTestEngine:
             # 启动浏览器
             self.browser = await browser_launcher.launch(
                 headless=self.headless,
-                args=['--disable-blink-features=AutomationControlled']  # 避免被检测
+                args=[
+                    '--disable-blink-features=AutomationControlled',  # 避免被检测
+                    '--ignore-certificate-errors',  # 忽略证书错误
+                    '--allow-insecure-localhost',  # 允许不安全localhost
+                    '--disable-web-security',  # 禁用web安全限制（跨域）
+                ]
             )
 
             # 创建浏览器上下文
@@ -182,13 +187,57 @@ class PlaywrightTestEngine:
                 await target_page.bring_to_front()
                 # 更新引擎的当前页面引用
                 self.page = target_page
-                
+
                 execution_time = round(time.time() - start_time, 2)
                 log = f"✓ 切换标签页成功\n"
                 log += f"  - 目标索引: {final_target_index}\n"
                 log += f"  - 页面标题: {await self.page.title()}\n"
                 log += f"  - 执行时间: {execution_time}秒"
                 return True, log, None
+
+            elif action_type == 'navigateTo':
+                # 跳转到指定URL
+                target_url = resolved_input_value if resolved_input_value else ''
+
+                if not target_url:
+                    return False, "❌ 跳转失败: 未提供URL地址", None
+
+                # 页面导航使用固定的15秒最大超时
+                nav_timeout = 15000
+
+                try:
+                    start_nav = time.time()
+                    await self.page.goto(target_url, timeout=nav_timeout)
+                    execution_time = round(time.time() - start_nav, 2)
+                    log = f"✓ 跳转URL成功\n"
+                    log += f"  - URL: {target_url}\n"
+                    log += f"  - 页面标题: {await self.page.title()}\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+                except Exception as e:
+                    return False, f"❌ 跳转URL失败: {str(e)}", None
+
+            elif action_type == 'assert' and step.assert_type == 'urlContains':
+                current_url = self.page.url or ''
+                if not resolved_assert_value:
+                    return False, "✗ 断言失败: URL包含断言缺少期望值", None
+
+                if resolved_assert_value in current_url:
+                    execution_time = round(time.time() - start_time, 2)
+                    log = f"✓ 断言通过: 当前URL包含 '{resolved_assert_value}'\n"
+                    if resolved_assert_value != step.assert_value:
+                        log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                    log += f"  - 当前URL: '{current_url}'\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+
+                screenshot = await self.page.screenshot()
+                screenshot_base64 = f"data:image/png;base64,{base64.b64encode(screenshot).decode()}"
+                log = f"✗ 断言失败: 当前URL不包含 '{resolved_assert_value}'\n"
+                if resolved_assert_value != step.assert_value:
+                    log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                log += f"  - 当前URL: '{current_url}'"
+                return False, log, screenshot_base64
 
             # 其他操作需要元素定位器
             # 获取元素定位器

@@ -15,7 +15,7 @@ import os
 
 from ..models import AppTestExecution
 from ..serializers import AppTestExecutionSerializer
-from ..tasks import send_execution_update
+from ..tasks_async import send_execution_update
 from .test_case_views import AppPagination
 
 logger = logging.getLogger(__name__)
@@ -83,11 +83,15 @@ class AppTestExecutionViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # 停止 Celery 任务
+            # 停止 Django-Q2 任务
             if execution.task_id:
-                from celery import current_app
-                current_app.control.revoke(execution.task_id, terminate=True, signal='SIGTERM')
-                logger.info(f"Celery任务已终止: task_id={execution.task_id}")
+                from django_q.models import Task
+                try:
+                    task = Task.objects.get(id=execution.task_id)
+                    task.stop()
+                    logger.info(f"Django-Q2任务已终止: task_id={execution.task_id}")
+                except Task.DoesNotExist:
+                    logger.warning(f"任务不存在: task_id={execution.task_id}")
             
             execution.status = 'stopped'
             execution.finished_at = timezone.now()

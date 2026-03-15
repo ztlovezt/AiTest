@@ -1,33 +1,29 @@
-# https://newpanjing.github.io/simpleui_docs/config.html#%E5%9B%BE%E6%A0%87%E8%AF%B4%E6%98%8E
-
 from pathlib import Path
 from decouple import config
 import os
 import logging
 
+from .config_loader import config_loader
+from .log_config import log_config
+
 # 当前文件所在路径
 BASE_DIR = Path(__file__).resolve().parent.parent
+LOG_DIR = log_config.log_dir
 
-# 导入配置加载器
-from .config_loader import config_loader
-
-
-# 自定义日志过滤器：过滤掉ERROR级别的日志
-class ExcludeErrorsFilter(logging.Filter):
-    def filter(self, record):
-        return record.levelno < logging.ERROR
+# 确保日志目录存在
+os.makedirs(LOG_DIR, exist_ok=True)
 
 
 SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
-                                                            'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm5'))
+                                                            'django-insecure-6wf7pmw0mzh%(^/4%qa/3o5nfg7xmqyi8mewwbyyqmna7ertm9'))
 
-DEBUG = config('DEBUG', default=config_loader.get('server.debug', False), cast=bool)
+DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bool)
 
-# ================================
-# 服务端口配置
-# ================================
 # 后端服务端口（开发环境）
 BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8000), cast=int)
+
+# 前端服务URL（用于生成报告链接等）
+FRONTEND_URL = config('FRONTEND_URL', default=config_loader.get('server.frontend_url', 'http://localhost:3000'))
 
 # 根据DEBUG模式设置ALLOWED_HOSTS，生产环境不应使用通配符
 if DEBUG:
@@ -49,13 +45,13 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
-    'rest_framework_simplejwt',  # 添加JWT支持
-    'rest_framework_simplejwt.token_blacklist',  # JWT token黑名单
-    'corsheaders',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'drf_spectacular',
     'drf_spectacular_sidecar',
     'channels',
+    'django_q',
 ]
 
 LOCAL_APPS = [
@@ -72,6 +68,7 @@ LOCAL_APPS = [
     'apps.api_testing',
     'apps.ui_automation.apps.UiAutomationConfig',
     'apps.app_automation.apps.AppAutomationConfig',
+    'apps.scheduler',
     'apps.core',
     'apps.data_factory',
 ]
@@ -79,14 +76,15 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'backend.middleware.DisableCSRFMiddleware',  # 添加CSRF禁用中间件
+    'backend.middleware.DisableCSRFMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'backend.middleware.async_middleware.AsyncRequestTimingMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -120,9 +118,14 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default=db_config.get('password', '')),
         'HOST': config('DB_HOST', default=db_config.get('host', '127.0.0.1')),
         'PORT': config('DB_PORT', default=db_config.get('port', 3306)),
+        'CONN_MAX_AGE': 60,
+        'ATOMIC_REQUESTS': True,
         'OPTIONS': {
             'charset': db_config.get('charset', 'utf8mb4'),
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+08:00'",
+            'connect_timeout': 10,
+            'read_timeout': 30,
+            'write_timeout': 30,
         },
     }
 }
@@ -143,20 +146,38 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # Internationalization
-# https://docs.djangoproject.com/en/4.2/topics/i18n/
-# Supported language codes: 'en-us' (English), 'zh-hans' (Simplified Chinese), 'ja' (Japanese), 'ko' (Korean), etc.
-# See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones for timezone list
 LANGUAGE_CODE = config('LANGUAGE_CODE', default='zh-hans')
 TIME_ZONE = config('TIME_ZONE', default='Asia/Shanghai')
 USE_I18N = True
 USE_TZ = True
 
+# 国际化配置 - 支持简体中文和英文
+LANGUAGES = [
+    ('zh-hans', '简体中文'),
+    ('en', 'English'),
+]
+
+# 翻译文件路径
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, 'locale'),
+]
+
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
+# Whitenoise 配置 - 用于在生产环境提供静态文件
+WHITENOISE_USE_FINDERS = True
+WHITENOISE_IGNORE_REGEX = r'^(?!/static/).*\.html$'
+
+# 静态文件目录配置
+STATIC_FILES_ROOT = os.path.join(BASE_DIR, 'static_files')
+STATICFILES_DIRS = [STATIC_FILES_ROOT]
+
+# 自动创建静态文件目录（如果不存在）
+os.makedirs(STATIC_FILES_ROOT, exist_ok=True)
+
 # 数据工厂的静态文件目录
 STATIC_FILES_URL = '/static_files/'
-STATIC_FILES_ROOT = os.path.join(BASE_DIR, 'static_files')
 
 MEDIA_URL = '/media/'
 
@@ -288,56 +309,80 @@ else:
     CSRF_COOKIE_HTTPONLY = True
     CSRF_COOKIE_SAMESITE = 'Strict'
 
-# CORS Settings
-cors_origins_str = config('CORS_ALLOWED_ORIGINS', default=config_loader.get('cors.allowed_origins', ''))
-parsed_cors_origins = [s.strip() for s in cors_origins_str.split(',') if s.strip()]
+
+# CORS Settings (Django 6 内置) 优先使用 config.yaml 中的跨域配置
+cors_config = config_loader.get_cors_config()
+
+cors_origins_config = cors_config.get('allowed_origins', [])
+# 如果 config.yaml 中没有配置，再从环境变量中获取
+if not cors_origins_config:
+    cors_origins_config = config('CORS_ALLOWED_ORIGINS', default='')
+
+# 处理 CORS 配置：支持字符串（逗号分隔）和列表格式
+if isinstance(cors_origins_config, list):
+    parsed_cors_origins = cors_origins_config
+elif isinstance(cors_origins_config, str):
+    parsed_cors_origins = [s.strip() for s in cors_origins_config.split(',') if s.strip()]
+else:
+    parsed_cors_origins = []
 
 if DEBUG:
-    # 开发环境默认允许本地地址，同时合并环境变量里的配置
-    # 优先使用环境变量配置的地址，确保服务器IP优先级最高
+    # 开发环境默认允许本地地址，同时合并配置里的地址
+    # 优先使用 config.yaml 配置的地址，确保服务器IP优先级最高
     CORS_ALLOWED_ORIGINS = [
-        *parsed_cors_origins,  # 环境变量配置的地址优先
+        *parsed_cors_origins,  # config.yaml 配置的地址优先
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
     ]
-    CORS_ALLOW_CREDENTIALS = True
-    # 支持EventSource (SSE) 的额外CORS头部
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'cache-control',  # 添加 SSE 需要的头部
-    ]
+    # 从 config.yaml 中读取 CORS 配置
+    CORS_ALLOW_CREDENTIALS = cors_config.get('allow_credentials', True)
+    # 从 config.yaml 中读取允许的请求头
+    allowed_headers = cors_config.get('allowed_headers', [])
+    # 如果 config.yaml 中没有配置，使用默认值
+    if not allowed_headers:
+        allowed_headers = [
+            'accept',
+            'accept-encoding',
+            'authorization',
+            'content-type',
+            'dnt',
+            'origin',
+            'user-agent',
+            'x-csrftoken',
+            'x-requested-with',
+            'cache-control',  # 添加 SSE 需要的头部
+        ]
+    CORS_ALLOW_HEADERS = allowed_headers
 else:
     # 生产环境 CORS 配置
     if parsed_cors_origins:
-        # 如果配置了 CORS_ALLOWED_ORIGINS，使用配置的值
+        # 如果在 config.yaml 或环境变量中配置了 CORS_ALLOWED_ORIGINS，使用配置的值
         CORS_ALLOWED_ORIGINS = parsed_cors_origins
     else:
         # 如果未配置，允许所有来源（可根据需求调整）
         CORS_ALLOW_ALL_ORIGINS = True
 
-    CORS_ALLOW_CREDENTIALS = True
-    CORS_ALLOW_HEADERS = [
-        'accept',
-        'accept-encoding',
-        'authorization',
-        'content-type',
-        'dnt',
-        'origin',
-        'user-agent',
-        'x-csrftoken',
-        'x-requested-with',
-        'cache-control',  # 添加 SSE 需要的头部
-    ]
+    # 从 config.yaml 中读取 CORS 配置
+    CORS_ALLOW_CREDENTIALS = cors_config.get('allow_credentials', True)
+    # 从 config.yaml 中读取允许的请求头
+    allowed_headers = cors_config.get('allowed_headers', [])
+    # 如果 config.yaml 中没有配置，使用默认值
+    if not allowed_headers:
+        allowed_headers = [
+            'accept',
+            'accept-encoding',
+            'authorization',
+            'content-type',
+            'dnt',
+            'origin',
+            'user-agent',
+            'x-csrftoken',
+            'x-requested-with',
+            'cache-control',  # 添加 SSE 需要的头部
+        ]
+    CORS_ALLOW_HEADERS = allowed_headers
     # SSE 需要的额外配置
     CORS_EXPOSE_HEADERS = ['Content-Type', 'Cache-Control']
 
@@ -347,53 +392,99 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1",
 ]
 
+# Security Settings (Django 6 安全特性)
+if not DEBUG:
+    # 内容安全策略 (CSP)
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+
+    # SSL/HTTPS 配置
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    # Session 安全
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+
+    # 密码哈希改进 (Django 6)
+    PASSWORD_HASHERS = [
+        'django.contrib.auth.hashers.PBKDF2PasswordHasher',
+        'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+        'django.contrib.auth.hashers.Argon2PasswordHasher',
+    ]
+
+# Data Upload Settings - 增加最大字段数限制
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 # Spectacular Settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TestHub API',
     'DESCRIPTION': 'Test Case Management Platform API',
-    'VERSION': '1.0.0',
+    'VERSION': '1.0.3',
     'SERVE_INCLUDE_SCHEMA': False,
-    # 使用sidecar中的静态文件
     'SWAGGER_UI_DIST': 'SIDECAR',
     'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
     'REDOC_DIST': 'SIDECAR',
 }
 
-# Channels Configuration
-if DEBUG:
-    # 开发环境使用本地Redis
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': ['redis://127.0.0.1:6379/0'],
-            },
-        },
-    }
-else:
-    # 生产环境使用配置的Redis
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                'hosts': [config_loader.get('redis.url', 'redis://127.0.0.1:6379/0')],
-            },
-        },
-    }
-
-# Redis配置
-# 开发环境和生产环境都使用配置的Redis
-REDIS_URL = config('REDIS_URL', default=config_loader.get('redis.url', 'redis://127.0.0.1:6379/0'))
-
-# Celery配置
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
-CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
-# Cache配置
-# 使用 Redis 缓存（生产环境推荐）
-cache_config = config_loader.get_cache_config()
+# Redis配置，开发环境和生产环境都使用配置的Redis
 redis_config = config_loader.get_redis_config()
+REDIS_URL = redis_config.get('url', 'redis://127.0.0.1:6379/')
+
+# 从Redis URL中提取基础URL（去掉末尾的数据库编号）
+def get_redis_base_url(url):
+    """从Redis URL中提取基础URL"""
+    if url.endswith('/'):
+        return url
+    last_slash = url.rfind('/')
+    if last_slash > 0:
+        return url[:last_slash + 1]
+    return url
+
+REDIS_BASE_URL = get_redis_base_url(REDIS_URL)
+
+# 缓存Redis配置（使用config.yaml中的cache_db）
+REDIS_CACHE_URL = f"{REDIS_BASE_URL}{redis_config.get('cache_db', 1)}"
+
+# 会话Redis配置（使用config.yaml中的session_db）
+REDIS_SESSION_URL = f"{REDIS_BASE_URL}{redis_config.get('session_db', 2)}"
+
+# Session配置：使用Redis存储会话（通过sessions缓存）
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'sessions'
+
+# Channels Configuration - 统一使用config.yaml中的Redis配置
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}"],
+        },
+    },
+}
+
+# Cache配置，使用 Redis 缓存（生产环境推荐）
+cache_config = config_loader.get_cache_config()
+
+# 任务队列配置
+Q_CLUSTER = {
+    'name': 'testhub',
+    'workers': 1,  # 工作进程数，根据服务器配置做调整
+    'timeout': 90,  # 任务超时时间（秒）
+    'retry': 180,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
+    'queue_limit': 50,  # 队列限制
+    'bulk': 10,  # 批量处理数量
+    'orm': 'default',  # 数据库配置
+    'save_limit': 250,  # 保存限制
+    'cpu_affinity': 1,  # CPU 亲和性
+    'label': '任务管理',  # 菜单名称
+    'redis': f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}",  # Redis 配置
+    'sync': False,  # False异步模式，True同步模式
+}
 
 if DEBUG:
     # 开发环境使用本地内存缓存
@@ -403,24 +494,44 @@ if DEBUG:
             'LOCATION': 'unique-snowflake',
             'KEY_PREFIX': cache_config.get('key_prefix', 'testhub'),
             'TIMEOUT': cache_config.get('default_timeout', 300),
-        }
+        },
+        'sessions': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake-sessions',
+            'KEY_PREFIX': 'session',
+            'TIMEOUT': 604800,  # 7天（秒）
+        },
     }
 else:
     # 生产环境使用Redis（Django 6 内置）
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': config_loader.get('redis.url', 'redis://127.0.0.1:6379/1'),
+            'LOCATION': REDIS_CACHE_URL,
             'KEY_PREFIX': cache_config.get('key_prefix', 'testhub'),
             'TIMEOUT': cache_config.get('default_timeout', 300),
-        }
+            # Django 6 内置 Redis 配置
+            'OPTIONS': {
+                'socket_connect_timeout': 5,
+                'socket_timeout': 5,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            },
+        },
+        'sessions': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_SESSION_URL,
+            'KEY_PREFIX': 'session',
+            'TIMEOUT': 604800,  # 7天（秒）
+            'OPTIONS': {
+                'socket_connect_timeout': 5,
+                'socket_timeout': 5,
+                'retry_on_timeout': True,
+                'health_check_interval': 30,
+            },
+        },
     }
 
-# Session Configuration
-# 使用Redis存储会话
-if not DEBUG:
-    SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
-    SESSION_CACHE_ALIAS = 'default'
 
 # Email Configuration
 email_config = config_loader.get_email_config()
@@ -434,42 +545,18 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default=email_config.get('ho
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=email_config.get('default_from_email', 'webmaster@localhost'))
 EMAIL_TIMEOUT = email_config.get('timeout', 30)
 
-# 确保日志目录存在
+# 读取日志配置
 logging_config = config_loader.get_logging_config()
-log_dir_config = logging_config.get('dir', '../../logs')
+debug_enabled = logging_config.get('debug_enabled', False)
+console_level = 'DEBUG' if debug_enabled else 'INFO'
 
-# 计算日志目录的绝对路径
-if os.path.isabs(log_dir_config):
-    log_dir = log_dir_config
-else:
-    # 从项目根目录（config.yaml 所在目录）开始计算相对路径
-    project_root = str(config_loader.project_root)
-    
-    # 输入校验和安全性处理
-    if not project_root or not isinstance(project_root, str):
-        raise ValueError("project_root 必须是非空字符串")
-    if not log_dir_config or not isinstance(log_dir_config, str):
-        raise ValueError("log_dir_config 必须是非空字符串")
-
-    # 检查 project_root 是否已经是绝对路径，避免重复处理
-    if os.path.isabs(project_root):
-        log_dir = os.path.join(project_root, log_dir_config)
-    else:
-        log_dir = os.path.abspath(os.path.join(project_root, log_dir_config))
-
-    # 限制路径范围，防止路径遍历攻击
-    if not os.path.commonpath([project_root, log_dir]) == project_root:
-        raise ValueError("日志路径超出项目根目录范围")
-
-os.makedirs(log_dir, exist_ok=True)
-
-# Logging
+# Logging - 使用log_config.py统一配置
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': logging_config.get('format', '{levelname} {asctime} {module} {process:d} {thread:d} {message}'),
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
         'simple': {
@@ -477,33 +564,9 @@ LOGGING = {
             'style': '{',
         },
     },
-    'filters': {
-        'exclude_errors': {
-            '()': 'backend.settings.ExcludeErrorsFilter',
-        },
-    },
     'handlers': {
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(log_dir, 'app.log'),
-            'maxBytes': logging_config.get('max_bytes', 10) * 1024 * 1024,  # MB to bytes
-            'backupCount': logging_config.get('backup_count', 10),
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-            'filters': ['exclude_errors'],
-        },
-        'error_file': {
-            'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': os.path.join(log_dir, 'error.log'),
-            'maxBytes': logging_config.get('max_bytes', 10) * 1024 * 1024,
-            'backupCount': logging_config.get('backup_count', 10),
-            'formatter': 'verbose',
-            'encoding': 'utf-8',
-        },
         'console': {
-            'level': 'DEBUG',
+            'level': console_level,
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -511,37 +574,37 @@ LOGGING = {
     'loggers': {
         # 其他具体模块的 logger 配置
         'django': {
-            'handlers': ['file', 'error_file', 'console'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.api_testing.views': {
-            'handlers': ['file', 'error_file', 'console'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': True,
         },
         'apps.data_factory.tools.json_tools': {
-            'handlers': ['file', 'error_file', 'console'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
         'apps.data_factory.tools.encoding_tools': {
-            'handlers': ['file', 'error_file', 'console'],
-            'level': 'INFO',
+            'handlers': ['console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
             'propagate': False,
         },
-        'apps.data_factory.tools': {
-            'handlers': ['file', 'error_file', 'console'],
-            'level': 'INFO',
-            'propagate': True,
+        'apps.scheduler.task_executor': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if debug_enabled else 'INFO',
+            'propagate': False,
         },
     },
-    'root': {
-        'handlers': ['file', 'error_file', 'console'],
-        'level': 'INFO',
-        # 'propagate': True,
-    },
 }
+
+root_logger = logging.getLogger()
+for handler in root_logger.handlers[:]:
+    if hasattr(handler, 'loguru_logger'):
+        root_logger.removeHandler(handler)
 
 # 指定simpleui默认的主题,指定一个文件名，相对路径就从simpleui的theme目录读取
 SIMPLEUI_DEFAULT_THEME = 'admin.lte.css'
@@ -567,7 +630,7 @@ SIMPLEUI_HOME_QUICK = True
 SIMPLEUI_HOME_ACTION = True
 # 使用分析
 SIMPLEUI_ANALYSIS = False
-# 离线模式
+# 离线模式 - 暂时禁用以使用在线资源
 SIMPLEUI_STATIC_OFFLINE = True
 # True或None 默认显示加载遮罩层，指定为False 不显示遮罩层。默认显示
 SIMPLEUI_LOADING = True

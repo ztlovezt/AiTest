@@ -656,118 +656,6 @@ class AppTestExecution(models.Model):
         return round((self.passed_steps / self.total_steps) * 100, 2)
 
 
-class AppScheduledTask(models.Model):
-    """APP自动化定时任务"""
-    TASK_TYPE_CHOICES = [
-        ('TEST_SUITE', '测试套件执行'),
-        ('TEST_CASE', '测试用例执行'),
-    ]
-    STATUS_CHOICES = [
-        ('ACTIVE', '激活'),
-        ('PAUSED', '暂停'),
-        ('COMPLETED', '已完成'),
-        ('FAILED', '失败'),
-    ]
-    TRIGGER_TYPE_CHOICES = [
-        ('CRON', 'Cron表达式'),
-        ('INTERVAL', '固定间隔'),
-        ('ONCE', '单次执行'),
-    ]
-    NOTIFICATION_TYPE_CHOICES = [
-        ('email', '邮箱通知'),
-        ('webhook', 'Webhook机器人'),
-        ('both', '两者都发送'),
-    ]
-
-    project = models.ForeignKey(
-        'AppProject', on_delete=models.CASCADE,
-        null=True, blank=True,
-        related_name='scheduled_tasks', verbose_name='所属项目'
-    )
-    name = models.CharField(max_length=200, verbose_name='任务名称')
-    description = models.TextField(blank=True, default='', verbose_name='任务描述')
-    task_type = models.CharField(max_length=20, choices=TASK_TYPE_CHOICES, verbose_name='任务类型')
-    trigger_type = models.CharField(max_length=20, choices=TRIGGER_TYPE_CHOICES, verbose_name='触发器类型')
-
-    # 调度配置
-    cron_expression = models.CharField(max_length=100, blank=True, default='', verbose_name='Cron表达式')
-    interval_seconds = models.IntegerField(null=True, blank=True, verbose_name='间隔秒数')
-    execute_at = models.DateTimeField(null=True, blank=True, verbose_name='执行时间')
-
-    # APP 特有配置
-    device = models.ForeignKey(
-        AppDevice, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='scheduled_tasks', verbose_name='执行设备'
-    )
-    app_package = models.ForeignKey(
-        AppPackage, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='scheduled_tasks', verbose_name='应用包名'
-    )
-    test_suite = models.ForeignKey(
-        AppTestSuite, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='scheduled_tasks', verbose_name='测试套件'
-    )
-    test_case = models.ForeignKey(
-        AppTestCase, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='scheduled_tasks', verbose_name='测试用例'
-    )
-
-    # 通知配置
-    notify_on_success = models.BooleanField(default=False, verbose_name='成功时通知')
-    notify_on_failure = models.BooleanField(default=False, verbose_name='失败时通知')
-    notification_type = models.CharField(
-        max_length=20, blank=True, default='',
-        choices=NOTIFICATION_TYPE_CHOICES, verbose_name='通知类型'
-    )
-    notify_emails = models.JSONField(default=list, blank=True, verbose_name='通知邮箱列表')
-
-    # 状态与统计
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE', verbose_name='任务状态')
-    last_run_time = models.DateTimeField(null=True, blank=True, verbose_name='最后运行时间')
-    next_run_time = models.DateTimeField(null=True, blank=True, verbose_name='下次运行时间')
-    total_runs = models.IntegerField(default=0, verbose_name='总运行次数')
-    successful_runs = models.IntegerField(default=0, verbose_name='成功次数')
-    failed_runs = models.IntegerField(default=0, verbose_name='失败次数')
-    last_result = models.JSONField(default=dict, verbose_name='最后执行结果')
-    error_message = models.TextField(blank=True, default='', verbose_name='错误信息')
-
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='创建者')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
-
-    class Meta:
-        db_table = 'app_scheduled_tasks'
-        verbose_name = 'APP定时任务'
-        verbose_name_plural = 'APP定时任务'
-        ordering = ['-created_at']
-
-    def __str__(self):
-        return f"{self.name} ({self.get_task_type_display()})"
-
-    def calculate_next_run(self):
-        from datetime import timedelta
-        from croniter import croniter
-        now = timezone.now()
-        if self.trigger_type == 'CRON' and self.cron_expression:
-            try:
-                cron = croniter(self.cron_expression, now)
-                return cron.get_next(type(now))
-            except Exception:
-                return None
-        elif self.trigger_type == 'INTERVAL' and self.interval_seconds:
-            return now + timedelta(seconds=self.interval_seconds)
-        elif self.trigger_type == 'ONCE' and self.execute_at:
-            return self.execute_at if self.execute_at > now else None
-        return None
-
-    def should_run_now(self):
-        if self.status != 'ACTIVE':
-            return False
-        if not self.next_run_time:
-            return False
-        return timezone.now() >= self.next_run_time
-
-
 class AppNotificationLog(models.Model):
     """APP自动化通知日志"""
     NOTIFICATION_TYPES = [
@@ -784,24 +672,22 @@ class AppNotificationLog(models.Model):
         ('cancelled', '已取消'),
     ]
 
-    task = models.ForeignKey(
-        AppScheduledTask, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='notification_logs', verbose_name='关联任务'
-    )
-    task_name = models.CharField(max_length=200, verbose_name='任务名称')
-    task_type = models.CharField(max_length=20, blank=True, default='', verbose_name='任务类型快照')
+    task_id = models.IntegerField(null=True, blank=True, verbose_name='关联任务ID')
+    task_name = models.CharField(max_length=200, verbose_name='任务名称', help_text='相关任务的名称')
+    task_type = models.CharField(max_length=20, blank=True, null=True, verbose_name='任务类型快照', help_text='发送通知时的任务类型')
     notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, verbose_name='通知类型')
     sender_name = models.CharField(max_length=100, verbose_name='发件人姓名')
     sender_email = models.EmailField(verbose_name='发件人邮箱')
-    recipient_info = models.JSONField(default=list, verbose_name='收件人信息')
-    webhook_bot_info = models.JSONField(default=dict, blank=True, verbose_name='Webhook机器人信息')
-    notification_content = models.TextField(verbose_name='通知内容')
+    recipient_info = models.JSONField(verbose_name='收件人信息', help_text='接收通知的用户信息')
+    webhook_bot_info = models.JSONField(default=dict, blank=True, null=True, verbose_name='Webhook机器人信息')
+    notification_content = models.TextField(verbose_name='通知内容', help_text='发送的通知内容')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='发送状态')
-    error_message = models.TextField(blank=True, default='', verbose_name='错误信息')
-    response_info = models.JSONField(default=dict, blank=True, verbose_name='响应信息')
+    error_message = models.TextField(blank=True, null=True, verbose_name='错误信息', help_text='发送失败时的错误信息')
+    response_info = models.JSONField(default=dict, blank=True, null=True, verbose_name='响应信息',
+                                     help_text='接收方返回的响应信息')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     sent_at = models.DateTimeField(null=True, blank=True, verbose_name='发送时间')
-    retry_count = models.IntegerField(default=0, verbose_name='重试次数')
+    retry_count = models.IntegerField(default=0, verbose_name='重试次数', help_text='已重试的次数')
     is_retried = models.BooleanField(default=False, verbose_name='是否已重试')
 
     class Meta:
@@ -817,18 +703,3 @@ class AppNotificationLog(models.Model):
 
     def __str__(self):
         return f"{self.task_name} - {self.get_notification_type_display()} - {self.status}"
-
-    def get_recipient_names(self):
-        if not self.recipient_info:
-            return '未知收件人'
-        if isinstance(self.recipient_info, list):
-            names = []
-            for rec in self.recipient_info:
-                email = rec.get('email', '')
-                name = rec.get('name', '')
-                names.append(f"{name}({email})" if name and email else (email or name or '未知'))
-            return ', '.join(names)
-        return '未知收件人'
-
-    def get_retry_status(self):
-        return f"已重试 {self.retry_count} 次" if self.is_retried else "未重试"

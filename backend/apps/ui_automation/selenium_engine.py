@@ -448,6 +448,28 @@ class SeleniumTestEngine:
                 log += f"  - 执行时间: {execution_time}秒"
                 return True, log, None
 
+            elif action_type == 'assert' and step.assert_type == 'urlContains':
+                current_url = self.driver.current_url or ''
+                if not resolved_assert_value:
+                    return False, "✗ 断言失败: URL包含断言缺少期望值", None
+
+                if resolved_assert_value in current_url:
+                    execution_time = round(time.time() - start_time, 2)
+                    log = f"✓ 断言通过: 当前URL包含 '{resolved_assert_value}'\n"
+                    if resolved_assert_value != step.assert_value:
+                        log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                    log += f"  - 当前URL: '{current_url}'\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+
+                screenshot = self.driver.get_screenshot_as_png()
+                screenshot_base64 = f"data:image/png;base64,{base64.b64encode(screenshot).decode()}"
+                log = f"✗ 断言失败: 当前URL不包含 '{resolved_assert_value}'\n"
+                if resolved_assert_value != step.assert_value:
+                    log += f"  - 变量解析: '{step.assert_value}' => '{resolved_assert_value}'\n"
+                log += f"  - 当前URL: '{current_url}'"
+                return False, log, screenshot_base64
+
             # 其他操作需要元素定位器
             locator_strategy = element_data.get('locator_strategy', 'css')
             locator_value = element_data.get('locator_value', '')
@@ -464,6 +486,35 @@ class SeleniumTestEngine:
                 timeout_seconds = step.wait_time / 1000
             else:
                 timeout_seconds = 5
+
+            # navigateTo：跳转到指定URL（不需要元素定位器）
+            if action_type == 'navigateTo':
+                target_url = resolved_input_value if resolved_input_value else ''
+
+                if not target_url:
+                    return False, "❌ 跳转失败: 未提供URL地址", None
+
+                try:
+                    # 设置页面加载超时为15秒
+                    self.driver.set_page_load_timeout(15)
+                    start_nav = time.time()
+                    self.driver.get(target_url)
+                    execution_time = round(time.time() - start_nav, 2)
+
+                    # 获取当前页面标题
+                    page_title = ""
+                    try:
+                        page_title = self.driver.title
+                    except:
+                        page_title = "（无法获取标题）"
+
+                    log = f"✓ 跳转URL成功\n"
+                    log += f"  - URL: {target_url}\n"
+                    log += f"  - 页面标题: {page_title}\n"
+                    log += f"  - 执行时间: {execution_time}秒"
+                    return True, log, None
+                except Exception as e:
+                    return False, f"❌ 跳转URL失败: {str(e)}", None
 
             # 获取定位器
             by_type, by_value = self._get_locator(locator_strategy, locator_value)

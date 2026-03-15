@@ -92,13 +92,13 @@
                 <el-option label="Safari" value="safari" />
                 <el-option label="Edge" value="edge" />
               </el-select>
-              <el-select v-model="headlessMode" :placeholder="t('uiAutomation.testCase.runMode')" size="small" style="width: 110px; margin-right: 10px">
+              <el-select v-model="headlessMode" :placeholder="t('uiAutomation.testCase.runModeLabel')" size="small" style="width: 110px; margin-right: 10px">
                 <el-option :label="t('uiAutomation.testCase.headedMode')" :value="false" />
                 <el-option :label="t('uiAutomation.testCase.headlessMode')" :value="true" />
               </el-select>
               <el-button size="small" type="success" @click="runTestCase(selectedTestCase)" :loading="isRunning">
                 <el-icon v-if="!isRunning"><CaretRight /></el-icon>
-                {{ isRunning ? t('uiAutomation.testCase.running') : t('uiAutomation.testCase.run') }}
+                {{ isRunning ? t('uiAutomation.testCase.running') : t('uiAutomation.testCase.runLabel') }}
               </el-button>
               <el-button size="small" v-if="executionResult" @click="toggleView">
                 <el-icon><component :is="showSteps ? 'View' : 'Edit'" /></el-icon>
@@ -157,18 +157,38 @@
                             <el-option :label="t('uiAutomation.testCase.actionAssert')" value="assert" />
                             <el-option :label="t('uiAutomation.testCase.actionWait')" value="wait" />
                             <el-option :label="t('uiAutomation.testCase.actionSwitchTab')" value="switchTab" />
+                            <el-option :label="t('uiAutomation.testCase.actionNavigateTo')" value="navigateTo" />
                           </el-select>
+                          <!-- 页面筛选下拉框 -->
                           <el-select
-                            v-if="needsElement(element.action_type)"
+                            v-if="needsElement(element)"
+                            v-model="element.selectedPage"
+                            :placeholder="t('uiAutomation.testCase.selectPage')"
+                            size="small"
+                            style="width: 110px"
+                            clearable
+                            @change="onPageFilterChange(element)"
+                          >
+                            <el-option :label="t('uiAutomation.testCase.allPages')" value="" />
+                            <el-option
+                              v-for="page in uniquePages"
+                              :key="page"
+                              :label="page"
+                              :value="page"
+                            />
+                          </el-select>
+                          <!-- 元素选择下拉框（带模糊匹配） -->
+                          <el-select
+                            v-if="needsElement(element)"
                             v-model="element.element_id"
                             :placeholder="t('uiAutomation.testCase.selectElement')"
                             size="small"
-                            style="width: 200px"
+                            style="width: 220px"
                             filterable
                             @change="onElementChange(element)"
                           >
                             <el-option
-                              v-for="elem in availableElements"
+                              v-for="elem in getFilteredElements(element)"
                               :key="elem.id"
                               :label="`${elem.name} (${elem.locator_value})`"
                               :value="elem.id"
@@ -198,7 +218,7 @@
                           <div style="display: flex; gap: 5px; flex: 1">
                             <el-input
                               v-model="element.input_value"
-                              :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
+                              :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : element.action_type === 'navigateTo' ? t('uiAutomation.testCase.urlPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
                               size="small"
                             >
                               <template #append>
@@ -240,6 +260,7 @@
                             <el-option :label="t('uiAutomation.testCase.assertIsVisible')" value="isVisible" />
                             <el-option :label="t('uiAutomation.testCase.assertExists')" value="exists" />
                             <el-option :label="t('uiAutomation.testCase.assertHasAttribute')" value="hasAttribute" />
+                            <el-option :label="t('uiAutomation.testCase.assertUrlContains')" value="urlContains" />
                           </el-select>
                           <div style="display: flex; align-items: center; margin-left: 10px; width: 240px">
                             <el-input
@@ -501,7 +522,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Search, Plus, Edit, Delete, Check, CaretRight, ArrowUp, ArrowDown, Rank, Picture, Warning, View, ZoomIn, Refresh, WarningFilled, MagicStick
@@ -585,6 +606,17 @@ const parsedExecutionLogs = computed(() => {
   }
 })
 
+// 获取所有不重复的页面列表（用于页面筛选）
+const uniquePages = computed(() => {
+  const pages = new Set()
+  availableElements.value.forEach(elem => {
+    if (elem.page && elem.page.trim()) {
+      pages.add(elem.page.trim())
+    }
+  })
+  return Array.from(pages).sort()
+})
+
 // 方法定义
 const loadProjects = async () => {
   try {
@@ -644,11 +676,15 @@ const selectTestCase = (testCase) => {
   selectedTestCase.value = testCase
   // 确保步骤数据格式正确，添加前端需要的字段
   if (testCase.steps && testCase.steps.length > 0) {
-    currentSteps.value = testCase.steps.map(step => ({
-      ...step,
-      element_id: step.element || '',
-      expanded: false
-    }))
+    currentSteps.value = testCase.steps.map(step => {
+      const element = availableElements.value.find(e => e.id === step.element)
+      return {
+        ...step,
+        element_id: step.element || '',
+        selectedPage: element?.page || '',  // 新增：从元素自动填充页面
+        expanded: false
+      }
+    })
   } else {
     currentSteps.value = []
   }
@@ -661,6 +697,7 @@ const addStep = () => {
   const newStep = {
     id: Date.now(),
     action_type: 'click',
+    selectedPage: '',  // 新增：页面筛选
     element_id: '',
     input_value: '',
     wait_time: 1000,
@@ -686,8 +723,11 @@ const onActionTypeChange = (step) => {
   if (step.action_type !== 'fill') {
     step.input_value = ''
   }
-  if (step.action_type !== 'wait') {
+  if (!['wait', 'waitFor'].includes(step.action_type)) {
     step.wait_time = 1000
+  } else if (step.action_type === 'waitFor' && (!step.wait_time || step.wait_time === 1000)) {
+    // waitFor 默认等待更长，避免登录跳转等场景过快超时
+    step.wait_time = 5000
   }
   if (step.action_type !== 'assert') {
     step.assert_type = 'textContains'
@@ -701,18 +741,46 @@ const onElementChange = (step) => {
   if (element && !step.description) {
     step.description = `${getActionTypeText(step.action_type)}${element.name}`
   }
+  // 如果选择了元素且没有选择页面，自动填充页面
+  if (element && element.page && !step.selectedPage) {
+    step.selectedPage = element.page
+  }
+}
+
+// 根据选择的页面筛选元素列表
+const getFilteredElements = (step) => {
+  let filtered = availableElements.value
+  if (step.selectedPage) {
+    filtered = filtered.filter(elem => elem.page === step.selectedPage)
+  }
+  return filtered
+}
+
+// 页面筛选变化时的处理
+const onPageFilterChange = (step) => {
+  // 切换页面后清空已选择的元素
+  step.element_id = null
+  // 清空描述
+  step.description = ''
 }
 
 const needsInputValue = (actionType) => {
-  return ['fill', 'switchTab'].includes(actionType)
+  return ['fill', 'switchTab', 'navigateTo'].includes(actionType)
 }
 
 const needsWaitTime = (actionType) => {
   return ['wait', 'waitFor'].includes(actionType)
 }
 
-const needsElement = (actionType) => {
-  return !['wait', 'switchTab', 'screenshot'].includes(actionType)
+const needsElement = (step) => {
+  if (!step) return true
+  if (['wait', 'switchTab', 'screenshot', 'navigateTo'].includes(step.action_type)) {
+    return false
+  }
+  if (step.action_type === 'assert' && step.assert_type === 'urlContains') {
+    return false
+  }
+  return true
 }
 
 const expandAllSteps = () => {
@@ -1074,12 +1142,11 @@ const saveTestCaseForm = async () => {
       name: testCaseForm.name,
       description: testCaseForm.description,
       priority: testCaseForm.priority,
-      project: projectId.value,
-      steps: []
+      project: projectId.value
     }
 
     if (editingTestCase.value) {
-      // 编辑现有用例
+      // 编辑现有用例 - 不发送 steps 字段，避免覆盖现有步骤
       await updateTestCase(editingTestCase.value.id, data)
       ElMessage.success(t('uiAutomation.testCase.update.success'))
 
@@ -1089,7 +1156,8 @@ const saveTestCaseForm = async () => {
         testCases.value[index] = { ...testCases.value[index], ...data }
       }
     } else {
-      // 创建新用例
+      // 创建新用例 - 添加空的 steps 数组
+      data.steps = []
       const response = await createTestCase(data)
       ElMessage.success(t('uiAutomation.testCase.create.success'))
       testCases.value.push(response.data)
@@ -1205,6 +1273,14 @@ onMounted(async () => {
   if (projects.value.length > 0) {
     projectId.value = projects.value[0].id
     await onProjectChange()
+  }
+})
+
+// 每次组件激活时刷新元素列表，确保从元素管理页面返回后能获取最新的页面信息
+onActivated(async () => {
+  console.log('TestCaseManager onActivated 刷新元素列表...')
+  if (projectId.value) {
+    await loadElements()
   }
 })
 </script>

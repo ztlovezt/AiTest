@@ -22,5 +22,20 @@ export default {
   tips: 'Tips',
   warning: 'Warning',
   previous: 'Previous',
-  next: 'Next'
+  next: 'Next',
+  unknown: 'Unknown error',
+  enabled: 'Enabled',
+  disabled: 'Disabled',
+  yes: 'Yes',
+  no: 'No',
+  pleaseInput: 'Please input',
+  required: 'This field is required',
+  noData: 'No data',
+  fetchFailed: 'Failed to fetch data',
+  saveFailed: 'Failed to save',
+  createSuccess: 'Created successfully',
+  updateSuccess: 'Updated successfully',
+  deleteSuccess: 'Deleted successfully',
+  deleteFailed: 'Failed to delete',
+  deleteConfirm: 'Are you sure you want to delete? This action cannot be undone.'
 }

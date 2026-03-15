@@ -1,9 +1,9 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2 class="page-title">APP项目管理</h2>
+      <h2 class="page-title">{{ t('appAutomation.project.title') }}</h2>
       <el-button type="primary" @click="openCreateDialog">
-        <el-icon><Plus /></el-icon>新建项目
+        <el-icon><Plus /></el-icon>{{ t('appAutomation.project.newProject') }}
       </el-button>
     </div>
 
@@ -12,61 +12,65 @@
       <div class="filter-bar">
         <el-row :gutter="20">
           <el-col :span="6">
-            <el-input v-model="searchText" placeholder="搜索项目名称" clearable @clear="loadProjects" @keyup.enter="loadProjects">
+            <el-input v-model="searchText" :placeholder="t('appAutomation.project.searchPlaceholder')" clearable @clear="loadProjects" @keyup.enter="loadProjects">
               <template #prefix><el-icon><Search /></el-icon></template>
             </el-input>
           </el-col>
           <el-col :span="4">
-            <el-select v-model="statusFilter" placeholder="项目状态" clearable @change="loadProjects">
-              <el-option label="未开始" value="NOT_STARTED" />
-              <el-option label="进行中" value="IN_PROGRESS" />
-              <el-option label="已结束" value="COMPLETED" />
+            <el-select v-model="statusFilter" :placeholder="t('appAutomation.project.statusFilter')" clearable @change="loadProjects">
+              <el-option :label="t('appAutomation.project.status.notStarted')" value="NOT_STARTED" />
+              <el-option :label="t('appAutomation.project.status.inProgress')" value="IN_PROGRESS" />
+              <el-option :label="t('appAutomation.project.status.completed')" value="COMPLETED" />
             </el-select>
           </el-col>
           <el-col :span="4">
-            <el-button type="primary" @click="loadProjects"><el-icon><Search /></el-icon>查询</el-button>
-            <el-button @click="searchText = ''; statusFilter = ''; loadProjects()">重置</el-button>
+            <el-button type="primary" @click="loadProjects"><el-icon><Search /></el-icon>{{ t('appAutomation.common.query') }}</el-button>
+            <el-button @click="searchText = ''; statusFilter = ''; loadProjects()">{{ t('appAutomation.common.reset') }}</el-button>
           </el-col>
         </el-row>
       </div>
 
       <!-- 项目列表 -->
       <el-table :data="projects" v-loading="loading" border stripe>
-        <el-table-column prop="name" label="项目名称" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip>
+        <el-table-column prop="name" :label="t('appAutomation.project.projectName')" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="description" :label="t('appAutomation.project.projectDesc')" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">{{ row.description || '-' }}</template>
         </el-table-column>
-        <el-table-column label="状态" min-width="90">
+        <el-table-column :label="t('appAutomation.project.projectStatus')" min-width="90">
           <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" size="small">{{ getStatusText(row.status) }}</el-tag>
+            <el-tag :type="getStatusType(row.status)" size="small">
+              {{ row.status === 'NOT_STARTED' ? t('appAutomation.project.status.notStarted') : 
+                 row.status === 'IN_PROGRESS' ? t('appAutomation.project.status.inProgress') : 
+                 row.status === 'COMPLETED' ? t('appAutomation.project.status.completed') : row.status }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="用例数" min-width="70" align="center">
+        <el-table-column :label="t('appAutomation.project.testCaseCount')" min-width="70" align="center">
           <template #default="{ row }">{{ row.test_case_count || 0 }}</template>
         </el-table-column>
-        <el-table-column label="套件数" min-width="70" align="center">
+        <el-table-column :label="t('appAutomation.project.testSuiteCount')" min-width="70" align="center">
           <template #default="{ row }">{{ row.test_suite_count || 0 }}</template>
         </el-table-column>
-        <el-table-column label="负责人" min-width="80">
+        <el-table-column :label="t('appAutomation.project.owner')" min-width="80">
           <template #default="{ row }">{{ row.owner_name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="成员数" min-width="70" align="center">
+        <el-table-column :label="t('appAutomation.project.memberCount')" min-width="70" align="center">
           <template #default="{ row }">{{ row.member_count || 0 }}</template>
         </el-table-column>
-        <el-table-column label="开始日期" min-width="110">
+        <el-table-column :label="t('appAutomation.project.startDate')" min-width="110">
           <template #default="{ row }">{{ row.start_date || '-' }}</template>
         </el-table-column>
-        <el-table-column label="结束日期" min-width="110">
+        <el-table-column :label="t('appAutomation.project.endDate')" min-width="110">
           <template #default="{ row }">{{ row.end_date || '-' }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" min-width="150">
+        <el-table-column :label="t('appAutomation.project.createTime')" min-width="150">
           <template #default="{ row }">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" min-width="150">
+        <el-table-column :label="t('appAutomation.common.operation')" min-width="150">
           <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="viewDetail(row)">详情</el-button>
-            <el-button type="warning" link size="small" @click="openEditDialog(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button type="primary" link size="small" @click="viewDetail(row)">{{ t('appAutomation.common.detail') }}</el-button>
+            <el-button type="warning" link size="small" @click="openEditDialog(row)">{{ t('appAutomation.common.edit') }}</el-button>
+            <el-button type="danger" link size="small" @click="handleDelete(row)">{{ t('appAutomation.common.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -86,64 +90,71 @@
     </div>
 
     <!-- 创建/编辑对话框 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑项目' : '新建项目'" width="520px" :close-on-click-modal="false">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? t('appAutomation.project.editProject') : t('appAutomation.project.createProject')" width="520px" :close-on-click-modal="false">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="80px">
-        <el-form-item label="项目名称" prop="name">
-          <el-input v-model="form.name" placeholder="请输入项目名称" />
+        <el-form-item :label="t('appAutomation.project.projectName')" prop="name">
+          <el-input v-model="form.name" :placeholder="t('appAutomation.project.projectNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="项目描述" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="请输入项目描述" />
+        <el-form-item :label="t('appAutomation.project.projectDesc')" prop="description">
+          <el-input v-model="form.description" type="textarea" :rows="3" :placeholder="t('appAutomation.project.projectDescPlaceholder')" />
         </el-form-item>
-        <el-form-item label="项目状态" prop="status">
-          <el-select v-model="form.status" placeholder="请选择状态" style="width:100%">
-            <el-option label="未开始" value="NOT_STARTED" />
-            <el-option label="进行中" value="IN_PROGRESS" />
-            <el-option label="已结束" value="COMPLETED" />
+        <el-form-item :label="t('appAutomation.project.projectStatus')" prop="status">
+          <el-select v-model="form.status" :placeholder="t('appAutomation.project.selectStatus')" style="width:100%">
+            <el-option :label="t('appAutomation.project.status.notStarted')" value="NOT_STARTED" />
+            <el-option :label="t('appAutomation.project.status.inProgress')" value="IN_PROGRESS" />
+            <el-option :label="t('appAutomation.project.status.completed')" value="COMPLETED" />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始日期">
-          <el-date-picker v-model="form.start_date" type="date" placeholder="选择开始日期" value-format="YYYY-MM-DD" style="width:100%" />
+        <el-form-item :label="t('appAutomation.project.startDate')">
+          <el-date-picker v-model="form.start_date" type="date" :placeholder="t('appAutomation.project.startDate')" value-format="YYYY-MM-DD" style="width:100%" />
         </el-form-item>
-        <el-form-item label="结束日期">
-          <el-date-picker v-model="form.end_date" type="date" placeholder="选择结束日期" value-format="YYYY-MM-DD" style="width:100%" />
+        <el-form-item :label="t('appAutomation.project.endDate')">
+          <el-date-picker v-model="form.end_date" type="date" :placeholder="t('appAutomation.project.endDate')" value-format="YYYY-MM-DD" style="width:100%" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">确定</el-button>
+        <el-button @click="dialogVisible = false">{{ t('appAutomation.common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ t('appAutomation.common.confirm') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="项目详情" width="600px">
+    <el-dialog v-model="detailVisible" :title="t('appAutomation.project.projectName')" width="600px">
       <div v-if="selectedProject">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="项目名称">{{ selectedProject.name }}</el-descriptions-item>
-          <el-descriptions-item label="项目状态">
-            <el-tag :type="getStatusType(selectedProject.status)">{{ getStatusText(selectedProject.status) }}</el-tag>
+          <el-descriptions-item :label="t('appAutomation.project.projectName')">{{ selectedProject.name }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.projectStatus')">
+            <el-tag :type="getStatusType(selectedProject.status)">
+              {{ selectedProject.status === 'NOT_STARTED' ? t('appAutomation.project.status.notStarted') : 
+                 selectedProject.status === 'IN_PROGRESS' ? t('appAutomation.project.status.inProgress') : 
+                 selectedProject.status === 'COMPLETED' ? t('appAutomation.project.status.completed') : selectedProject.status }}
+            </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="负责人">{{ selectedProject.owner_name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="成员数">{{ selectedProject.member_count || 0 }} 人</el-descriptions-item>
-          <el-descriptions-item label="测试用例">{{ selectedProject.test_case_count || 0 }} 个</el-descriptions-item>
-          <el-descriptions-item label="测试套件">{{ selectedProject.test_suite_count || 0 }} 个</el-descriptions-item>
-          <el-descriptions-item label="开始日期">{{ selectedProject.start_date || '未设置' }}</el-descriptions-item>
-          <el-descriptions-item label="结束日期">{{ selectedProject.end_date || '未设置' }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间" :span="2">{{ formatDateTime(selectedProject.created_at) }}</el-descriptions-item>
-          <el-descriptions-item label="项目描述" :span="2">{{ selectedProject.description || '无描述' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.owner')">{{ selectedProject.owner_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.memberCount')">{{ selectedProject.member_count || 0 }} 人</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.testCaseCount')">{{ selectedProject.test_case_count || 0 }} 个</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.testSuiteCount')">{{ selectedProject.test_suite_count || 0 }} 个</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.startDate')">{{ selectedProject.start_date || '未设置' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.endDate')">{{ selectedProject.end_date || '未设置' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.createTime')" :span="2">{{ formatDateTime(selectedProject.created_at) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.projectDesc')" :span="2">{{ selectedProject.description || '无描述' }}</el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button @click="detailVisible = false">{{ t('appAutomation.common.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { getAppProjects, createAppProject, updateAppProject, deleteAppProject } from '@/api/app-automation.js'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -151,6 +162,21 @@ const projects = ref([])
 const searchText = ref('')
 const statusFilter = ref('')
 const pagination = reactive({ current: 1, size: 20, total: 0 })
+
+const statusMap = computed(() => ({
+  'NOT_STARTED': t('appAutomation.project.status.notStarted'),
+  'IN_PROGRESS': t('appAutomation.project.status.inProgress'),
+  'COMPLETED': t('appAutomation.project.status.completed')
+}))
+
+const getStatusType = (status) => {
+  const map = { 'NOT_STARTED': 'warning', 'IN_PROGRESS': 'primary', 'COMPLETED': 'success' }
+  return map[status] || 'info'
+}
+
+const getStatusText = (status) => {
+  return statusMap.value[status] || status
+}
 
 // 对话框
 const dialogVisible = ref(false)
@@ -166,8 +192,8 @@ const form = reactive({
 })
 const formRules = {
   name: [
-    { required: true, message: '请输入项目名称', trigger: 'blur' },
-    { min: 2, max: 200, message: '长度在 2 到 200 个字符', trigger: 'blur' },
+    { required: true, message: t('appAutomation.project.pleaseEnterProjectName'), trigger: 'blur' },
+    { min: 2, max: 200, message: t('appAutomation.project.nameLengthValidation'), trigger: 'blur' },
   ],
 }
 
@@ -242,16 +268,6 @@ async function handleDelete(row) {
 function viewDetail(row) {
   selectedProject.value = row
   detailVisible.value = true
-}
-
-function getStatusType(status) {
-  const map = { 'NOT_STARTED': 'warning', 'IN_PROGRESS': 'primary', 'COMPLETED': 'success' }
-  return map[status] || 'info'
-}
-
-function getStatusText(status) {
-  const map = { 'NOT_STARTED': '未开始', 'IN_PROGRESS': '进行中', 'COMPLETED': '已结束' }
-  return map[status] || status
 }
 
 function formatDateTime(dt) {

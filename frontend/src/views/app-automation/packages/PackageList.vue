@@ -1,13 +1,13 @@
 <template>
   <div class="app-package-list">
     <div class="page-header">
-      <h3>包名管理</h3>
+      <h3>{{ t('appAutomation.package.title') }}</h3>
       <div class="header-actions">
         <el-button :icon="Refresh" :loading="loading" @click="loadPackages">
-          刷新
+          {{ t('appAutomation.common.refresh') }}
         </el-button>
         <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-          新增包名
+          {{ t('appAutomation.package.newPackage') }}
         </el-button>
       </div>
     </div>
@@ -16,32 +16,32 @@
       v-loading="loading"
       :data="packages"
       style="width: 100%; margin-top: 16px"
-      empty-text="暂无应用包名"
+      :empty-text="t('appAutomation.common.noData')"
     >
-      <el-table-column prop="name" label="应用名称" min-width="180" />
-      <el-table-column prop="package_name" label="应用包名" min-width="220" />
-      <el-table-column prop="created_by_name" label="创建人" width="120">
+      <el-table-column prop="name" :label="t('appAutomation.package.packageName')" min-width="180" />
+      <el-table-column prop="package_name" :label="t('appAutomation.package.packageId')" min-width="220" />
+      <el-table-column prop="created_by_name" :label="t('appAutomation.package.createdBy')" width="120">
         <template #default="{ row }">
           {{ row.created_by_name || '-' }}
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="180">
+      <el-table-column :label="t('appAutomation.package.createTime')" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.created_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="更新时间" width="180">
+      <el-table-column :label="t('appAutomation.package.updateTime')" width="180">
         <template #default="{ row }">
           {{ formatDateTime(row.updated_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column :label="t('appAutomation.common.operation')" width="160" fixed="right">
         <template #default="{ row }">
           <el-button link size="small" type="primary" @click="openEditDialog(row)">
-            编辑
+            {{ t('appAutomation.common.edit') }}
           </el-button>
           <el-button link size="small" type="danger" @click="handleDelete(row)">
-            删除
+            {{ t('appAutomation.common.delete') }}
           </el-button>
         </template>
       </el-table-column>
@@ -71,17 +71,17 @@
         :rules="rules"
         label-width="100px"
       >
-        <el-form-item label="应用名称" prop="name">
-          <el-input v-model="form.name" placeholder="例如：Android设置" />
+        <el-form-item :label="t('appAutomation.package.packageName')" prop="name">
+          <el-input v-model="form.name" :placeholder="t('appAutomation.package.packageNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="应用包名" prop="package_name">
-          <el-input v-model="form.package_name" placeholder="例如：com.android.settings" />
+        <el-form-item :label="t('appAutomation.package.packageId')" prop="package_name">
+          <el-input v-model="form.package_name" :placeholder="t('appAutomation.package.packageIdPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ t('appAutomation.common.cancel') }}</el-button>
         <el-button type="primary" :loading="saving" @click="submitForm">
-          保存
+          {{ t('appAutomation.common.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -89,7 +89,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import {
@@ -100,6 +101,8 @@ import {
 } from '@/api/app-automation'
 import { formatDateTime } from '@/utils/app-automation-helpers'
 
+const { t } = useI18n()
+
 const loading = ref(false)
 const saving = ref(false)
 const packages = ref([])
@@ -108,7 +111,6 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 const dialogVisible = ref(false)
-const dialogTitle = ref('新增包名')
 const isEditing = ref(false)
 const formRef = ref(null)
 const form = reactive({
@@ -117,10 +119,12 @@ const form = reactive({
   package_name: ''
 })
 
-const rules = {
-  name: [{ required: true, message: '请输入应用名称', trigger: 'blur' }],
-  package_name: [{ required: true, message: '请输入应用包名', trigger: 'blur' }]
-}
+const dialogTitle = computed(() => isEditing.value ? t('appAutomation.package.editPackage') : t('appAutomation.package.createPackage'))
+
+const rules = computed(() => ({
+  name: [{ required: true, message: t('appAutomation.package.packageNamePlaceholder'), trigger: 'blur' }],
+  package_name: [{ required: true, message: t('appAutomation.package.packageIdPlaceholder'), trigger: 'blur' }]
+}))
 
 const loadPackages = async () => {
   loading.value = true

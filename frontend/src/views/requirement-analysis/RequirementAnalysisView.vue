@@ -1264,24 +1264,46 @@ export default {
 
       const lines = content.split('\n');
       const filteredLines = [];
-      let inTestCaseSection = true;
+      let inTestCaseTable = false;
+      let tableEnded = false;
+      let consecutiveNonTableLines = 0;
 
       for (let line of lines) {
         const trimmedLine = line.trim();
 
-        // 检查是否到了总结或建议部分
-        if (trimmedLine.includes('总结') ||
-            trimmedLine.includes('建议') ||
-            trimmedLine.includes('Summary') ||
-            trimmedLine.includes('Recommendation') ||
-            trimmedLine.includes('最后') ||
-            trimmedLine.includes('补充说明')) {
-          inTestCaseSection = false;
-          break;
+        // 如果已经检测到表格结束，停止处理
+        if (tableEnded) break;
+
+        // 检测表格开始：包含 | 且是表头行
+        if (!inTestCaseTable && trimmedLine.includes('|')) {
+          // 检查是否是表头行（包含"用例"、"测试"、"场景"等关键词）
+          if (trimmedLine.includes('用例') ||
+              trimmedLine.includes('测试') ||
+              trimmedLine.includes('场景') ||
+              trimmedLine.includes('Test') ||
+              trimmedLine.includes('Case')) {
+            inTestCaseTable = true;
+            consecutiveNonTableLines = 0;
+            filteredLines.push(line);
+            continue;
+          }
         }
 
-        if (inTestCaseSection) {
-          filteredLines.push(line);
+        // 在表格内
+        if (inTestCaseTable) {
+          // 如果是表格行（包含 |）
+          if (trimmedLine.includes('|')) {
+            filteredLines.push(line);
+            consecutiveNonTableLines = 0;
+          } else {
+            // 非表格行
+            consecutiveNonTableLines++;
+
+            // 连续2行非表格内容，认为表格结束
+            if (consecutiveNonTableLines >= 2) {
+              tableEnded = true;
+            }
+          }
         }
       }
 

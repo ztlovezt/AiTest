@@ -30,12 +30,19 @@ urlpatterns = [
     path('api/app-automation/', include('apps.app_automation.urls')),
     path('api/', include('apps.api_testing.urls')),
     path('api/core/', include('apps.core.urls')),
+    path('api/scheduler/', include('apps.scheduler.urls')),
     path('api/data-factory/', include('apps.data_factory.urls')),
+]
+
+# 媒体文件服务（不受DEBUG限制）
+urlpatterns += [
+    path('media/<path:path>', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_FILES_URL, document_root=settings.STATIC_FILES_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # APP自动化 Template 目录静态访问
 import os

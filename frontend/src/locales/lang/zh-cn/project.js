@@ -90,6 +90,8 @@ export default {
     apiTestingDesc: '高效的接口自动化测试与管理',
     uiAutomation: 'UI自动化测试',
     uiAutomationDesc: '可视化的Web/App UI自动化测试',
+    appAutomation: 'APP自动化测试',
+    appAutomationDesc: '基于Airtest的Android APP自动化测试',
     dataFactory: '数据工厂',
     dataFactoryDesc: '灵活的测试数据构造与管理',
     aiIntelligentMode: 'AI 智能模式',

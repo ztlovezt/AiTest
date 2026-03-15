@@ -17,7 +17,7 @@ from .test_case_views import (
 )
 from .execution_views import AppTestExecutionViewSet
 from .suite_views import AppTestSuiteViewSet
-from .scheduled_task_views import AppScheduledTaskViewSet, AppNotificationLogViewSet
+from .scheduled_task_views import AppNotificationLogViewSet
 from .dashboard_views import AppDashboardViewSet
 
 __all__ = [
@@ -45,8 +45,7 @@ __all__ = [
     # 测试套件
     'AppTestSuiteViewSet',
     
-    # 定时任务
-    'AppScheduledTaskViewSet',
+    # 通知日志
     'AppNotificationLogViewSet',
     
     # 执行管理

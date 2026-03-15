@@ -11,6 +11,7 @@ import version from './version.js'
 import requirementModule from './requirement.js'
 import apiTestingModule from './api-testing.js'
 import uiAutomationModule from './ui-automation.js'
+import appAutomationModule from './app-automation.js'
 import configurationModule from './configuration.js'
 import assistantModule from './assistant.js'
 import dataFactoryModule from './data-factory.js'
@@ -57,6 +58,9 @@ export default {
 
   // UI Automation Module
   uiAutomation: uiAutomationModule,
+
+  // APP Automation Module
+  appAutomation: appAutomationModule,
 
   // Configuration Center Module
   configuration: configurationModule,

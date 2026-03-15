@@ -127,7 +127,7 @@ LOCAL_APPS = [
 ```python
 urlpatterns = [
     # ... 现有路由 ...
-    path('api/app-automation/', include('backend.apps.apps.app_automation.urls')),  # ✅ 新增
+    path('api/app-automation/', include('apps.app_automation.urls')),  # ✅ 新增
 ]
 ```
 
@@ -472,7 +472,7 @@ curl http://localhost:8000/api/app-automation/dashboard/statistics/ \
 
 ```python
 # Django Shell
-from backend.apps.apps.app_automation.models import AppDevice
+from apps.app_automation.models import AppDevice
 
 device = AppDevice.objects.create(
     device_id='emulator-5554',
@@ -486,7 +486,7 @@ device = AppDevice.objects.create(
 ### 示例 2：创建图片元素
 
 ```python
-from backend.apps.apps.app_automation.models import AppElement
+from apps.app_automation.models import AppElement
 
 element = AppElement.objects.create(
     name='登录按钮',
@@ -503,7 +503,7 @@ element = AppElement.objects.create(
 ### 示例 3：创建测试用例
 
 ```python
-from backend.apps.apps.app_automation.models import AppTestCase, AppPackage
+from apps.app_automation.models import AppTestCase, AppPackage
 
 # 先创建应用包
 package = AppPackage.objects.create(

@@ -4,14 +4,14 @@
     <el-card class="toolbar" shadow="never">
       <el-row :gutter="20">
         <el-col :span="4">
-          <el-select v-model="projectFilter" placeholder="全部项目" clearable filterable @change="loadExecutions">
+          <el-select v-model="projectFilter" :placeholder="t('appAutomation.execution.allProjects')" clearable filterable @change="loadExecutions">
             <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
           </el-select>
         </el-col>
         <el-col :span="8">
           <el-input
             v-model="searchQuery"
-            placeholder="搜索用例名称、设备"
+            :placeholder="t('appAutomation.execution.searchPlaceholder')"
             clearable
             @clear="loadExecutions"
             @keyup.enter="loadExecutions"
@@ -24,21 +24,21 @@
         <el-col :span="12" class="text-right">
           <el-select
             v-model="statusFilter"
-            placeholder="状态筛选"
+            :placeholder="t('appAutomation.execution.statusFilter')"
             clearable
             style="width: 150px; margin-right: 10px"
             @change="loadExecutions"
           >
-            <el-option label="全部" value="" />
-            <el-option label="等待中" value="pending" />
-            <el-option label="执行中" value="running" />
-            <el-option label="已完成" value="completed" />
-            <el-option label="执行异常" value="error" />
-            <el-option label="已停止" value="stopped" />
+            <el-option :label="t('appAutomation.execution.all')" value="" />
+            <el-option :label="t('appAutomation.execution.statusMap.pending')" value="pending" />
+            <el-option :label="t('appAutomation.execution.statusMap.running')" value="running" />
+            <el-option :label="t('appAutomation.execution.statusMap.completed')" value="completed" />
+            <el-option :label="t('appAutomation.execution.statusMap.error')" value="error" />
+            <el-option :label="t('appAutomation.execution.statusMap.stopped')" value="stopped" />
           </el-select>
           <el-button @click="loadExecutions">
             <el-icon><Refresh /></el-icon>
-            刷新
+            {{ t('appAutomation.common.refresh') }}
           </el-button>
         </el-col>
       </el-row>
@@ -52,16 +52,16 @@
         stripe
         style="width: 100%"
       >
-        <el-table-column prop="case_name" label="测试用例" min-width="180" />
-        <el-table-column prop="device_name" label="设备" width="150" />
-        <el-table-column label="状态" width="100">
+        <el-table-column prop="case_name" :label="t('appAutomation.execution.testCase')" min-width="180" />
+        <el-table-column prop="device_name" :label="t('appAutomation.execution.device')" width="150" />
+        <el-table-column :label="t('appAutomation.execution.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
-              {{ getDisplayStatus(row.status, row.result).text }}
+            <el-tag :type="getDisplayStatus(row.status, row.result, t).type" size="small">
+              {{ getDisplayStatus(row.status, row.result, t).text }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="进度" width="150">
+        <el-table-column :label="t('appAutomation.execution.progress')" width="150">
           <template #default="{ row }">
             <el-progress
               :percentage="row.progress || 0"
@@ -69,32 +69,32 @@
             />
           </template>
         </el-table-column>
-        <el-table-column label="步骤统计" width="180">
+        <el-table-column :label="t('appAutomation.execution.stepStats')" width="180">
           <template #default="{ row }">
             <div class="step-stats">
-              <span class="stat-item success">通过: {{ row.passed_steps || 0 }}</span>
-              <span class="stat-item danger">失败: {{ row.failed_steps || 0 }}</span>
-              <span class="stat-item">总数: {{ row.total_steps || 0 }}</span>
+              <span class="stat-item success">{{ t('appAutomation.execution.passed') }}: {{ row.passed_steps || 0 }}</span>
+              <span class="stat-item danger">{{ t('appAutomation.execution.failed') }}: {{ row.failed_steps || 0 }}</span>
+              <span class="stat-item">{{ t('appAutomation.execution.total') }}: {{ row.total_steps || 0 }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="耗时" width="100">
+        <el-table-column :label="t('appAutomation.execution.duration')" width="100">
           <template #default="{ row }">
             {{ formatDuration(row.duration) }}
           </template>
         </el-table-column>
-        <el-table-column prop="user_name" label="执行人" width="100" />
-        <el-table-column label="开始时间" width="160">
+        <el-table-column prop="user_name" :label="t('appAutomation.execution.executor')" width="100" />
+        <el-table-column :label="t('appAutomation.execution.startTime')" width="160">
           <template #default="{ row }">
             {{ formatDateTime(row.started_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="结束时间" width="160">
+        <el-table-column :label="t('appAutomation.execution.endTime')" width="160">
           <template #default="{ row }">
             {{ row.finished_at ? formatDateTime(row.finished_at) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column :label="t('appAutomation.common.operation')" width="180" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'running'"
@@ -103,7 +103,7 @@
               text
               @click="stopExecution(row)"
             >
-              停止
+              {{ t('appAutomation.execution.stop') }}
             </el-button>
             <el-button
               v-if="row.report_path"
@@ -112,7 +112,7 @@
               text
               @click="viewReport(row)"
             >
-              查看报告
+              {{ t('appAutomation.execution.viewReport') }}
             </el-button>
             <el-button
               v-if="row.error_message"
@@ -121,7 +121,7 @@
               text
               @click="viewError(row)"
             >
-              查看错误
+              {{ t('appAutomation.execution.viewError') }}
             </el-button>
           </template>
         </el-table-column>
@@ -144,7 +144,7 @@
     <!-- 错误信息对话框 -->
     <el-dialog
       v-model="errorDialogVisible"
-      title="错误信息"
+      :title="t('appAutomation.execution.errorInfo')"
       width="600px"
     >
       <div class="error-content">
@@ -152,7 +152,7 @@
       </div>
       <template #footer>
         <el-button type="primary" @click="errorDialogVisible = false">
-          关闭
+          {{ t('appAutomation.common.close') }}
         </el-button>
       </template>
     </el-dialog>
@@ -161,6 +161,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getExecutionList,
@@ -169,6 +170,8 @@ import {
 } from '@/api/app-automation'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { getExecutionStatusType, getExecutionStatusText, getDisplayStatus, formatDateTime } from '@/utils/app-automation-helpers'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const executions = ref([])

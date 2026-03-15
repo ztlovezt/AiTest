@@ -13,15 +13,23 @@
       <el-row :gutter="20">
         <el-col :span="6">
           <el-select v-model="filters.task_type" :placeholder="$t('apiTesting.scheduledTask.taskType')" clearable>
-            <el-option :label="$t('apiTesting.scheduledTask.taskTypes.testSuite')" value="TEST_SUITE" />
+            <el-option :label="$t('apiTesting.scheduledTask.taskTypes.testSuite')" value="API_TEST_SUITE" />
             <el-option :label="$t('apiTesting.scheduledTask.taskTypes.apiRequest')" value="API_REQUEST" />
           </el-select>
         </el-col>
         <el-col :span="6">
-          <el-select v-model="filters.trigger_type" :placeholder="$t('apiTesting.scheduledTask.triggerType')" clearable>
-            <el-option :label="$t('apiTesting.scheduledTask.triggerTypes.cron')" value="CRON" />
-            <el-option :label="$t('apiTesting.scheduledTask.triggerTypes.interval')" value="INTERVAL" />
-            <el-option :label="$t('apiTesting.scheduledTask.triggerTypes.once')" value="ONCE" />
+          <el-select v-model="filters.schedule_type" :placeholder="$t('apiTesting.scheduledTask.triggerType')" clearable>
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.cron')" value="C" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.once')" value="O" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.interval')" value="I" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.hourly')" value="H" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.daily')" value="D" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.weekly')" value="W" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.biweekly')" value="BW" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.monthly')" value="M" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.bimonthly')" value="BM" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.quarterly')" value="Q" />
+            <el-option :label="$t('apiTesting.scheduledTask.scheduleTypes.yearly')" value="Y" />
           </el-select>
         </el-col>
         <el-col :span="6">
@@ -42,46 +50,48 @@
     <!-- 任务列表 -->
     <div class="task-list">
       <el-table :data="tasks" v-loading="loading">
-        <el-table-column prop="name" :label="$t('apiTesting.scheduledTask.taskName')" min-width="200" />
-        <el-table-column prop="task_type" :label="$t('apiTesting.scheduledTask.taskType')" width="120">
+        <el-table-column prop="name" :label="$t('apiTesting.scheduledTask.taskName')" min-width="180" />
+        <el-table-column prop="task_type_display" :label="$t('apiTesting.scheduledTask.taskType')" width="150">
           <template #default="scope">
-            <el-tag :type="scope.row.task_type === 'TEST_SUITE' ? 'success' : 'primary'">
-              {{ scope.row.task_type === 'TEST_SUITE' ? $t('apiTesting.scheduledTask.taskTypes.testSuiteShort') : $t('apiTesting.scheduledTask.taskTypes.apiRequestShort') }}
+            <el-tag :type="scope.row.task_type === 'API_TEST_SUITE' ? 'success' : 'primary'">
+              {{ scope.row.task_type_display || scope.row.task_type }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="trigger_type" :label="$t('apiTesting.scheduledTask.triggerType')" width="120">
+        <el-table-column prop="schedule_type_display" :label="$t('apiTesting.scheduledTask.triggerType')" width="120">
           <template #default="scope">
             <el-tag>
-              {{ getTriggerTypeText(scope.row.trigger_type) }}
+              {{ scope.row.schedule_type_display || getScheduleTypeText(scope.row.schedule_type) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="status" :label="$t('apiTesting.common.status')" width="100">
+        <el-table-column prop="status_display" :label="$t('apiTesting.common.status')" width="100">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : scope.row.status === 'PAUSED' ? 'warning' : 'info'">
-              {{ getStatusText(scope.row.status) }}
+            <el-tag :type="getStatusType(scope.row.status_display)">
+              {{ scope.row.status_display || getStatusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="notification_type_display" :label="$t('apiTesting.scheduledTask.notificationType')" width="120">
+        <el-table-column prop="notification_type_display" :label="$t('apiTesting.scheduledTask.notificationType')" width="150">
           <template #default="scope">
             <el-tag
+              v-if="scope.row.notification_type_display && scope.row.notification_type_display !== '未配置'"
               :type="getNotificationTypeTag(scope.row.notification_type_display)"
               size="small"
             >
-              {{ scope.row.notification_type_display || '-' }}
+              {{ scope.row.notification_type_display }}
             </el-tag>
+            <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="next_run_time" :label="$t('apiTesting.scheduledTask.nextRunTime')" width="180">
+        <el-table-column prop="next_run_display" :label="$t('apiTesting.scheduledTask.nextRunTime')" width="180">
           <template #default="scope">
-            {{ formatDateTime(scope.row.next_run_time) }}
+            {{ scope.row.next_run_display || formatDateTime(scope.row.next_run) }}
           </template>
         </el-table-column>
-        <el-table-column prop="last_run_time" :label="$t('apiTesting.scheduledTask.lastRunTime')" width="180">
+        <el-table-column prop="last_run_display" :label="$t('apiTesting.scheduledTask.lastRunTime')" width="180">
           <template #default="scope">
-            {{ formatDateTime(scope.row.last_run_time) }}
+            {{ scope.row.last_run_display || '-' }}
           </template>
         </el-table-column>
         <el-table-column :label="$t('apiTesting.common.operation')" width="200" fixed="right">
@@ -140,22 +150,30 @@
 
         <el-form-item :label="$t('apiTesting.scheduledTask.taskType')" required>
           <el-radio-group v-model="taskForm.task_type">
-            <el-radio label="TEST_SUITE">{{ $t('apiTesting.scheduledTask.taskTypes.testSuite') }}</el-radio>
-            <el-radio label="API_REQUEST">{{ $t('apiTesting.scheduledTask.taskTypes.apiRequest') }}</el-radio>
+            <el-radio value="API_TEST_SUITE">{{ $t('apiTesting.scheduledTask.taskTypes.testSuite') }}</el-radio>
+            <el-radio value="API_REQUEST">{{ $t('apiTesting.scheduledTask.taskTypes.apiRequest') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item :label="$t('apiTesting.scheduledTask.triggerType')" required>
-          <el-radio-group v-model="taskForm.trigger_type">
-            <el-radio label="CRON">{{ $t('apiTesting.scheduledTask.triggerTypes.cron') }}</el-radio>
-            <el-radio label="INTERVAL">{{ $t('apiTesting.scheduledTask.triggerTypes.interval') }}</el-radio>
-            <el-radio label="ONCE">{{ $t('apiTesting.scheduledTask.triggerTypes.once') }}</el-radio>
+          <el-radio-group v-model="taskForm.schedule_type">
+            <el-radio value="C">{{ $t('apiTesting.scheduledTask.scheduleTypes.cron') }}</el-radio>
+            <el-radio value="O">{{ $t('apiTesting.scheduledTask.scheduleTypes.once') }}</el-radio>
+            <el-radio value="I">{{ $t('apiTesting.scheduledTask.scheduleTypes.interval') }}</el-radio>
+            <el-radio value="H">{{ $t('apiTesting.scheduledTask.scheduleTypes.hourly') }}</el-radio>
+            <el-radio value="D">{{ $t('apiTesting.scheduledTask.scheduleTypes.daily') }}</el-radio>
+            <el-radio value="W">{{ $t('apiTesting.scheduledTask.scheduleTypes.weekly') }}</el-radio>
+            <el-radio value="BW">{{ $t('apiTesting.scheduledTask.scheduleTypes.biweekly') }}</el-radio>
+            <el-radio value="M">{{ $t('apiTesting.scheduledTask.scheduleTypes.monthly') }}</el-radio>
+            <el-radio value="BM">{{ $t('apiTesting.scheduledTask.scheduleTypes.bimonthly') }}</el-radio>
+            <el-radio value="Q">{{ $t('apiTesting.scheduledTask.scheduleTypes.quarterly') }}</el-radio>
+             <el-radio value="Y">{{ $t('apiTesting.scheduledTask.scheduleTypes.yearly') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <!-- 根据触发器类型显示不同配置 -->
-        <el-form-item v-if="taskForm.trigger_type === 'CRON'" :label="$t('apiTesting.scheduledTask.cronExpression')" required>
-          <el-input v-model="taskForm.cron_expression" placeholder="0 0 * * *" />
+        <el-form-item v-if="taskForm.schedule_type === 'C'" :label="$t('apiTesting.scheduledTask.cronExpression')" required>
+          <el-input v-model="taskForm.cron" placeholder="0 0 * * *" />
           <div class="cron-help">
             <el-tooltip
               raw-content
@@ -181,21 +199,103 @@
           </div>
         </el-form-item>
 
-        <el-form-item v-if="taskForm.trigger_type === 'INTERVAL'" :label="$t('apiTesting.scheduledTask.intervalTime')" required>
-          <el-input-number v-model="taskForm.interval_seconds" :min="60" :step="60" />
-          <span class="unit">{{ $t('apiTesting.scheduledTask.seconds') }}</span>
+        <el-form-item v-if="taskForm.schedule_type === 'I'" :label="$t('apiTesting.scheduledTask.intervalMinutes')" required>
+          <el-input-number v-model="taskForm.minutes" :min="1" />
+          <span class="unit">{{ $t('apiTesting.scheduledTask.minutes') }}</span>
         </el-form-item>
 
-        <el-form-item v-if="taskForm.trigger_type === 'ONCE'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+        <el-form-item v-if="taskForm.schedule_type === 'O'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
           <el-date-picker
-            v-model="taskForm.execute_at"
+            v-model="taskForm.next_run"
             type="datetime"
             :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')"
           />
         </el-form-item>
 
+        <!-- 每小时 -->
+        <el-form-item v-if="taskForm.schedule_type === 'H'" :label="$t('apiTesting.scheduledTask.executeMinute')" required>
+          <el-select v-model="taskForm.hour_minute" :placeholder="$t('apiTesting.scheduledTask.selectMinute')" style="width: 120px;">
+            <el-option v-for="i in 60" :key="i-1" :label="i-1" :value="i-1" />
+          </el-select>
+          <span class="unit">{{ $t('apiTesting.scheduledTask.unit.minute') }}</span>
+        </el-form-item>
+
+        <!-- 每天 -->
+        <el-form-item v-if="taskForm.schedule_type === 'D'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-time-picker v-model="taskForm.daily_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每周 -->
+        <el-form-item v-if="taskForm.schedule_type === 'W'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.weekly_day" :placeholder="$t('apiTesting.scheduledTask.selectWeekday')" style="width: 120px; margin-right: 10px;">
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.sunday')" value="0" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.monday')" value="1" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.tuesday')" value="2" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.wednesday')" value="3" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.thursday')" value="4" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.friday')" value="5" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.saturday')" value="6" />
+          </el-select>
+          <el-time-picker v-model="taskForm.weekly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 双周 -->
+        <el-form-item v-if="taskForm.schedule_type === 'BW'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.biweekly_day" :placeholder="$t('apiTesting.scheduledTask.selectWeekday')" style="width: 120px; margin-right: 10px;">
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.sunday')" value="0" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.monday')" value="1" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.tuesday')" value="2" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.wednesday')" value="3" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.thursday')" value="4" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.friday')" value="5" />
+            <el-option :label="$t('apiTesting.scheduledTask.weekdays.saturday')" value="6" />
+          </el-select>
+          <el-time-picker v-model="taskForm.biweekly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每月 -->
+        <el-form-item v-if="taskForm.schedule_type === 'M'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.monthly_date" :placeholder="$t('apiTesting.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="taskForm.monthly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 双月 -->
+        <el-form-item v-if="taskForm.schedule_type === 'BM'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.bimonthly_date" :placeholder="$t('apiTesting.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="taskForm.bimonthly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每季度 -->
+        <el-form-item v-if="taskForm.schedule_type === 'Q'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.quarterly_month" :placeholder="$t('apiTesting.scheduledTask.selectMonth')" style="width: 100px; margin-right: 10px;">
+            <el-option :label="`${1}${$t('apiTesting.scheduledTask.unit.month')}`" value="1" />
+            <el-option :label="`${4}${$t('apiTesting.scheduledTask.unit.month')}`" value="4" />
+            <el-option :label="`${7}${$t('apiTesting.scheduledTask.unit.month')}`" value="7" />
+            <el-option :label="`${10}${$t('apiTesting.scheduledTask.unit.month')}`" value="10" />
+          </el-select>
+          <el-select v-model="taskForm.quarterly_date" :placeholder="$t('apiTesting.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="taskForm.quarterly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
+        <!-- 每年 -->
+        <el-form-item v-if="taskForm.schedule_type === 'Y'" :label="$t('apiTesting.scheduledTask.executeTime')" required>
+          <el-select v-model="taskForm.yearly_month" :placeholder="$t('apiTesting.scheduledTask.selectMonth')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 12" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-select v-model="taskForm.yearly_date" :placeholder="$t('apiTesting.scheduledTask.selectDate')" style="width: 100px; margin-right: 10px;">
+            <el-option v-for="i in 31" :key="i" :label="i" :value="i" />
+          </el-select>
+          <el-time-picker v-model="taskForm.yearly_time" :placeholder="$t('apiTesting.scheduledTask.selectExecuteTime')" />
+        </el-form-item>
+
         <!-- 根据任务类型显示不同配置 -->
-        <el-form-item v-if="taskForm.task_type === 'TEST_SUITE'" :label="$t('apiTesting.automation.testSuite')" required>
+        <el-form-item v-if="taskForm.task_type === 'API_TEST_SUITE'" :label="$t('apiTesting.automation.testSuite')" required>
           <el-select v-model="taskForm.test_suite" :placeholder="$t('apiTesting.scheduledTask.selectTestSuite')">
             <el-option
               v-for="suite in testSuites"
@@ -234,27 +334,25 @@
         </el-form-item>
 
         <el-form-item v-if="taskForm.notify_on_success || taskForm.notify_on_failure" :label="$t('apiTesting.scheduledTask.notificationType')">
-          <el-select v-model="taskForm.notification_type" :placeholder="$t('apiTesting.scheduledTask.selectNotificationType')">
-            <el-option :label="$t('apiTesting.notification.types.email')" value="email" />
-            <el-option :label="$t('apiTesting.notification.types.webhook')" value="webhook" />
-            <el-option :label="$t('apiTesting.notification.types.both')" value="both" />
-          </el-select>
+          <el-checkbox v-model="taskForm.notify_on_email">{{ $t('apiTesting.scheduledTask.notifyOnEmail') }}</el-checkbox>
+          <el-checkbox v-model="taskForm.notify_on_webhook">{{ $t('apiTesting.scheduledTask.notifyOnWebhook') }}</el-checkbox>
         </el-form-item>
 
-        <el-form-item v-if="(taskForm.notify_on_success || taskForm.notify_on_failure) && taskForm.notification_type !== 'webhook'" :label="$t('apiTesting.scheduledTask.notifyEmails')">
-          <el-select
-            v-model="taskForm.notify_emails"
-            multiple
-            filterable
-            :placeholder="$t('apiTesting.scheduledTask.selectNotifyEmails')"
-          >
+        <el-form-item v-if="taskForm.notify_on_email || taskForm.notify_on_webhook" :label="$t('apiTesting.scheduledTask.notificationConfig')">
+          <el-select v-model="taskForm.notification_config_ids" :placeholder="$t('apiTesting.scheduledTask.selectNotificationConfig')" clearable multiple>
             <el-option
-              v-for="user in users"
-              :key="user.id"
-              :label="user.display_name"
-              :value="user.email"
-            />
+              v-for="config in filteredNotificationConfigs"
+              :key="config.id"
+              :label="config.name"
+              :value="config.id"
+            >
+              <span>{{ config.name }}</span>
+              <span style="color: #909399; font-size: 12px; margin-left: 8px;">({{ config.config_type_display }})</span>
+            </el-option>
           </el-select>
+          <div class="form-item-hint" v-if="!filteredNotificationConfigs.length">
+            {{ $t('apiTesting.scheduledTask.noMatchingNotificationConfig') }}
+          </div>
         </el-form-item>
       </el-form>
 
@@ -269,24 +367,28 @@
     <!-- 执行日志对话框 -->
     <el-dialog v-model="showLogsDialog" :title="$t('apiTesting.scheduledTask.executionLogs')" width="1000px">
       <el-table :data="executionLogs" v-loading="logsLoading">
-        <el-table-column prop="start_time" :label="$t('apiTesting.scheduledTask.startTime')" width="180">
+        <el-table-column prop="started" :label="$t('apiTesting.scheduledTask.startTime')" width="180">
           <template #default="scope">
-            <div class="time-cell">{{ formatDateTime(scope.row.start_time) }}</div>
+            <div class="time-cell">{{ formatDateTime(scope.row.started) }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="end_time" :label="$t('apiTesting.scheduledTask.endTime')" width="180">
+        <el-table-column prop="stopped" :label="$t('apiTesting.scheduledTask.endTime')" width="180">
           <template #default="scope">
-            <div class="time-cell">{{ formatDateTime(scope.row.end_time) }}</div>
+            <div class="time-cell">{{ formatDateTime(scope.row.stopped) }}</div>
           </template>
         </el-table-column>
-        <el-table-column prop="status" :label="$t('apiTesting.common.status')" width="100">
+        <el-table-column prop="type" :label="$t('apiTesting.common.status')" width="100">
           <template #default="scope">
-            <el-tag :type="scope.row.status === 'COMPLETED' ? 'success' : 'danger'">
-              {{ scope.row.status === 'COMPLETED' ? $t('apiTesting.common.success') : $t('apiTesting.common.failed') }}
+            <el-tag :type="scope.row.type === 'success' ? 'success' : 'danger'">
+              {{ scope.row.type === 'success' ? $t('apiTesting.common.success') : $t('apiTesting.common.failed') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="error_message" :label="$t('apiTesting.scheduledTask.errorMessage')" width="300" show-overflow-tooltip />
+        <el-table-column prop="result" :label="$t('apiTesting.scheduledTask.errorMessage')" width="300" show-overflow-tooltip>
+          <template #default="scope">
+            {{ scope.row.result || '-' }}
+          </template>
+        </el-table-column>
       </el-table>
     </el-dialog>
   </div>
@@ -299,17 +401,20 @@ import { useI18n } from 'vue-i18n'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import {
-  getScheduledTasks,
-  createScheduledTask,
-  updateScheduledTask,
-  deleteScheduledTask,
-  runScheduledTask,
+  getSchedulerSchedules,
+  createSchedulerSchedule,
+  updateSchedulerSchedule,
+  deleteSchedulerSchedule,
+  executeSchedulerSchedule,
+  toggleSchedulerSchedule,
+  getSchedulerHistory,
   getExecutionLogs,
   getTestSuites,
   getApiRequests,
   getEnvironments,
   getUsers
 } from '@/api/api-testing.js'
+import { getUnifiedNotificationConfigs } from '@/api/core.js'
 
 const { t } = useI18n()
 
@@ -334,6 +439,24 @@ const getTriggerTypeText = (type) => {
   return typeKey ? t(`apiTesting.scheduledTask.triggerTypes.${typeKey}`) : type
 }
 
+// 获取调度类型文本
+const getScheduleTypeText = (type) => {
+  const typeMap = {
+    'O': t('apiTesting.scheduledTask.scheduleTypes.once'),
+    'I': t('apiTesting.scheduledTask.scheduleTypes.interval'),
+    'H': t('apiTesting.scheduledTask.scheduleTypes.hourly'),
+    'D': t('apiTesting.scheduledTask.scheduleTypes.daily'),
+    'W': t('apiTesting.scheduledTask.scheduleTypes.weekly'),
+    'BW': t('apiTesting.scheduledTask.scheduleTypes.biweekly'),
+    'M': t('apiTesting.scheduledTask.scheduleTypes.monthly'),
+    'BM': t('apiTesting.scheduledTask.scheduleTypes.bimonthly'),
+    'Q': t('apiTesting.scheduledTask.scheduleTypes.quarterly'),
+    'Y': t('apiTesting.scheduledTask.scheduleTypes.yearly'),
+    'C': t('apiTesting.scheduledTask.scheduleTypes.cron')
+  }
+  return typeMap[type] || type
+}
+
 // 数据状态
 const tasks = ref([])
 const executionLogs = ref([])
@@ -341,6 +464,7 @@ const testSuites = ref([])
 const apiRequests = ref([])
 const environments = ref([])
 const users = ref([]) // 添加用户列表
+const notificationConfigs = ref([]) // 添加通知配置列表
 const loading = ref(false)
 const logsLoading = ref(false)
 const submitting = ref(false)
@@ -351,7 +475,7 @@ const editingTask = ref(null)
 // 筛选条件
 const filters = reactive({
   task_type: '',
-  trigger_type: '',
+  schedule_type: '',
   status: ''
 })
 
@@ -366,17 +490,35 @@ const pagination = reactive({
 const taskForm = reactive({
   name: '',
   description: '',
-  task_type: 'TEST_SUITE',
-  trigger_type: 'CRON',
-  cron_expression: '0 0 * * *',
-  interval_seconds: 3600,
-  execute_at: '',
+  task_type: 'API_TEST_SUITE',
+  schedule_type: 'C',
+  cron: '0 0 * * *',
+  minutes: 60,
+  next_run: '',
+  hour_minute: 0,
+  daily_time: '',
+  weekly_day: '1',
+  weekly_time: '',
+  biweekly_day: '1',
+  biweekly_time: '',
+  monthly_date: 1,
+  monthly_time: '',
+  bimonthly_date: 1,
+  bimonthly_time: '',
+  quarterly_month: 1,
+  quarterly_date: 1,
+  quarterly_time: '',
+  yearly_month: 1,
+  yearly_date: 1,
+  yearly_time: '',
   test_suite: '',
   api_request: '',
   environment: '',
   notify_on_success: false,
-  notify_on_failure: false,
-  notify_emails: []
+  notify_on_failure: true,
+  notify_on_email: false,
+  notify_on_webhook: false,
+  notification_config_ids: []
 })
 
 // 生命周期
@@ -386,6 +528,7 @@ onMounted(() => {
   loadApiRequests()
   loadEnvironments()
   loadUsers() // 加载用户列表
+  loadNotificationConfigs() // 加载通知配置列表
 })
 
 // 加载任务列表
@@ -395,11 +538,28 @@ const loadTasks = async () => {
     const params = {
       page: pagination.current,
       page_size: pagination.size,
-      ...filters
+      module: 'API'
     }
-    const response = await getScheduledTasks(params)
-    tasks.value = response.data.results
-    pagination.total = response.data.count
+    
+    // 只添加非空的筛选条件
+    if (filters.task_type) {
+      params.task_type = filters.task_type
+    }
+    if (filters.schedule_type) {
+      params.schedule_type = filters.schedule_type
+    }
+    if (filters.status) {
+      params.status = filters.status
+    }
+    
+    const response = await getSchedulerSchedules(params)
+    const taskList = response.data.results || response.data
+    tasks.value = taskList.map(task => ({
+      ...task,
+      task_type_display: getTaskTypeDisplay(task.config?.task_type),
+      schedule_type_display: getScheduleTypeDisplay(task.schedule_type)
+    }))
+    pagination.total = response.data.count || tasks.value.length
   } catch (error) {
     ElMessage.error(t('apiTesting.messages.error.loadTasksFailed'))
   } finally {
@@ -452,6 +612,40 @@ const loadUsers = async () => {
   }
 }
 
+// 加载通知配置列表
+const loadNotificationConfigs = async () => {
+  try {
+    const response = await getUnifiedNotificationConfigs()
+    notificationConfigs.value = response.data.results || response.data
+  } catch (error) {
+    console.error('加载通知配置列表失败:', error)
+  }
+}
+
+// 过滤通知配置列表
+const filteredNotificationConfigs = computed(() => {
+  const notifyOnEmail = taskForm.notify_on_email
+  const notifyOnWebhook = taskForm.notify_on_webhook
+  
+  if (!notifyOnEmail && !notifyOnWebhook) {
+    return []
+  }
+  
+  return notificationConfigs.value.filter(config => {
+    if (!config.is_active) return false
+    
+    if (notifyOnEmail && notifyOnWebhook) {
+      return true
+    } else if (notifyOnEmail) {
+      return config.config_type === 'email'
+    } else if (notifyOnWebhook) {
+      return config.config_type !== 'email'
+    }
+    
+    return false
+  })
+})
+
 // 新建按钮点击
 const handleCreateClick = () => {
   console.log('新建按钮点击')
@@ -465,17 +659,32 @@ const resetTaskForm = () => {
   Object.assign(taskForm, {
     name: '',
     description: '',
-    task_type: 'TEST_SUITE',
-    trigger_type: 'CRON',
-    cron_expression: '0 0 * * *',
-    interval_seconds: 3600,
-    execute_at: '',
+    task_type: 'API_TEST_SUITE',
+    schedule_type: 'C',
+    cron: '0 0 * * *',
+    minutes: 60,
+    next_run: '',
+    hour_minute: 0,
+    daily_time: '',
+    weekly_day: '1',
+    weekly_time: '',
+    biweekly_day: '1',
+    biweekly_time: '',
+    monthly_date: 1,
+    monthly_time: '',
+    bimonthly_date: 1,
+    bimonthly_time: '',
+    quarterly_month: 1,
+    quarterly_date: 1,
+    quarterly_time: '',
+    yearly_month: 1,
+    yearly_date: 1,
+    yearly_time: '',
     test_suite: '',
     api_request: '',
     environment: '',
     notify_on_success: false,
     notify_on_failure: false,
-    notification_type: 'email',
     notify_emails: []
   })
 }
@@ -484,7 +693,7 @@ const resetTaskForm = () => {
 const resetFilters = () => {
   Object.assign(filters, {
     task_type: '',
-    trigger_type: '',
+    schedule_type: '',
     status: ''
   })
   loadTasks()
@@ -494,40 +703,124 @@ const resetFilters = () => {
 const submitTaskForm = async () => {
   submitting.value = true
   try {
-    // 准备提交数据，确保格式正确
     const submitData = {
       name: taskForm.name,
       description: taskForm.description,
+      module: 'API',
       task_type: taskForm.task_type,
-      trigger_type: taskForm.trigger_type,
+      schedule_type: taskForm.schedule_type,
       notify_on_success: taskForm.notify_on_success,
       notify_on_failure: taskForm.notify_on_failure,
-      notification_type_input: taskForm.notification_type,
-      notify_emails: taskForm.notify_emails,
-      environment: taskForm.environment
+      notify_on_email: taskForm.notify_on_email,
+      notify_on_webhook: taskForm.notify_on_webhook,
+      notification_config_ids: taskForm.notification_config_ids,
+      environment_id: taskForm.environment
     }
 
     // 根据触发器类型添加对应字段
-    if (taskForm.trigger_type === 'CRON') {
-      submitData.cron_expression = taskForm.cron_expression
-    } else if (taskForm.trigger_type === 'INTERVAL') {
-      submitData.interval_seconds = taskForm.interval_seconds
-    } else if (taskForm.trigger_type === 'ONCE') {
-      submitData.execute_at = taskForm.execute_at
+    if (taskForm.schedule_type === 'C') {
+      submitData.cron = taskForm.cron
+    } else if (taskForm.schedule_type === 'I') {
+      submitData.minutes = taskForm.minutes
+    } else if (taskForm.schedule_type === 'O') {
+      submitData.next_run = taskForm.next_run
+      submitData.repeats = 1  // 单次执行，执行一次后停止
+    } else if (taskForm.schedule_type === 'H') {
+      // 每小时：指定分钟
+      const minute = taskForm.hour_minute || 0
+      submitData.cron = `${minute} * * * *`
+    } else if (taskForm.schedule_type === 'D') {
+      // 每天：指定时间
+      if (taskForm.daily_time) {
+        const time = taskForm.daily_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        submitData.cron = `${minute} ${hour} * * *`
+      } else {
+        submitData.cron = '0 0 * * *' // 默认每天0点
+      }
+    } else if (taskForm.schedule_type === 'W') {
+      // 每周：指定星期和时间
+      if (taskForm.weekly_time) {
+        const time = taskForm.weekly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const day = taskForm.weekly_day || 1
+        submitData.cron = `${minute} ${hour} * * ${day}`
+      } else {
+        submitData.cron = '0 0 * * 1' // 默认每周一0点
+      }
+    } else if (taskForm.schedule_type === 'BW') {
+      // 双周：使用cron表达式，实际上是每两周的指定时间
+      if (taskForm.biweekly_time) {
+        const time = taskForm.biweekly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const day = taskForm.biweekly_day || 1
+        submitData.cron = `${minute} ${hour} * * ${day}`
+      } else {
+        submitData.cron = '0 0 * * 1' // 默认双周周一0点
+      }
+    } else if (taskForm.schedule_type === 'M') {
+      // 每月：指定日期和时间
+      if (taskForm.monthly_time) {
+        const time = taskForm.monthly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = taskForm.monthly_date || 1
+        submitData.cron = `${minute} ${hour} ${date} * *`
+      } else {
+        submitData.cron = '0 0 1 * *' // 默认每月1号0点
+      }
+    } else if (taskForm.schedule_type === 'BM') {
+      // 双月：使用cron表达式，实际上是每两个月的指定时间
+      if (taskForm.bimonthly_time) {
+        const time = taskForm.bimonthly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = taskForm.bimonthly_date || 1
+        submitData.cron = `${minute} ${hour} ${date} */2 *`
+      } else {
+        submitData.cron = '0 0 1 */2 *' // 默认双月1号0点
+      }
+    } else if (taskForm.schedule_type === 'Q') {
+      // 每季度：指定月份日期和时间
+      if (taskForm.quarterly_time) {
+        const time = taskForm.quarterly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = taskForm.quarterly_date || 1
+        const month = taskForm.quarterly_month || 1
+        submitData.cron = `${minute} ${hour} ${date} ${month} *`
+      } else {
+        submitData.cron = '0 0 1 1 *' // 默认每年1月1号0点
+      }
+    } else if (taskForm.schedule_type === 'Y') {
+      // 每年：指定月份日期和时间
+      if (taskForm.yearly_time) {
+        const time = taskForm.yearly_time
+        const hour = time.getHours().toString().padStart(2, '0')
+        const minute = time.getMinutes().toString().padStart(2, '0')
+        const date = taskForm.yearly_date || 1
+        const month = taskForm.yearly_month || 1
+        submitData.cron = `${minute} ${hour} ${date} ${month} *`
+      } else {
+        submitData.cron = '0 0 1 1 *' // 默认每年1月1号0点
+      }
     }
 
     // 根据任务类型添加对应字段
-    if (taskForm.task_type === 'TEST_SUITE') {
-      submitData.test_suite = taskForm.test_suite
+    if (taskForm.task_type === 'API_TEST_SUITE') {
+      submitData.target_id = taskForm.test_suite
     } else if (taskForm.task_type === 'API_REQUEST') {
-      submitData.api_request = taskForm.api_request
+      submitData.target_id = taskForm.api_request
     }
 
     if (editingTask.value) {
-      await updateScheduledTask(editingTask.value.id, submitData)
+      await updateSchedulerSchedule(editingTask.value.id, submitData)
       ElMessage.success(t('apiTesting.messages.success.taskUpdated'))
     } else {
-      await createScheduledTask(submitData)
+      await createSchedulerSchedule(submitData)
       ElMessage.success(t('apiTesting.messages.success.taskCreated'))
     }
     showCreateDialog.value = false
@@ -546,12 +839,46 @@ const submitTaskForm = async () => {
 const runTaskNow = async (task) => {
   try {
     task.running = true
-    await runScheduledTask(task.id)
+    await executeSchedulerSchedule(task.id)
     ElMessage.success(t('apiTesting.messages.success.taskStarted'))
-    // 等待一段时间后刷新任务状态
-    setTimeout(() => {
-      loadTasks()
-    }, 2000)
+    
+    // 无感轮询：在后台静默检查任务执行状态
+    let retryCount = 0
+    const maxRetries = 15  // 最多轮询15次
+    const checkInterval = 2000  // 每2秒检查一次
+    
+    const checkExecution = async () => {
+      try {
+        // 静默刷新列表，不显示加载状态
+        const response = await getSchedulerSchedules({
+          page: pagination.current,
+          page_size: pagination.size,
+          task_type: filters.task_type,
+          schedule_type: filters.schedule_type,
+          status: filters.status
+        })
+        
+        const updatedTask = response.data.results.find(t => t.id === task.id)
+        if (updatedTask && updatedTask.last_run_display && updatedTask.last_run_display !== '-') {
+          // 有执行记录了，更新当前任务数据
+          const taskIndex = tasks.value.findIndex(t => t.id === task.id)
+          if (taskIndex !== -1) {
+            tasks.value[taskIndex] = updatedTask
+          }
+          return
+        }
+        
+        retryCount++
+        if (retryCount < maxRetries) {
+          setTimeout(checkExecution, checkInterval)
+        }
+      } catch (error) {
+        console.error('检查执行状态失败:', error)
+      }
+    }
+    
+    // 开始无感轮询
+    setTimeout(checkExecution, checkInterval)
   } catch (error) {
     ElMessage.error(t('apiTesting.messages.error.executeTaskFailed'))
   } finally {
@@ -573,14 +900,51 @@ const formatDateTime = (dateString) => {
   }).replace(/\//g, '-')
 }
 
-// 获取通知类型标签样式
-const getNotificationTypeTag = (typeDisplay) => {
+const getTaskTypeDisplay = (taskType) => {
   const typeMap = {
-    '邮箱通知': '',
-    'Webhook机器人': 'primary',
-    '两种都发送': 'warning'
+    'API_TEST_SUITE': t('apiTesting.scheduledTask.taskTypes.testSuite'),
+    'API_REQUEST': t('apiTesting.scheduledTask.taskTypes.apiRequest'),
+    'TEST_SUITE': t('apiTesting.scheduledTask.taskTypes.testSuite')
   }
-  return typeMap[typeDisplay] || 'info'
+  return typeMap[taskType] || taskType
+}
+
+const getScheduleTypeDisplay = (scheduleType) => {
+  const typeMap = {
+    'C': t('apiTesting.scheduledTask.scheduleTypes.cron'),
+    'O': t('apiTesting.scheduledTask.scheduleTypes.once'),
+    'I': t('apiTesting.scheduledTask.scheduleTypes.interval'),
+    'H': t('apiTesting.scheduledTask.scheduleTypes.hourly'),
+    'D': t('apiTesting.scheduledTask.scheduleTypes.daily'),
+    'W': t('apiTesting.scheduledTask.scheduleTypes.weekly'),
+    'BW': t('apiTesting.scheduledTask.scheduleTypes.biweekly'),
+    'M': t('apiTesting.scheduledTask.scheduleTypes.monthly'),
+    'BM': t('apiTesting.scheduledTask.scheduleTypes.bimonthly'),
+    'Q': t('apiTesting.scheduledTask.scheduleTypes.quarterly'),
+    'Y': t('apiTesting.scheduledTask.scheduleTypes.yearly')
+  }
+  return typeMap[scheduleType] || scheduleType
+}
+
+const getStatusType = (status) => {
+  if (status === '激活' || status === 'ACTIVE') return 'success'
+  if (status === '暂停' || status === 'PAUSED') return 'warning'
+  if (status === '失败' || status === 'FAILED') return 'danger'
+  return 'info'
+}
+
+const getNotificationTypeTag = (notificationTypeDisplay) => {
+  if (!notificationTypeDisplay || notificationTypeDisplay === '未配置') {
+    return 'info'
+  }
+  if (notificationTypeDisplay.includes('+')) {
+    return 'warning'
+  } else if (notificationTypeDisplay.includes('邮箱')) {
+    return 'success'
+  } else if (notificationTypeDisplay.includes('Webhook')) {
+    return 'primary'
+  }
+  return 'info'
 }
 
 // 查看执行日志
@@ -588,7 +952,11 @@ const viewTaskLogs = async (task) => {
   logsLoading.value = true
   try {
     const response = await getExecutionLogs(task.id)
-    executionLogs.value = response.data.results || response.data
+    const data = response.data
+    executionLogs.value = [
+      ...(data.success || []).map(item => ({ ...item, type: 'success' })),
+      ...(data.failure || []).map(item => ({ ...item, type: 'failure' }))
+    ].sort((a, b) => new Date(b.started) - new Date(a.started))
     showLogsDialog.value = true
   } catch (error) {
     console.error('Load execution logs failed:', error)
@@ -622,35 +990,118 @@ const handleTaskAction = (command, task) => {
 // 编辑任务
 const editTask = (task) => {
   editingTask.value = task
+  const config = task.config || {}
+  
+  // 从 cron 表达式中解析时间字段
+  let hour_minute = 0
+  let daily_time = null
+  let weekly_day = 1
+  let weekly_time = null
+  let biweekly_day = 1
+  let biweekly_time = null
+  let monthly_day = 1
+  let monthly_time = null
+  let bimonthly_day = 1
+  let bimonthly_time = null
+  let quarterly_month = 1
+  let quarterly_day = 1
+  let quarterly_time = null
+  let yearly_month = 1
+  let yearly_day = 1
+  let yearly_time = null
+  
+  if (task.cron) {
+    const cronParts = task.cron.split(' ')
+    const minute = parseInt(cronParts[0]) || 0
+    const hour = parseInt(cronParts[1]) || 0
+    const dayOfMonth = parseInt(cronParts[2]) || 1
+    const month = parseInt(cronParts[3]) || 1
+    const dayOfWeek = parseInt(cronParts[4]) || 1
+    
+    switch (task.schedule_type) {
+      case 'H':
+        hour_minute = minute
+        break
+      case 'D':
+        daily_time = new Date()
+        daily_time.setHours(hour, minute, 0, 0)
+        break
+      case 'W':
+        weekly_day = dayOfWeek
+        weekly_time = new Date()
+        weekly_time.setHours(hour, minute, 0, 0)
+        break
+      case 'BW':
+        biweekly_day = dayOfWeek
+        biweekly_time = new Date()
+        biweekly_time.setHours(hour, minute, 0, 0)
+        break
+      case 'M':
+        monthly_day = dayOfMonth
+        monthly_time = new Date()
+        monthly_time.setHours(hour, minute, 0, 0)
+        break
+      case 'BM':
+        bimonthly_day = dayOfMonth
+        bimonthly_time = new Date()
+        bimonthly_time.setHours(hour, minute, 0, 0)
+        break
+      case 'Q':
+        quarterly_month = month
+        quarterly_day = dayOfMonth
+        quarterly_time = new Date()
+        quarterly_time.setHours(hour, minute, 0, 0)
+        break
+      case 'Y':
+        yearly_month = month
+        yearly_day = dayOfMonth
+        yearly_time = new Date()
+        yearly_time.setHours(hour, minute, 0, 0)
+        break
+    }
+  }
+  
   Object.assign(taskForm, {
     name: task.name,
-    description: task.description,
-    task_type: task.task_type,
-    trigger_type: task.trigger_type,
-    cron_expression: task.cron_expression,
-    interval_seconds: task.interval_seconds,
-    execute_at: task.execute_at,
-    test_suite: task.test_suite || null,
-    api_request: task.api_request || null,
-    environment: task.environment || null,
-    notify_on_success: task.notify_on_success,
-    notify_on_failure: task.notify_on_failure,
-    notification_type: task.notification_type || 'email',
-    notify_emails: task.notify_emails || []
+    description: config.description || '',
+    task_type: config.task_type || 'API_TEST_SUITE',
+    schedule_type: task.schedule_type || 'C',
+    cron: task.cron || '0 0 * * *',
+    minutes: task.minutes || 60,
+    next_run: task.next_run || '',
+    hour_minute: hour_minute,
+    daily_time: daily_time,
+    weekly_day: weekly_day,
+    weekly_time: weekly_time,
+    biweekly_day: biweekly_day,
+    biweekly_time: biweekly_time,
+    monthly_day: monthly_day,
+    monthly_time: monthly_time,
+    bimonthly_day: bimonthly_day,
+    bimonthly_time: bimonthly_time,
+    quarterly_month: quarterly_month,
+    quarterly_day: quarterly_day,
+    quarterly_time: quarterly_time,
+    yearly_month: yearly_month,
+    yearly_day: yearly_day,
+    yearly_time: yearly_time,
+    test_suite: config.task_type === 'API_TEST_SUITE' ? config.target_id : null,
+    api_request: config.task_type === 'API_REQUEST' ? config.target_id : null,
+    environment: config.environment_id || null,
+    notify_on_success: config.notify_on_success ?? false,
+    notify_on_failure: config.notify_on_failure ?? true,
+    notify_on_email: config.notify_on_email ?? false,
+    notify_on_webhook: config.notify_on_webhook ?? false,
+    notification_config_ids: task.config?.notification_config_ids || []
   })
-  console.log('编辑任务数据回显:', {
-    test_suite: task.test_suite,
-    environment: task.environment,
-    taskForm_test_suite: taskForm.test_suite,
-    taskForm_environment: taskForm.environment
-  })
+  
   showCreateDialog.value = true
 }
 
 // 暂停任务
 const pauseTask = async (task) => {
   try {
-    await api.post(`/api-testing/scheduled-tasks/${task.id}/pause/`)
+    await toggleSchedulerSchedule(task.id, 'pause')
     ElMessage.success(t('apiTesting.messages.success.taskPaused'))
     loadTasks()
   } catch (error) {
@@ -662,7 +1113,7 @@ const pauseTask = async (task) => {
 // 激活任务
 const activateTask = async (task) => {
   try {
-    await api.post(`/api-testing/scheduled-tasks/${task.id}/activate/`)
+    await toggleSchedulerSchedule(task.id, 'resume')
     ElMessage.success(t('apiTesting.messages.success.taskActivated'))
     loadTasks()
   } catch (error) {
@@ -682,7 +1133,7 @@ const deleteTask = async (task) => {
         type: 'warning'
       }
     )
-    await deleteScheduledTask(task.id)
+    await deleteSchedulerSchedule(task.id)
     ElMessage.success(t('apiTesting.messages.success.taskDeleted'))
     loadTasks()
   } catch (error) {

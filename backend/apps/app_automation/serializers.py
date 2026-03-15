@@ -14,7 +14,6 @@ from .models import (
     AppTestSuite,
     AppTestSuiteCase,
     AppTestExecution,
-    AppScheduledTask,
     AppNotificationLog,
 )
 
@@ -318,124 +317,37 @@ class AppTestSuiteUpdateSerializer(serializers.ModelSerializer):
         fields = ('name', 'description', 'project')
 
 
-# ========== 定时任务序列化器 ==========
+# ========== 通知日志序列化器 ==========
 
-class AppScheduledTaskSerializer(serializers.ModelSerializer):
-    """APP定时任务序列化器"""
-    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
-    device_name = serializers.SerializerMethodField()
-    app_package_name = serializers.CharField(source='app_package.name', read_only=True, default='')
-    test_suite_name = serializers.CharField(source='test_suite.name', read_only=True, default='')
-    test_case_name = serializers.CharField(source='test_case.name', read_only=True, default='')
-    task_type_display = serializers.CharField(source='get_task_type_display', read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    trigger_type_display = serializers.CharField(source='get_trigger_type_display', read_only=True)
-    notification_type_display = serializers.SerializerMethodField()
-
-    class Meta:
-        model = AppScheduledTask
-        fields = [
-            'id', 'name', 'description', 'project',
-            'task_type', 'task_type_display',
-            'trigger_type', 'trigger_type_display',
-            'cron_expression', 'interval_seconds', 'execute_at',
-            'device', 'device_name',
-            'app_package', 'app_package_name',
-            'test_suite', 'test_suite_name',
-            'test_case', 'test_case_name',
-            'notify_on_success', 'notify_on_failure',
-            'notification_type', 'notification_type_display', 'notify_emails',
-            'status', 'status_display',
-            'last_run_time', 'next_run_time',
-            'total_runs', 'successful_runs', 'failed_runs',
-            'last_result', 'error_message',
-            'created_by', 'created_by_name',
-            'created_at', 'updated_at',
-        ]
-        read_only_fields = [
-            'created_by', 'last_run_time', 'next_run_time',
-            'total_runs', 'successful_runs', 'failed_runs',
-            'last_result', 'error_message',
-            'created_at', 'updated_at',
-        ]
-
-    def get_device_name(self, obj):
-        if obj.device:
-            return obj.device.name or obj.device.device_id
-        return ''
-
-    def get_notification_type_display(self, obj):
-        return obj.get_notification_type_display() if obj.notification_type else '-'
-
-    def validate(self, attrs):
-        trigger_type = attrs.get('trigger_type')
-        if trigger_type == 'CRON' and not attrs.get('cron_expression'):
-            raise serializers.ValidationError('Cron表达式不能为空')
-        if trigger_type == 'INTERVAL':
-            if not attrs.get('interval_seconds'):
-                raise serializers.ValidationError('间隔秒数不能为空')
-            if attrs['interval_seconds'] < 60:
-                raise serializers.ValidationError('间隔秒数不能小于60秒')
-        if trigger_type == 'ONCE':
-            if not attrs.get('execute_at'):
-                raise serializers.ValidationError('执行时间不能为空')
-            if attrs['execute_at'] <= timezone.now():
-                raise serializers.ValidationError('执行时间必须大于当前时间')
-
-        task_type = attrs.get('task_type')
-        if task_type == 'TEST_SUITE' and not attrs.get('test_suite'):
-            raise serializers.ValidationError('请选择测试套件')
-        if task_type == 'TEST_CASE' and not attrs.get('test_case'):
-            raise serializers.ValidationError('请选择测试用例')
-
-        return attrs
-
-    def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
-        instance = super().create(validated_data)
-        instance.next_run_time = instance.calculate_next_run()
-        instance.save(update_fields=['next_run_time'])
-        return instance
-
-    def update(self, instance, validated_data):
-        instance = super().update(instance, validated_data)
-        instance.next_run_time = instance.calculate_next_run()
-        instance.save(update_fields=['next_run_time'])
-        return instance
+TASK_TYPE_CHOICES = {
+    'TEST_SUITE': '测试套件执行',
+    'TEST_CASE': '测试用例执行',
+}
 
 
 class AppNotificationLogSerializer(serializers.ModelSerializer):
     """APP通知日志序列化器"""
-    recipient_names = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     notification_type_display = serializers.CharField(source='get_notification_type_display', read_only=True)
-    retry_status = serializers.SerializerMethodField()
     task_type_display = serializers.SerializerMethodField()
     actual_notification_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = AppNotificationLog
         fields = [
-            'id', 'task', 'task_name',
+            'id', 'task_id', 'task_name',
             'notification_type', 'notification_type_display',
             'actual_notification_type_display', 'task_type_display',
             'sender_name', 'sender_email',
-            'recipient_names', 'webhook_bot_info', 'notification_content',
+            'recipient_info', 'webhook_bot_info', 'notification_content',
             'status', 'status_display', 'error_message', 'response_info',
-            'created_at', 'sent_at', 'retry_count', 'retry_status',
+            'created_at', 'sent_at', 'retry_count', 'is_retried',
         ]
         read_only_fields = ['created_at', 'sent_at']
 
-    def get_recipient_names(self, obj):
-        return obj.get_recipient_names()
-
-    def get_retry_status(self, obj):
-        return obj.get_retry_status()
-
     def get_task_type_display(self, obj):
         if obj.task_type:
-            choices = dict(AppScheduledTask.TASK_TYPE_CHOICES)
-            return choices.get(obj.task_type, obj.task_type)
+            return TASK_TYPE_CHOICES.get(obj.task_type, obj.task_type)
         return '未记录'
 
     def get_actual_notification_type_display(self, obj):
@@ -443,6 +355,6 @@ class AppNotificationLogSerializer(serializers.ModelSerializer):
             bot_type = obj.webhook_bot_info.get('type', '') or obj.webhook_bot_info.get('bot_type', '')
             type_map = {'wechat': '企微机器人', 'feishu': '飞书机器人', 'dingtalk': '钉钉机器人'}
             return type_map.get(bot_type, 'Webhook机器人')
-        if obj.recipient_info and isinstance(obj.recipient_info, list) and len(obj.recipient_info) > 0:
+        if obj.recipient_info:
             return '邮箱通知'
         return '-'

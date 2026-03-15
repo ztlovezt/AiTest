@@ -7,12 +7,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.filters import SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend
-import logging
+from loguru import logger
 
 from ..models import AppPackage, AppTestCase, AppDevice, AppTestExecution
 from ..serializers import AppPackageSerializer, AppTestCaseSerializer, AppTestExecutionSerializer
-
-logger = logging.getLogger(__name__)
 
 
 class AppPagination(PageNumberPagination):
@@ -77,13 +75,17 @@ class AppTestCaseViewSet(viewsets.ModelViewSet):
                 status='pending'
             )
             
-            # 调用 Celery 任务异步执行
-            from ..tasks import execute_app_test_task
-            task = execute_app_test_task.delay(execution.id, package_name=package_name)
-            execution.task_id = task.id
+            # 调用 Django-Q2 异步任务
+            from django_q.tasks import async_task
+            task_id = async_task(
+                'apps.app_automation.tasks_async.execute_app_test_task',
+                execution.id,
+                package_name=package_name,
+            )
+            execution.task_id = task_id
             execution.save()
             
-            logger.info(f"测试已提交执行: execution_id={execution.id}, task_id={task.id}")
+            logger.info(f"测试已提交执行: execution_id={execution.id}, task_id={task_id}")
             
             return Response({
                 'success': True,
@@ -97,7 +99,8 @@ class AppTestCaseViewSet(viewsets.ModelViewSet):
                 'message': '设备不存在'
             }, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            logger.error(f"执行测试失败: {str(e)}")
+            logger.error(f"执行测试失败: {str(e)}", exc_info=True)
+            logger.error(f"测试用例ID: {pk}, 设备ID: {device_id}, 错误类型: {type(e).__name__}")
             return Response({
                 'success': False,
                 'message': f'执行测试失败: {str(e)}'

@@ -155,15 +155,11 @@ api.interceptors.response.use(
       return Promise.reject(error)
     }
 
-    // 其他错误处理
+    // 错误处理：只处理 401 和 500 错误，其他错误让各个页面自己处理
     if (error.response?.status === 401) {
       ElMessage.error('登录已过期，请重新登录')
     } else if (error.response?.status >= 500) {
       ElMessage.error('服务器错误，请稍后重试')
-    } else if (error.response?.data?.error) {
-      ElMessage.error(error.response.data.error)
-    } else if (error.response?.data?.detail) {
-      ElMessage.error(error.response.data.detail)
     }
 
     return Promise.reject(error)
