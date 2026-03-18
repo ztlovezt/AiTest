@@ -94,6 +94,7 @@ class UnifiedNotificationConfig(models.Model):
     
     def get_email_recipients(self):
         """获取邮件收件人列表（解析用户ID和邮箱地址）"""
+        import re
         recipients = []
         for item in self.email_recipients:
             if isinstance(item, dict):
@@ -108,7 +109,14 @@ class UnifiedNotificationConfig(models.Model):
                     recipients.append(item.get('email', ''))
             elif isinstance(item, str):
                 if '@' in item:
-                    recipients.append(item)
+                    # 检查是否是 "用户名 (邮箱)" 格式
+                    paren_pattern = r'\(([\w\.-]+@[\w\.-]+\.\w+)\)'
+                    paren_match = re.search(paren_pattern, item)
+                    if paren_match:
+                        recipients.append(paren_match.group(1))
+                    else:
+                        # 直接是邮箱地址
+                        recipients.append(item)
         return list(set(filter(None, recipients)))
     
     def get_webhook_bots(self):
@@ -245,3 +253,22 @@ class NotificationTemplate(models.Model):
             placeholder = f"{{{{{key}}}}}"
             content = content.replace(placeholder, str(value) if value is not None else '')
         return content
+    
+    @classmethod
+    def get_default_template(cls, template_type):
+        """获取默认模板
+        
+        Args:
+            template_type: 模板类型 ('email', 'webhook', 'markdown', 'html', 'text')
+        
+        Returns:
+            NotificationTemplate: 默认模板实例，如果没有则返回None
+        """
+        try:
+            return cls.objects.filter(
+                template_type=template_type,
+                is_default=True,
+                is_active=True
+            ).first()
+        except Exception:
+            return None

@@ -64,6 +64,27 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/reports',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: 'list'
+      },
+      {
+        path: 'list',
+        name: 'ReportList',
+        component: () => import('@/views/reports/ReportList.vue')
+      },
+      {
+        path: 'schedule/:id',
+        name: 'ScheduleReport',
+        component: () => import('@/views/reports/ReportList.vue')
+      }
+    ]
+  },
+  {
     path: '/ai-generation',
     component: Layout,
     meta: { requiresAuth: true },

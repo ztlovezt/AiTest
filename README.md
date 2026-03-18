@@ -564,6 +564,12 @@ python manage.py qcluster
 
 ### 通知模板变量
 
+1. **消息通知模板(非必须)**（只需执行一次）
+```bash
+# 创建消息通知模板
+python manage.py init_notification_templates
+```
+
 在通知模板中可以使用以下变量：
 
 **定时任务相关变量**：

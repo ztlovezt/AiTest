@@ -355,7 +355,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
@@ -389,6 +389,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const showDialog = ref(false)
 const editingTask = ref(null)
+const isInitializingForm = ref(false) // 标记是否正在初始化表单
 
 const filters = reactive({ project: null, task_type: '', schedule_type: '', status: '' })
 const pagination = reactive({ current: 1, size: 10, total: 0 })
@@ -700,6 +701,7 @@ const handleAction = (cmd, task) => {
 
 const editTask = (task) => {
   editingTask.value = task
+  isInitializingForm.value = true // 标记开始初始化表单
   const config = task.config || {}
   
   // 从 cron 表达式中解析时间字段
@@ -796,7 +798,44 @@ const editTask = (task) => {
   })
   
   showDialog.value = true
+  
+  // 等待表单初始化完成后，重置标志
+  nextTick(() => {
+    isInitializingForm.value = false
+  })
 }
+
+// 监听通知类型变化，过滤不匹配的通知配置
+watch([() => form.notify_on_email, () => form.notify_on_webhook], () => {
+  // 如果正在初始化表单，跳过过滤逻辑
+  if (isInitializingForm.value) {
+    return
+  }
+  
+  nextTick(() => {
+    const notifyOnEmail = form.notify_on_email
+    const notifyOnWebhook = form.notify_on_webhook
+    
+    if (!notifyOnEmail && !notifyOnWebhook) {
+      form.notification_config_ids = []
+      return
+    }
+    
+    form.notification_config_ids = form.notification_config_ids.filter(id => {
+      const config = notificationConfigs.value.find(c => c.id === id)
+      if (!config) return false
+      
+      if (notifyOnEmail && notifyOnWebhook) {
+        return true
+      } else if (notifyOnEmail) {
+        return config.config_type === 'email'
+      } else if (notifyOnWebhook) {
+        return config.config_type === 'webhook'
+      }
+      return false
+    })
+  })
+})
 
 const pauseTask = async (task) => {
   try { await toggleSchedulerSchedule(task.id, 'pause'); ElMessage.success('已暂停'); loadTasks() }

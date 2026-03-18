@@ -1,0 +1,58 @@
+{
+  "uuid": "15-1",
+  "name": "get测试",
+  "status": "passed",
+  "stage": "finished",
+  "start": 1773834354083,
+  "stop": 1773834355083,
+  "description": "Method: GET\nURL: https://httpbin.org/get",
+  "historyId": "4-1",
+  "fullName": "demo测试 / get测试",
+  "links": [],
+  "labels": [
+    {
+      "name": "suite",
+      "value": "demo测试"
+    },
+    {
+      "name": "testClass",
+      "value": "demo测试"
+    },
+    {
+      "name": "package",
+      "value": "api_testing"
+    },
+    {
+      "name": "project",
+      "value": "测试demo"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "method",
+      "value": "GET"
+    },
+    {
+      "name": "url",
+      "value": "https://httpbin.org/get"
+    }
+  ],
+  "steps": [
+    {
+      "name": "发送请求",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1773834354083,
+      "stop": 1773834354583,
+      "steps": []
+    },
+    {
+      "name": "验证响应",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1773834354583,
+      "stop": 1773834355083,
+      "steps": []
+    }
+  ]
+}

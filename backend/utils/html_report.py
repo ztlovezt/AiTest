@@ -19,7 +19,8 @@ class HTMLReportGenerator:
         summary: Dict[str, Any],
         test_cases: List[Dict[str, Any]],
         environment: Optional[Dict[str, str]] = None,
-        report_url: Optional[str] = None
+        report_url: Optional[str] = None,
+        execution_time: Optional[str] = None
     ) -> str:
         """生成HTML测试报告
         
@@ -40,12 +41,16 @@ class HTMLReportGenerator:
                 - error_message: 错误信息（可选）
             environment: 环境信息（可选）
             report_url: 完整报告链接（可选）
+            execution_time: 执行时间（可选）
         
         Returns:
             str: HTML报告内容
         """
         pass_rate = self._calculate_pass_rate(summary)
         status_color = self._get_status_color(pass_rate)
+        
+        # 使用传入的执行时间，如果没有则使用当前时间
+        display_time = execution_time if execution_time else self.report_time.strftime('%Y-%m-%d %H:%M:%S')
         
         html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -57,7 +62,7 @@ class HTMLReportGenerator:
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f7fa; color: #333; line-height: 1.6; }}
         .container {{ max-width: 1200px; margin: 0 auto; padding: 20px; }}
-        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+        .header {{ background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
         .header h1 {{ font-size: 24px; margin-bottom: 10px; }}
         .header .meta {{ font-size: 14px; opacity: 0.9; }}
         .summary {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }}
@@ -109,7 +114,7 @@ class HTMLReportGenerator:
             <h1>{title}</h1>
             <div class="meta">
                 <span>测试类型: {test_type}</span> | 
-                <span>执行时间: {self.report_time.strftime('%Y-%m-%d %H:%M:%S')}</span> |
+                <span>执行时间: {display_time}</span> |
                 <span>执行时长: {self._format_duration(summary.get('duration', 0))}</span>
             </div>
         </div>

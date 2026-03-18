@@ -73,11 +73,9 @@ class ModernEmailSender:
             )
             
             email.encoding = 'utf-8'
-            email.content_subtype = 'html'
+            email.content_subtype = 'plain'
             
-            from email.mime.text import MIMEText
-            html_part = MIMEText(html_body, 'html', 'utf-8')
-            email.attach(html_part)
+            email.attach_alternative(html_body, 'text/html')
             
             if attachments:
                 for attachment in attachments:
@@ -87,7 +85,7 @@ class ModernEmailSender:
                         email.attach(
                             attachment.get('filename', 'attachment'),
                             attachment['content'],
-                            attachment.get('mimetype', 'application/octet-stream')
+                            attachment.get('mimetype', 'text/html')
                         )
             
             email.send()

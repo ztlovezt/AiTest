@@ -19,7 +19,7 @@ def schedule_execute_now(request, schedule_id):
     try:
         schedule = Schedule.objects.get(id=schedule_id)
         from apps.scheduler.task_executor import execute_task
-        task_id = execute_task(schedule_id)
+        task_id = execute_task(schedule_id, executed_by_id=request.user.id)
         messages.success(request, f'任务已提交执行: {schedule.name}, task_id={task_id}')
     except Schedule.DoesNotExist:
         messages.error(request, f'任务不存在: {schedule_id}')

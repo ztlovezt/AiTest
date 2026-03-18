@@ -274,12 +274,18 @@ def execute_test_suite(test_suite, environment, executed_by):
         execution.results = results
         execution.save()
         
+        # 计算执行时长
+        duration = 0
+        if execution.start_time and execution.end_time:
+            duration = (execution.end_time - execution.start_time).total_seconds()
+        
         return {
             'success': True,
             'execution_id': execution.id,
             'passed_count': passed_count,
             'failed_count': failed_count,
             'total_count': execution.total_requests,
+            'duration': duration,
             'results': results
         }
         
@@ -385,6 +391,7 @@ def execute_api_request(api_request, environment, executed_by):
             'history_id': history.id,
             'status_code': response.status_code,
             'response_time': response_time,
+            'duration': response_time / 1000 if response_time else 0,
             'assertions_results': assertions_results,
             'response_data': {
                 'headers': dict(response.headers),

@@ -887,6 +887,7 @@ export default {
       selectPlatform: 'Please select platform',
       // Robot config
       botName: 'Robot Name',
+      emailName: 'Email Name',
       enable: 'Enable',
       isDefault: 'Set as Default',
       platformType: 'Platform Type',

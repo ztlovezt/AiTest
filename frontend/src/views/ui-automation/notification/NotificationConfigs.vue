@@ -77,7 +77,10 @@
         >
           <el-row :gutter="20">
             <el-col :span="12">
-              <el-form-item :label="$t('uiAutomation.notification.configs.botName')" prop="name">
+              <el-form-item 
+                :label="formData.config_type === 'email' ? $t('uiAutomation.notification.configs.emailName') : $t('uiAutomation.notification.configs.botName')" 
+                prop="name"
+              >
                 <el-input v-model="formData.name" :placeholder="$t('common.pleaseInput')" />
               </el-form-item>
             </el-col>

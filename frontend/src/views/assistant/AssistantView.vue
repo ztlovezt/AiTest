@@ -580,13 +580,13 @@ onMounted(() => {
     .logo-circle {
       width: 80px;
       height: 80px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 20px;
-      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
       
       .el-icon {
         font-size: 40px;
@@ -733,7 +733,7 @@ onMounted(() => {
         }
         
         .ai-avatar {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
       }
       

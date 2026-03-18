@@ -1597,7 +1597,7 @@ export default {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
   border-radius: 24px 24px 0 0;
 }
 
@@ -1777,10 +1777,10 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
 }
 
 .guide-actions .skip-action {
@@ -2069,14 +2069,14 @@ export default {
 
 .current-mode-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
   margin-left: 8px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
 }
 
 .progress-info {
@@ -2554,10 +2554,10 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
 }
 
 .guide-actions .skip-action {
