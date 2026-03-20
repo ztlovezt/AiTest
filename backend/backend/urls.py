@@ -9,9 +9,11 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from apps.scheduler.admin import schedule_execute_now
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/scheduler/schedule/<int:schedule_id>/execute/', schedule_execute_now, name='admin_schedule_execute'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),

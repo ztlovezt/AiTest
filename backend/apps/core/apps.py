@@ -354,10 +354,16 @@ class CoreConfig(AppConfig):
                     except Exception:
                         pass
                     
+                    # 解析参数并添加手动执行标志和执行用户ID
+                    args = eval(schedule.args or '[]')
+                    kwargs = eval(schedule.kwargs or '{}')
+                    kwargs['is_manual_execution'] = True
+                    kwargs['executed_by_id'] = request.user.id
+                    
                     task_id = async_task(
                         schedule.func, 
-                        *eval(schedule.args or '[]'), 
-                        **eval(schedule.kwargs or '{}'),
+                        *args, 
+                        **kwargs,
                         name=schedule.name,
                         group=group_name
                     )

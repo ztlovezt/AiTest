@@ -2,6 +2,7 @@
 任务执行器模块
 统一管理所有模块的异步任务执行
 """
+import re
 from django.utils import timezone
 from django_q.tasks import async_task
 from django_q.models import Schedule
@@ -18,19 +19,13 @@ def _update_task_stats(schedule_id, success=True):
         logger.error(f"更新任务统计失败: {e}")
 
 
-def _generate_dingtalk_sign(webhook_url, timestamp):
+def _generate_dingtalk_sign(secret, timestamp):
     """生成钉钉机器人签名"""
     try:
         import urllib.parse
         import base64
         import hmac
         import hashlib
-        
-        secret = None
-        if '&secret=' in webhook_url:
-            secret = webhook_url.split('&secret=')[-1].split('&')[0]
-        elif '?secret=' in webhook_url:
-            secret = webhook_url.split('?secret=')[-1].split('&')[0]
         
         if secret:
             string_to_sign = f'{timestamp}\n{secret}'
@@ -45,6 +40,104 @@ def _generate_dingtalk_sign(webhook_url, timestamp):
         return None
 
 
+def _build_wechat_message(rendered_content):
+    """构建企微消息体"""
+    return {
+        "msgtype": "markdown",
+        "markdown": {
+            "content": rendered_content
+        }
+    }
+
+
+def _build_feishu_message(rendered_content, status_text, success):
+    """构建飞书消息体"""
+    return {
+        "msg_type": "interactive",
+        "card": {
+            "elements": [{
+                "tag": "div",
+                "text": {
+                    "content": rendered_content.replace('\n\n', '\n'),
+                    "tag": "lark_md"
+                }
+            }],
+            "header": {
+                "title": {
+                    "content": f"定时任务执行{status_text}",
+                    "tag": "plain_text"
+                },
+                "template": "green" if success else "red"
+            }
+        }
+    }
+
+
+def _build_dingtalk_message(rendered_content, status_text):
+    """构建钉钉消息体"""
+    if not rendered_content:
+        rendered_content = ""
+
+    # 使用正则表达式统一处理所有换行符
+    # 先将 \r\n 和 \r 统一为 \n
+    rendered_content = re.sub(r'\r\n|\r', '\n', rendered_content)
+    # 将连续的多个换行符（2 个以上）替换为两个 \n
+    rendered_content = re.sub(r'\n{2,}', '\n\n', rendered_content)
+    # 将单个换行符替换为两个 \n（钉钉 Markdown 格式要求）
+    rendered_content = re.sub(r'(?<!\n)\n(?!\n)', '\n\n', rendered_content)
+    return {
+            "msgtype": "markdown",
+            "markdown": {
+                "title": f"定时任务执行{status_text}",
+                "text": rendered_content
+            }
+        }
+
+
+def _get_email_template(email_notification_configs, config):
+    """获取邮件模板"""
+    from apps.core.models import NotificationTemplate
+    
+    email_template = None
+    
+    # 优先从邮件通知配置中获取模板
+    logger.info(f"开始从通知配置中查找邮件模板，email_notification_configs 数量: {len(email_notification_configs)}")
+    for idx, email_config in enumerate(email_notification_configs):
+        logger.info(f"检查通知配置 {idx}: id={email_config.id}, name={email_config.name}, config_type={email_config.config_type}")
+        logger.info(f"  notification_template: {email_config.notification_template}")
+        if email_config.notification_template:
+            logger.info(f"  template_type: {email_config.notification_template.template_type}")
+            logger.info(f"  template_type 是否匹配: {email_config.notification_template.template_type in ['html', 'text', 'markdown']}")
+        if email_config.notification_template and email_config.notification_template.template_type in ['html', 'text', 'markdown']:
+            email_template = email_config.notification_template
+            logger.info(f"使用通知配置的邮件模板: {email_template.name}")
+            break
+    else:
+        logger.info(f"通知配置中没有找到有效的模板")
+    
+    # 如果通知配置中没有模板，则从 ScheduleConfig 中获取
+    logger.info(f"检查任务配置的模板: config.notification_template={config.notification_template}")
+    if not email_template and config.notification_template:
+        logger.info(f"  任务配置有模板，检查类型: {config.notification_template.template_type}")
+        logger.info(f"  template_type 是否匹配: {config.notification_template.template_type in ['html', 'text', 'markdown']}")
+        if config.notification_template.template_type in ['html', 'text', 'markdown']:
+            email_template = config.notification_template
+            logger.info(f"使用任务配置的邮件模板: {email_template.name}")
+    else:
+        logger.info(f"任务配置中没有找到有效的模板")
+    
+    # 如果还是没有模板，则查找默认模板
+    if not email_template:
+        logger.info("开始查找默认邮件模板")
+        email_template = NotificationTemplate.get_default_template('html')
+        if email_template:
+            logger.info(f"使用默认邮件模板: {email_template.name}")
+        else:
+            logger.warning("未找到邮件模板，使用默认内容")
+    
+    return email_template
+
+
 def execute_task(schedule_id, is_manual_execution=True, executed_by_id=None):
     """
     执行定时任务
@@ -57,17 +150,19 @@ def execute_task(schedule_id, is_manual_execution=True, executed_by_id=None):
     Returns:
         任务ID
     """
+    logger.info(f"execute_task 被调用: schedule_id={schedule_id}, is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}")
+    
     try:
         schedule = Schedule.objects.get(id=schedule_id)
     except Schedule.DoesNotExist:
         logger.error(f"调度不存在: {schedule_id}")
         return None
     
-    # 检查任务是否被暂停
+    # 检查任务是否被暂停（手动执行时跳过此检查）
     try:
         from apps.scheduler.models import ScheduleConfig
         config = ScheduleConfig.objects.get(schedule__id=schedule_id)
-        if config.status == 'PAUSED' or not schedule.enabled:
+        if not is_manual_execution and (config.status == 'PAUSED' or not schedule.enabled):
             logger.info(f"任务已暂停，跳过执行: {schedule.name}")
             return None
     except ScheduleConfig.DoesNotExist:
@@ -88,7 +183,7 @@ def execute_task(schedule_id, is_manual_execution=True, executed_by_id=None):
     return task_id
 
 
-def execute_scheduled_task(schedule_id, is_manual_execution=False, executed_by_id=None):
+def execute_scheduled_task(*args, **kwargs):
     """
     执行定时任务的入口函数
     根据任务类型调用对应的执行器
@@ -100,7 +195,26 @@ def execute_scheduled_task(schedule_id, is_manual_execution=False, executed_by_i
     """
     from apps.scheduler.models import ScheduleConfig
     
+    schedule_id = None
+    is_manual_execution = False
+    executed_by_id = None
+    
+    logger.info(f"execute_scheduled_task: args={args}, kwargs={kwargs}")
+    
     try:
+        # 优先使用 kwargs 中的参数
+        schedule_id = kwargs.get('schedule_id')
+        is_manual_execution = kwargs.get('is_manual_execution', False)
+        executed_by_id = kwargs.get('executed_by_id', None)
+        
+        # 兼容处理：如果 kwargs 中没有参数，尝试从 args 获取
+        if not schedule_id and args:
+            schedule_id = args[0]
+            if len(args) > 1:
+                is_manual_execution = args[1]
+            if len(args) > 2:
+                executed_by_id = args[2]
+        
         # 兼容处理：如果 schedule_id 是列表，取第一个元素
         if isinstance(schedule_id, list):
             schedule_id = schedule_id[0] if schedule_id else None
@@ -112,8 +226,8 @@ def execute_scheduled_task(schedule_id, is_manual_execution=False, executed_by_i
         schedule = Schedule.objects.get(id=schedule_id)
         config = ScheduleConfig.objects.get(schedule__id=schedule_id)
         
-        # 检查任务是否被暂停
-        if config.status == 'PAUSED' or not schedule.enabled:
+        # 检查任务是否被暂停（手动执行时跳过此检查）
+        if not is_manual_execution and (config.status == 'PAUSED' or not schedule.enabled):
             logger.info(f"任务已暂停，跳过执行: {schedule.name}")
             return
     except (Schedule.DoesNotExist, ScheduleConfig.DoesNotExist) as e:
@@ -121,6 +235,8 @@ def execute_scheduled_task(schedule_id, is_manual_execution=False, executed_by_i
         return
     
     task_type = config.task_type
+    
+    logger.info(f"execute_scheduled_task: task_type={task_type}, is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}")
     
     if task_type == 'API_TEST_SUITE':
         execute_api_test_suite(schedule_id=schedule_id, is_manual_execution=is_manual_execution, executed_by_id=executed_by_id)
@@ -248,6 +364,8 @@ def execute_api_request(*args, **kwargs):
         # 检查是否是立即执行
         is_manual_execution = kwargs.get('is_manual_execution', False)
         executed_by_id = kwargs.get('executed_by_id', None)
+        
+        logger.info(f"execute_api_request: is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}, kwargs={kwargs}")
         
         if config.notify_on_success or config.notify_on_failure:
             send_notification(config, result.get('success', False), result, is_manual_execution, executed_by_id)
@@ -587,16 +705,14 @@ def execute_app_test_cases(*args, **kwargs):
 
 
 def _render_notification_template(template_content, context):
-    """渲染通知模板
-    
-    Args:
-        template_content: 模板内容（Markdown格式）
-        context: 上下文变量字典
-        
-    Returns:
-        str: 渲染后的内容
+    """
+    渲染通知模板
+    :param template_content: 模板内容（Markdown格式）
+    :param context: 上下文变量字典
+    :return: str: 渲染后的内容
     """
     logger.info(f"开始渲染模板，模板内容长度: {len(template_content)}, 上下文变量: {list(context.keys())}")
+    # logger.info(f"模板内容前200字符: {template_content[:200]}")
     content = template_content
     for key, value in context.items():
         placeholder = f"{{{{{key}}}}}"
@@ -605,21 +721,18 @@ def _render_notification_template(template_content, context):
         if old_content != content:
             logger.info(f"  替换变量: {key} = {value}")
     logger.info(f"模板渲染完成，结果长度: {len(content)}")
+    # logger.info(f"渲染后内容前200字符: {content[:200]}")
     return content
 
 
 def _build_notification_context(config, success, result, is_manual_execution=False, executed_by_id=None):
     """构建通知模板上下文变量
-    
-    Args:
-        config: ScheduleConfig 实例
-        success: 是否成功
-        result: 执行结果
-        is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
-        executed_by_id: 执行用户ID（可选，用于记录实际执行者）
-        
-    Returns:
-        dict: 上下文变量字典
+    :param config: ScheduleConfig 实例
+    :param success: 是否成功
+    :param result: 执行结果
+    :param is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
+    :param executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    :return: 上下文变量字典
     """
     status_text = '成功' if success else '失败'
     now = timezone.now()
@@ -689,14 +802,20 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             context['error_cases'] = error_cases
             context['skipped_cases'] = skipped_cases
             
+            # 从 result 中获取 start_time 和 end_time
+            if 'start_time' in result:
+                context['start_time'] = result['start_time']
+            if 'end_time' in result:
+                context['end_time'] = result['end_time']
+            
             if total_cases > 0:
                 pass_rate = (passed_cases / total_cases) * 100
                 context['pass_rate'] = f"{pass_rate:.2f}%"
                 coverage_rate = ((passed_cases + failed_cases) / total_cases) * 100
                 context['coverage_rate'] = f"{coverage_rate:.2f}%"
             else:
-                context['pass_rate'] = "0%"
-                context['coverage_rate'] = "0%"
+                context['pass_rate'] = "0.00%"
+                context['coverage_rate'] = "0.00%"
             
             if 'duration' in result:
                 duration_seconds = float(result['duration'])
@@ -768,9 +887,6 @@ def send_notification(config, success, result, is_manual_execution=False, execut
         is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
         executed_by_id: 执行用户ID（可选，用于记录实际执行者）
     """
-    import requests
-    import json
-    
     if success and not config.notify_on_success:
         return
     if not success and not config.notify_on_failure:
@@ -780,6 +896,7 @@ def send_notification(config, success, result, is_manual_execution=False, execut
     context = _build_notification_context(config, success, result, is_manual_execution, executed_by_id)
     
     logger.info(f"=== 开始发送任务通知 ===")
+    logger.info(f"send_notification: is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}")
     logger.info(f"任务名称: {config.schedule.name if config.schedule else 'Unknown'}")
     logger.info(f"通知设置 - 成功通知: {config.notify_on_success}, 失败通知: {config.notify_on_failure}")
     logger.info(f"通知类型 - 邮件通知: {config.notify_on_email}, Webhook通知: {config.notify_on_webhook}")
@@ -877,79 +994,37 @@ def send_notification(config, success, result, is_manual_execution=False, execut
                     if template_content:
                         rendered_content = _render_notification_template(template_content, context)
                     else:
-                        rendered_content = f"""**定时任务执行{status_text}**
+                        rendered_content = f"""### 定时任务执行{status_text}
+**任务名称**: {context['task_name']}
+**执行状态**: {status_text}
+**执行时间**: {context['execution_time']}
+**任务类型**: {context['task_type']}"""
 
-任务名称: {context['task_name']}
-
-执行状态: {status_text}
-
-执行时间: {context['execution_time']}
-
-任务类型: {context['task_type']}"""
-                    
                     message_data = None
                     if bot_type == 'wechat':
-                        message_data = {
-                            "msgtype": "markdown",
-                            "markdown": {
-                                "content": rendered_content
-                            }
-                        }
+                        message_data = _build_wechat_message(rendered_content)
                     elif bot_type == 'feishu':
-                        message_data = {
-                            "msg_type": "interactive",
-                            "card": {
-                                "elements": [{
-                                    "tag": "div",
-                                    "text": {
-                                        "content": rendered_content.replace('\n\n', '\n'),
-                                        "tag": "lark_md"
-                                    }
-                                }],
-                                "header": {
-                                    "title": {
-                                        "content": f"定时任务执行{status_text}",
-                                        "tag": "plain_text"
-                                    },
-                                    "template": "green" if success else "red"
-                                }
-                            }
-                        }
+                        message_data = _build_feishu_message(rendered_content, status_text, success)
                     elif bot_type == 'dingtalk':
-                        message_data = {
-                            "msgtype": "markdown",
-                            "markdown": {
-                                "title": f"定时任务执行{status_text}",
-                                "text": rendered_content
-                            }
-                        }
+                        message_data = _build_dingtalk_message(rendered_content, status_text)
                         
                         # 钉钉机器人签名验证
                         secret = bot.get('secret')
                         if secret:
                             import time
-                            import hmac
-                            import hashlib
-                            import base64
-                            import urllib.parse
-
                             timestamp = str(round(time.time() * 1000))
-                            string_to_sign = f'{timestamp}\n{secret}'
-                            string_to_sign_enc = string_to_sign.encode('utf-8')
-                            secret_enc = secret.encode('utf-8')
-                            hmac_code = hmac.new(secret_enc, string_to_sign_enc, digestmod=hashlib.sha256).digest()
-                            sign = urllib.parse.quote_plus(base64.b64encode(hmac_code))
-
-                            # 在URL中添加签名参数
-                            if '?' in webhook_url:
-                                webhook_url += f'&timestamp={timestamp}&sign={sign}'
-                            else:
-                                webhook_url += f'?timestamp={timestamp}&sign={sign}'
-
-                            logger.info(f"钉钉机器人签名验证 - 时间戳: {timestamp}")
-                            logger.info(f"签名字符串: {string_to_sign}")
-                            logger.info(f"生成的签名: {sign}")
-                            logger.info(f"最终URL: {webhook_url}")
+                            sign = _generate_dingtalk_sign(secret, timestamp)
+                            
+                            if sign:
+                                # 在URL中添加签名参数
+                                if '?' in webhook_url:
+                                    webhook_url += f'&timestamp={timestamp}&sign={sign}'
+                                else:
+                                    webhook_url += f'?timestamp={timestamp}&sign={sign}'
+                                
+                                logger.info(f"钉钉机器人签名验证 - 时间戳: {timestamp}")
+                                logger.info(f"生成的签名: {sign}")
+                                logger.info(f"最终URL: {webhook_url}")
                         else:
                             logger.info(f"钉钉机器人未配置签名密钥，使用无签名模式")
                     else:
@@ -998,49 +1073,14 @@ def send_notification(config, success, result, is_manual_execution=False, execut
         logger.info(f"邮件附带报告: {email_attach_report}")
         
         # 获取邮件模板
-        email_template = None
-        
-        # 优先从邮件通知配置中获取模板
-        logger.info(f"开始从通知配置中查找邮件模板，email_notification_configs 数量: {len(email_notification_configs)}")
-        for idx, email_config in enumerate(email_notification_configs):
-            logger.info(f"检查通知配置 {idx}: id={email_config.id}, name={email_config.name}, config_type={email_config.config_type}")
-            logger.info(f"  notification_template: {email_config.notification_template}")
-            if email_config.notification_template:
-                logger.info(f"  template_type: {email_config.notification_template.template_type}")
-                logger.info(f"  template_type 是否匹配: {email_config.notification_template.template_type in ['html', 'text', 'markdown']}")
-            if email_config.notification_template and email_config.notification_template.template_type in ['html', 'text', 'markdown']:
-                email_template = email_config.notification_template
-                logger.info(f"使用通知配置的邮件模板: {email_template.name}")
-                break
-        else:
-            logger.info(f"通知配置中没有找到有效的模板")
-        
-        # 如果通知配置中没有模板，则从 ScheduleConfig 中获取
-        logger.info(f"检查任务配置的模板: config.notification_template={config.notification_template}")
-        if not email_template and config.notification_template:
-            logger.info(f"  任务配置有模板，检查类型: {config.notification_template.template_type}")
-            logger.info(f"  template_type 是否匹配: {config.notification_template.template_type in ['html', 'text', 'markdown']}")
-            if config.notification_template.template_type in ['html', 'text', 'markdown']:
-                email_template = config.notification_template
-                logger.info(f"使用任务配置的邮件模板: {email_template.name}")
-        else:
-            logger.info(f"任务配置中没有找到有效的模板")
-        
-        # 如果还是没有模板，则查找默认模板
-        if not email_template:
-            logger.info("开始查找默认邮件模板")
-            email_template = NotificationTemplate.get_default_template('html')
-            if email_template:
-                logger.info(f"使用默认邮件模板: {email_template.name}")
-            else:
-                logger.warning("未找到邮件模板，使用默认内容")
+        email_template = _get_email_template(email_notification_configs, config)
         
         # 渲染邮件主题和内容
         if email_template:
             logger.info(f"使用邮件模板: {email_template.name}, 类型: {email_template.template_type}")
             logger.info(f"模板主题: {email_template.subject}")
             logger.info(f"模板内容长度: {len(email_template.content)}")
-            logger.info(f"模板内容前100字符: {email_template.content[:100]}")
+            # logger.info(f"模板内容前100字符: {email_template.content[:100]}")
             
             # 渲染主题
             subject = email_template.subject or f"[TestHub] {task_type}任务执行{'成功' if success else '失败'}: {task_name}"
@@ -1050,13 +1090,81 @@ def send_notification(config, success, result, is_manual_execution=False, execut
             message = _render_notification_template(email_template.content, context)
             
             # 如果是HTML模板，使用渲染后的内容作为HTML
-            # 如果是Markdown或Text模板，直接使用纯文本（不转换为HTML）
+            # 如果是Markdown或Text模板，添加HTML样式，渲染为卡片效果
             if email_template.template_type == 'html':
                 html_content = message
             else:
-                # Markdown 和 Text 模板不转换为HTML，直接发送纯文本
-                # 这样邮件客户端会正确显示换行和格式
-                html_content = None
+                # Markdown 和 Text 模板：添加HTML样式，渲染为卡片效果
+                # 移除 ** 标记
+                message = message.replace('**', '')
+                # 保留 [链接文本](url) 格式，转换为"链接文本：url"格式
+                message = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'\1：\2', message)
+                
+                # 添加HTML样式，渲染为卡片效果
+                status_color = '#52c41a' if success else '#ff4d4f'
+                status_text = '成功' if success else '失败'
+                
+                html_content = f"""
+                <html>
+                <head>
+                    <style>
+                        body {{
+                            font-family: Arial, sans-serif;
+                            line-height: 1.6;
+                            color: #333;
+                        }}
+                        .card {{
+                            max-width: 600px;
+                            margin: 0 auto;
+                            border: 1px solid #e0e0e0;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                            overflow: hidden;
+                        }}
+                        .header {{
+                            background-color: {status_color};
+                            color: white;
+                            padding: 16px 20px;
+                            font-size: 18px;
+                            font-weight: bold;
+                        }}
+                        .content {{
+                            padding: 20px;
+                            background-color: #f9f9f9;
+                        }}
+                        .content p {{
+                            margin: 8px 0;
+                            color: #333;
+                        }}
+                        .footer {{
+                            padding: 12px 20px;
+                            background-color: #f0f0f0;
+                            border-top: 1px solid #e0e0e0;
+                            text-align: center;
+                            color: #666;
+                            font-size: 12px;
+                        }}
+                        .footer a {{
+                            color: #1890ff;
+                            text-decoration: none;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="card">
+                        <div class="header">
+                            定时任务执行{status_text}
+                        </div>
+                        <div class="content">
+                            {message.replace('\n', '<p>').replace('\n\n', '<br><br>')}
+                        </div>
+                        <div class="footer">
+                            TestHub 测试平台
+                        </div>
+                    </div>
+                </body>
+                </html>
+                """
             
             logger.info(f"邮件模板信息: template_type={email_template.template_type}, has_html_content={html_content is not None}")
             if html_content:

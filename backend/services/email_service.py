@@ -63,7 +63,8 @@ class EmailService:
                     body=message,
                     to=recipients,
                     cc=cc,
-                    bcc=bcc
+                    bcc=bcc,
+                    attachments=attachments
                 )
             
             if result:

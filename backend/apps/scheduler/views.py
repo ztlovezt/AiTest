@@ -300,6 +300,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             args = eval(schedule.args) if schedule.args else []
             kwargs = eval(schedule.kwargs) if schedule.kwargs else {}
             kwargs['is_manual_execution'] = True
+            kwargs['executed_by_id'] = request.user.id
             task_id = async_task(schedule.func, *args, **kwargs)
             
             return Response({
