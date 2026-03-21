@@ -471,62 +471,28 @@
               </button>
             </div>
 
-            <!-- 视图切换按钮 -->
-            <div class="view-toggle" v-if="(axureContentType === 'full' && axureContent) || (axureContentType === 'incremental' && axureIncrementalContent)">
-              <button
-                class="view-toggle-btn"
-                :class="{ active: isEditingAxureContent }"
-                @click="toggleEditMode">
-                {{ isEditingAxureContent ? ($t('requirementAnalysis.previewView') || '预览') : ($t('requirementAnalysis.editView') || '编辑') }}
-              </button>
-              <button
-                v-if="!isEditingAxureContent"
-                class="view-toggle-btn"
-                :class="{ active: axureViewMode === 'source' }"
-                @click="axureViewMode = 'source'">
-                {{ $t('requirementAnalysis.sourceView') || '源码' }}
-              </button>
-              <button
-                v-if="!isEditingAxureContent"
-                class="view-toggle-btn"
-                :class="{ active: axureViewMode === 'preview' }"
-                @click="axureViewMode = 'preview'">
-                {{ $t('requirementAnalysis.previewView') || '预览' }}
-              </button>
-            </div>
-
-            <!-- 内容展示区域 -->
+            <!-- 内容展示区域 - 可编辑的预览模式 -->
             <div class="content-display">
               <div v-if="axureContentType === 'full' && activeTab !== 'flowchart'" class="full-content">
-                <!-- 编辑模式 -->
-                <textarea
-                  v-if="isEditingAxureContent"
-                  v-model="axureContent"
-                  class="edit-textarea"
-                  rows="20"
-                  :placeholder="$t('requirementAnalysis.editContentPlaceholder') || '在此编辑需求内容...'">
-                </textarea>
-                <!-- 源码模式 -->
-                <pre v-else-if="axureViewMode === 'source' && axureContent">{{ axureContent }}</pre>
-                <!-- 预览模式 -->
-                <div v-else-if="axureViewMode === 'preview' && axureContent" class="markdown-preview" v-html="formatMarkdown(axureContent)"></div>
+                <div
+                  v-if="axureContent"
+                  class="markdown-preview editable-preview"
+                  contenteditable="true"
+                  @blur="onAxureContentBlur($event, 'full')"
+                  v-html="formatMarkdown(axureContent)">
+                </div>
                 <div v-else class="no-content">
                   {{ $t('requirementAnalysis.noIncrementalContent') }}
                 </div>
               </div>
               <div v-else-if="axureContentType === 'incremental' && activeTab !== 'flowchart'" class="incremental-content">
-                <!-- 编辑模式 -->
-                <textarea
-                  v-if="isEditingAxureContent"
-                  v-model="axureIncrementalContent"
-                  class="edit-textarea"
-                  rows="20"
-                  :placeholder="$t('requirementAnalysis.editContentPlaceholder') || '在此编辑需求内容...'">
-                </textarea>
-                <!-- 源码模式 -->
-                <pre v-else-if="axureViewMode === 'source' && axureIncrementalContent">{{ axureIncrementalContent }}</pre>
-                <!-- 预览模式 -->
-                <div v-else-if="axureViewMode === 'preview' && axureIncrementalContent" class="markdown-preview" v-html="formatMarkdown(axureIncrementalContent)"></div>
+                <div
+                  v-if="axureIncrementalContent"
+                  class="markdown-preview editable-preview"
+                  contenteditable="true"
+                  @blur="onAxureContentBlur($event, 'incremental')"
+                  v-html="formatMarkdown(axureIncrementalContent)">
+                </div>
                 <div v-else class="no-content">
                   {{ $t('requirementAnalysis.noIncrementalContent') }}
                 </div>
@@ -547,14 +513,6 @@
 
             <!-- 操作按钮 -->
             <div class="axure-actions">
-              <button
-                class="copy-btn"
-                @click="copyIncrementalContent"
-                :disabled="!axureIncrementalContent"
-                :title="$t('requirementAnalysis.copyIncremental')">
-                <el-icon><DocumentCopy /></el-icon>
-                <span>{{ $t('requirementAnalysis.copyIncremental') }}</span>
-              </button>
               <button
                 class="generate-axure-btn"
                 @click="generateFromAxure"
@@ -729,8 +687,6 @@ export default {
       selectedAxureProject: '',
       axureUseAiRefine: true,
       axureContentType: 'full',  // 内容类型：'full' 或 'incremental'
-      axureViewMode: 'preview',  // 视图模式：'source' 或 'preview'
-      isEditingAxureContent: false,  // 是否处于编辑模式
 
       // 生成状态
       isGenerating: false,
@@ -1015,13 +971,26 @@ export default {
       }
     },
 
-    // 切换编辑模式
-    toggleEditMode() {
-      this.isEditingAxureContent = !this.isEditingAxureContent
-      if (!this.isEditingAxureContent) {
-        // 退出编辑模式时，自动切换到预览模式
-        this.axureViewMode = 'preview'
+    // 处理可编辑预览区域的内容变更
+    onAxureContentBlur(event, contentType) {
+      const element = event.target
+      // 获取编辑后的纯文本内容（从HTML转换回markdown格式）
+      const htmlContent = element.innerText
+
+      if (contentType === 'full') {
+        // 更新全量内容 - 将HTML内容转换为markdown格式的纯文本
+        this.axureContent = this.htmlToMarkdown(htmlContent)
+      } else if (contentType === 'incremental') {
+        // 更新增量内容
+        this.axureIncrementalContent = this.htmlToMarkdown(htmlContent)
       }
+    },
+
+    // 简单的HTML转Markdown（用于保存编辑后的内容）
+    htmlToMarkdown(text) {
+      // 由于contenteditable会保留HTML结构，这里直接使用innerText获取的纯文本
+      // 表格内容会以制表符分隔的形式保存
+      return text
     },
 
     async generateFromAxure() {
@@ -2992,6 +2961,63 @@ export default {
   outline: none;
   border-color: #409eff;
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 可编辑预览样式 */
+.editable-preview {
+  outline: none;
+  min-height: 200px;
+  cursor: text;
+}
+
+.editable-preview:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.editable-preview:hover {
+  border-color: #c0c4cc;
+}
+
+/* 可编辑预览样式 */
+.editable-preview {
+  outline: none;
+  min-height: 300px;
+  padding: 15px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: text;
+  transition: border-color 0.3s;
+}
+
+.editable-preview:hover {
+  border-color: #c0c4cc;
+}
+
+.editable-preview:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 可编辑预览中的表格样式 */
+.editable-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  border: 1px solid #333;
+}
+
+.editable-preview th,
+.editable-preview td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.editable-preview th {
+  background: #e8e8e8;
+  font-weight: bold;
 }
 
 .markdown-preview pre {
