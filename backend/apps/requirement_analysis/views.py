@@ -3230,3 +3230,194 @@ class ConfigStatusViewSet(viewsets.ViewSet):
             return Response({
                 'error': f'检查配置状态失败: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ==================== Axure URL 解析 API ====================
+
+@api_view(['POST'])
+@permission_classes([])
+def fetch_axure_url(request):
+    """
+    通过无头浏览器获取Axure在线原型内容
+
+    请求参数:
+    - url: Axure在线原型链接（必需）
+    - use_ai_refine: 是否使用AI结构化（可选，默认True）
+    - content_type: 内容类型 'full' 或 'incremental'（可选，默认'full'）
+
+    返回:
+    - success: 是否成功
+    - full_content: 全量内容（当content_type='full'时返回）
+    - incremental_content: 增量内容（当content_type='incremental'时返回）
+    - message: 结果消息
+    """
+    from .axure_service import axure_service
+
+    url = request.data.get('url')
+    use_ai_refine = request.data.get('use_ai_refine', True)
+    content_type = request.data.get('content_type', 'full')  # 默认返回全量内容
+
+    if not url:
+        return Response(
+            {'error': '请提供Axure链接'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # 验证URL格式
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        return Response(
+            {'error': '请提供有效的URL地址'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        logger.info(f"开始获取Axure在线内容: {url}")
+
+        # 获取Axure内容
+        result = axure_service.fetch_axure_content(url, wait_time=5)
+
+        if not result.get('success'):
+            return Response(
+                {'error': result.get('message', '获取Axure内容失败')},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        full_content = result.get('full_content', '')
+        incremental_content = result.get('incremental_content', '')
+        flowchart_data = result.get('flowchart_data', {})
+        mermaid_code = ''
+
+        # 如果检测到流程图，转换为 Mermaid 代码
+        if flowchart_data.get('has_flowchart'):
+            try:
+                from .axure_service import convert_flowchart_to_mermaid_async
+                import asyncio
+
+                logger.info("[流程图处理] 检测到流程图，开始转换为 Mermaid...")
+
+                # 从 config.yaml 读取 AI 配置
+                from backend.config_loader import config_loader
+                api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+                base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+                model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+
+                # 异步调用转换函数
+                mermaid_code = asyncio.run(convert_flowchart_to_mermaid_async(
+                    flowchart_data,
+                    api_key=api_key,
+                    base_url=base_url,
+                    model_name=model_name
+                ))
+
+                if mermaid_code:
+                    logger.info(f"[流程图处理] Mermaid 转换成功，代码长度: {len(mermaid_code)}")
+                else:
+                    logger.warning("[流程图处理] Mermaid 转换返回空结果")
+
+            except Exception as flowchart_error:
+                logger.warning(f"[流程图处理] Mermaid 转换失败: {flowchart_error}")
+
+        # 如果需要AI结构化，根据content_type选择要处理的内容
+        content_to_refine = full_content if content_type == 'full' else incremental_content
+        if use_ai_refine and content_to_refine:
+            try:
+                # 从 config.yaml 读取 AI 配置
+                from backend.config_loader import config_loader
+                import httpx
+
+                api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+                base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+                model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+                max_tokens = config_loader.get('LLM.REFINER_MAX_TOKENS', 8192)
+                temperature = config_loader.get('LLM.REFINER_TEMPERATURE', 0.3)
+
+                if api_key and base_url:
+                    refine_prompt = f"""请整理以下从Axure原型提取的需求内容，整理为清晰的Markdown格式。
+
+内容：
+{content_to_refine}
+
+要求：
+1. 保持原型的原始结构和层级关系
+2. 表格数据转换为标准Markdown表格格式
+3. 使用合适的标题层级（# ## ###）
+4. 去除冗余信息，保留关键内容
+5. 不要添加原文没有的内容"""
+
+                    messages = [
+                        {"role": "system", "content": "你是一名文档整理专家，擅长将原型内容整理为结构化的需求文档。"},
+                        {"role": "user", "content": refine_prompt}
+                    ]
+
+                    # 构建请求
+                    headers = {
+                        'Authorization': f'Bearer {api_key}',
+                        'Content-Type': 'application/json'
+                    }
+
+                    # 确保 base_url 正确格式
+                    api_url = base_url.rstrip('/')
+                    if not api_url.endswith('/chat/completions'):
+                        api_url = f"{api_url}/chat/completions"
+
+                    data = {
+                        'model': model_name,
+                        'messages': messages,
+                        'max_tokens': max_tokens,
+                        'temperature': temperature,
+                        'stream': False
+                    }
+
+                    # 同步调用 API
+                    try:
+                        with httpx.Client(timeout=120.0) as client:
+                            response = client.post(api_url, headers=headers, json=data)
+
+                            if response.status_code == 200:
+                                result = response.json()
+                                if result and 'choices' in result:
+                                    refined_content = result['choices'][0].get('message', {}).get('content', '')
+                                    if refined_content:
+                                        # 根据content_type更新对应的内容
+                                        if content_type == 'full':
+                                            full_content = refined_content
+                                        else:
+                                            incremental_content = refined_content
+                                        logger.info(f"AI结构化完成，使用模型: {model_name}, 内容长度: {len(refined_content)}")
+                            else:
+                                logger.warning(f"AI结构化API调用失败: {response.status_code} - {response.text}")
+                    except Exception as api_error:
+                        logger.warning(f"AI结构化请求失败: {api_error}")
+                else:
+                    logger.warning("未配置 LLM API Key 或 Base URL，跳过 AI 结构化")
+
+            except Exception as e:
+                logger.warning(f"AI结构化处理失败: {e}")
+
+        # 根据content_type返回对应内容
+        response_data = {
+            'success': True,
+            'page_title': result.get('page_title', ''),
+            'mermaid_code': mermaid_code,
+            'has_flowchart': flowchart_data.get('has_flowchart', False),
+            'content_type': content_type
+        }
+
+        # 根据选择返回对应的内容
+        if content_type == 'incremental':
+            response_data['incremental_content'] = incremental_content
+            response_data['message'] = f'成功获取Axure增量内容: {len(incremental_content) if incremental_content else 0} 字符'
+        else:
+            response_data['full_content'] = full_content
+            response_data['message'] = f'成功获取Axure全量内容: {len(full_content)} 字符'
+
+        return Response(response_data)
+
+    except Exception as e:
+        logger.error(f"获取Axure在线内容失败: {e}")
+        return Response(
+            {'error': f'获取Axure在线内容失败: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

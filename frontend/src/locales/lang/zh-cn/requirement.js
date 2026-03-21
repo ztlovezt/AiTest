@@ -39,6 +39,24 @@ export default {
     documentContent: '文档内容',
     fileSize: '文件大小',
 
+    // Knowledge Base Panel
+    knowledgeBaseTitle: '📚 知识库需求',
+    selectKnowledgeBase: '选择知识库',
+    selectKnowledgeBasePlaceholder: '请选择知识库',
+    searchQuery: '检索内容',
+    searchQueryPlaceholder: '请输入需要检索的需求内容',
+    searchResults: '检索结果',
+    sourceDocument: '来源文档',
+    noSearchResults: '请先进行知识库检索',
+    generateFromKnowledge: '使用检索结果生成测试用例',
+    knowledgeBaseRequirement: '知识库需求检索',
+    searching: '检索中...',
+
+    // Axure Panel
+    axureTitle: '🎨 Axure解析需求',
+    axureComingSoon: '敬请期待',
+    axureDescription: '支持从Axure原型页面自动解析需求并生成测试用例',
+
     // Generation Options
     generationOptions: '⚙️ 生成选项',
     testCaseCount: '期望生成测试用例数量',
@@ -52,6 +70,49 @@ export default {
 
     // Divider
     dividerOr: '或',
+
+    // Knowledge Base Panel
+    knowledgeBaseTitle: '📚 知识库需求',
+    selectKnowledgeBase: '选择知识库',
+    selectKnowledgeBasePlaceholder: '请选择知识库',
+    searchQuery: '检索内容',
+    searchQueryPlaceholder: '请输入需要检索的需求内容',
+    searchResults: '检索结果',
+    sourceDocument: '来源文档',
+    noSearchResults: '请先进行知识库检索',
+    generateFromKnowledge: '使用检索结果生成测试用例',
+    knowledgeBaseRequirement: '知识库需求检索',
+    searching: '检索中...',
+
+    // Axure Panel
+    axureTitle: 'Axure解析需求',
+    axureComingSoon: '功能开发中，敬请期待',
+    axureDescription: '支持从Axure原型页面自动解析需求并生成测试用例',
+    axureOnlineLink: 'Axure在线链接',
+    axureUrlPlaceholder: '请输入Axure原型在线链接，如: https://tenxun-axure.tenxun.cn/xxxxx/start.html',
+    pleaseEnterAxureUrl: '请输入Axure在线链接',
+    confirmParse: '确定解析',
+    parsing: '解析中...',
+    parseResult: '解析结果',
+    parseFailed: '解析失败',
+    parseSuccess: '解析成功',
+    noAxureContent: '请先解析Axure链接获取需求内容',
+    generateFromAxure: '使用解析内容生成测试用例',
+    axureRequirement: 'Axure原型需求',
+    useAiRefine: '使用AI结构化整理需求内容',
+    contentType: '内容类型',
+    fullContent: '全量内容',
+    incrementalContent: '增量内容',
+    flowchartContent: '流程图',
+    noIncrementalContent: '无增量内容',
+    noFlowchartContent: '未检测到流程图',
+    sourceView: '源码',
+    previewView: '预览',
+    editView: '编辑',
+    editContentPlaceholder: '在此编辑需求内容...',
+    copyIncremental: '复制增量内容',
+    copyIncrementalSuccess: '增量内容已复制到剪贴板',
+    copyIncrementalFailed: '复制失败',
 
     // Messages
     titleRequired: '请输入需求标题',

@@ -34,8 +34,13 @@ export default {
   fetchFailed: 'Failed to fetch data',
   saveFailed: 'Failed to save',
   createSuccess: 'Created successfully',
+  createFailed: 'Failed to create',
   updateSuccess: 'Updated successfully',
+  updateFailed: 'Failed to update',
   deleteSuccess: 'Deleted successfully',
   deleteFailed: 'Failed to delete',
-  deleteConfirm: 'Are you sure you want to delete? This action cannot be undone.'
+  deleteConfirm: 'Are you sure you want to delete? This action cannot be undone.',
+  index: 'Index',
+  actions: 'Actions',
+  detail: 'Detail'
 }

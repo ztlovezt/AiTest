@@ -18,6 +18,7 @@ export default {
     intelligentCaseGeneration: 'Intelligent Case Generation',
     aiCaseGeneration: 'AI Case Generation',
     aiGeneratedTestcases: 'AI Generated Test Cases',
+    knowledgeBase: 'Knowledge Base',
     promptConfig: 'Prompt Configuration',
     projectManagement: 'Project Management',
     testCases: 'Test Cases',

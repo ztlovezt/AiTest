@@ -16,6 +16,7 @@ import configurationModule from './configuration.js'
 import assistantModule from './assistant.js'
 import dataFactoryModule from './data-factory.js'
 import notificationModule from './notification.js'
+import knowledgeBaseModule from './knowledge-base.js'
 
 export default {
   // 模块化导出
@@ -73,6 +74,9 @@ export default {
 
   // 通知模块
   notification: notificationModule,
+
+  // 知识库模块
+  knowledgeBase: knowledgeBaseModule.knowledgeBase,
 
   // Element Plus 语言包
   ...elementZhCn

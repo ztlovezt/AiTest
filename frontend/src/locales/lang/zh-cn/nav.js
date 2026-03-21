@@ -18,6 +18,7 @@ export default {
     intelligentCaseGeneration: '智能用例生成',
     aiCaseGeneration: 'AI用例生成',
     aiGeneratedTestcases: 'AI生成用例记录',
+    knowledgeBase: '知识库管理',
     promptConfig: '提示词配置',
     projectManagement: '项目管理',
     testCases: '测试用例',

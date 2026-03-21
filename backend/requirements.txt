@@ -47,3 +47,5 @@ rest_framework_simplejwt==0.0.2
 selenium==4.41.0
 webdriver_manager==4.0.2
 whitenoise==6.12.0
+playwright==1.57.0
+playwright-stealth==2.0.0
