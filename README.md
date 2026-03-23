@@ -200,8 +200,7 @@ testhub_platform/
 │   │       ├── run_all_scheduled_tasks.py  # 统一定时任务调度器
 │   │       ├── init_locator_strategies.py  # 初始化元素定位策略
 │   │       ├── download_webdrivers.py      # 下载浏览器驱动
-│   │       ├── init_system_tasks.py        # 初始化系统定时任务
-│   │       └── aggregate_performance_stats.py  # 聚合性能统计数据
+│   │       └── init_system_tasks.py        # 初始化系统定时任务
 │   ├── requirement_analysis/       # AI 需求分析
 │   ├── assistant/                  # 智能助手
 │   ├── api_testing/                # API 测试
@@ -538,12 +537,6 @@ python manage.py migrate data_factory
 ```bash
 # 初始化系统定时任务（首次部署时执行）
 python manage.py init_system_tasks
-
-# 手动聚合指定日期的性能统计数据
-python manage.py aggregate_performance_stats --date 2026-03-07
-
-# 手动聚合昨天的性能统计数据
-python manage.py aggregate_performance_stats
 ```
 
 ### 定时任务管理
@@ -563,6 +556,12 @@ python manage.py qcluster
 | 实时性能统计聚合 | 每 30 分钟 | 聚合当天的实时性能数据 |
 
 ### 通知模板变量
+
+1. **消息通知模板(非必须)**（只需执行一次）
+```bash
+# 创建消息通知模板
+python manage.py init_notification_templates
+```
 
 在通知模板中可以使用以下变量：
 

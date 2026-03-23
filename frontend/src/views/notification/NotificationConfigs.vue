@@ -432,7 +432,7 @@ export default {
 }
 
 .page-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   padding: 32px 24px;
   border-radius: 12px;
@@ -490,18 +490,18 @@ export default {
 }
 
 .notification-tabs :deep(.el-tabs__item:hover) {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.08);
+  color: #4facfe;
+  background: rgba(79, 172, 254, 0.08);
 }
 
 .notification-tabs :deep(.el-tabs__item.is-active) {
-  color: #667eea;
+  color: #4facfe;
   background: white;
-  border-bottom: 2px solid #667eea;
+  border-bottom: 2px solid #4facfe;
 }
 
 .notification-tabs :deep(.el-tabs__active-bar) {
-  background-color: #667eea;
+  background-color: #4facfe;
   height: 2px;
 }
 

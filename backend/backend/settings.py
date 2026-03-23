@@ -20,7 +20,7 @@ SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
 DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bool)
 
 # 后端服务端口（开发环境）
-BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8000), cast=int)
+BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8001), cast=int)
 
 # 前端服务URL（用于生成报告链接等）
 FRONTEND_URL = config('FRONTEND_URL', default=config_loader.get('server.frontend_url', 'http://localhost:3000'))
@@ -65,6 +65,7 @@ LOCAL_APPS = [
     'apps.versions',
     'apps.assistant',
     'apps.requirement_analysis',
+    'apps.knowledge_base.apps.KnowledgeBaseConfig',
     'apps.api_testing',
     'apps.ui_automation.apps.UiAutomationConfig',
     'apps.app_automation.apps.AppAutomationConfig',

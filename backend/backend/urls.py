@@ -9,6 +9,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from apps.scheduler.admin import schedule_execute_now
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,6 +34,7 @@ urlpatterns = [
     path('api/core/', include('apps.core.urls')),
     path('api/scheduler/', include('apps.scheduler.urls')),
     path('api/data-factory/', include('apps.data_factory.urls')),
+    path('api/knowledge-base/', include('apps.knowledge_base.urls')),
 ]
 
 # 媒体文件服务（不受DEBUG限制）

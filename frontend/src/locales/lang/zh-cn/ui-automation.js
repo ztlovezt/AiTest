@@ -905,6 +905,7 @@ export default {
       selectPlatform: '请选择平台',
       // 机器人配置
       botName: '机器人名称',
+      emailName: '邮件名称',
       enable: '启用',
       isDefault: '设为默认',
       platformType: '平台类型',

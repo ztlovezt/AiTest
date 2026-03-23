@@ -395,7 +395,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Plus, ArrowDown } from '@element-plus/icons-vue'
@@ -471,6 +471,7 @@ const submitting = ref(false)
 const showCreateDialog = ref(false)
 const showLogsDialog = ref(false)
 const editingTask = ref(null)
+const isInitializingForm = ref(false) // 标记是否正在初始化表单
 
 // 筛选条件
 const filters = reactive({
@@ -990,6 +991,7 @@ const handleTaskAction = (command, task) => {
 // 编辑任务
 const editTask = (task) => {
   editingTask.value = task
+  isInitializingForm.value = true // 标记开始初始化表单
   const config = task.config || {}
   
   // 从 cron 表达式中解析时间字段
@@ -1088,15 +1090,52 @@ const editTask = (task) => {
     test_suite: config.task_type === 'API_TEST_SUITE' ? config.target_id : null,
     api_request: config.task_type === 'API_REQUEST' ? config.target_id : null,
     environment: config.environment_id || null,
+    notification_config_ids: task.config?.notification_config_ids || [],
     notify_on_success: config.notify_on_success ?? false,
     notify_on_failure: config.notify_on_failure ?? true,
     notify_on_email: config.notify_on_email ?? false,
-    notify_on_webhook: config.notify_on_webhook ?? false,
-    notification_config_ids: task.config?.notification_config_ids || []
+    notify_on_webhook: config.notify_on_webhook ?? false
   })
   
   showCreateDialog.value = true
+  
+  // 等待表单初始化完成后，重置标志
+  nextTick(() => {
+    isInitializingForm.value = false
+  })
 }
+
+// 监听通知类型变化，过滤不匹配的通知配置
+watch([() => taskForm.notify_on_email, () => taskForm.notify_on_webhook], () => {
+  // 如果正在初始化表单，跳过过滤逻辑
+  if (isInitializingForm.value) {
+    return
+  }
+  
+  nextTick(() => {
+    const notifyOnEmail = taskForm.notify_on_email
+    const notifyOnWebhook = taskForm.notify_on_webhook
+    
+    if (!notifyOnEmail && !notifyOnWebhook) {
+      taskForm.notification_config_ids = []
+      return
+    }
+    
+    taskForm.notification_config_ids = taskForm.notification_config_ids.filter(id => {
+      const config = notificationConfigs.value.find(c => c.id === id)
+      if (!config) return false
+      
+      if (notifyOnEmail && notifyOnWebhook) {
+        return true
+      } else if (notifyOnEmail) {
+        return config.config_type === 'email'
+      } else if (notifyOnWebhook) {
+        return config.config_type === 'webhook'
+      }
+      return false
+    })
+  })
+})
 
 // 暂停任务
 const pauseTask = async (task) => {

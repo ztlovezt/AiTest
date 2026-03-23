@@ -61,6 +61,8 @@ class AppTestExecutor:
         logger.info(f"开始执行APP测试: test_case_id={test_case_id}, device={device_id}")
 
         original_cwd = os.getcwd()
+        start_time = datetime.now()
+        start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
 
         try:
             # 切换到项目根目录
@@ -157,12 +159,17 @@ class AppTestExecutor:
             # 生成 Allure 报告
             report_path = self._generate_allure_report(execution_id)
 
+            end_time = datetime.now()
+            end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
+
             return {
                 'success': exit_code == 0,
                 'exit_code': exit_code,
                 'report_path': report_path,
                 'test_results': test_results,
                 'output': '\n'.join(output_lines[-50:]),  # 保留最后50行输出
+                'start_time': start_time_str,
+                'end_time': end_time_str,
             }
 
         except Exception as e:

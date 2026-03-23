@@ -23,6 +23,10 @@
               <el-menu-item index="/ai-generation/requirement-analysis">{{ $t('menu.aiCaseGeneration') }}</el-menu-item>
               <el-menu-item index="/ai-generation/generated-testcases">{{ $t('menu.aiGeneratedTestcases') }}</el-menu-item>
             </el-sub-menu>
+            <el-menu-item index="/ai-generation/knowledge-base">
+              <el-icon><FolderOpened /></el-icon>
+              <span>{{ $t('menu.knowledgeBase') }}</span>
+            </el-menu-item>
             <el-menu-item index="/ai-generation/projects">
               <el-icon><Folder /></el-icon>
               <span>{{ $t('menu.projectManagement') }}</span>
@@ -387,6 +391,7 @@ const breadcrumbTitle = computed(() => {
     // AI用例生成
     '/ai-generation/requirement-analysis': t('menu.aiCaseGeneration'),
     '/ai-generation/generated-testcases': t('menu.aiGeneratedTestcases'),
+    '/ai-generation/knowledge-base': t('menu.knowledgeBase'),
     '/ai-generation/projects': t('menu.projectManagement'),
     '/ai-generation/testcases': t('menu.testCases'),
     '/ai-generation/versions': t('menu.versionManagement'),

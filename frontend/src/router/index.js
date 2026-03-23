@@ -64,6 +64,27 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/reports',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: 'list'
+      },
+      {
+        path: 'list',
+        name: 'ReportList',
+        component: () => import('@/views/reports/ReportList.vue')
+      },
+      {
+        path: 'schedule/:id',
+        name: 'ScheduleReport',
+        component: () => import('@/views/reports/ReportList.vue')
+      }
+    ]
+  },
+  {
     path: '/ai-generation',
     component: Layout,
     meta: { requiresAuth: true },
@@ -161,6 +182,16 @@ const routes = [
         path: 'generated-testcases',
         name: 'GeneratedTestCases',
         component: () => import('@/views/requirement-analysis/GeneratedTestCaseList.vue')
+      },
+      {
+        path: 'knowledge-base',
+        name: 'KnowledgeBase',
+        component: () => import('@/views/knowledge-base/KnowledgeBaseList.vue')
+      },
+      {
+        path: 'knowledge-base/:id',
+        name: 'KnowledgeBaseDetail',
+        component: () => import('@/views/knowledge-base/KnowledgeBaseDetail.vue')
       },
       {
         path: 'task-detail/:taskId',
