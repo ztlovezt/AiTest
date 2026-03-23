@@ -11,7 +11,8 @@ export default {
     uiAutomation: 'UI Automation Testing',
     appAutomation: 'APP Automation Testing',
     aiIntelligentMode: 'AI Intelligent Mode',
-    configuration: 'Configuration Center'
+    configuration: 'Configuration Center',
+    unifiedProject: 'Unified Project Management'
   },
   menu: {
     // AI Test Case Generation
@@ -29,35 +30,35 @@ export default {
     testReport: 'Report Management',
 
     // API Testing
-    dashboard: 'Dashboard',
+    apiDashboard: 'Dashboard',
     interfaceManagement: 'Interface Management',
     automationTesting: 'Automation Testing',
     requestHistory: 'Request History',
     environmentManagement: 'Environment Management',
-    scheduledTasks: 'Scheduled Tasks',
-    notificationList: 'Notification List',
+    apiScheduledTasks: 'Scheduled Tasks',
+    apiNotificationList: 'Notification List',
 
     // UI Automation
-    elementManagement: 'Element Management',
-    caseManagement: 'Case Management',
+    uiElementManagement: 'Element Management',
+    uiCaseManagement: 'Case Management',
     scriptGeneration: 'Script Generation',
     scriptList: 'Script List',
     suiteManagement: 'Suite Management',
-    executionRecords: 'Execution Records',
+    uiExecutionRecords: 'Execution Records',
 
     // APP Automation
-    dashboard: 'Dashboard',
-    projectManagement: 'Project Management',
-    deviceManagement: 'Device Management',
-    packageManagement: 'Package Management',
-    elementManagement: 'Element Management',
-    sceneBuilder: 'Scene Builder',
-    testCases: 'Test Cases',
-    testSuites: 'Test Suites',
-    executionRecords: 'Execution Records',
-    testReports: 'Report Management',
-    scheduledTasks: 'Scheduled Tasks',
-    notificationList: 'Notification List',
+    appDashboard: 'Dashboard',
+    appProjectManagement: 'Project Management',
+    appDeviceManagement: 'Device Management',
+    appPackageManagement: 'Package Management',
+    appElementManagement: 'Element Management',
+    appSceneBuilder: 'Scene Builder',
+    appTestCases: 'Test Cases',
+    appTestSuites: 'Test Suites',
+    appExecutionRecords: 'Execution Records',
+    appTestReports: 'Report Management',
+    appScheduledTasks: 'Scheduled Tasks',
+    appNotificationList: 'Notification List',
 
     // AI Intelligent Mode
     aiIntelligentTesting: 'AI Intelligent Testing',
@@ -67,12 +68,13 @@ export default {
     // Configuration Center
     aiCaseGenerationConfig: 'AI Test Case Config',
     aiModelConfig: 'Model Config',
-    promptConfig: 'Prompt Configuration',
+    promptConfigCenter: 'Prompt Configuration',
     generationConfig: 'Generation Behavior Config',
     uiEnvConfig: 'UI Environment Configuration',
     appEnvConfig: 'APP Environment Configuration',
     aiModeConfig: 'AI Mode Configuration',
     scheduledTaskConfig: 'Notification Configuration',
-    difyConfig: 'Dify Configuration'
+    difyConfig: 'Dify Configuration',
+    projectManagementCenter: 'Project Management Center'
   }
 }

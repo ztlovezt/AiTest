@@ -33,6 +33,7 @@ export default {
   // 项目模块
   project: projectModule.project,
   home: projectModule.home,
+  unifiedProject: projectModule.unifiedProject,
   profile: projectModule.profile,
 
   // 测试用例模块

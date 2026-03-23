@@ -154,6 +154,11 @@ class UiProjectViewSet(viewsets.ModelViewSet):
     def perform_destroy(self, instance):
         # 记录操作（在删除前记录）
         log_operation('delete', 'project', instance.id, instance.name, self.request.user)
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            instance.unified_meta_project = None
+            instance.save()
+            meta_project.delete()
         instance.delete()
 
 

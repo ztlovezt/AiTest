@@ -9,19 +9,29 @@ User = get_user_model()
 class UiProject(models.Model):
     """UI自动化测试项目模型"""
     STATUS_CHOICES = [
-        ('NOT_STARTED', '未开始'),
-        ('IN_PROGRESS', '进行中'),
-        ('COMPLETED', '已结束'),
+        ('not_started', '未开始'),
+        ('active', '进行中'),
+        ('paused', '暂停'),
+        ('completed', '已完成'),
+        ('archived', '已归档'),
     ]
 
     name = models.CharField(max_length=200, verbose_name='项目名称')
     description = models.TextField(blank=True, verbose_name='项目描述')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, verbose_name='项目状态', default='IN_PROGRESS')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, verbose_name='项目状态', default='not_started')
     base_url = models.URLField(verbose_name='基础URL')
     start_date = models.DateField(null=True, blank=True, verbose_name='开始日期')
     end_date = models.DateField(null=True, blank=True, verbose_name='结束日期')
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owned_ui_projects', verbose_name='负责人')
     members = models.ManyToManyField(User, blank=True, related_name='ui_projects', verbose_name='团队成员')
+    unified_meta_project = models.OneToOneField(
+        'unified_projects.MetaProject',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ui_project',
+        verbose_name='统一元项目'
+    )
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 

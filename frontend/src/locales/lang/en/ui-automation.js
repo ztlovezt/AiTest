@@ -114,8 +114,11 @@ export default {
   // Status
   status: {
     notStarted: 'Not Started',
-    inProgress: 'In Progress',
+    active: 'Active',
+    paused: 'Paused',
     completed: 'Completed',
+    archived: 'Archived',
+    inProgress: 'In Progress',
     pending: 'Pending',
     running: 'Running',
     passed: 'Passed',

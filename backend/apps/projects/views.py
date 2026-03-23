@@ -40,6 +40,28 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ProjectSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        self._sync_to_unified(instance)
+
+    def perform_destroy(self, instance):
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            instance.unified_meta_project = None
+            instance.save()
+            meta_project.delete()
+        instance.delete()
+
+    def _sync_to_unified(self, project):
+        from apps.unified_projects.models import MetaProject, ProjectModule
+
+        if project.unified_meta_project:
+            meta_project = project.unified_meta_project
+            meta_project.name = project.name
+            meta_project.description = project.description
+            meta_project.status = project.status
+            meta_project.save()
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def add_project_member(request, project_id):

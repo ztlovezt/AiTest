@@ -101,8 +101,11 @@ export default {
     nameLengthValidation: '长度在 2 到 200 个字符',
     status: {
       notStarted: '未开始',
-      inProgress: '进行中',
-      completed: '已结束'
+      active: '进行中',
+      paused: '暂停',
+      completed: '已完成',
+      archived: '已归档',
+      inProgress: '进行中'
     }
   },
 
@@ -275,8 +278,6 @@ export default {
     deleteFailed: '删除失败',
     confirmDeleteCategoryMessage: '确定要删除分类',
     canOnlyDeleteEmptyDirectory: '只能删除空目录',
-    confirmDelete: '删除确认',
-    delete: '删除',
     elementImage: '元素图片',
     currentImage: '当前图片',
     loadFailed: '加载失败',
@@ -332,12 +333,12 @@ export default {
     viewReport: '查看报告',
     stop: '停止',
     viewAll: '查看全部',
-    status: {
+    statusMap: {
       draft: '草稿',
       active: '激活',
       archived: '已归档'
     },
-    priority: {
+    priorityMap: {
       low: '低',
       medium: '中',
       high: '高'
@@ -437,8 +438,6 @@ export default {
     apiTemplate: 'API 示例模板',
     use: '使用',
     noTemplates: '暂无模板',
-    importPackage: '导入组件包',
-    exportPackage: '导出组件包',
     overwriteExistingComponents: '覆盖已有组件',
     selectFile: '选择文件',
     selectPackage: '选择组件包',

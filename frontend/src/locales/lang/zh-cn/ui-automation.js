@@ -114,8 +114,11 @@ export default {
   // 状态
   status: {
     notStarted: '未开始',
+    active: '进行中',
+    paused: '暂停',
+    completed: '已完成',
+    archived: '已归档',
     inProgress: '进行中',
-    completed: '已结束',
     pending: '待执行',
     running: '执行中',
     passed: '通过',

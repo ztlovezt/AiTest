@@ -122,8 +122,11 @@ export default {
     inputProjectDesc: 'Enter project description',
     status: {
       notStarted: 'Not Started',
-      inProgress: 'In Progress',
-      completed: 'Completed'
+      active: 'Active',
+      paused: 'Paused',
+      completed: 'Completed',
+      archived: 'Archived',
+      inProgress: 'In Progress'
     },
     confirmDelete: 'Are you sure to delete project "{name}"?',
     none: 'None',

@@ -71,6 +71,7 @@ LOCAL_APPS = [
     'apps.scheduler',
     'apps.core',
     'apps.data_factory',
+    'apps.unified_projects.apps.UnifiedProjectsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

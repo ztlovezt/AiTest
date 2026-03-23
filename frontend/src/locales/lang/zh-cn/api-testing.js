@@ -122,8 +122,11 @@ export default {
     inputProjectDesc: '请输入项目描述',
     status: {
       notStarted: '未开始',
-      inProgress: '进行中',
-      completed: '已结束'
+      active: '进行中',
+      paused: '暂停',
+      completed: '已完成',
+      archived: '已归档',
+      inProgress: '进行中'
     },
     confirmDelete: '确定要删除项目 "{name}" 吗？',
     none: '无',
@@ -718,16 +721,7 @@ export default {
         encryption: '加密',
         datetime: '时间日期',
         crontab: 'Crontab',
-        uncategorized: '未分类',
-        // 中文分类名称映射（用于API返回的中文分类名称）
-        '随机数': '随机数',
-        '测试数据': '测试数据',
-        '字符串': '字符串',
-        '编码转换': '编码转换',
-        '加密': '加密',
-        '时间日期': '时间日期',
-        'crontab': 'Crontab',
-        '未分类': '未分类'
+        uncategorized: '未分类'
       },
       // 变量描述
       variables: {

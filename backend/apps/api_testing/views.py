@@ -87,7 +87,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
-        """删除项目时记录日志"""
+        """删除项目时记录日志并同步删除元项目"""
         log_operation(
             operation_type='delete',
             resource_type='project',
@@ -95,6 +95,11 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             resource_name=instance.name,
             user=self.request.user
         )
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            instance.unified_meta_project = None
+            instance.save()
+            meta_project.delete()
         instance.delete()
 
     @action(detail=False, methods=['post'], url_path='create-sample')
@@ -108,7 +113,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             name='宠物店API示例项目',
             description='参考Apifox宠物店示例，包含用户管理、宠物管理、订单管理等接口',
             project_type='HTTP',
-            status='IN_PROGRESS',
+            status='active',
             owner=request.user,
             start_date=datetime.now().date()
         )

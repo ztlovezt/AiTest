@@ -44,3 +44,11 @@ class AppProjectViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    def perform_destroy(self, instance):
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            instance.unified_meta_project = None
+            instance.save()
+            meta_project.delete()
+        instance.delete()

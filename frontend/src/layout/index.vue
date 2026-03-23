@@ -2,7 +2,7 @@
   <div class="layout">
     <el-container>
       <!-- 侧边栏 -->
-      <el-aside width="240px">
+      <el-aside width="240px" v-if="currentModule !== 'meta-projects'">
         <div class="logo" @click="router.push('/home')" style="cursor: pointer;">
           <img :src="logoImage" alt="TestHub" class="logo-img" />
         </div>
@@ -146,51 +146,51 @@
           <template v-else-if="currentModule === 'app-automation'">
             <el-menu-item index="/app-automation/dashboard">
               <el-icon><Odometer /></el-icon>
-              <span>{{ $t('menu.dashboard') }}</span>
+              <span>{{ $t('menu.appDashboard') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/projects">
               <el-icon><Folder /></el-icon>
-              <span>{{ $t('menu.projectManagement') }}</span>
+              <span>{{ $t('menu.appProjectManagement') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/devices">
               <el-icon><Cellphone /></el-icon>
-              <span>{{ $t('menu.deviceManagement') }}</span>
+              <span>{{ $t('menu.appDeviceManagement') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/packages">
               <el-icon><Collection /></el-icon>
-              <span>{{ $t('menu.packageManagement') }}</span>
+              <span>{{ $t('menu.appPackageManagement') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/elements">
               <el-icon><Aim /></el-icon>
-              <span>{{ $t('menu.elementManagement') }}</span>
+              <span>{{ $t('menu.appElementManagement') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/scene-builder">
               <el-icon><Connection /></el-icon>
-              <span>{{ $t('menu.sceneBuilder') }}</span>
+              <span>{{ $t('menu.appSceneBuilder') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/test-cases">
               <el-icon><Document /></el-icon>
-              <span>{{ $t('menu.testCases') }}</span>
+              <span>{{ $t('menu.appTestCases') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/test-suites">
               <el-icon><FolderOpened /></el-icon>
-              <span>{{ $t('menu.testSuites') }}</span>
+              <span>{{ $t('menu.appTestSuites') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/executions">
               <el-icon><VideoPlay /></el-icon>
-              <span>{{ $t('menu.executionRecords') }}</span>
+              <span>{{ $t('menu.appExecutionRecords') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/reports">
               <el-icon><DataAnalysis /></el-icon>
-              <span>{{ $t('menu.testReports') }}</span>
+              <span>{{ $t('menu.appTestReports') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/scheduled-tasks">
               <el-icon><AlarmClock /></el-icon>
-              <span>{{ $t('menu.scheduledTasks') }}</span>
+              <span>{{ $t('menu.appScheduledTasks') }}</span>
             </el-menu-item>
             <el-menu-item index="/app-automation/notification-logs">
               <el-icon><Bell /></el-icon>
-              <span>{{ $t('menu.notificationList') }}</span>
+              <span>{{ $t('menu.appNotificationList') }}</span>
             </el-menu-item>
           </template>
 
@@ -208,11 +208,17 @@
               <el-icon><Timer /></el-icon>
               <span>{{ $t('menu.aiExecutionRecords') }}</span>
             </el-menu-item>
-
           </template>
+
+          <!-- 项目管理模块 - 不显示侧边菜单 -->
+
 
           <!-- 配置中心模块菜单 -->
           <template v-else-if="currentModule === 'configuration'">
+            <el-menu-item index="/configuration/project-center">
+              <el-icon><Folder /></el-icon>
+              <span>{{ $t('menu.projectManagementCenter') }}</span>
+            </el-menu-item>
             <el-sub-menu index="ai-case-generation">
               <template #title>
                 <el-icon><MagicStick /></el-icon>
@@ -224,7 +230,7 @@
               </el-menu-item>
               <el-menu-item index="/configuration/prompt-config">
                 <el-icon><Edit /></el-icon>
-                <span>{{ $t('menu.promptConfig') }}</span>
+                <span>{{ $t('menu.promptConfigCenter') }}</span>
               </el-menu-item>
               <el-menu-item index="/configuration/generation-config">
                 <el-icon><Setting /></el-icon>
@@ -256,14 +262,15 @@
       </el-aside>
 
       <!-- 主体内容 -->
-      <el-container>
-        <!-- 顶部导航 -->
-        <el-header height="60px">
-          <div class="header-content">
+    <el-container>
+      <!-- 顶部导航 -->
+      <el-header height="60px" :class="{ 'header-full': currentModule === 'meta-projects' }">
+        <div class="header-content">
             <div class="header-left">
               <el-breadcrumb separator="/">
                 <el-breadcrumb-item :to="{ path: '/home' }">{{ $t('nav.home') }}</el-breadcrumb-item>
                 <el-breadcrumb-item v-if="moduleName">{{ moduleName }}</el-breadcrumb-item>
+                <el-breadcrumb-item v-if="showProjectManagement">{{ $t('menu.projectManagementCenter') }}</el-breadcrumb-item>
                 <el-breadcrumb-item>{{ breadcrumbTitle }}</el-breadcrumb-item>
               </el-breadcrumb>
             </div>
@@ -358,6 +365,7 @@ const currentModule = computed(() => {
   if (route.path.startsWith('/app-automation')) return 'app-automation'
   if (route.path.startsWith('/ai-intelligent-mode')) return 'ai-intelligent-mode'
   if (route.path.startsWith('/configuration')) return 'configuration'
+  if (route.path.startsWith('/meta-projects')) return 'meta-projects'
   return ''
 })
 
@@ -368,7 +376,8 @@ const moduleName = computed(() => {
     'ui-automation': t('modules.uiAutomation'),
     'app-automation': t('modules.appAutomation'),
     'ai-intelligent-mode': t('modules.aiIntelligentMode'),
-    'configuration': t('modules.configuration')
+    'configuration': t('modules.configuration'),
+    'meta-projects': t('modules.unifiedProject')
   }
   return map[currentModule.value] || ''
 })
@@ -412,18 +421,18 @@ const breadcrumbTitle = computed(() => {
     '/ui-automation/notification-logs': t('menu.notificationList'),
 
     // APP自动化测试
-    '/app-automation/dashboard': t('menu.dashboard'),
-    '/app-automation/projects': t('menu.projectManagement'),
-    '/app-automation/devices': t('menu.deviceManagement'),
-    '/app-automation/packages': t('menu.packageManagement'),
-    '/app-automation/elements': t('menu.elementManagement'),
-    '/app-automation/scene-builder': t('menu.sceneBuilder'),
-    '/app-automation/test-cases': t('menu.testCases'),
-    '/app-automation/test-suites': t('menu.testSuites'),
-    '/app-automation/scheduled-tasks': t('menu.scheduledTasks'),
-    '/app-automation/notification-logs': t('menu.notificationList'),
-    '/app-automation/executions': t('menu.executionRecords'),
-    '/app-automation/reports': t('menu.testReports'),
+    '/app-automation/dashboard': t('menu.appDashboard'),
+    '/app-automation/projects': t('menu.appProjectManagement'),
+    '/app-automation/devices': t('menu.appDeviceManagement'),
+    '/app-automation/packages': t('menu.appPackageManagement'),
+    '/app-automation/elements': t('menu.appElementManagement'),
+    '/app-automation/scene-builder': t('menu.appSceneBuilder'),
+    '/app-automation/test-cases': t('menu.appTestCases'),
+    '/app-automation/test-suites': t('menu.appTestSuites'),
+    '/app-automation/scheduled-tasks': t('menu.appScheduledTasks'),
+    '/app-automation/notification-logs': t('menu.appNotificationList'),
+    '/app-automation/executions': t('menu.appExecutionRecords'),
+    '/app-automation/reports': t('menu.appTestReports'),
 
     // AI 智能模式
     '/ai-intelligent-mode/testing': t('menu.aiIntelligentTesting'),
@@ -431,18 +440,35 @@ const breadcrumbTitle = computed(() => {
     '/ai-intelligent-mode/execution-records': t('menu.aiExecutionRecords'),
 
 
+    // 项目管理
+    '/configuration/project-center': t('menu.projectManagementCenter'),
+    '/configuration/meta-projects': t('menu.projectManagementCenter'),
+
     // 配置中心
     '/configuration/ai-model': t('menu.aiModelConfig'),
-    '/configuration/prompt-config': t('menu.promptConfig'),
+    '/configuration/prompt-config': t('menu.promptConfigCenter'),
     '/configuration/generation-config': t('menu.generationConfig'),
     '/configuration/ui-env': t('menu.uiEnvConfig'),
     '/configuration/ai-mode': t('menu.aiModeConfig'),
     '/configuration/scheduled-task': t('menu.scheduledTaskConfig'),
     '/configuration/dify': t('menu.difyConfig'),
-    
+
     '/profile': t('nav.profile')
   }
-  return routeMap[route.path] || route.meta.title || ''
+
+  const path = route.path
+  if (path.match(/^\/configuration\/meta-projects\/[^/]+$/)) {
+    const queryName = route.query.name
+    const nameStr = Array.isArray(queryName) ? queryName[0] : queryName
+    const projectName = nameStr ? decodeURIComponent(nameStr) : sessionStorage.getItem('metaProjectName')
+    return projectName || t('menu.projectManagementCenter')
+  }
+
+  return routeMap[path] || route.meta.title || ''
+})
+
+const showProjectManagement = computed(() => {
+  return route.path.startsWith('/configuration/meta-projects/')
 })
 
 const handleCommand = (command) => {
@@ -541,12 +567,19 @@ const handleCommand = (command) => {
   flex-shrink: 0;
   height: 60px !important;
 
+  &.header-full {
+    .header-content {
+      max-width: 100%;
+    }
+  }
+
   .header-content {
     height: 100%;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 20px;
+    max-width: calc(100% - 240px);
   }
 
   .header-left {

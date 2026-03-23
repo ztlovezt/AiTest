@@ -349,7 +349,17 @@ const routes = [
         children: [
           {
             path: '',
-            redirect: 'ai-model'
+            redirect: 'project-center'
+          },
+          {
+            path: 'project-center',
+            name: 'ConfigProjectCenter',
+            component: () => import('@/views/unified-projects/Dashboard.vue')
+          },
+          {
+            path: 'meta-projects/:id',
+            name: 'ConfigMetaProjectDetail',
+            component: () => import('@/views/unified-projects/UnifiedProjectDetail.vue')
           },
           {
             path: 'ai-model',
@@ -465,6 +475,31 @@ const routes = [
         path: 'reports',
         name: 'AppReportList',
         component: () => import('@/views/app-automation/reports/ReportList.vue')
+      }
+    ]
+  },
+  {
+    path: '/meta-projects',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: 'dashboard'
+      },
+      {
+        path: 'dashboard',
+        name: 'UnifiedProjectDashboard',
+        component: () => import('@/views/unified-projects/Dashboard.vue')
+      },
+      {
+        path: 'list',
+        redirect: 'dashboard'
+      },
+      {
+        path: ':id',
+        name: 'UnifiedProjectDetail',
+        component: () => import('@/views/unified-projects/UnifiedProjectDetail.vue')
       }
     ]
   }
