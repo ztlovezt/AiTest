@@ -100,14 +100,11 @@ class ProjectModuleSerializer(serializers.ModelSerializer):
         }
 
     def _get_app_stats(self, project):
-        from apps.app_automation.models import ElementGroup, Element, TestScript, PageObject, TestCase
+        from apps.app_automation.models import AppElement, AppTestCase
 
         return {
-            'element_group_count': ElementGroup.objects.filter(project=project).count(),
-            'element_count': Element.objects.filter(project=project).count(),
-            'script_count': TestScript.objects.filter(project=project).count(),
-            'page_object_count': PageObject.objects.filter(project=project).count(),
-            'test_case_count': TestCase.objects.filter(project=project).count(),
+            'element_count': AppElement.objects.filter(project=project).count(),
+            'test_case_count': AppTestCase.objects.filter(project=project).count(),
         }
 
 

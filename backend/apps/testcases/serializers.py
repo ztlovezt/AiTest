@@ -1,7 +1,16 @@
 from rest_framework import serializers
-from .models import TestCase, TestCaseStep, TestCaseAttachment, TestCaseComment
+from .models import TestCase, TestCaseStep, TestCaseAttachment, TestCaseComment, TestCaseImportRecord
 from apps.users.serializers import UserSerializer
 from apps.versions.serializers import VersionSimpleSerializer
+
+class TestCaseImportRecordSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    project_name = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model = TestCaseImportRecord
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'started_at', 'finished_at']
 
 class TestCaseStepSerializer(serializers.ModelSerializer):
     class Meta:

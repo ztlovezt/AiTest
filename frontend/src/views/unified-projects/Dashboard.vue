@@ -9,7 +9,7 @@
     </div>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :xs="12" :sm="12" :md="6">
+      <el-col :xs="12" :sm="12" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-blue">
             <el-icon :size="24"><Folder /></el-icon>
@@ -20,7 +20,18 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
+      <el-col :xs="12" :sm="12" :md="5" :lg="5">
+        <div class="stat-card">
+          <div class="stat-icon bg-cyan">
+            <el-icon :size="24"><MagicStick /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.aiProjects }}</div>
+            <div class="stat-label">AI用例生成项目</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :xs="12" :sm="12" :md="5" :lg="5">
         <div class="stat-card">
           <div class="stat-icon bg-green">
             <el-icon :size="24"><Link /></el-icon>
@@ -31,7 +42,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
+      <el-col :xs="12" :sm="12" :md="5" :lg="5">
         <div class="stat-card">
           <div class="stat-icon bg-purple">
             <el-icon :size="24"><Monitor /></el-icon>
@@ -42,7 +53,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="6">
+      <el-col :xs="12" :sm="12" :md="5" :lg="5">
         <div class="stat-card">
           <div class="stat-icon bg-orange">
             <el-icon :size="24"><Cellphone /></el-icon>
@@ -166,7 +177,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Folder, Link, Monitor, Cellphone, Plus, Search } from '@element-plus/icons-vue'
+import { Folder, Link, Monitor, Cellphone, Plus, Search, MagicStick } from '@element-plus/icons-vue'
 import { getMetaProjects, deleteMetaProject } from '@/api/unified-projects'
 import UnifiedProjectDialog from '@/components/project/UnifiedProjectDialog.vue'
 import dayjs from 'dayjs'
@@ -184,6 +195,7 @@ const total = ref(0)
 
 const stats = ref({
   totalProjects: 0,
+  aiProjects: 0,
   apiProjects: 0,
   uiProjects: 0,
   appProjects: 0
@@ -229,16 +241,18 @@ const loadStats = async () => {
     const allProjects = response.data.results || []
     stats.value.totalProjects = response.data.count || 0
 
-    let apiCount = 0, uiCount = 0, appCount = 0
+    let aiCount = 0, apiCount = 0, uiCount = 0, appCount = 0
     allProjects.forEach(p => {
       if (p.modules) {
         p.modules.forEach(m => {
+          if (m.module_type === 'AI') aiCount++
           if (m.module_type === 'API') apiCount++
           if (m.module_type === 'UI') uiCount++
           if (m.module_type === 'APP') appCount++
         })
       }
     })
+    stats.value.aiProjects = aiCount
     stats.value.apiProjects = apiCount
     stats.value.uiProjects = uiCount
     stats.value.appProjects = appCount
@@ -388,6 +402,7 @@ onMounted(() => {
 }
 
 .stat-icon.bg-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-icon.bg-cyan { background: linear-gradient(135deg, #00bcd4 0%, #80deea 100%); }
 .stat-icon.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
 .stat-icon.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
 .stat-icon.bg-orange { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }

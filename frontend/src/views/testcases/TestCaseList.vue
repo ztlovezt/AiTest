@@ -3,6 +3,14 @@
     <div class="page-header">
       <h1 class="page-title">{{ $t('testcase.title') }}</h1>
       <div class="header-actions">
+        <el-button type="info" @click="showImportRecords = true">
+          <el-icon><List /></el-icon>
+          导入记录
+        </el-button>
+        <el-button type="warning" @click="showImportDialog = true">
+          <el-icon><Upload /></el-icon>
+          导入用例
+        </el-button>
         <el-button
           v-if="selectedTestCases.length > 0"
           type="danger"
@@ -137,6 +145,98 @@
         />
       </div>
     </div>
+
+    <!-- 导入用例弹窗 -->
+    <el-dialog v-model="showImportDialog" title="导入用例" width="500px">
+      <div style="margin-bottom: 20px;">
+        <el-alert title="请先下载模板，按模板格式填写后再上传导入" type="info" :closable="false" show-icon />
+      </div>
+      <el-form label-width="100px">
+        <el-form-item label="所属项目" required>
+          <el-select v-model="importForm.projectId" placeholder="请选择项目" style="width: 100%;">
+            <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="用例文件" required>
+          <el-upload
+            class="upload-demo"
+            action="#"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :limit="1"
+            accept=".xlsx,.xls"
+            :file-list="importForm.fileList"
+          >
+            <template #trigger>
+              <el-button type="primary">选择文件</el-button>
+            </template>
+            <template #tip>
+              <div class="el-upload__tip">只能上传 excel 文件</div>
+            </template>
+          </el-upload>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="downloadImportTemplate" type="success" plain style="float: left;">下载模板</el-button>
+          <el-button @click="showImportDialog = false">取消</el-button>
+          <el-button type="primary" @click="submitImport" :loading="importing">开始导入</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 导入记录弹窗 -->
+    <el-dialog v-model="showImportRecords" title="导入记录" width="900px" @open="fetchImportRecords">
+      <el-table :data="importRecords" v-loading="loadingRecords" style="width: 100%" max-height="400">
+        <el-table-column prop="file_name" label="文件名" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="project_name" label="所属项目" width="120" />
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getImportStatusType(row.status)">{{ getImportStatusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="进度" width="120">
+          <template #default="{ row }">
+            <el-progress :percentage="row.progress" :status="row.status === 'success' ? 'success' : (row.status === 'failed' ? 'exception' : '')" />
+          </template>
+        </el-table-column>
+        <el-table-column label="结果统计" width="180">
+          <template #default="{ row }">
+            <span style="color: #67C23A">成功: {{ row.success_count }}</span> | 
+            <span style="color: #F56C6C">失败: {{ row.failed_count }}</span> | 
+            <span style="color: #E6A23C">重复: {{ row.duplicate_count }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="created_at" label="导入时间" width="160">
+          <template #default="{ row }">
+            {{ formatDate(row.created_at) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="100" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.error_summary && row.error_summary.length > 0" type="primary" link @click="showErrorDetail(row)">查看明细</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="pagination-container" style="margin-top: 15px;">
+        <el-pagination
+          v-model:current-page="recordPage"
+          v-model:page-size="recordPageSize"
+          :total="recordTotal"
+          layout="total, prev, pager, next"
+          @current-change="handleRecordPageChange"
+        />
+      </div>
+    </el-dialog>
+
+    <!-- 错误明细弹窗 -->
+    <el-dialog v-model="showErrorDialog" title="导入错误明细" width="600px" append-to-body>
+      <el-table :data="currentErrorDetail" style="width: 100%" max-height="300">
+        <el-table-column prop="row" label="Excel行号" width="100" />
+        <el-table-column prop="error" label="错误原因" />
+      </el-table>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -145,7 +245,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, Download, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Download, Delete, Upload, List } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 import * as XLSX from 'xlsx'
@@ -478,10 +578,163 @@ const fetchProjects = async () => {
   }
 }
 
+// ========== 导入相关逻辑 ==========
+const showImportDialog = ref(false)
+const showImportRecords = ref(false)
+const showErrorDialog = ref(false)
+const importing = ref(false)
+const loadingRecords = ref(false)
+const importRecords = ref([])
+const recordPage = ref(1)
+const recordPageSize = ref(10)
+const recordTotal = ref(0)
+const currentErrorDetail = ref([])
+let pollingTimer = null
+
+const importForm = ref({
+  projectId: '',
+  fileList: []
+})
+
+const handleFileChange = (file, fileList) => {
+  importForm.value.fileList = fileList.slice(-1)
+}
+
+const downloadImportTemplate = async () => {
+  try {
+    const response = await api.get('/testcases/import/template/', { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([response.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'testcase_import_template.xlsx')
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    ElMessage.error('下载模板失败')
+  }
+}
+
+const submitImport = async () => {
+  if (!importForm.value.projectId) {
+    ElMessage.warning('请选择所属项目')
+    return
+  }
+  if (importForm.value.fileList.length === 0) {
+    ElMessage.warning('请选择要导入的Excel文件')
+    return
+  }
+
+  importing.value = true
+  const formData = new FormData()
+  formData.append('project_id', importForm.value.projectId)
+  formData.append('file', importForm.value.fileList[0].raw)
+
+  try {
+    await api.post('/testcases/import/upload/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    ElMessage.success('文件上传成功，正在后台导入')
+    showImportDialog.value = false
+    importForm.value.fileList = []
+    fetchTestCases()
+    showImportRecords.value = true
+  } catch (error) {
+    ElMessage.error('导入失败：' + (error.response?.data?.error || error.message))
+  } finally {
+    importing.value = false
+  }
+}
+
+const fetchImportRecords = async () => {
+  loadingRecords.value = true
+  try {
+    const response = await api.get('/testcases/import/records/', {
+      params: {
+        page: recordPage.value,
+        page_size: recordPageSize.value
+      }
+    })
+    importRecords.value = response.data.results || []
+    recordTotal.value = response.data.count || 0
+
+    // 如果有正在运行的任务，启动轮询
+    const hasRunning = importRecords.value.some(r => r.status === 'pending' || r.status === 'running')
+    if (hasRunning && !pollingTimer) {
+      pollingTimer = setInterval(() => {
+        fetchImportRecordsSilent()
+      }, 3000)
+    } else if (!hasRunning && pollingTimer) {
+      clearInterval(pollingTimer)
+      pollingTimer = null
+      fetchTestCases() // 导入完成后刷新列表
+    }
+  } catch (error) {
+    console.error('获取导入记录失败:', error)
+  } finally {
+    loadingRecords.value = false
+  }
+}
+
+const fetchImportRecordsSilent = async () => {
+  try {
+    const response = await api.get('/testcases/import/records/', {
+      params: {
+        page: recordPage.value,
+        page_size: recordPageSize.value
+      }
+    })
+    importRecords.value = response.data.results || []
+    recordTotal.value = response.data.count || 0
+    
+    const hasRunning = importRecords.value.some(r => r.status === 'pending' || r.status === 'running')
+    if (!hasRunning && pollingTimer) {
+      clearInterval(pollingTimer)
+      pollingTimer = null
+      fetchTestCases()
+    }
+  } catch (error) {
+    console.error('轮询导入记录失败:', error)
+  }
+}
+
+const handleRecordPageChange = () => {
+  fetchImportRecords()
+}
+
+const getImportStatusType = (status) => {
+  const map = {
+    pending: 'info',
+    running: 'warning',
+    success: 'success',
+    partial: 'warning',
+    failed: 'danger'
+  }
+  return map[status] || 'info'
+}
+
+const getImportStatusText = (status) => {
+  const map = {
+    pending: '排队中',
+    running: '导入中',
+    success: '成功',
+    partial: '部分成功',
+    failed: '失败'
+  }
+  return map[status] || status
+}
+
+const showErrorDetail = (row) => {
+  currentErrorDetail.value = row.error_summary || []
+  showErrorDialog.value = true
+}
+
 onMounted(() => {
   fetchProjects()
   fetchTestCases()
 })
+
 </script>
 
 <style lang="scss" scoped>

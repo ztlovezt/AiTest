@@ -92,3 +92,45 @@ class TestCaseComment(models.Model):
         verbose_name = '测试用例评论'
         verbose_name_plural = '测试用例评论'
         ordering = ['-created_at']
+
+class TestCaseImportRecord(models.Model):
+    """测试用例导入记录模型"""
+    STATUS_CHOICES = [
+        ('pending', '排队中'),
+        ('running', '导入中'),
+        ('success', '导入成功'),
+        ('partial', '部分成功'),
+        ('failed', '导入失败'),
+    ]
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='import_records', verbose_name='所属项目')
+    file_name = models.CharField(max_length=255, verbose_name='文件名称')
+    file = models.FileField(upload_to='testcase_imports/', verbose_name='文件', null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name='状态')
+    progress = models.IntegerField(default=0, verbose_name='进度(%)')
+    
+    # 统计信息
+    total_rows = models.IntegerField(default=0, verbose_name='总行数')
+    success_count = models.IntegerField(default=0, verbose_name='成功数量')
+    failed_count = models.IntegerField(default=0, verbose_name='失败数量')
+    duplicate_count = models.IntegerField(default=0, verbose_name='重复数量')
+    
+    # 详情数据
+    error_summary = models.JSONField(default=list, blank=True, verbose_name='错误明细', help_text='记录格式如 [{"row": 2, "error": "用例名称为空"}]')
+    logs = models.TextField(blank=True, verbose_name='执行日志')
+    
+    task_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='关联的异步任务ID')
+    
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='操作人')
+    started_at = models.DateTimeField(null=True, blank=True, verbose_name='开始时间')
+    finished_at = models.DateTimeField(null=True, blank=True, verbose_name='完成时间')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        db_table = 'testcase_import_records'
+        verbose_name = '测试用例导入记录'
+        verbose_name_plural = '测试用例导入记录'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.file_name} - {self.get_status_display()}"
