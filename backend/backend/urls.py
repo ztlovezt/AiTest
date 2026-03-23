@@ -12,6 +12,7 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/scheduler/schedule/<int:schedule_id>/execute/', schedule_execute_now, name='admin_schedule_execute'),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
@@ -32,6 +33,7 @@ urlpatterns = [
     path('api/core/', include('apps.core.urls')),
     path('api/scheduler/', include('apps.scheduler.urls')),
     path('api/data-factory/', include('apps.data_factory.urls')),
+    path('api/knowledge-base/', include('apps.knowledge_base.urls')),
     path('api/meta-projects/', include('apps.unified_projects.urls')),
 ]
 
