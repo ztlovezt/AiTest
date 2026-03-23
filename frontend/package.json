@@ -1,6 +1,6 @@
 {
   "name": "testhub-frontend",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "TestHub前端应用",
   "scripts": {
     "dev": "node scripts/sync-config.js && vite",
