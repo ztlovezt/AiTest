@@ -33,8 +33,6 @@ urlpatterns = [
     path('api/core/', include('apps.core.urls')),
     path('api/scheduler/', include('apps.scheduler.urls')),
     path('api/data-factory/', include('apps.data_factory.urls')),
-    path('api/knowledge-base/', include('apps.knowledge_base.urls')),
-    path('api/meta-projects/', include('apps.unified_projects.urls')),
 ]
 
 # 媒体文件服务（不受DEBUG限制）
