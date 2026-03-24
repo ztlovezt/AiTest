@@ -17,14 +17,11 @@ class CoreConfig(AppConfig):
         """应用启动时执行"""
         logger.info('Core应用启动，开始加载配置...')
         
-        # 导入配置管理器
-        from .management.commands.load_config import config_manager
-        
-        # 加载配置
-        config_manager.load_config()
+        # 导入配置加载器
+        from backend.config_loader import config_loader
         
         # 记录配置信息
-        server_config = config_manager.get_server_config()
+        server_config = config_loader.get_server_config()
         import json
         logger.info(f'服务器配置已加载: {json.dumps(server_config, ensure_ascii=False)}')
         

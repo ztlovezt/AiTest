@@ -200,6 +200,10 @@
 
           <!-- AI 智能模式模块菜单 -->
           <template v-else-if="currentModule === 'ai-intelligent-mode'">
+            <el-menu-item index="/ai-intelligent-mode/projects">
+              <el-icon><Folder /></el-icon>
+              <span>{{ $t('menu.aiProjectManagement') }}</span>
+            </el-menu-item>
             <el-menu-item index="/ai-intelligent-mode/testing">
               <el-icon><VideoPlay /></el-icon>
               <span>{{ $t('menu.aiIntelligentTesting') }}</span>
@@ -441,6 +445,7 @@ const breadcrumbTitle = computed(() => {
 
     // AI 智能模式
     '/ai-intelligent-mode/testing': t('menu.aiIntelligentTesting'),
+    '/ai-intelligent-mode/projects': t('menu.aiProjectManagement'),
     '/ai-intelligent-mode/cases': t('menu.aiCaseManagement'),
     '/ai-intelligent-mode/execution-records': t('menu.aiExecutionRecords'),
 

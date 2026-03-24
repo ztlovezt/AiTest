@@ -3,6 +3,9 @@
     <div class="page-header">
       <h1 class="page-title">{{ $t('uiAutomation.ai.executionRecords.title') }}</h1>
       <div class="header-actions">
+        <el-select v-model="projectId" :placeholder="$t('uiAutomation.project.selectProject')" style="width: 200px; margin-right: 15px" @change="onProjectChange">
+          <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
+        </el-select>
         <el-button
           type="danger"
           :disabled="selectedRecords.length === 0"
@@ -131,10 +134,12 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete } from '@element-plus/icons-vue'
-import { getAIExecutionRecords, batchDeleteAIExecutionRecords } from '@/api/ui_automation'
+import { getAIExecutionRecords, batchDeleteAIExecutionRecords, getAiProjects } from '@/api/ai-testing'
 import AIExecutionReport from './AIExecutionReport.vue'
 
 const { t } = useI18n()
+const projects = ref([])
+const projectId = ref('')
 const records = ref([])
 const loading = ref(false)
 const total = ref(0)
@@ -155,11 +160,34 @@ const tableRef = ref(null)
 const showReportDialog = ref(false)
 const reportRecordId = ref(null)
 
+// 加载项目列表
+const loadProjects = async () => {
+  try {
+    const response = await getAiProjects({ page_size: 100 })
+    projects.value = response.data.results || response.data
+  } catch (error) {
+    ElMessage.error('获取项目列表失败')
+    console.error('获取项目列表失败:', error)
+  }
+}
+
+const onProjectChange = () => {
+  pagination.currentPage = 1
+  loadRecords()
+}
+
 // 加载记录列表
 const loadRecords = async () => {
+  if (!projectId.value) {
+    records.value = []
+    total.value = 0
+    return
+  }
+
   loading.value = true
   try {
     const response = await getAIExecutionRecords({
+      project: projectId.value,
       page: pagination.currentPage,
       page_size: pagination.pageSize
     })
@@ -308,8 +336,12 @@ const startPolling = () => {
   }, 5000)
 }
 
-onMounted(() => {
-  loadRecords()
+onMounted(async () => {
+  await loadProjects()
+  if (projects.value.length > 0) {
+    projectId.value = projects.value[0].id
+    loadRecords()
+  }
   startPolling()
 })
 

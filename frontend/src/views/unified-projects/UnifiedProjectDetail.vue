@@ -89,7 +89,7 @@
     </div>
 
     <UnifiedProjectDialog
-      v-model="dialogVisible"
+      v-model:visible="dialogVisible"
       :is-edit="true"
       :project-data="project"
       @success="loadProjectDetail"

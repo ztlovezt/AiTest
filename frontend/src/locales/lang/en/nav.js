@@ -63,6 +63,7 @@ export default {
 
     // AI Intelligent Mode
     aiIntelligentTesting: 'AI Intelligent Testing',
+    aiProjectManagement: 'AI Project Management',
     aiCaseManagement: 'AI Case Management',
     aiExecutionRecords: 'AI Test Reports',
 

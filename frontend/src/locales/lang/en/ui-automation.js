@@ -651,6 +651,23 @@ export default {
         exportSuccess: 'PDF report exported successfully!',
         exportFailed: 'Failed to export report, please try again later'
       }
+    },
+    // AI Project Management
+    project: {
+      title: 'AI Test Project Management',
+      newProject: 'New AI Project',
+      descPlaceholder: 'Please enter project description (optional)',
+      createProject: 'Create AI Project',
+      editProject: 'Edit AI Project',
+      messages: {
+        loadFailed: 'Failed to load project list',
+        createSuccess: 'Created successfully',
+        createFailed: 'Failed to create project',
+        updateSuccess: 'Updated successfully',
+        updateFailed: 'Failed to update project',
+        deleteSuccess: 'Deleted successfully',
+        deleteFailed: 'Failed to delete project'
+      }
     }
   },
 

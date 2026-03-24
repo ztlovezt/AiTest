@@ -651,6 +651,23 @@ export default {
         exportSuccess: 'PDF报告导出成功！',
         exportFailed: '导出报告失败，请稍后重试'
       }
+    },
+    // AI项目管理
+    project: {
+      title: 'AI 测试项目管理',
+      newProject: '新建AI项目',
+      descPlaceholder: '请输入项目描述（可选）',
+      createProject: '创建AI项目',
+      editProject: '编辑AI项目',
+      messages: {
+        loadFailed: '获取项目列表失败',
+        createSuccess: '创建成功',
+        createFailed: '创建项目失败',
+        updateSuccess: '更新成功',
+        updateFailed: '更新项目失败',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除项目失败'
+      }
     }
   },
 

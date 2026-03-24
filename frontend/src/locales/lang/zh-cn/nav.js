@@ -63,6 +63,7 @@ export default {
 
     // AI智能模式
     aiIntelligentTesting: 'AI 智能测试',
+    aiProjectManagement: 'AI 项目管理',
     aiCaseManagement: 'AI 用例管理',
     aiExecutionRecords: 'AI测试报告',
 

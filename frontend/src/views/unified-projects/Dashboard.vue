@@ -9,7 +9,7 @@
     </div>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :xs="12" :sm="12" :md="4" :lg="4">
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-blue">
             <el-icon :size="24"><Folder /></el-icon>
@@ -20,10 +20,10 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="5" :lg="5">
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
-          <div class="stat-icon bg-cyan">
-            <el-icon :size="24"><MagicStick /></el-icon>
+          <div class="stat-icon bg-purple" style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
+            <el-icon :size="24"><Tickets /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiProjects }}</div>
@@ -31,7 +31,18 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="5" :lg="5">
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
+        <div class="stat-card ai-test-card">
+          <div class="stat-icon bg-cyan">
+            <el-icon :size="24"><MagicStick /></el-icon>
+          </div>
+          <div class="stat-info">
+            <div class="stat-value">{{ stats.aiTestProjects }}</div>
+            <div class="stat-label">AI智能测试项目</div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-green">
             <el-icon :size="24"><Link /></el-icon>
@@ -42,7 +53,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="5" :lg="5">
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-purple">
             <el-icon :size="24"><Monitor /></el-icon>
@@ -53,7 +64,7 @@
           </div>
         </div>
       </el-col>
-      <el-col :xs="12" :sm="12" :md="5" :lg="5">
+      <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-orange">
             <el-icon :size="24"><Cellphone /></el-icon>
@@ -107,7 +118,7 @@
         <el-empty :description="$t('unifiedProject.dashboard.noProjects')" />
       </div>
       <el-table v-else :data="projects" style="width: 100%">
-        <el-table-column prop="name" :label="$t('unifiedProject.projectName')" min-width="200">
+        <el-table-column prop="name" :label="$t('unifiedProject.projectName')" min-width="150" width="150">
           <template #default="{ row }">
             <el-link @click="goToDetail(row.id, row.name)" type="primary">
               {{ row.name }}
@@ -122,7 +133,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('unifiedProject.modules')" width="150">
+        <el-table-column :label="$t('unifiedProject.modules')" min-width="200" width="250">
           <template #default="{ row }">
             <el-tag
               v-for="module in row.modules"
@@ -196,6 +207,7 @@ const total = ref(0)
 const stats = ref({
   totalProjects: 0,
   aiProjects: 0,
+  aiTestProjects: 0,
   apiProjects: 0,
   uiProjects: 0,
   appProjects: 0
@@ -239,20 +251,22 @@ const loadStats = async () => {
   try {
     const response = await getMetaProjects({ page_size: 1000 })
     const allProjects = response.data.results || []
-    stats.value.totalProjects = response.data.count || 0
-
-    let aiCount = 0, apiCount = 0, uiCount = 0, appCount = 0
+    let aiCount = 0, aiTestCount = 0, apiCount = 0, uiCount = 0, appCount = 0
     allProjects.forEach(p => {
       if (p.modules) {
         p.modules.forEach(m => {
           if (m.module_type === 'AI') aiCount++
+          if (m.module_type === 'AI_TEST') aiTestCount++
           if (m.module_type === 'API') apiCount++
           if (m.module_type === 'UI') uiCount++
           if (m.module_type === 'APP') appCount++
         })
       }
     })
+    
+    stats.value.totalProjects = aiCount + aiTestCount + apiCount + uiCount + appCount
     stats.value.aiProjects = aiCount
+    stats.value.aiTestProjects = aiTestCount
     stats.value.apiProjects = apiCount
     stats.value.uiProjects = uiCount
     stats.value.appProjects = appCount
@@ -299,7 +313,7 @@ const getStatusText = (status) => {
 }
 
 const getModuleLabel = (type) => {
-  const labelMap = { API: 'API', UI: 'UI', APP: 'APP' }
+  const labelMap = { AI: 'AI用例生成', AI_TEST: 'AI智能测试', API: 'API', UI: 'UI', APP: 'APP' }
   return labelMap[type] || type
 }
 

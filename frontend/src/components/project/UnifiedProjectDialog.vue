@@ -77,14 +77,14 @@
           </el-form-item>
         </div>
 
-        <div v-if="!isEdit" class="form-section module-selection">
+        <div class="form-section module-selection">
           <div class="section-header">
             <el-icon><Connection /></el-icon>
             <span>项目类型</span>
             <span class="section-hint">可多选，创建后将自动在各模块中创建项目</span>
           </div>
 
-          <el-form-item prop="types">
+          <el-form-item prop="types" label-width="0" style="margin-bottom: 0;">
             <div class="module-cards-wrapper">
               <div
                 v-for="type in moduleTypes"
@@ -102,7 +102,6 @@
                 <div class="module-check">
                   <el-check-tag
                     :checked="selectedTypes.includes(type.value)"
-                    @change="toggleType(type.value)"
                   >
                     {{ selectedTypes.includes(type.value) ? '已选择' : '选择' }}
                   </el-check-tag>
@@ -137,7 +136,65 @@
                   </template>
 
                   <div class="config-form">
-                    <template v-if="type === 'API'">
+                    <template v-if="type === 'AI'">
+                      <el-form-item label="负责人" :prop="`module_configs.AI.owner`">
+                        <el-select v-model="formData.module_configs.AI.owner" placeholder="请选择负责人" filterable style="width: 100%">
+                          <el-option
+                            v-for="user in users"
+                            :key="user.id"
+                            :label="user.username"
+                            :value="user.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item label="团队成员" :prop="`module_configs.AI.member_ids`">
+                        <el-select v-model="formData.module_configs.AI.member_ids" multiple placeholder="请选择团队成员" filterable style="width: 100%">
+                          <el-option
+                            v-for="user in users"
+                            :key="user.id"
+                            :label="user.username"
+                            :value="user.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item label="开始日期" :prop="`module_configs.AI.start_date`">
+                        <el-date-picker v-model="formData.module_configs.AI.start_date" type="date" placeholder="选择开始日期" value-format="YYYY-MM-DD" style="width: 100%" />
+                      </el-form-item>
+                      <el-form-item label="结束日期" :prop="`module_configs.AI.end_date`">
+                        <el-date-picker v-model="formData.module_configs.AI.end_date" type="date" placeholder="选择结束日期" value-format="YYYY-MM-DD" style="width: 100%" />
+                      </el-form-item>
+                    </template>
+
+                    <template v-else-if="type === 'AI_TEST'">
+                      <el-form-item label="负责人" :prop="`module_configs.AI_TEST.owner`">
+                        <el-select v-model="formData.module_configs.AI_TEST.owner" placeholder="请选择负责人" filterable style="width: 100%">
+                          <el-option
+                            v-for="user in users"
+                            :key="user.id"
+                            :label="user.username"
+                            :value="user.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item label="团队成员" :prop="`module_configs.AI_TEST.member_ids`">
+                        <el-select v-model="formData.module_configs.AI_TEST.member_ids" multiple placeholder="请选择团队成员" filterable style="width: 100%">
+                          <el-option
+                            v-for="user in users"
+                            :key="user.id"
+                            :label="user.username"
+                            :value="user.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item label="开始日期" :prop="`module_configs.AI_TEST.start_date`">
+                        <el-date-picker v-model="formData.module_configs.AI_TEST.start_date" type="date" placeholder="选择开始日期" value-format="YYYY-MM-DD" style="width: 100%" />
+                      </el-form-item>
+                      <el-form-item label="结束日期" :prop="`module_configs.AI_TEST.end_date`">
+                        <el-date-picker v-model="formData.module_configs.AI_TEST.end_date" type="date" placeholder="选择结束日期" value-format="YYYY-MM-DD" style="width: 100%" />
+                      </el-form-item>
+                    </template>
+
+                    <template v-else-if="type === 'API'">
                       <el-form-item label="项目类型" :prop="`module_configs.API.project_type`">
                         <el-radio-group v-model="formData.module_configs.API.project_type">
                           <el-radio value="HTTP">HTTP</el-radio>
@@ -259,7 +316,8 @@ import {
   Link,
   Monitor,
   Iphone,
-  Tickets
+  Tickets,
+  MagicStick
 } from '@element-plus/icons-vue'
 
 const props = defineProps({
@@ -282,6 +340,12 @@ const moduleTypes = [
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   {
+    value: 'AI_TEST',
+    label: 'AI智能测试',
+    icon: MagicStick,
+    color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+  },
+  {
     value: 'API',
     label: 'API测试',
     icon: Tickets,
@@ -301,9 +365,10 @@ const moduleTypes = [
   }
 ]
 
-const moduleIcons = { AI: Link, API: Tickets, UI: Monitor, APP: Iphone }
+const moduleIcons = { AI: Link, AI_TEST: MagicStick, API: Tickets, UI: Monitor, APP: Iphone }
 const moduleColors = {
   AI: '#667eea',
+  AI_TEST: '#f5576c',
   API: '#667eea',
   UI: '#f5576c',
   APP: '#00f2fe'
@@ -312,7 +377,7 @@ const moduleColors = {
 const getModuleIcon = (type) => moduleIcons[type] || Link
 const getModuleColor = (type) => moduleColors[type] || '#409EFF'
 const getModuleLabel = (type) => {
-  const labels = { AI: 'AI用例生成', API: 'API测试', UI: 'UI自动化', APP: 'APP自动化' }
+  const labels = { AI: 'AI用例生成', AI_TEST: 'AI智能测试', API: 'API测试', UI: 'UI自动化', APP: 'APP自动化' }
   return labels[type] || type
 }
 
@@ -328,7 +393,7 @@ const activeConfigs = ref('')
 const users = ref([])
 
 const getDefaultModuleConfig = (type) => {
-  if (type === 'AI') {
+  if (type === 'AI' || type === 'AI_TEST') {
     return {
       owner: null,
       member_ids: [],
@@ -372,6 +437,7 @@ const formData = ref({
   status: 'not_started',
   module_configs: {
     AI: getDefaultModuleConfig('AI'),
+    AI_TEST: getDefaultModuleConfig('AI_TEST'),
     API: getDefaultModuleConfig('API'),
     UI: getDefaultModuleConfig('UI'),
     APP: getDefaultModuleConfig('APP')
@@ -404,6 +470,7 @@ watch(() => props.projectData, async (newVal) => {
       status: newVal.status,
       module_configs: {
         AI: getDefaultModuleConfig('AI'),
+        AI_TEST: getDefaultModuleConfig('AI_TEST'),
         API: getDefaultModuleConfig('API'),
         UI: getDefaultModuleConfig('UI'),
         APP: getDefaultModuleConfig('APP')
@@ -419,7 +486,7 @@ watch(() => props.projectData, async (newVal) => {
           const config = m.config || {}
           const moduleConfig = formData.value.module_configs[m.module_type]
 
-          if (m.module_type === 'AI') {
+          if (m.module_type === 'AI' || m.module_type === 'AI_TEST') {
             moduleConfig.owner = config.owner
             moduleConfig.member_ids = config.member_ids || []
             moduleConfig.start_date = config.start_date || null
@@ -462,6 +529,7 @@ watch(() => props.visible, async (newVal) => {
       status: props.projectData.status,
       module_configs: {
         AI: getDefaultModuleConfig('AI'),
+        AI_TEST: getDefaultModuleConfig('AI_TEST'),
         API: getDefaultModuleConfig('API'),
         UI: getDefaultModuleConfig('UI'),
         APP: getDefaultModuleConfig('APP')
@@ -471,6 +539,8 @@ watch(() => props.visible, async (newVal) => {
     selectedTypes.value = props.projectData.modules?.map(m => m.module_type) || []
     if (selectedTypes.value.length > 0) {
       activeConfigs.value = selectedTypes.value[0]
+    } else {
+      activeConfigs.value = ''
     }
 
     if (props.projectData.modules && props.projectData.modules.length > 0) {
@@ -479,7 +549,7 @@ watch(() => props.visible, async (newVal) => {
           const config = m.config || {}
           const moduleConfig = formData.value.module_configs[m.module_type]
 
-          if (m.module_type === 'AI') {
+          if (m.module_type === 'AI' || m.module_type === 'AI_TEST') {
             moduleConfig.owner = config.owner
             moduleConfig.member_ids = config.member_ids || []
             moduleConfig.start_date = config.start_date || null
@@ -519,8 +589,12 @@ const toggleType = (type) => {
   const index = selectedTypes.value.indexOf(type)
   if (index === -1) {
     selectedTypes.value.push(type)
+    activeConfigs.value = type
   } else {
     selectedTypes.value.splice(index, 1)
+    if (activeConfigs.value === type) {
+      activeConfigs.value = selectedTypes.value[0] || ''
+    }
   }
   handleTypesChange()
 }
@@ -594,6 +668,7 @@ const handleClose = () => {
     status: 'not_started',
     module_configs: {
       AI: getDefaultModuleConfig('AI'),
+      AI_TEST: getDefaultModuleConfig('AI_TEST'),
       API: getDefaultModuleConfig('API'),
       UI: getDefaultModuleConfig('UI'),
       APP: getDefaultModuleConfig('APP')
@@ -601,6 +676,7 @@ const handleClose = () => {
   }
   selectedTypes.value = []
   activeConfigs.value = ''
+  emit('update:visible', false)
 }
 
 onMounted(() => {
@@ -654,11 +730,11 @@ onMounted(() => {
 }
 
 .module-cards-wrapper {
-  display: inline-flex;
+  display: flex;
   gap: 16px;
-  justify-content: center;
-  width: auto;
-  min-width: 100%;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 .module-card {
@@ -675,7 +751,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   min-height: 110px;
-  max-width: 160px;
+  max-width: 300px;
 }
 
 .module-card:hover {

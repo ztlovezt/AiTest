@@ -69,6 +69,7 @@ LOCAL_APPS = [
     'apps.api_testing',
     'apps.ui_automation.apps.UiAutomationConfig',
     'apps.app_automation.apps.AppAutomationConfig',
+    'apps.ai_testing',
     'apps.scheduler',
     'apps.core',
     'apps.data_factory',

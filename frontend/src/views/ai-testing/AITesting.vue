@@ -2,6 +2,11 @@
   <div class="page-container">
     <div class="page-header">
       <h1 class="page-title">{{ $t('uiAutomation.ai.title') }}</h1>
+      <div class="header-actions">
+        <el-select v-model="projectId" :placeholder="$t('uiAutomation.project.selectProject')" style="width: 200px;" @change="onProjectChange">
+          <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
+        </el-select>
+      </div>
     </div>
 
     <div class="card-container">
@@ -136,19 +141,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, nextTick, computed } from 'vue'
+import { ref, reactive, nextTick, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { VideoPlay, DocumentAdd, CircleCheckFilled, CircleCheck, Loading, SwitchButton } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import {
-  runAdhocAITask,
-  createAICase,
-  getAIExecutionRecordDetail,
-  stopAITask
-} from '@/api/ui_automation'
+import { getMetaProjects } from '@/api/unified-projects'
+import { createAICase, stopAIExecution, getAIExecutionRecord, getAiProjects } from '@/api/ai-testing'
+import request from '@/utils/api'
+
+// Adhoc 执行单独的接口
+const runAdhocAITask = (data) => request({
+  url: '/ai-testing/ai-cases/adhoc/',
+  method: 'post',
+  data
+})
 
 const { t } = useI18n()
 
+const projects = ref([])
+const projectId = ref('')
 const running = ref(false)
 const analyzing = ref(false)
 const saving = ref(false)
@@ -173,6 +184,28 @@ const saveRules = computed(() => ({
   name: [{ required: true, message: t('uiAutomation.ai.rules.nameRequired'), trigger: 'blur' }]
 }))
 
+const loadProjects = async () => {
+  try {
+    const response = await getAiProjects({ page_size: 100 })
+    projects.value = response.data.results || response.data
+    if (projects.value.length > 0 && !projectId.value) {
+      projectId.value = projects.value[0].id
+    }
+  } catch (error) {
+    ElMessage.error('获取项目列表失败')
+    console.error('获取项目列表失败:', error)
+  }
+}
+
+const onProjectChange = () => {
+  // 重置当前执行状态
+  running.value = false
+  analyzing.value = false
+  logs.value = ''
+  plannedTasks.value = []
+  currentExecutionId.value = null
+}
+
 // 执行任务
 const handleRun = async () => {
   running.value = true
@@ -182,9 +215,10 @@ const handleRun = async () => {
 
   try {
     const response = await runAdhocAITask({
+      project_id: projectId.value,
       task_description: taskForm.description,
-      execution_mode: 'text',  // 始终使用文本模式
-      enable_gif: taskForm.enableGif  // 传递GIF录制开关状态
+      execution_mode: 'text',
+      enable_gif: taskForm.enableGif
     })
 
     // analyzing.value = false // 移除过早设置，改为在轮询获取到任务列表后再取消
@@ -208,7 +242,7 @@ const handleStop = async () => {
   if (!currentExecutionId.value) return
 
   try {
-    await stopAITask(currentExecutionId.value)
+    await stopAIExecution(currentExecutionId.value)
     ElMessage.warning(t('uiAutomation.ai.messages.stopping'))
     // 不立即设置 running = false，等待轮询检测到状态变化
   } catch (error) {
@@ -226,7 +260,7 @@ const pollLogs = () => {
     }
     
     try {
-      const response = await getAIExecutionRecordDetail(currentExecutionId.value)
+      const response = await getAIExecutionRecord(currentExecutionId.value)
       const record = response.data
       
       logs.value = record.logs || ''
@@ -280,7 +314,8 @@ const confirmSaveCase = async () => {
         await createAICase({
           name: saveForm.name,
           description: saveForm.description,
-          task_description: taskForm.description
+          task_description: taskForm.description,
+          project_id: projectId.value
         })
 
         ElMessage.success(t('uiAutomation.ai.messages.saveSuccess'))
@@ -294,6 +329,10 @@ const confirmSaveCase = async () => {
     }
   })
 }
+
+onMounted(() => {
+  loadProjects()
+})
 </script>
 
 <style lang="scss" scoped>

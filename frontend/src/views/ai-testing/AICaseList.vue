@@ -2,6 +2,11 @@
   <div class="page-container">
     <div class="page-header">
       <h1 class="page-title">{{ $t('uiAutomation.ai.caseList.title') }}</h1>
+      <div class="header-actions">
+        <el-select v-model="projectId" :placeholder="$t('uiAutomation.project.selectProject')" style="width: 200px; margin-right: 15px" @change="onProjectChange">
+          <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
+        </el-select>
+      </div>
     </div>
 
     <div class="card-container">
@@ -89,15 +94,12 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, VideoPlay, Edit, Delete } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import {
-  getAICases,
-  updateAICase,
-  deleteAICase,
-  runAICase
-} from '@/api/ui_automation'
+import { getAICases, createAICase, updateAICase, deleteAICase, executeAICase, getAiProjects } from '@/api/ai-testing'
 
 const { t } = useI18n()
 const router = useRouter()
+const projects = ref([])
+const projectId = ref('')
 const cases = ref([])
 const loading = ref(false)
 const searchText = ref('')
@@ -122,11 +124,34 @@ const formRules = computed(() => ({
   task_description: [{ required: true, message: t('uiAutomation.ai.caseList.rules.taskDescriptionRequired'), trigger: 'blur' }]
 }))
 
+// 加载项目列表
+const loadProjects = async () => {
+  try {
+    const response = await getAiProjects({ page_size: 100 })
+    projects.value = response.data.results || response.data
+  } catch (error) {
+    ElMessage.error('获取项目列表失败')
+    console.error('获取项目列表失败:', error)
+  }
+}
+
+const onProjectChange = () => {
+  pagination.currentPage = 1
+  loadCases()
+}
+
 // 加载用例列表
 const loadCases = async () => {
+  if (!projectId.value) {
+    cases.value = []
+    total.value = 0
+    return
+  }
+
   loading.value = true
   try {
     const response = await getAICases({
+      project: projectId.value,
       page: pagination.currentPage,
       page_size: pagination.pageSize,
       search: searchText.value
@@ -218,7 +243,7 @@ const deleteCase = async (id) => {
 // 执行用例
 const runCase = async (row) => {
   try {
-    await runAICase(row.id)
+    await executeAICase(row.id)
     ElMessage.success(t('uiAutomation.ai.caseList.messages.runSuccess'))
     // 跳转到执行记录页面
     router.push('/ai-intelligent-mode/execution-records')
@@ -233,8 +258,12 @@ const formatDate = (row, column, cellValue) => {
   return new Date(cellValue).toLocaleString()
 }
 
-onMounted(() => {
-  loadCases()
+onMounted(async () => {
+  await loadProjects()
+  if (projects.value.length > 0) {
+    projectId.value = projects.value[0].id
+    loadCases()
+  }
 })
 </script>
 

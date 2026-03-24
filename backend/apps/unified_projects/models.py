@@ -75,6 +75,7 @@ class ProjectModule(models.Model):
 
     MODULE_TYPE_CHOICES = [
         ('AI', 'AI用例生成'),
+        ('AI_TEST', 'AI智能测试'),
         ('API', 'API测试'),
         ('UI', 'UI自动化'),
         ('APP', 'APP自动化'),
@@ -89,11 +90,11 @@ class ProjectModule(models.Model):
     module_type = models.CharField(max_length=10, choices=MODULE_TYPE_CHOICES, verbose_name='模块类型')
 
     ai_project = models.OneToOneField(
-        'projects.Project',
-        on_delete=models.CASCADE,
+        'ai_testing.AiProject',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='meta_module',
+        related_name='module_config',
         verbose_name='AI项目'
     )
     api_project = models.OneToOneField(
@@ -136,7 +137,7 @@ class ProjectModule(models.Model):
 
     def get_project(self):
         """获取关联的实际项目"""
-        if self.module_type == 'AI' and self.ai_project:
+        if self.module_type in ['AI', 'AI_TEST'] and self.ai_project:
             return self.ai_project
         elif self.module_type == 'API' and self.api_project:
             return self.api_project

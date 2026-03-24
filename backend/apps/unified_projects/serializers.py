@@ -28,7 +28,7 @@ class ProjectModuleSerializer(serializers.ModelSerializer):
             return {
                 'id': project.id,
                 'name': project.name,
-                'status': project.status,
+                'status': getattr(project, 'status', None),
             }
         return None
 
@@ -43,6 +43,8 @@ class ProjectModuleSerializer(serializers.ModelSerializer):
 
         if obj.module_type == 'AI':
             return self._get_ai_stats(project)
+        elif obj.module_type == 'AI_TEST':
+            return self._get_ai_test_stats(project)
         elif obj.module_type == 'API':
             return self._get_api_stats(project)
         elif obj.module_type == 'UI':
@@ -54,6 +56,8 @@ class ProjectModuleSerializer(serializers.ModelSerializer):
     def get_jump_url(self, obj):
         if obj.module_type == 'AI':
             return f'/ai-generation/projects/{obj.meta_project.id}'
+        elif obj.module_type == 'AI_TEST':
+            return f'/ai-intelligent-mode/projects'
         elif obj.module_type == 'API':
             return f'/api-testing/projects/{obj.meta_project.id}'
         elif obj.module_type == 'UI':
@@ -61,6 +65,14 @@ class ProjectModuleSerializer(serializers.ModelSerializer):
         elif obj.module_type == 'APP':
             return f'/app-automation/projects/{obj.meta_project.id}'
         return None
+
+    def _get_ai_test_stats(self, project):
+        from apps.ai_testing.models import AICase, AIExecutionRecord
+
+        return {
+            'case_count': AICase.objects.filter(project=project).count(),
+            'execution_count': AIExecutionRecord.objects.filter(project=project).count(),
+        }
 
     def _get_ai_stats(self, project):
         from apps.testcases.models import TestCase
@@ -177,7 +189,7 @@ class MetaProjectCreateSerializer(serializers.ModelSerializer):
         module_types = [m['module_type'] for m in value]
         if len(module_types) != len(set(module_types)):
             raise serializers.ValidationError('模块类型不能重复')
-        valid_types = ['AI', 'API', 'UI', 'APP']
+        valid_types = ['AI', 'AI_TEST', 'API', 'UI', 'APP']
         for mt in module_types:
             if mt not in valid_types:
                 raise serializers.ValidationError(f'无效的模块类型: {mt}')
@@ -226,46 +238,89 @@ class MetaProjectCreateSerializer(serializers.ModelSerializer):
         module_type = project_module.module_type
 
         if module_type == 'AI':
-            ai_project = Project.objects.create(
+            # AI用例生成模块不再创建AiProject
+            pass
+
+        elif module_type == 'AI_TEST':
+            from apps.ai_testing.models import AiProject
+
+            ai_project = AiProject.objects.create(
                 name=meta_project.name,
                 description=meta_project.description,
-                status=meta_project.status,
-                owner=meta_project.owner,
+                created_by=meta_project.owner,
                 unified_meta_project=meta_project
             )
+            # owner_id shouldn't be null if the model has an owner field, but AiProject uses created_by instead
+            # so we explicitly set created_by
             project_module.ai_project = ai_project
             project_module.save()
 
         elif module_type == 'API':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
             api_project = ApiProject.objects.create(
                 name=meta_project.name,
                 description=meta_project.description,
                 project_type='HTTP',
                 status=meta_project.status,
-                owner=meta_project.owner,
+                owner=owner_instance,
                 unified_meta_project=meta_project
             )
             project_module.api_project = api_project
             project_module.save()
 
         elif module_type == 'UI':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
             ui_project = UiProject.objects.create(
                 name=meta_project.name,
                 description=meta_project.description,
                 status=meta_project.status,
                 base_url=config.get('base_url', 'http://localhost'),
-                owner=meta_project.owner,
+                owner=owner_instance,
                 unified_meta_project=meta_project
             )
             project_module.ui_project = ui_project
             project_module.save()
 
         elif module_type == 'APP':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
             app_project = AppProject.objects.create(
                 name=meta_project.name,
                 description=meta_project.description,
                 status=meta_project.status,
-                owner=meta_project.owner,
+                owner=owner_instance,
                 unified_meta_project=meta_project
             )
             project_module.app_project = app_project
@@ -307,6 +362,11 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
         existing_types = set(meta_project.modules.values_list('module_type', flat=True))
         new_types = set(m['module_type'] for m in modules_data)
 
+        # 删除前端取消勾选的模块
+        types_to_delete = existing_types - new_types
+        if types_to_delete:
+            meta_project.modules.filter(module_type__in=types_to_delete).delete()
+
         for module_data in modules_data:
             module_type = module_data.get('module_type')
             config = module_data.get('config', {})
@@ -324,6 +384,113 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
                     config=config
                 )
                 self._create_child_project(project_module, config)
+                self._sync_module_to_child_project(project_module, config)
+
+    def _create_child_project(self, project_module, config):
+        """复用MetaProjectCreateSerializer的_create_child_project逻辑"""
+        from apps.projects.models import Project
+
+        meta_project = project_module.meta_project
+        module_type = project_module.module_type
+
+        if module_type == 'AI':
+            pass
+
+        elif module_type == 'AI_TEST':
+            from apps.ai_testing.models import AiProject
+
+            # Check if it already exists (e.g. was soft-deleted or just unlinked from module)
+            ai_project = AiProject.objects.filter(unified_meta_project=meta_project).first()
+            if not ai_project:
+                ai_project = AiProject.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    created_by=meta_project.owner,
+                    unified_meta_project=meta_project
+                )
+            
+            project_module.ai_project = ai_project
+            project_module.save()
+
+        elif module_type == 'API':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
+            from apps.api_testing.models import ApiProject
+            api_project = ApiProject.objects.filter(unified_meta_project=meta_project).first()
+            if not api_project:
+                api_project = ApiProject.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    project_type='HTTP',
+                    status=meta_project.status,
+                    owner=owner_instance,
+                    unified_meta_project=meta_project
+                )
+            project_module.api_project = api_project
+            project_module.save()
+
+        elif module_type == 'UI':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
+            from apps.ui_automation.models import UiProject
+            ui_project = UiProject.objects.filter(unified_meta_project=meta_project).first()
+            if not ui_project:
+                ui_project = UiProject.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    status=meta_project.status,
+                    base_url=config.get('base_url', 'http://localhost'),
+                    owner=owner_instance,
+                    unified_meta_project=meta_project
+                )
+            project_module.ui_project = ui_project
+            project_module.save()
+
+        elif module_type == 'APP':
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            owner_id = config.get('owner')
+            owner_instance = None
+            if owner_id:
+                try:
+                    owner_instance = User.objects.get(id=owner_id)
+                except User.DoesNotExist:
+                    owner_instance = meta_project.owner
+            else:
+                owner_instance = meta_project.owner
+
+            from apps.app_automation.models import AppProject
+            app_project = AppProject.objects.filter(unified_meta_project=meta_project).first()
+            if not app_project:
+                app_project = AppProject.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    status=meta_project.status,
+                    owner=owner_instance,
+                    unified_meta_project=meta_project
+                )
+            project_module.app_project = app_project
+            project_module.save()
 
     def _sync_module_to_child_project(self, project_module, config):
         """同步模块配置到子项目"""
@@ -341,20 +508,31 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
                 continue
 
             field = project._meta.get_field(key)
-            if field.is_relation and value is not None:
+            if field.is_relation:
                 if isinstance(field, models.ForeignKey):
-                    if key == 'owner':
+                    if key in ['owner', 'created_by']:
+                        # owner/created_by are foreign keys, we need the User instance, not just the ID.
+                        try:
+                            if value:
+                                user_obj = User.objects.get(id=value)
+                                setattr(project, key, user_obj)
+                            else:
+                                # fallback to meta_project owner if explicitly set to null
+                                setattr(project, key, project_module.meta_project.owner)
+                        except User.DoesNotExist:
+                            pass
                         continue
+                    if value is not None:
+                        try:
+                            setattr(project, key, value)
+                        except (ValueError, field.related_model.DoesNotExist):
+                            pass
+                elif value is not None:
                     try:
                         setattr(project, key, value)
                     except (ValueError, field.related_model.DoesNotExist):
                         pass
-                else:
-                    try:
-                        setattr(project, key, value)
-                    except (ValueError, field.related_model.DoesNotExist):
-                        pass
-            else:
+            elif value is not None:
                 setattr(project, key, value)
 
         project.save()
@@ -366,5 +544,6 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
             if project:
                 project.name = meta_project.name
                 project.description = meta_project.description
-                project.status = meta_project.status
+                if hasattr(project, 'status'):
+                    project.status = meta_project.status
                 project.save()

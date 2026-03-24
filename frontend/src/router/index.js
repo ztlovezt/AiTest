@@ -29,9 +29,10 @@ import UiExecutionList from '@/views/ui-automation/executions/ExecutionList.vue'
 import UiReportList from '@/views/ui-automation/reports/ReportList.vue'
 import UiScheduledTasks from '@/views/ui-automation/scheduled-tasks/ScheduledTasks.vue'
 import UiNotificationLogs from '@/views/ui-automation/notification/NotificationLogs.vue'
-import UiAITesting from '@/views/ui-automation/ai/AITesting.vue'
-import UiAICaseList from '@/views/ui-automation/ai/AICaseList.vue'
-import UiAIExecutionRecords from '@/views/ui-automation/ai/AIExecutionRecords.vue'
+import UiAITesting from '@/views/ai-testing/AITesting.vue'
+import UiAICaseList from '@/views/ai-testing/AICaseList.vue'
+import UiAIExecutionRecords from '@/views/ai-testing/AIExecutionRecords.vue'
+import UiAIProjectList from '@/views/ai-testing/AIProjectList.vue'
 
 /** @type {import('vue-router').RouteRecordRaw[]} */
 const routes = [
@@ -349,17 +350,42 @@ const routes = [
       {
         path: 'testing',
         name: 'AITesting',
-        component: UiAITesting
+        component: UiAITesting,
+        meta: {
+          title: 'route.uiAITesting',
+          icon: 'MagicStick',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'projects',
+        name: 'AIProjectList',
+        component: UiAIProjectList,
+        meta: {
+          title: 'route.uiAIProjectList',
+          icon: 'Folder',
+          requiresAuth: true
+        }
       },
       {
         path: 'cases',
         name: 'AICaseList',
-        component: UiAICaseList
+        component: UiAICaseList,
+        meta: {
+          title: 'route.uiAICaseList',
+          icon: 'Files',
+          requiresAuth: true
+        }
       },
       {
         path: 'execution-records',
         name: 'AIExecutionRecords',
-        component: UiAIExecutionRecords
+        component: UiAIExecutionRecords,
+        meta: {
+          title: 'route.uiAIExecutionRecords',
+          icon: 'Document',
+          requiresAuth: true
+        }
       }
     ]
   },

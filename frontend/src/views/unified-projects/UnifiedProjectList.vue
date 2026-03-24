@@ -41,7 +41,7 @@
       </div>
 
       <el-table :data="projects" v-loading="loading" style="width: 100%">
-        <el-table-column prop="name" :label="$t('unifiedProject.projectName')" min-width="200">
+        <el-table-column prop="name" :label="$t('unifiedProject.projectName')" min-width="150" width="150">
           <template #default="{ row }">
             <el-link @click="goToDetail(row.id)" type="primary">
               {{ row.name }}
@@ -54,9 +54,9 @@
             <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('unifiedProject.modules')" width="150">
+        <el-table-column :label="$t('unifiedProject.modules')" min-width="200" width="250">
           <template #default="{ row }">
-            <el-tag v-for="module in row.modules" :key="module.id" size="small" style="margin-right: 4px;">
+            <el-tag v-for="module in row.modules" :key="module.id" size="small" style="margin-right: 4px; margin-bottom: 4px;">
               {{ getModuleLabel(module.module_type) }}
             </el-tag>
           </template>

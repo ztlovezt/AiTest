@@ -253,7 +253,7 @@ import { useI18n } from 'vue-i18n'
 import { Loading, VideoPlay, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { getAIExecutionReport, exportAIExecutionReportPDF } from '@/api/ui_automation'
+import { getAIExecutionReport, exportAIExecutionReportPDF } from '@/api/ai-testing'
 
 const { t } = useI18n()
 

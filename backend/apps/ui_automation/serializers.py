@@ -5,8 +5,7 @@ from .models import (
     TestSuiteScript, TestSuiteTestCase, TestExecution, Screenshot,
     ElementGroup, PageObject, PageObjectElement, ScriptStep, ScriptElementUsage,
     TestCase, TestCaseStep, TestCaseExecution, OperationRecord,
-    UiNotificationLog,
-    AICase, AIExecutionRecord
+    UiNotificationLog
 )
 from django.contrib.auth import get_user_model
 
@@ -731,43 +730,6 @@ class OperationRecordSerializer(serializers.ModelSerializer):
             'user', 'user_name', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
-
-
-class AICaseSerializer(serializers.ModelSerializer):
-    project = UiProjectSerializer(read_only=True)
-    created_by = UserSerializer(read_only=True)
-    project_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-
-    class Meta:
-        model = AICase
-        fields = '__all__'
-        read_only_fields = ('created_at', 'updated_at', 'created_by')
-
-    def create(self, validated_data):
-        validated_data['created_by'] = self.context['request'].user
-        return super().create(validated_data)
-
-
-class AIExecutionRecordSerializer(serializers.ModelSerializer):
-    project = UiProjectSerializer(read_only=True)
-    ai_case = AICaseSerializer(read_only=True)
-    executed_by = UserSerializer(read_only=True)
-    project_id = serializers.IntegerField(write_only=True)
-    ai_case_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
-    project_name = serializers.CharField(source='project.name', read_only=True)
-    ai_case_name = serializers.CharField(source='ai_case.name', read_only=True)
-    executed_by_name = serializers.CharField(source='executed_by.username', read_only=True)
-
-    class Meta:
-        model = AIExecutionRecord
-        fields = [
-            'id', 'project', 'project_id', 'project_name', 'ai_case', 'ai_case_id', 'ai_case_name', 'case_name',
-            'task_description',
-            'execution_mode', 'status', 'start_time', 'end_time', 'duration',
-            'logs', 'steps_completed', 'planned_tasks', 'executed_by', 'executed_by_name',
-            'gif_path', 'screenshots_sequence'
-        ]
-        read_only_fields = ('start_time', 'end_time', 'duration', 'executed_by', 'gif_path', 'screenshots_sequence')
 
 
 class UiNotificationLogSerializer(serializers.ModelSerializer):
