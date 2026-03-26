@@ -17,6 +17,7 @@ from langchain_openai import ChatOpenAI
 # 加载环境变量
 load_dotenv()
 
+
 # ============================================================================
 # 任务动作类型定义 - 统一管理所有动作类型
 # ============================================================================
@@ -213,7 +214,7 @@ def _validate_task_id(task_id, planned_tasks):
                 t = t.__dict__
             else:
                 continue
-                
+
         if t.get('id') == task_id or str(t.get('id')) == str(task_id):
             task = t
             break
@@ -322,7 +323,7 @@ def _all_tasks_in_terminal_status(planned_tasks):
                 task = task.__dict__
             else:
                 continue
-                
+
         status = str(task.get('status', 'pending')).lower()
         if status in terminal_statuses:
             terminal_tasks.append(task)
@@ -353,7 +354,7 @@ def _get_pending_task_id(planned_tasks):
                 task = task.__dict__
             else:
                 continue
-                
+
         status = str(task.get('status', 'pending')).lower()
         if status in {'pending', 'in_progress'}:
             return task.get('id')
@@ -762,8 +763,8 @@ def _enforce_pending_status_settlement(actions, pending_task_id, pending_task_de
 
     real_actions = [action for action in actions if _has_real_business_action(action)]
     if pending_task_description and any(
-        _action_matches_pending_task(action, pending_task_description)
-        for action in real_actions
+            _action_matches_pending_task(action, pending_task_description)
+            for action in real_actions
     ):
         return actions
 
@@ -795,6 +796,7 @@ def _contains_auth_failure_signal(text):
         'bad credentials', 'unauthorized', '401', '403'
     ]
     return any(keyword in normalized for keyword in keywords)
+
 
 # ============================================================================
 # PART 1: Common Patches (Pydantic, ActionModel, TokenCost, Basic Connection)
@@ -854,7 +856,7 @@ try:
                 # 注意：ainvoke 不接受 session_id 参数，确保 kwargs 中不包含它
                 # 某些版本的 LangChain 或 LLM 包装器可能会传递额外参数
                 clean_kwargs = {k: v for k, v in kwargs.items() if k != 'session_id'}
-                
+
                 response = await asyncio.wait_for(
                     self.llm.ainvoke(input_messages, **clean_kwargs),
                     timeout=60.0  # 超时时间60秒
@@ -883,7 +885,7 @@ try:
                     except Exception as retry_e:
                         last_exception = retry_e
                         logger.warning(f"⚠️ Retry failed: {retry_e}")
-                
+
                 logger.warning(f"⚠️ LLM invocation failed (attempt {attempt + 1}/{max_retries}): {e}")
                 if attempt < max_retries - 1:
                     await asyncio.sleep(0.5)  # 重试间隔0.5秒
@@ -932,7 +934,8 @@ try:
                                 if action_name in TASK_STATUS_ACTIONS:
                                     task_id_match = re.search(r'task_id=(\d+)', params_str)
                                     if task_id_match:
-                                        normalized_actions.append({action_name: {'task_id': int(task_id_match.group(1))}})
+                                        normalized_actions.append(
+                                            {action_name: {'task_id': int(task_id_match.group(1))}})
                                         logger.info(f"🔧 Fixed: parsed string action '{action_dict}'")
                                 elif action_name == 'update_task_status':
                                     task_id_match = re.search(r'task_id=(\d+)', params_str)
@@ -988,7 +991,8 @@ try:
                     elif isinstance(content_dict[action_name], int) and action_name in TASK_STATUS_ACTIONS:
                         task_id = content_dict[action_name]
                         content_dict['action'].append({action_name: {'task_id': task_id}})
-                        logger.info(f"🔧 Fixed: converted {action_name}({task_id}) to proper format and added to action array")
+                        logger.info(
+                            f"🔧 Fixed: converted {action_name}({task_id}) to proper format and added to action array")
 
                 parsed = AgentOutput.model_construct(
                     thinking=content_dict.get('thinking'),
@@ -1076,8 +1080,10 @@ try:
                             class _ActionWrapper:
                                 def __init__(self, action_dict):
                                     self._action_dict = action_dict
+
                                 def model_dump(self, **kwargs):
                                     return self._action_dict
+
                                 def get_index(self):
                                     for action_params in self._action_dict.values():
                                         if isinstance(action_params, dict) and 'index' in action_params:
@@ -1090,7 +1096,8 @@ try:
 
                             object.__setattr__(parsed, 'action', action_list)
 
-                            logger.info(f"🔧 Successfully recovered {len(action_list)} actions and {len(extracted_fields)} fields from malformed JSON")
+                            logger.info(
+                                f"🔧 Successfully recovered {len(action_list)} actions and {len(extracted_fields)} fields from malformed JSON")
                             return parsed
                     except Exception as recovery_error:
                         logger.warning(f"⚠️ Failed to recover actions from malformed JSON: {recovery_error}")
@@ -1270,7 +1277,8 @@ try:
                         normalized_value = _normalize_action_params(action_name, action_params)
                         # 忽略无效的字符串参数（如 {"click": "保存"}）
                         if isinstance(normalized_value, str) and action_name not in ['done', 'switch_tab']:
-                            logger.warning(f"⚠️ Invalid action format in TokenCost: {action_name}: {normalized_value}, skipping")
+                            logger.warning(
+                                f"⚠️ Invalid action format in TokenCost: {action_name}: {normalized_value}, skipping")
                             continue
                         normalized_action[action_name] = normalized_value
                     if normalized_action:  # 只添加非空的 action
@@ -1374,7 +1382,8 @@ try:
             for arg in browser_profile.extra_chromium_args:
                 if '--remote-debugging-port=' in str(arg):
                     try:
-                        port = int(arg.split('=')[1]); break
+                        port = int(arg.split('=')[1]);
+                        break
                     except:
                         pass
         if hasattr(browser_profile, 'remote_debugging_port'):
@@ -1382,7 +1391,7 @@ try:
 
         cdp_endpoint = f"http://localhost:{port}/json/version"
 
-        for attempt in range(10): # 增加重试次数
+        for attempt in range(10):  # 增加重试次数
             try:
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     response = await client.get(cdp_endpoint)
@@ -1566,7 +1575,8 @@ try:
         if name == 'verdict':
             if hasattr(self, 'next_goal') and self.next_goal:
                 if any(
-                    w in str(self.next_goal).lower() for w in ['complete', 'done', 'finished', 'success']): return True
+                        w in str(self.next_goal).lower() for w in
+                        ['complete', 'done', 'finished', 'success']): return True
             if hasattr(self, 'evaluation_previous_goal') and self.evaluation_previous_goal:
                 if any(w in str(self.evaluation_previous_goal).lower() for w in ['success', 'complete']): return True
             return False
@@ -1597,6 +1607,7 @@ try:
 
     _original_find_free_port = LocalBrowserWatchdog._find_free_port
 
+
     # 创建补丁函数 - 始终作为实例方法（接受 self）
     def _patched_find_free_port(self):
         if platform.system() == 'Linux':
@@ -1608,6 +1619,7 @@ try:
         except TypeError:
             # 如果原始方法不接受 self，尝试不带参数调用
             return _original_find_free_port()
+
 
     LocalBrowserWatchdog._find_free_port = _patched_find_free_port
     logger.info("✅ Successfully patched LocalBrowserWatchdog._find_free_port")
@@ -1638,9 +1650,19 @@ class RawResponseLogger(BaseCallbackHandler):
 # PART 3: Base Browser Agent
 # ============================================================================
 
-from browser_use import Agent, Controller
-from browser_use.browser.events import CloseTabEvent, SwitchTabEvent
-from browser_use.browser.profile import BrowserProfile
+def _get_browser_use_imports():
+    """延迟导入 browser_use 模块，避免 Windows 权限问题
+    
+    browser_use 库在模块导入时会创建 DEFAULT_BROWSER_PROFILE = BrowserProfile()，
+    而 BrowserProfile 的默认 downloads_path 是硬编码的 '/tmp/browser-use-downloads-xxx'。
+    在 Windows 上，这会导致 PermissionError: [WinError 5] 拒绝访问。
+    
+    通过延迟导入，只在需要使用时才导入，避免模块加载时触发错误。
+    """
+    from browser_use import Agent, Controller
+    from browser_use.browser.events import CloseTabEvent, SwitchTabEvent
+    from browser_use.browser.profile import BrowserProfile
+    return Agent, Controller, CloseTabEvent, SwitchTabEvent, BrowserProfile
 
 
 class BaseBrowserAgent:
@@ -1770,7 +1792,7 @@ class BaseBrowserAgent:
                 action_dict = action
             else:
                 return str(action)
-            
+
             if isinstance(action_dict, list):
                 action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
 
@@ -1825,7 +1847,8 @@ class BaseBrowserAgent:
             logger.error(f"   提示: 1) 检查网络连接 2) 检查API地址是否正确 3) 检查API Key是否有效")
             raise RuntimeError(f"Execution LLM unavailable: 连接超时，请检查网络或API配置") from e
         except Exception as e:
-            logger.error(f"❌ LLM连接失败: {type(e).__name__}: {str(e)}, model={self.model_name}, base_url={self.base_url}")
+            logger.error(
+                f"❌ LLM连接失败: {type(e).__name__}: {str(e)}, model={self.model_name}, base_url={self.base_url}")
             logger.error(f"   错误详情: {repr(e)[:200]}")
             # 检查是否是认证错误
             if '401' in str(e) or 'authentication' in str(e).lower():
@@ -1940,8 +1963,8 @@ class BaseBrowserAgent:
 
             # 合并“打开浏览器 / 输入URL / 回车访问”这一类导航碎步
             if (
-                ('浏览器' in current or 'browser' in current_lower or '地址栏' in current)
-                and i + 1 < total
+                    ('浏览器' in current or 'browser' in current_lower or '地址栏' in current)
+                    and i + 1 < total
             ):
                 window = " ".join(str(s).strip() for s in steps[i:i + 3])
                 url_match = re.search(r'https?://[^\s]+', window)
@@ -1953,7 +1976,8 @@ class BaseBrowserAgent:
             # 合并“点击搜索框 / 输入关键词 / 点击搜索 / 等待结果”
             search_window = " ".join(str(s).strip() for s in steps[i:i + 4])
             if any(keyword in search_window for keyword in ['搜索框', '关键词', '百度一下', '搜索结果', 'search']):
-                query_match = re.search(r"(?:输入搜索关键词[:：]?\s*|搜索)\s*['\"]?([^'\"\n]+?)['\"]?(?:\s|$)", search_window)
+                query_match = re.search(r"(?:输入搜索关键词[:：]?\s*|搜索)\s*['\"]?([^'\"\n]+?)['\"]?(?:\s|$)",
+                                        search_window)
                 if query_match:
                     query = query_match.group(1).strip()
                     query = re.sub(r'(并执行搜索|按钮或按下回车键|结果列表加载完成)$', '', query).strip()
@@ -1997,8 +2021,10 @@ class BaseBrowserAgent:
             score += 1
         if any(token in text for token in ['并', '然后', '之后', '再', '并且', '同时', '且']):
             score += 1
-        if any(token in text for token in ['点击', '输入', '搜索', '选择', '打开', '关闭', '提交', '保存', '查看', '切换']):
-            action_hits = sum(text.count(token) for token in ['点击', '输入', '搜索', '选择', '打开', '关闭', '提交', '保存', '查看', '切换'])
+        if any(token in text for token in
+               ['点击', '输入', '搜索', '选择', '打开', '关闭', '提交', '保存', '查看', '切换']):
+            action_hits = sum(text.count(token) for token in
+                              ['点击', '输入', '搜索', '选择', '打开', '关闭', '提交', '保存', '查看', '切换'])
             if action_hits >= 2:
                 score += 1
         return score
@@ -2020,7 +2046,8 @@ class BaseBrowserAgent:
             signals += 1
         if any(token in text for token in ['标题为', '返回', '确认页面', '确认', '验证', '校验']):
             signals += 1
-        if any(token in text for token in ['输入框', '按钮', '下拉', '单选', '日期', 'Password', 'Text input', 'Dropdown']):
+        if any(token in text for token in
+               ['输入框', '按钮', '下拉', '单选', '日期', 'Password', 'Text input', 'Dropdown']):
             signals += 1
         return signals >= 2
 
@@ -2191,7 +2218,8 @@ class BaseBrowserAgent:
                 playwright_paths = glob.glob('/ms-playwright/**/chromium', recursive=True)
                 playwright_paths.extend(glob.glob('/root/.cache/ms-playwright/**/chromium', recursive=True))
                 playwright_paths.extend(glob.glob('/ms-playwright/**/chromium-linux/chromium', recursive=True))
-                playwright_paths.extend(glob.glob('/root/.cache/ms-playwright/**/chromium-linux/chromium', recursive=True))
+                playwright_paths.extend(
+                    glob.glob('/root/.cache/ms-playwright/**/chromium-linux/chromium', recursive=True))
                 for p in playwright_paths:
                     if os.path.exists(p) and os.access(p, os.X_OK):
                         chrome_path = p
@@ -2226,7 +2254,7 @@ class BaseBrowserAgent:
                 '--headless=new',  # Linux 服务器使用无头模式
                 '--disable-software-rasterizer',  # 禁用软件光栅化器
                 '--remote-debugging-port=9222',  # 使用固定端口，避免随机端口导致连接失败
-                '--remote-debugging-address=0.0.0.0', # 允许远程连接，而不仅仅是 127.0.0.1
+                '--remote-debugging-address=0.0.0.0',  # 允许远程连接，而不仅仅是 127.0.0.1
                 '--no-zygote',  # 减少进程数
                 '--single-process',  # 单进程模式，虽然不稳定但能解决某些 Docker 环境下的 PID 问题
             ])
@@ -2238,6 +2266,7 @@ class BaseBrowserAgent:
                 '--remote-debugging-port=9222',
             ])
 
+        _, _, _, _, BrowserProfile = _get_browser_use_imports()
         return BrowserProfile(
             headless=(system == 'Linux'),  # Linux 使用无头模式，其他系统使用显示模式
             disable_security=True,
@@ -2262,6 +2291,7 @@ class BaseBrowserAgent:
         except RuntimeError:
             loop = None
 
+        _, Controller, _, _, _ = _get_browser_use_imports()
         controller = Controller()
         _task_was_done = False
         active_task_statuses = {'pending', 'in_progress'}
@@ -2281,10 +2311,10 @@ class BaseBrowserAgent:
         def is_placeholder_url(url: str) -> bool:
             normalized = (url or '').strip().lower()
             return (
-                not normalized
-                or normalized == 'about:blank'
-                or normalized.startswith('chrome://newtab')
-                or normalized.startswith('edge://newtab')
+                    not normalized
+                    or normalized == 'about:blank'
+                    or normalized.startswith('chrome://newtab')
+                    or normalized.startswith('edge://newtab')
             )
 
         def is_close_step(description: str) -> bool:
@@ -2317,6 +2347,7 @@ class BaseBrowserAgent:
 
         @controller.action('close_tab')
         async def close_tab(browser_session=None):
+            _, _, CloseTabEvent, SwitchTabEvent, _ = _get_browser_use_imports()
             if browser_session is None or browser_session.agent_focus_target_id is None:
                 raise ValueError("No active tab to close")
             target_id = browser_session.agent_focus_target_id
@@ -2466,6 +2497,7 @@ class BaseBrowserAgent:
 
         browser_profile = self._create_browser_profile()
 
+        Agent, _, _, _, _ = _get_browser_use_imports()
         agent = Agent(
             task=final_task,
             llm=self.llm,
@@ -2557,6 +2589,7 @@ class BaseBrowserAgent:
                                         class _FallbackAction:
                                             def __init__(self, action_dict):
                                                 self._action_dict = action_dict
+
                                             def model_dump(self, **kwargs):
                                                 return self._action_dict
 
@@ -2572,7 +2605,8 @@ class BaseBrowserAgent:
                         model_output = getattr(step, 'model_output', None)
                         # 调试日志：记录是否进入第二级后备机制
                         if (i + 1) <= 5 or (i + 1) % 5 == 0:  # 记录前5步和每5步
-                            logger.info(f"🔍 第二级后备机制条件 (step {i + 1}): model_output={bool(model_output)}, planned_tasks={bool(planned_tasks)}, planned_count={len(planned_tasks) if planned_tasks else 0}")
+                            logger.info(
+                                f"🔍 第二级后备机制条件 (step {i + 1}): model_output={bool(model_output)}, planned_tasks={bool(planned_tasks)}, planned_count={len(planned_tasks) if planned_tasks else 0}")
                         if model_output and planned_tasks:
                             import re
                             # 检查是否有任务在 thinking/memory 中被声明为完成，但 action 中没有标记
@@ -2584,8 +2618,10 @@ class BaseBrowserAgent:
                                     memory_text += str(value) + ' '
 
                             # 调试日志：记录 memory_text（当包含 complete/completed/done/finished/完成 时）
-                            if any(keyword in memory_text.lower() for keyword in ['completed', 'done', 'finished', 'complete', '完成']):
-                                logger.info(f"🔍 第二级后备机制检查 (step {i + 1}): memory_text包含完成声明, 片段={memory_text[:150]}...")
+                            if any(keyword in memory_text.lower() for keyword in
+                                   ['completed', 'done', 'finished', 'complete', '完成']):
+                                logger.info(
+                                    f"🔍 第二级后备机制检查 (step {i + 1}): memory_text包含完成声明, 片段={memory_text[:150]}...")
 
                             # 检查 action 中已经包含的任务状态动作
                             action_task_ids = set()
@@ -2635,7 +2671,9 @@ class BaseBrowserAgent:
                                             # 检查任务是否已经处于完成状态
                                             task_already_completed = False
                                             for task in planned_tasks:
-                                                if task.get('id') == task_id and task.get('status') in ['completed', 'failed', 'skipped']:
+                                                if task.get('id') == task_id and task.get('status') in ['completed',
+                                                                                                        'failed',
+                                                                                                        'skipped']:
                                                     task_already_completed = True
                                                     break
 
@@ -2646,6 +2684,7 @@ class BaseBrowserAgent:
                                                 class _InferredAction:
                                                     def __init__(self, action_dict):
                                                         self._action_dict = action_dict
+
                                                     def model_dump(self, **kwargs):
                                                         return self._action_dict
 
@@ -2660,8 +2699,10 @@ class BaseBrowserAgent:
 
                         current_active_task = get_next_active_task()
                         current_active_task_id = current_active_task.get('id') if current_active_task else None
-                        current_active_task_desc = str(current_active_task.get('description', '')) if current_active_task else ''
-                        if current_active_task_id and any(keyword in current_active_task_desc.lower() for keyword in ['登录', 'login']):
+                        current_active_task_desc = str(
+                            current_active_task.get('description', '')) if current_active_task else ''
+                        if current_active_task_id and any(
+                                keyword in current_active_task_desc.lower() for keyword in ['登录', 'login']):
                             signal_text_parts = []
                             model_output = getattr(step, 'model_output', None)
                             for field_name in ['thinking', 'evaluation_previous_goal', 'memory', 'next_goal']:
@@ -2728,7 +2769,8 @@ class BaseBrowserAgent:
                                     if action_info['action_name'] == ActionType.UPDATE_TASK_STATUS:
                                         status_params = action_info['action_params']
                                         if isinstance(status_params, list):
-                                            status_params = status_params[0] if status_params and isinstance(status_params[0], dict) else {}
+                                            status_params = status_params[0] if status_params and isinstance(
+                                                status_params[0], dict) else {}
                                         if not isinstance(status_params, dict):
                                             status_params = {}
                                         status_valid, normalized_status, status_error = _validate_task_status_value(
@@ -2789,20 +2831,22 @@ class BaseBrowserAgent:
                             # 检查是否重复标记已完成的任务
                             if planned_tasks:
                                 for task in planned_tasks:
-                                    if task['id'] == step_marked_task_id and task.get('status') in ['completed', 'failed', 'skipped']:
+                                    if task['id'] == step_marked_task_id and task.get('status') in ['completed',
+                                                                                                    'failed',
+                                                                                                    'skipped']:
                                         next_expected = last_marked_task_id + 1
                                         logger.warning(
                                             f"⚠️ Task {step_marked_task_id} is already terminal ({task.get('status')})! "
                                             f"You should mark task {next_expected} instead."
                                         )
                                         break
-                                
+
                                 # ============================================================
                                 # 自动补全中间任务逻辑已移除
                                 # 原有逻辑过于激进，可能导致非必填项被错误标记完成
                                 # 现在采用更温和的策略：如果后续任务被标记，仅更新指针，不强制修改中间任务状态
                                 # ============================================================
-                                
+
                             last_marked_task_id = step_marked_task_id
 
                             # 清除待处理状态
@@ -2810,7 +2854,7 @@ class BaseBrowserAgent:
                                 logger.info(f"🔄 清除待处理任务状态: task_id={step_marked_task_id}")
                                 agent_instance._pending_status_task_id = None
                                 agent_instance._pending_status_task_description = None
-                                
+
                             # 重要修复：更新 last_marked_task_id 时，如果 AI 回溯标记了之前的任务（如先标4再标3），
                             # 不能简单覆盖，而是应该确保 last_marked_task_id 总是记录已完成的"最大"任务ID，
                             # 或者是当前正在执行的最前沿任务ID，防止后续告警逻辑（next_expected_task_id = last_marked_task_id + 1）混乱。
@@ -2818,7 +2862,8 @@ class BaseBrowserAgent:
                             if planned_tasks:
                                 max_marked_id = 0
                                 for task in planned_tasks:
-                                    if task.get('status') in ['completed', 'failed', 'skipped'] and task.get('id', 0) > max_marked_id:
+                                    if task.get('status') in ['completed', 'failed', 'skipped'] and task.get('id',
+                                                                                                             0) > max_marked_id:
                                         max_marked_id = task.get('id', 0)
                                 if max_marked_id > 0:
                                     last_marked_task_id = max_marked_id
@@ -2831,7 +2876,8 @@ class BaseBrowserAgent:
                             # 检查是否所有任务都已达到终端状态，如果是则设置完成标志
                             # ============================================================
                             if planned_tasks and step_marked_task_id:
-                                all_terminal, completed_count, total_count, terminal_tasks = _all_tasks_in_terminal_status(planned_tasks)
+                                all_terminal, completed_count, total_count, terminal_tasks = _all_tasks_in_terminal_status(
+                                    planned_tasks)
 
                                 if all_terminal:
                                     logger.info(
@@ -2854,16 +2900,17 @@ class BaseBrowserAgent:
                                         agent_instance._pending_status_task_id = pending_id
                                         for task in planned_tasks:
                                             if task.get('id') == pending_id:
-                                                agent_instance._pending_status_task_description = task.get('description', '')
+                                                agent_instance._pending_status_task_description = task.get(
+                                                    'description', '')
                                                 break
 
                         # 检查这一步是否有实际业务操作（非任务状态动作）
                         has_real_action = False
                         has_link_open_action = False
-                        
+
                         # 记录所有真实的业务动作
                         real_business_actions = []
-                        
+
                         for action in actions:
                             action_info = _extract_action_info(action)
                             action_name = action_info['action_name']
@@ -2883,11 +2930,11 @@ class BaseBrowserAgent:
                                         real_business_actions.append(dict(action))
                                     except:
                                         real_business_actions.append(str(action))
-                                
+
                                 if action_name in ['click', 'open_new_tab', 'navigate', 'go_to_url']:
                                     has_link_open_action = True
                                     # 注意：这里不再 break，因为我们需要收集所有业务动作
-                            
+
                             if has_real_action:
                                 # 保持之前的逻辑：只要有一个真实动作就标记
                                 pass
@@ -2913,6 +2960,7 @@ class BaseBrowserAgent:
                                     if new_tabs and has_link_open_action:
                                         newest_tab = new_tabs[-1]
                                         if browser_session.agent_focus_target_id != newest_tab.target_id:
+                                            _, _, _, SwitchTabEvent, _ = _get_browser_use_imports()
                                             await browser_session.event_bus.dispatch(
                                                 SwitchTabEvent(target_id=newest_tab.target_id)
                                             )
@@ -2939,25 +2987,25 @@ class BaseBrowserAgent:
                         if has_real_action and not step_has_terminal_action and planned_tasks:
                             # 获取下一个预期任务
                             next_expected_task_id = last_marked_task_id + 1
-                            
+
                             # 查找该任务的描述
                             target_task = None
                             for task in planned_tasks:
                                 if task.get('id') == next_expected_task_id and task.get('status') == 'pending':
                                     target_task = task
                                     break
-                            
+
                             if target_task:
                                 task_desc = target_task.get('description', '')
-                                
+
                                 # 检查当前动作是否匹配任务描述
                                 # 1. 提取任务描述中的关键词/字面量
                                 task_literals = _extract_task_literals(task_desc)
-                                
+
                                 # 2. 检查动作是否包含这些字面量
                                 action_matches_task = False
                                 matched_literal = None
-                                
+
                                 for action in real_business_actions:
                                     try:
                                         if isinstance(action, str):
@@ -2966,20 +3014,20 @@ class BaseBrowserAgent:
                                             action_payload = json.dumps(action, ensure_ascii=False)
                                     except:
                                         action_payload = str(action)
-                                        
+
                                     for literal in task_literals:
                                         if literal in action_payload:
                                             action_matches_task = True
                                             matched_literal = literal
                                             break
-                                    
+
                                     # 增强推断：如果动作是 click，且任务描述包含 "点击" 或 "click"，并且没有其他更好的匹配
                                     # 我们可以尝试放宽匹配（但这有风险，所以只在没有任何字面量匹配时使用）
                                     if not action_matches_task and 'click' in action_payload:
                                         # 从 step.model_output 获取 thinking
                                         model_output = getattr(step, 'model_output', None)
                                         thinking_text = getattr(model_output, 'thinking', '') if model_output else ''
-                                        
+
                                         # 检查 thinking 中是否提到了任务描述中的关键词
                                         # 1. 任务描述中的字面量匹配
                                         for literal in task_literals:
@@ -2987,40 +3035,42 @@ class BaseBrowserAgent:
                                                 action_matches_task = True
                                                 matched_literal = f"thinking_match:{literal}"
                                                 break
-                                        
+
                                         # 2. 如果任务描述包含 "选择"、"下拉" 等词，且 Thinking 中也有，则匹配
                                         if not action_matches_task:
                                             keywords = ['选择', 'select', '下拉', 'dropdown', 'project', '项目']
                                             task_has_keyword = any(k in task_desc.lower() for k in keywords)
                                             thinking_has_keyword = any(k in thinking_text.lower() for k in keywords)
                                             if task_has_keyword and thinking_has_keyword:
-                                                 # 还需要确保 Thinking 中包含任务描述中的其他核心词（如“项目名”）
-                                                 # 简单的交叉检查：提取任务描述中的连续2个以上中文字符
-                                                 import re
-                                                 cn_phrases = re.findall(r'[\u4e00-\u9fa5]{2,}', task_desc)
-                                                 for phrase in cn_phrases:
-                                                     if phrase in thinking_text:
-                                                         action_matches_task = True
-                                                         matched_literal = f"thinking_context_match:{phrase}"
-                                                         break
-                                    
+                                                # 还需要确保 Thinking 中包含任务描述中的其他核心词（如“项目名”）
+                                                # 简单的交叉检查：提取任务描述中的连续2个以上中文字符
+                                                import re
+                                                cn_phrases = re.findall(r'[\u4e00-\u9fa5]{2,}', task_desc)
+                                                for phrase in cn_phrases:
+                                                    if phrase in thinking_text:
+                                                        action_matches_task = True
+                                                        matched_literal = f"thinking_context_match:{phrase}"
+                                                        break
+
                                     # 增强推断2：如果动作是 input，提取输入的 text
                                     # 检查 text 是否包含在任务描述中（反向匹配）
-                                    if not action_matches_task and 'input' in action_payload and isinstance(action, dict) and 'input' in action:
+                                    if not action_matches_task and 'input' in action_payload and isinstance(action,
+                                                                                                            dict) and 'input' in action:
                                         input_text = action['input'].get('text', '')
                                         # 1. 反向匹配：输入文本在任务描述中
                                         if input_text and len(str(input_text)) > 2 and str(input_text) in task_desc:
                                             action_matches_task = True
                                             matched_literal = f"reverse_match:{input_text}"
-                                        
+
                                         # 2. Thinking 匹配：如果任务描述包含 "填写"、"输入"，且 Thinking 包含任务描述中的关键词
                                         if not action_matches_task:
                                             model_output = getattr(step, 'model_output', None)
-                                            thinking_text = getattr(model_output, 'thinking', '') if model_output else ''
-                                            
+                                            thinking_text = getattr(model_output, 'thinking',
+                                                                    '') if model_output else ''
+
                                             keywords = ['填写', '输入', 'fill', 'enter', 'input', 'type']
                                             task_has_keyword = any(k in task_desc.lower() for k in keywords)
-                                            
+
                                             if task_has_keyword:
                                                 import re
                                                 cn_phrases = re.findall(r'[\u4e00-\u9fa5]{2,}', task_desc)
@@ -3032,13 +3082,13 @@ class BaseBrowserAgent:
 
                                     if action_matches_task:
                                         break
-                                
+
                                 if action_matches_task:
                                     logger.info(
                                         f"🤖 智能推断: 动作匹配到任务 {next_expected_task_id} "
                                         f"(匹配关键词: '{matched_literal}')，自动标记为 completed"
                                     )
-                                    
+
                                     # 自动标记任务完成
                                     if task_manager:
                                         task_manager.update_status(
@@ -3047,7 +3097,7 @@ class BaseBrowserAgent:
                                             step_number=i + 1,
                                             trigger_action='auto_inferred_from_action'
                                         )
-                                        
+
                                         # 发送状态更新事件
                                         if callback:
                                             status_payload = {
@@ -3061,19 +3111,20 @@ class BaseBrowserAgent:
                                                 await callback(status_payload)
                                             else:
                                                 callback(status_payload)
-                                    
+
                                     # 更新 last_marked_task_id
                                     last_marked_task_id = next_expected_task_id
-                                    
+
                                     # 清除待处理状态
-                                    if getattr(agent_instance, '_pending_status_task_id', None) == next_expected_task_id:
+                                    if getattr(agent_instance, '_pending_status_task_id',
+                                               None) == next_expected_task_id:
                                         agent_instance._pending_status_task_id = None
                                         agent_instance._pending_status_task_description = None
 
                         # 记录未标记任务的步骤（不自动修复，仅警告）
                         # 修改条件：只有在智能推断也没有生效的情况下才警告
                         current_step_marked = (step_marked_task_id is not None) or \
-                                             (has_real_action and last_marked_task_id == next_expected_task_id)
+                                              (has_real_action and last_marked_task_id == next_expected_task_id)
 
                         if has_real_action and not current_step_marked and planned_tasks:
                             next_expected_task_id = last_marked_task_id + 1
@@ -3081,7 +3132,9 @@ class BaseBrowserAgent:
                                 # 检查这个任务是否还没有被标记
                                 task_already_marked = False
                                 for task in planned_tasks:
-                                    if task['id'] == next_expected_task_id and task.get('status') in ['completed', 'failed', 'skipped']:
+                                    if task['id'] == next_expected_task_id and task.get('status') in ['completed',
+                                                                                                      'failed',
+                                                                                                      'skipped']:
                                         task_already_marked = True
                                         last_marked_task_id = next_expected_task_id
                                         break
@@ -3125,7 +3178,7 @@ class BaseBrowserAgent:
             # 检查是否有任务执行了但未标记完成，并进行最终结算
             # 注意：这里的 planned_tasks 参数必须是最新的任务列表（包含当前状态）
             # 我们需要从 task_manager 获取最新的任务状态，或者传入正确的 planned_tasks
-            
+
             # 如果 task_manager 存在，我们优先使用它里面的最新任务列表
             latest_tasks = planned_tasks
             if task_manager and hasattr(task_manager, 'tasks'):
@@ -3176,7 +3229,7 @@ class BaseBrowserAgent:
                             f"marking pending tasks as completed because done(success=True) exists: {fallback_inferred}"
                         )
                         executed_tasks_info['inferred_completed_tasks'] = fallback_inferred
-            
+
             # 将推断出的完成任务同步到任务管理器
             if executed_tasks_info.get('inferred_completed_tasks') and task_manager:
                 for task_id in executed_tasks_info['inferred_completed_tasks']:
@@ -3199,11 +3252,12 @@ class BaseBrowserAgent:
                             await callback(status_payload)
                         else:
                             callback(status_payload)
-                            
+
             if (
-                executed_tasks_info
-                and executed_tasks_info.get('executed_actions', 0) > len(executed_tasks_info.get('marked_tasks', []))
-                and executed_tasks_info.get('unmarked_actions')
+                    executed_tasks_info
+                    and executed_tasks_info.get('executed_actions', 0) > len(
+                executed_tasks_info.get('marked_tasks', []))
+                    and executed_tasks_info.get('unmarked_actions')
             ):
                 logger.warning(
                     f"⚠️ Found {executed_tasks_info['executed_actions']} executed actions, but only {len(executed_tasks_info['marked_tasks'])} tasks were explicitly marked complete")
@@ -3226,7 +3280,7 @@ class BaseBrowserAgent:
 
         executed_actions = {}  # 已执行的操作类型和索引，以及对应的步骤
         marked_tasks = set()  # 已标记完成的任务ID
-        action_footprints = [] # 记录所有动作的文本足迹
+        action_footprints = []  # 记录所有动作的文本足迹
 
         # 分析执行历史
         for step_idx, step in enumerate(getattr(history, 'steps', [])):
@@ -3235,16 +3289,17 @@ class BaseBrowserAgent:
             thinking = getattr(model_output, 'thinking', '') if model_output else ''
             if thinking:
                 action_footprints.append(thinking.lower())
-                
+
             # 检查每一步中的actions
             actions = getattr(step, 'actions', [])
             for action in actions:
                 # 提取动作相关的文本作为足迹
                 action_text = ""
-                
+
                 # 处理 action 是字典的情况 (兼容性增强)
                 try:
-                    action_dict = action if isinstance(action, dict) else (action.model_dump() if hasattr(action, 'model_dump') else {})
+                    action_dict = action if isinstance(action, dict) else (
+                        action.model_dump() if hasattr(action, 'model_dump') else {})
                     if isinstance(action_dict, list):
                         logger.warning(f"⚠️ action_dict is a list, converting to dict: {action_dict}")
                         # 尝试提取第一个元素，如果它是字典
@@ -3252,7 +3307,7 @@ class BaseBrowserAgent:
                 except Exception as e:
                     logger.warning(f"⚠️ Failed to parse action_dict: {e}")
                     action_dict = {}
-                
+
                 # 记录已执行的操作
                 # 兼容对象访问和字典访问
                 if hasattr(action, 'input') and action.input:
@@ -3265,23 +3320,23 @@ class BaseBrowserAgent:
                     }
                     action_text = getattr(action.input, 'text', '')
                 elif 'input' in action_dict:
-                     input_params = action_dict['input']
-                     if isinstance(input_params, list):
-                         input_params = input_params[0] if input_params else {}
-                     if not isinstance(input_params, dict):
-                         input_params = {}
+                    input_params = action_dict['input']
+                    if isinstance(input_params, list):
+                        input_params = input_params[0] if input_params else {}
+                    if not isinstance(input_params, dict):
+                        input_params = {}
 
-                     idx = input_params.get('index', 0)
-                     text = input_params.get('text', '')
-                     action_key = f"input_{idx}"
-                     executed_actions[action_key] = {
+                    idx = input_params.get('index', 0)
+                    text = input_params.get('text', '')
+                    action_key = f"input_{idx}"
+                    executed_actions[action_key] = {
                         'step': step_idx,
                         'action': 'input',
                         'index': idx,
                         'text': text
-                     }
-                     action_text = text
-                     
+                    }
+                    action_text = text
+
                 elif hasattr(action, 'click') and action.click:
                     action_key = f"click_{action.click.index}"
                     executed_actions[action_key] = {
@@ -3303,7 +3358,7 @@ class BaseBrowserAgent:
                         'action': 'click',
                         'index': idx
                     }
-                    
+
                 elif hasattr(action, 'switch_tab') and action.switch_tab:
                     action_key = f"switch_tab_{action.switch_tab.tab_id}"
                     executed_actions[action_key] = {
@@ -3316,8 +3371,8 @@ class BaseBrowserAgent:
                     if isinstance(switch_params, list):
                         switch_params = switch_params[0] if switch_params else {}
                     if not isinstance(switch_params, dict):
-                         # Handle raw string/int tab_id
-                         switch_params = {'tab_id': switch_params} if switch_params else {}
+                        # Handle raw string/int tab_id
+                        switch_params = {'tab_id': switch_params} if switch_params else {}
 
                     tab_id = switch_params.get('tab_id', 0)
                     action_key = f"switch_tab_{tab_id}"
@@ -3326,7 +3381,7 @@ class BaseBrowserAgent:
                         'action': 'switch_tab',
                         'tab_id': tab_id
                     }
-                
+
                 # 处理 done 动作
                 if hasattr(action, 'done') and action.done:
                     # 如果有 done 动作，认为任务已全部完成
@@ -3347,7 +3402,7 @@ class BaseBrowserAgent:
                         mtc_params = mtc_params[0] if mtc_params else {}
                     if not isinstance(mtc_params, dict):
                         mtc_params = {'task_id': mtc_params} if isinstance(mtc_params, int) else {}
-                    
+
                     task_id_marked = mtc_params.get('task_id')
                 elif hasattr(action, 'update_task_status') and action.update_task_status:
                     if str(getattr(action.update_task_status, 'status', '')).lower() == 'completed':
@@ -3358,10 +3413,10 @@ class BaseBrowserAgent:
                         uts_params = uts_params[0] if uts_params else {}
                     if not isinstance(uts_params, dict):
                         uts_params = {}
-                    
+
                     if str(uts_params.get('status', '')).lower() == 'completed':
                         task_id_marked = uts_params.get('task_id')
-                
+
                 if task_id_marked is not None:
                     marked_tasks.add(task_id_marked)
 
@@ -3384,28 +3439,29 @@ class BaseBrowserAgent:
         if planned_tasks:
             # 获取最大已标记任务ID，用于判断是否到达终点
             max_marked_id = max(marked_tasks) if marked_tasks else 0
-            
+
             # 如果存在 done 动作，或者 max_marked_id > 1，开始结算
             # 检查是否有 done 动作
             has_done_action = False
             for step in getattr(history, 'steps', []):
-                 actions = getattr(step, 'actions', [])
-                 for action in actions:
-                     try:
-                         action_dict = action if isinstance(action, dict) else (action.model_dump() if hasattr(action, 'model_dump') else {})
-                         if isinstance(action_dict, list):
-                             action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
-                     except Exception:
-                         action_dict = {}
-                         
-                     if hasattr(action, 'done') and action.done:
-                         has_done_action = True
-                         break
-                     elif 'done' in action_dict:
-                         has_done_action = True
-                         break
-                 if has_done_action: break
-            
+                actions = getattr(step, 'actions', [])
+                for action in actions:
+                    try:
+                        action_dict = action if isinstance(action, dict) else (
+                            action.model_dump() if hasattr(action, 'model_dump') else {})
+                        if isinstance(action_dict, list):
+                            action_dict = action_dict[0] if action_dict and isinstance(action_dict[0], dict) else {}
+                    except Exception:
+                        action_dict = {}
+
+                    if hasattr(action, 'done') and action.done:
+                        has_done_action = True
+                        break
+                    elif 'done' in action_dict:
+                        has_done_action = True
+                        break
+                if has_done_action: break
+
             # 如果有 done 动作，将 max_marked_id 视为无穷大（或最后一个任务ID）
             if has_done_action:
                 max_planned_id = 0
@@ -3425,35 +3481,35 @@ class BaseBrowserAgent:
                             logger.warning(f"⚠️ planned_tasks 包含 list 元素: {t}")
                 except Exception as e:
                     logger.error(f"❌ 计算 max_planned_id 失败: {e}")
-                
-                max_marked_id = max(max_marked_id, max_planned_id + 1) # 确保覆盖所有任务
+
+                max_marked_id = max(max_marked_id, max_planned_id + 1)  # 确保覆盖所有任务
                 logger.info("✅ 检测到 done 动作，启动全量最终一致性结算")
-            
+
             # 如果 AI 标记了 done 或者最大的 task_id，说明流程结束，开始结算
             # (这里的判断比较简单，假设只要有 marked_tasks 就可能需要结算中间的)
             if max_marked_id > 1:
                 import re
                 combined_footprint = " ".join(action_footprints)
-                
+
                 for task in planned_tasks:
                     # 确保 task 是字典
                     if not isinstance(task, dict):
                         if hasattr(task, 'model_dump'):
-                             task = task.model_dump()
+                            task = task.model_dump()
                         elif hasattr(task, '__dict__'):
-                             task = task.__dict__
+                            task = task.__dict__
                         else:
-                             # 如果是列表或其他无法转换的类型，跳过
-                             continue
-                    
+                            # 如果是列表或其他无法转换的类型，跳过
+                            continue
+
                     task_id = task.get('id')
                     task_status = task.get('status', 'pending')
                     task_desc = task.get('description', '').lower()
-                    
+
                     # 只处理未标记的中间任务
                     if task_id < max_marked_id and task_status == 'pending':
                         is_matched = False
-                        
+
                         # 策略1：使用之前强大的字面量提取逻辑
                         literals = _extract_task_literals(task_desc)
                         for literal in literals:
@@ -3461,36 +3517,39 @@ class BaseBrowserAgent:
                                 is_matched = True
                                 logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到字面量: '{literal}'")
                                 break
-                        
+
                         # 策略2：提取核心中文词组，过滤掉常见动词/名词
                         if not is_matched:
                             # 过滤掉常见的导致误判或匹配失败的词
-                            stop_words = ['点击', '按钮', '填写', '输入', '选择', '下拉框', '验证', '是否', '页面', '进入', '打开', '当前时间戳', '新增的', '关联项目']
+                            stop_words = ['点击', '按钮', '填写', '输入', '选择', '下拉框', '验证', '是否', '页面',
+                                          '进入', '打开', '当前时间戳', '新增的', '关联项目']
                             clean_desc = task_desc
                             for word in stop_words:
                                 clean_desc = clean_desc.replace(word, ' ')
-                                
+
                             # 提取所有包含数字、字母或连续中文的片段，这些更有可能是关键信息
                             key_phrases = re.findall(r'[a-zA-Z0-9.\-_]+|[\u4e00-\u9fa5]{2,}', clean_desc)
-                            
+
                             # 只要有一个核心词组出现在足迹中，就认为匹配成功（降低阈值，因为核心词更有代表性）
                             for phrase in key_phrases:
                                 if phrase and len(phrase) >= 2 and phrase in combined_footprint:
                                     is_matched = True
                                     logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到核心词: '{phrase}'")
                                     break
-                                    
+
                         # 策略3：非常短的描述直接匹配
                         if not is_matched and 2 < len(task_desc) <= 6 and task_desc in combined_footprint:
-                             is_matched = True
-                             logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到短描述")
+                            is_matched = True
+                            logger.info(f"✅ [最终一致性结算] 任务 {task_id} 匹配到短描述")
 
                         if is_matched:
                             inferred_completed_tasks.add(task_id)
-                            logger.info(f"✅ [最终一致性结算] 任务 {task_id} 未被显式标记，但足迹匹配成功，推断为 completed")
+                            logger.info(
+                                f"✅ [最终一致性结算] 任务 {task_id} 未被显式标记，但足迹匹配成功，推断为 completed")
                         else:
                             # 没有匹配到足迹，说明可能是被跳过的非必填项
-                            logger.info(f"⏭️ [最终一致性结算] 任务 {task_id} 未被显式标记，且无足迹 (desc='{task_desc}')，推断为 skipped")
+                            logger.info(
+                                f"⏭️ [最终一致性结算] 任务 {task_id} 未被显式标记，且无足迹 (desc='{task_desc}')，推断为 skipped")
                             # logger.debug(f"   Footprint sample: {combined_footprint[:200]}...")
 
         return {

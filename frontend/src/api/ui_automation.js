@@ -787,7 +787,7 @@ export function createOperationRecord(data) {
 // 获取定时任务列表
 export function getSchedulerSchedules(params) {
   return request({
-    url: '/ui-automation/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'get',
     params
   })
@@ -796,7 +796,7 @@ export function getSchedulerSchedules(params) {
 // 创建定时任务
 export function createSchedulerSchedule(data) {
   return request({
-    url: '/ui-automation/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'post',
     data
   })
@@ -805,7 +805,7 @@ export function createSchedulerSchedule(data) {
 // 获取定时任务详情
 export function getScheduledTaskDetail(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'get'
   })
 }
@@ -813,7 +813,7 @@ export function getScheduledTaskDetail(id) {
 // 更新定时任务
 export function updateSchedulerSchedule(id, data) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'patch',
     data
   })
@@ -822,7 +822,7 @@ export function updateSchedulerSchedule(id, data) {
 // 删除定时任务
 export function deleteSchedulerSchedule(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'delete'
   })
 }
@@ -830,7 +830,7 @@ export function deleteSchedulerSchedule(id) {
 export function toggleSchedulerSchedule(id, is_active) {
   const action = is_active ? 'resume' : 'pause'
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/${action}/`,
+    url: `/scheduler/schedules/${id}/${action}/`,
     method: 'post'
   })
 }
@@ -838,7 +838,7 @@ export function toggleSchedulerSchedule(id, is_active) {
 // 立即运行任务
 export function executeSchedulerSchedule(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/run_now/`,
+    url: `/scheduler/schedules/${id}/run_now/`,
     method: 'post'
   })
 }
@@ -901,7 +901,7 @@ export function setDefaultNotificationConfig(id) {
 // 获取通知日志列表
 export function getNotificationLogs(params) {
   return request({
-    url: '/ui-automation/notification-logs/',
+    url: '/ui-automation/ui-notification-logs/',
     method: 'get',
     params
   })
@@ -910,7 +910,7 @@ export function getNotificationLogs(params) {
 // 重试发送通知
 export function retryNotification(id) {
   return request({
-    url: `/ui-automation/notification-logs/${id}/retry/`,
+    url: `/ui-automation/ui-notification-logs/${id}/retry/`,
     method: 'post'
   })
 }

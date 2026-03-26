@@ -624,62 +624,65 @@ export function exportComponentPackage(params) {
   })
 }
 
-// ==================== 定时任务管理 ====================
+// ==================== 定时任务相关API ====================
 
-/**
- * 获取定时任务列表
- */
-export function getAppScheduledTasks(params) {
-  return request({ url: '/app-automation/scheduled-tasks/', method: 'get', params })
+// 获取定时任务列表
+export function getSchedulerSchedules(params) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'get',
+    params
+  })
 }
 
-/**
- * 获取定时任务详情
- */
-export function getAppScheduledTaskDetail(id) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/`, method: 'get' })
+// 创建定时任务
+export function createSchedulerSchedule(data) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'post',
+    data
+  })
 }
 
-/**
- * 创建定时任务
- */
-export function createAppScheduledTask(data) {
-  return request({ url: '/app-automation/scheduled-tasks/', method: 'post', data })
+// 获取定时任务详情
+export function getScheduledTaskDetail(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'get'
+  })
 }
 
-/**
- * 更新定时任务
- */
-export function updateAppScheduledTask(id, data) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/`, method: 'patch', data })
+// 更新定时任务
+export function updateSchedulerSchedule(id, data) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'patch',
+    data
+  })
 }
 
-/**
- * 删除定时任务
- */
-export function deleteAppScheduledTask(id) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/`, method: 'delete' })
+// 删除定时任务
+export function deleteSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'delete'
+  })
 }
 
-/**
- * 暂停定时任务
- */
-export function pauseAppScheduledTask(id) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/pause/`, method: 'post' })
+export function toggleSchedulerSchedule(id, is_active) {
+  const action = is_active ? 'resume' : 'pause'
+  return request({
+    url: `/scheduler/schedules/${id}/${action}/`,
+    method: 'post'
+  })
 }
 
-/**
- * 恢复定时任务
- */
-export function resumeAppScheduledTask(id) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/resume/`, method: 'post' })
-}
-
-/**
- * 立即运行定时任务
- */
-export function runAppScheduledTask(id) {
-  return request({ url: `/app-automation/scheduled-tasks/${id}/run_now/`, method: 'post' })
+// 立即运行任务
+export function executeSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/run_now/`,
+    method: 'post'
+  })
 }
 
 // ==================== 通知日志 ====================

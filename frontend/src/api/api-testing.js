@@ -8,55 +8,64 @@ export function getDashboardStats() {
   })
 }
 
+// ==================== 定时任务相关API ====================
+
 // 获取定时任务列表
-export function getScheduledTasks(params) {
+export function getSchedulerSchedules(params) {
   return request({
-    url: '/api-testing/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'get',
     params
   })
 }
 
 // 创建定时任务
-export function createScheduledTask(data) {
+export function createSchedulerSchedule(data) {
   return request({
-    url: '/api-testing/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'post',
     data
   })
 }
 
-// 更新定时任务
-export function updateScheduledTask(id, data) {
+// 获取定时任务详情
+export function getScheduledTaskDetail(id) {
   return request({
-    url: `/api-testing/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
+    method: 'get'
+  })
+}
+
+// 更新定时任务
+export function updateSchedulerSchedule(id, data) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
     method: 'patch',
     data
   })
 }
 
 // 删除定时任务
-export function deleteScheduledTask(id) {
+export function deleteSchedulerSchedule(id) {
   return request({
-    url: `/api-testing/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'delete'
   })
 }
 
-// 立即执行定时任务
-export function runScheduledTask(id) {
+export function toggleSchedulerSchedule(id, is_active) {
+  const action = is_active ? 'resume' : 'pause'
   return request({
-    url: `/api-testing/scheduled-tasks/${id}/run_now/`,
+    url: `/scheduler/schedules/${id}/${action}/`,
     method: 'post'
   })
 }
 
-// 获取执行日志
-export function getExecutionLogs(taskId, params = {}) {
+// 立即运行任务
+export function executeSchedulerSchedule(id) {
   return request({
-    url: `/scheduler/schedules/${taskId}/history/`,
-    method: 'get',
-    params
+    url: `/scheduler/schedules/${id}/run_now/`,
+    method: 'post'
   })
 }
 
@@ -174,52 +183,16 @@ export function getOperationLogs(params) {
   })
 }
 
-// Django-Q 统一调度器API
-export function getSchedulerSchedules(params) {
+// 获取执行日志
+export function getExecutionLogs(taskId, params = {}) {
   return request({
-    url: '/scheduler/schedules/',
+    url: `/scheduler/schedules/${taskId}/history/`,
     method: 'get',
     params
   })
 }
 
-export function createSchedulerSchedule(data) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'post',
-    data
-  })
-}
-
-export function updateSchedulerSchedule(id, data) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'patch',
-    data
-  })
-}
-
-export function deleteSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'delete'
-  })
-}
-
-export function executeSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/execute/`,
-    method: 'post'
-  })
-}
-
-export function toggleSchedulerSchedule(id, action) {
-  return request({
-    url: `/scheduler/schedules/${id}/toggle/`,
-    method: 'post',
-    data: { action }
-  })
-}
+// ==================== API 测试特有API ====================
 
 export function getSchedulerHistory(id, params = {}) {
   return request({

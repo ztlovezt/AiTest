@@ -73,3 +73,6 @@ docker-compose*.yml
 nginx.conf
 Makefile
 build-multiplatform.sh
+
+# 忽略知识库的数据库文件
+backend/expand/chroma_db/*

@@ -48,7 +48,9 @@ def migrate_and_fix_data(apps, schema_editor):
     AiProject = apps.get_model('ai_testing', 'AiProject')
     AICase = apps.get_model('ai_testing', 'AICase')
     AIExecutionRecord = apps.get_model('ai_testing', 'AIExecutionRecord')
-    User = apps.get_model('auth', 'User')
+    from django.conf import settings
+    user_app, user_model = settings.AUTH_USER_MODEL.split('.')
+    User = apps.get_model(user_app, user_model)
 
     # 查找所有项目为空的用例和记录
     orphan_cases = AICase.objects.filter(project__isnull=True)

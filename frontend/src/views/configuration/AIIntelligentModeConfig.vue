@@ -476,7 +476,7 @@ const testConnectionInModal = async () => {
     try {
       // 测试连接需要90秒超时
       await api.post(
-        `/ui-automation/ai-models/${editingConfigId.value}/test_connection/`,
+        `/ui-automation/config/ai-mode/${editingConfigId.value}/test_connection/`,
         {},
         { timeout: 90000 }
       )
@@ -505,7 +505,7 @@ const testConnectionInModal = async () => {
   try {
     // 测试连接需要90秒超时
     await api.post(
-      '/ui-automation/ai-models/test_connection/',
+      '/ui-automation/config/ai-mode/test_connection/',
       {
         provider: configForm.value.model_type,
         model_name: configForm.value.model_name,

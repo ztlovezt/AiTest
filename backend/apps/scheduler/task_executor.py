@@ -141,14 +141,10 @@ def _get_email_template(email_notification_configs, config):
 def execute_task(schedule_id, is_manual_execution=True, executed_by_id=None):
     """
     执行定时任务
-    
-    Args:
-        schedule_id: Django-Q Schedule ID
-        is_manual_execution: 是否立即执行（默认为True，表示手动触发）
-        executed_by_id: 执行用户ID（可选，用于记录实际执行者）
-        
-    Returns:
-        任务ID
+    :param schedule_id: Django-Q Schedule ID
+    :param is_manual_execution: 是否立即执行（默认为True，表示手动触发）
+    :param executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    :return: 任务ID
     """
     logger.info(f"execute_task 被调用: schedule_id={schedule_id}, is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}")
     
@@ -185,13 +181,10 @@ def execute_task(schedule_id, is_manual_execution=True, executed_by_id=None):
 
 def execute_scheduled_task(*args, **kwargs):
     """
-    执行定时任务的入口函数
-    根据任务类型调用对应的执行器
-    
-    Args:
-        schedule_id: Django-Q Schedule ID
-        is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
-        executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    执行定时任务的入口函数，根据任务类型调用对应的执行器
+    :param args:
+    :param kwargs:
+    :return:
     """
     from apps.scheduler.models import ScheduleConfig
     
@@ -878,14 +871,14 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
 
 
 def send_notification(config, success, result, is_manual_execution=False, executed_by_id=None):
-    """发送任务通知
-    
-    Args:
-        config: ScheduleConfig 实例
-        success: 是否成功
-        result: 执行结果
-        is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
-        executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    """
+    发送任务通知
+    :param config: ScheduleConfig 实例
+    :param success: 是否成功
+    :param result: 执行结果
+    :param is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
+    :param executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    :return:
     """
     if success and not config.notify_on_success:
         return
