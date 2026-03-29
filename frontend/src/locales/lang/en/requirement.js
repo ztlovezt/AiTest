@@ -13,7 +13,7 @@ export default {
     completeOutputDesc: 'Display all at once after completion, suitable for simple requirements',
 
     // Manual Input
-    manualInputTitle: '✍️ Manual Input',
+    manualInputTitle: 'Manual Input',
     requirementTitle: 'Requirement Title',
     requirementDescription: 'Requirement Description',
     relatedProject: 'Related Project (Optional)',
@@ -27,7 +27,7 @@ export default {
     generateButton: '🚀 Generate Test Cases',
 
     // Document Upload
-    uploadTitle: '📄 Upload Document',
+    uploadTitle: 'Upload Document',
     dragDropText: 'Drag file here or click to select',
     supportedFormats: 'Supports PDF, Word, TXT, Markdown formats',
     selectFileBtn: 'Select File',
@@ -40,7 +40,7 @@ export default {
     fileSize: 'File Size',
 
     // Knowledge Base Panel
-    knowledgeBaseTitle: '📚 Knowledge Base',
+    knowledgeBaseTitle: 'Knowledge Base',
     selectKnowledgeBase: 'Select Knowledge Base',
     selectKnowledgeBasePlaceholder: 'Please select a knowledge base',
     searchQuery: 'Search Query',
@@ -53,7 +53,7 @@ export default {
     searching: 'Searching...',
 
     // Axure Panel
-    axureTitle: '🎨 Axure Parsing',
+    axureTitle: 'Axure Parsing',
     axureComingSoon: 'Coming Soon',
     axureDescription: 'Support automatic requirement parsing from Axure prototype pages and test case generation',
     axureOnlineLink: 'Axure Online Link',

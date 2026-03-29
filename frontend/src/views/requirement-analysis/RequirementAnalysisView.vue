@@ -121,29 +121,41 @@
             class="panel-tab"
             :class="{ active: activePanel === 'manual' }"
             @click="activePanel = 'manual'">
-            <span class="panel-icon manual-icon">✏️</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</span>
+            <div class="panel-icon manual-icon">✏️</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
+              <div class="panel-desc">直接输入需求标题和详细描述，快速生成测试用例</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'upload' }"
             @click="activePanel = 'upload'">
-            <span class="panel-icon upload-icon">📄</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</span>
+            <div class="panel-icon upload-icon">📄</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
+              <div class="panel-desc">支持上传 Word、PDF 等格式的 PRD 需求文档文件</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'knowledge' }"
             @click="activePanel = 'knowledge'">
-            <span class="panel-icon knowledge-icon">📚</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</span>
+            <div class="panel-icon knowledge-icon">📚</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
+              <div class="panel-desc">从已有的产品知识库中检索相关需求并进行用例生成</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'axure' }"
             @click="activePanel = 'axure'">
-            <span class="panel-icon axure-icon">🎨</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</span>
+            <div class="panel-icon axure-icon">🎨</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
+              <div class="panel-desc">自动解析 Axure 原型链接中的文本说明和交互流程图</div>
+            </div>
           </div>
         </div>
       </div>
@@ -2433,59 +2445,127 @@ export default {
   color: #475569;
 }
 
-/* 面板选择器样式 */
+/* 面板选择器样式 - 现代化改进 */
 .panel-selector {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .panel-tabs {
-  display: flex;
-  gap: 16px;
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e1e8ed;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
 }
 
 .panel-tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 20px;
-  border-radius: 10px;
+  display: block;
+  padding: 24px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  height: 180px; /* 增加高度以容纳多行文本 */
+  box-sizing: border-box;
+}
+
+.panel-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
 }
 
 .panel-tab:hover {
-  background: #e9ecef;
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
 }
 
 .panel-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
 }
 
-.panel-tab.active .panel-label {
-  color: white;
-  font-weight: 600;
+.panel-tab.active::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
 }
 
 .panel-icon {
-  font-size: 2rem;
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 2.2rem;
+  line-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  text-align: center;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.panel-tab.active .panel-icon {
+  background: #eff6ff;
+  transform: scale(1.05);
+}
+
+.panel-content-wrapper {
+  position: absolute;
+  top: 92px; /* icon(24+56) + 12px 间距 */
+  left: 24px;
+  right: 24px;
+  display: block;
 }
 
 .panel-label {
-  font-size: 0.95rem;
-  color: #495057;
-  text-align: center;
+  font-size: 1.1rem;
+  color: #334155;
+  font-weight: 600;
+  text-align: left;
+  line-height: 24px;
+  height: 24px;
+  margin: 0 0 8px 0; /* 底部间距 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+
+.panel-tab.active .panel-label {
+  color: #1d4ed8;
+}
+
+.panel-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.6;
+  height: 3.2em; /* 1.6 * 2行 = 3.2em，保证有足够空间渲染两行 */
+  text-align: left;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 限制2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 面板内容样式 */
