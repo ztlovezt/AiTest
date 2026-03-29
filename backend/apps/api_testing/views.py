@@ -350,11 +350,23 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
             # 创建变量解析器
             resolver = VariableResolver()
 
-            # 解析环境变量
+            # 解析环境变量（先加载全局变量，再加载指定环境变量覆盖）
             variables = {}
+            global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
+            if global_env and global_env.variables:
+                for key, val in global_env.variables.items():
+                    if isinstance(val, dict) and 'currentValue' in val:
+                        variables[key] = val['currentValue']
+                    else:
+                        variables[key] = val
             if environment_id:
                 env = Environment.objects.get(id=environment_id)
-                variables.update(env.variables)
+                if env.variables:
+                    for key, val in env.variables.items():
+                        if isinstance(val, dict) and 'currentValue' in val:
+                            variables[key] = val['currentValue']
+                        else:
+                            variables[key] = val
 
             # 使用前端发送的更新后的数据，如果没有则使用数据库中的数据
             request_params = request.data.get('params', api_request.params)
@@ -705,10 +717,21 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 api_request = suite_request.request
 
                 try:
-                    # 解析环境变量
+                    # 解析环境变量（先加载全局变量，再加载套件环境变量覆盖）
                     variables = {}
-                    if test_suite.environment:
-                        variables.update(test_suite.environment.variables)
+                    global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
+                    if global_env and global_env.variables:
+                        for key, val in global_env.variables.items():
+                            if isinstance(val, dict) and 'currentValue' in val:
+                                variables[key] = val['currentValue']
+                            else:
+                                variables[key] = val
+                    if test_suite.environment and test_suite.environment.variables:
+                        for key, val in test_suite.environment.variables.items():
+                            if isinstance(val, dict) and 'currentValue' in val:
+                                variables[key] = val['currentValue']
+                            else:
+                                variables[key] = val
 
                     # 替换URL中的变量（先解析动态函数，再替换环境变量）
                     url = self._replace_variables(api_request.url, variables)

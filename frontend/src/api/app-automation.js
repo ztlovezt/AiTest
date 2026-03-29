@@ -624,6 +624,67 @@ export function exportComponentPackage(params) {
   })
 }
 
+// ==================== 定时任务相关API ====================
+
+// 获取定时任务列表
+export function getSchedulerSchedules(params) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'get',
+    params
+  })
+}
+
+// 创建定时任务
+export function createSchedulerSchedule(data) {
+  return request({
+    url: '/scheduler/schedules/',
+    method: 'post',
+    data
+  })
+}
+
+// 获取定时任务详情
+export function getScheduledTaskDetail(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'get'
+  })
+}
+
+// 更新定时任务
+export function updateSchedulerSchedule(id, data) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'patch',
+    data
+  })
+}
+
+// 删除定时任务
+export function deleteSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'delete'
+  })
+}
+
+export function toggleSchedulerSchedule(id, is_active) {
+  const action = is_active ? 'resume' : 'pause'
+  return request({
+    url: `/scheduler/schedules/${id}/${action}/`,
+    method: 'post'
+  })
+}
+
+// 立即运行任务
+export function executeSchedulerSchedule(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/run_now/`,
+    method: 'post'
+  })
+}
+
 // ==================== 通知日志 ====================
 
 /**
@@ -638,76 +699,6 @@ export function getAppNotificationLogs(params) {
  */
 export function retryAppNotification(id) {
   return request({ url: `/app-automation/notification-logs/${id}/retry/`, method: 'post' })
-}
-
-// ==================== Django-Q 统一调度器API ====================
-
-export function getSchedulerSchedules(params) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'get',
-    params
-  })
-}
-
-export function createSchedulerSchedule(data) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'post',
-    data
-  })
-}
-
-export function getScheduledTaskDetail(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'get'
-  })
-}
-
-export function updateSchedulerSchedule(id, data) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'patch',
-    data
-  })
-}
-
-export function deleteSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'delete'
-  })
-}
-
-export function executeSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/execute/`,
-    method: 'post'
-  })
-}
-
-export function toggleSchedulerSchedule(id, action) {
-  return request({
-    url: `/scheduler/schedules/${id}/toggle/`,
-    method: 'post',
-    data: { action }
-  })
-}
-
-export function getSchedulerHistory(id, params = {}) {
-  return request({
-    url: `/scheduler/schedules/${id}/history/`,
-    method: 'get',
-    params
-  })
-}
-
-export function getSchedulerStatistics() {
-  return request({
-    url: '/scheduler/schedules/statistics/',
-    method: 'get'
-  })
 }
 
 export function getAppUsers(params) {

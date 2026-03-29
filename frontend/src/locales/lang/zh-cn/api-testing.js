@@ -171,7 +171,11 @@ export default {
     selectInterface: '请选择一个接口查看详情，或点击上方绿色按钮创建新接口',
     requestName: '请求名称',
     inputRequestUrl: '输入请求URL',
+    pleaseInputUrl: '请填写请求URL',
+    saveBeforeSend: '请先保存接口到集合后再发送请求',
     environment: '环境',
+    globalEnv: '全局环境',
+    projectEnv: '项目环境',
     send: '发送',
     connect: '连接',
     connecting: '连接中',
@@ -933,5 +937,30 @@ export default {
       deleteTitle: '确认删除',
       clearTitle: '确认清空'
     }
+  },
+
+  // 响应可视化
+  response: {
+    body: '响应体',
+    time: '耗时',
+    size: '大小',
+    treeView: '树形',
+    tableView: '表格',
+    rawView: '原始',
+    preview: '预览',
+    copy: '复制',
+    copied: '已复制到剪贴板',
+    expandAll: '全部展开',
+    collapseAll: '全部折叠',
+    searchPlaceholder: '搜索键名或值...',
+    searchHeaders: '搜索响应头...',
+    pathCopied: 'JSONPath 已复制',
+    assertions: '断言',
+    passed: '通过',
+    failed: '失败',
+    unnamed: '未命名断言',
+    expected: '期望值',
+    actual: '实际值',
+    error: '错误'
   }
 }

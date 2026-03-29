@@ -171,7 +171,11 @@ export default {
     selectInterface: 'Select an interface to view details, or click the green button above to create a new one',
     requestName: 'Request Name',
     inputRequestUrl: 'Enter request URL',
+    pleaseInputUrl: 'Please enter request URL',
+    saveBeforeSend: 'Please save the request to a collection before sending',
     environment: 'Environment',
+    globalEnv: 'Global',
+    projectEnv: 'Project',
     send: 'Send',
     connect: 'Connect',
     connecting: 'Connecting',
@@ -931,5 +935,30 @@ export default {
       deleteTitle: 'Confirm Delete',
       clearTitle: 'Confirm Clear'
     }
+  },
+
+  // Response Visualization
+  response: {
+    body: 'Body',
+    time: 'Time',
+    size: 'Size',
+    treeView: 'Tree',
+    tableView: 'Table',
+    rawView: 'Raw',
+    preview: 'Preview',
+    copy: 'Copy',
+    copied: 'Copied to clipboard',
+    expandAll: 'Expand All',
+    collapseAll: 'Collapse All',
+    searchPlaceholder: 'Search keys or values...',
+    searchHeaders: 'Search headers...',
+    pathCopied: 'JSONPath copied',
+    assertions: 'Assertions',
+    passed: 'Passed',
+    failed: 'Failed',
+    unnamed: 'Unnamed assertion',
+    expected: 'Expected',
+    actual: 'Actual',
+    error: 'Error'
   }
 }
