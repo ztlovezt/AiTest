@@ -2,9 +2,48 @@ from rest_framework import serializers
 from django.db import models, transaction
 from .models import MetaProject, MetaProjectMember, ProjectModule
 from apps.users.serializers import UserSerializer
+from apps.projects.models import Project, ProjectMember
 from apps.api_testing.models import ApiProject
 from apps.ui_automation.models import UiProject
 from apps.app_automation.models import AppProject
+
+
+def resolve_module_owner(meta_project, config):
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    owner_id = config.get('owner')
+    if owner_id:
+        try:
+            return User.objects.get(id=owner_id)
+        except User.DoesNotExist:
+            return meta_project.owner
+    return meta_project.owner
+
+
+def sync_ai_generation_project(project, meta_project, config):
+    project.name = meta_project.name
+    project.description = meta_project.description
+    project.status = meta_project.status
+    project.owner = resolve_module_owner(meta_project, config)
+    project.unified_meta_project = meta_project
+    project.save()
+
+    member_ids = config.get('member_ids') or []
+    member_ids = [member_id for member_id in member_ids if member_id and member_id != project.owner_id]
+    valid_member_ids = set(
+        project.owner.__class__.objects.filter(id__in=member_ids).values_list('id', flat=True)
+    )
+
+    project.projectmember_set.exclude(user_id__in=valid_member_ids).delete()
+
+    existing_member_ids = set(project.projectmember_set.values_list('user_id', flat=True))
+    for member_id in valid_member_ids - existing_member_ids:
+        ProjectMember.objects.create(
+            project=project,
+            user_id=member_id,
+            role='tester'
+        )
 
 
 class ProjectModuleSerializer(serializers.ModelSerializer):
@@ -232,14 +271,20 @@ class MetaProjectCreateSerializer(serializers.ModelSerializer):
 
     def _create_child_project(self, project_module, config):
         """为模块类型创建子项目"""
-        from apps.projects.models import Project
-
         meta_project = project_module.meta_project
         module_type = project_module.module_type
 
         if module_type == 'AI':
-            # AI用例生成模块不再创建AiProject
-            pass
+            project = Project.objects.filter(unified_meta_project=meta_project).first()
+            if not project:
+                project = Project.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    status=meta_project.status,
+                    owner=resolve_module_owner(meta_project, config),
+                    unified_meta_project=meta_project
+                )
+            sync_ai_generation_project(project, meta_project, config)
 
         elif module_type == 'AI_TEST':
             from apps.ai_testing.models import AiProject
@@ -388,13 +433,20 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
 
     def _create_child_project(self, project_module, config):
         """复用MetaProjectCreateSerializer的_create_child_project逻辑"""
-        from apps.projects.models import Project
-
         meta_project = project_module.meta_project
         module_type = project_module.module_type
 
         if module_type == 'AI':
-            pass
+            project = Project.objects.filter(unified_meta_project=meta_project).first()
+            if not project:
+                project = Project.objects.create(
+                    name=meta_project.name,
+                    description=meta_project.description,
+                    status=meta_project.status,
+                    owner=resolve_module_owner(meta_project, config),
+                    unified_meta_project=meta_project
+                )
+            sync_ai_generation_project(project, meta_project, config)
 
         elif module_type == 'AI_TEST':
             from apps.ai_testing.models import AiProject
@@ -499,6 +551,10 @@ class MetaProjectUpdateSerializer(serializers.ModelSerializer):
 
         project = project_module.get_project()
         if not project:
+            return
+
+        if project_module.module_type == 'AI':
+            sync_ai_generation_project(project, project_module.meta_project, config)
             return
 
         for key, value in config.items():

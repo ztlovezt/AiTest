@@ -624,67 +624,6 @@ export function exportComponentPackage(params) {
   })
 }
 
-// ==================== 定时任务相关API ====================
-
-// 获取定时任务列表
-export function getSchedulerSchedules(params) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'get',
-    params
-  })
-}
-
-// 创建定时任务
-export function createSchedulerSchedule(data) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'post',
-    data
-  })
-}
-
-// 获取定时任务详情
-export function getScheduledTaskDetail(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'get'
-  })
-}
-
-// 更新定时任务
-export function updateSchedulerSchedule(id, data) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'patch',
-    data
-  })
-}
-
-// 删除定时任务
-export function deleteSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'delete'
-  })
-}
-
-export function toggleSchedulerSchedule(id, is_active) {
-  const action = is_active ? 'resume' : 'pause'
-  return request({
-    url: `/scheduler/schedules/${id}/${action}/`,
-    method: 'post'
-  })
-}
-
-// 立即运行任务
-export function executeSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/run_now/`,
-    method: 'post'
-  })
-}
-
 // ==================== 通知日志 ====================
 
 /**
@@ -716,6 +655,13 @@ export function createSchedulerSchedule(data) {
     url: '/scheduler/schedules/',
     method: 'post',
     data
+  })
+}
+
+export function getScheduledTaskDetail(id) {
+  return request({
+    url: `/scheduler/schedules/${id}/`,
+    method: 'get'
   })
 }
 

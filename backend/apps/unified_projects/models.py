@@ -137,7 +137,12 @@ class ProjectModule(models.Model):
 
     def get_project(self):
         """获取关联的实际项目"""
-        if self.module_type in ['AI', 'AI_TEST'] and self.ai_project:
+        if self.module_type == 'AI':
+            try:
+                return self.meta_project.project
+            except Exception:
+                return None
+        elif self.module_type == 'AI_TEST' and self.ai_project:
             return self.ai_project
         elif self.module_type == 'API' and self.api_project:
             return self.api_project

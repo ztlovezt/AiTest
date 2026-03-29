@@ -16,7 +16,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalProjects }}</div>
-            <div class="stat-label">{{ $t('unifiedProject.dashboard.totalProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.totalProjects')">{{ $t('unifiedProject.dashboard.totalProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -27,7 +27,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiProjects }}</div>
-            <div class="stat-label">AI用例生成项目</div>
+            <div class="stat-label" title="AI用例生成项目">AI用例生成项目</div>
           </div>
         </div>
       </el-col>
@@ -38,7 +38,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiTestProjects }}</div>
-            <div class="stat-label">AI智能测试项目</div>
+            <div class="stat-label" title="AI智能测试项目">AI智能测试项目</div>
           </div>
         </div>
       </el-col>
@@ -49,7 +49,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.apiProjects }}</div>
-            <div class="stat-label">{{ $t('unifiedProject.dashboard.apiProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.apiProjects')">{{ $t('unifiedProject.dashboard.apiProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -60,7 +60,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.uiProjects }}</div>
-            <div class="stat-label">{{ $t('unifiedProject.dashboard.uiProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.uiProjects')">{{ $t('unifiedProject.dashboard.uiProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -71,7 +71,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.appProjects }}</div>
-            <div class="stat-label">{{ $t('unifiedProject.dashboard.appProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.appProjects')">{{ $t('unifiedProject.dashboard.appProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -394,10 +394,16 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
+.stats-row :deep(.el-col) {
+  display: flex;
+}
+
 .stat-card {
   display: flex;
   align-items: center;
   gap: 12px;
+  width: 100%;
+  min-height: 88px;
   padding: 16px;
   background: #fff;
   border-radius: 8px;
@@ -437,6 +443,10 @@ onMounted(() => {
   font-size: 13px;
   color: #666;
   margin-top: 4px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .list-card {
