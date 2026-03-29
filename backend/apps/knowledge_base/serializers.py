@@ -1,8 +1,29 @@
 from rest_framework import serializers
-from django.db import models
+from rest_framework import serializers
 from .models import (
-    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion
+    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion, KnowledgeBaseConfig
 )
+
+class KnowledgeBaseConfigSerializer(serializers.ModelSerializer):
+    """知识库配置序列化器"""
+    class Meta:
+        model = KnowledgeBaseConfig
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        # 对前端隐藏完整 API Key，只显示首尾
+        for field in ['embedding_api_key', 'refiner_api_key', 'zhipu_api_key']:
+            if ret.get(field):
+                key = ret[field]
+                if len(key) > 8:
+                    ret[f'{field}_masked'] = f"{key[:4]}****{key[-4:]}"
+                else:
+                    ret[f'{field}_masked'] = "****"
+            else:
+                ret[f'{field}_masked'] = ""
+        return ret
 
 
 class KnowledgeBaseSerializer(serializers.ModelSerializer):

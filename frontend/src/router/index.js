@@ -434,6 +434,11 @@ const routes = [
             component: () => import('@/views/requirement-analysis/GenerationConfigView.vue')
           },
           {
+            path: 'knowledge-base',
+            name: 'ConfigKnowledgeBase',
+            component: () => import('@/views/configuration/KnowledgeBaseConfig.vue')
+          },
+          {
             path: 'ui-env',
             name: 'ConfigUIEnv',
             component: () => import('@/views/configuration/UIEnvironmentConfig.vue')

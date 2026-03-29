@@ -68,13 +68,14 @@ export default {
     aiExecutionRecords: 'AI Test Reports',
 
     // Configuration Center
-    aiCaseGenerationConfig: 'AI Test Case Config',
+    aiCaseGenerationConfig: 'AI Case Generation Config',
     aiModelConfig: 'Model Config',
-    promptConfigCenter: 'Prompt Configuration',
-    generationConfig: 'Generation Behavior Config',
-    uiEnvConfig: 'UI Environment Configuration',
-    appEnvConfig: 'APP Environment Configuration',
-    aiModeConfig: 'AI Mode Configuration',
+    promptConfigCenter: 'Prompt Config',
+    generationConfig: 'Generation Config',
+    knowledgeBaseConfig: 'Knowledge Base Config',
+    uiEnvConfig: 'UI Environment',
+    appEnvConfig: 'APP Environment',
+    aiModeConfig: 'AI Intelligent Mode',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',
     projectManagementCenter: 'Project Management Center'

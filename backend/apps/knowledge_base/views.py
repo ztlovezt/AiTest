@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse
@@ -9,17 +10,80 @@ from django.utils import timezone
 import os
 
 from .models import (
-    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion
+    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion, KnowledgeBaseConfig
 )
 from .serializers import (
     KnowledgeBaseSerializer, KnowledgeBaseCreateSerializer,
     KnowledgeCategorySerializer, KnowledgeCategoryTreeSerializer,
-    KnowledgeDocumentSerializer, DocumentUploadSerializer, DocumentVersionSerializer
+    KnowledgeDocumentSerializer, DocumentUploadSerializer, DocumentVersionSerializer,
+    KnowledgeBaseConfigSerializer
 )
 from .services import knowledge_base_service, DocumentParser
 from backend.log_config import get_logger
 
 logger = get_logger(__name__)
+
+
+class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
+    """知识库大模型配置视图集"""
+    queryset = KnowledgeBaseConfig.objects.all()
+    serializer_class = KnowledgeBaseConfigSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        """获取当前激活的配置"""
+        config = self.queryset.filter(is_active=True).first()
+        if not config:
+            # 如果没有配置，返回一个带默认值的空结构
+            return Response({
+                'configured': False,
+                'id': None,
+                'embedding_model': 'text-embedding-v3',
+                'refiner_model': 'qwen-plus',
+                'refiner_max_tokens': 8192,
+                'refiner_temperature': 0.3,
+                'zhipu_base_url': 'https://open.bigmodel.cn/api/paas/v4',
+                'zhipu_vision_model': 'glm-4v-flash',
+                'message': '未找到激活的配置'
+            })
+        
+        serializer = self.get_serializer(config)
+        data = serializer.data
+        data['configured'] = True
+        return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        """保存/更新配置（单例模式）"""
+        data = request.data
+        config = self.queryset.filter(is_active=True).first()
+        
+        # 处理掩码的 API Key
+        for field in ['embedding_api_key', 'refiner_api_key', 'zhipu_api_key']:
+            if data.get(field) and data[field].startswith('****') or data.get(field) and '****' in data[field]:
+                # 如果包含掩码，说明前端没有修改，从现有配置中获取真实值
+                if config:
+                    data[field] = getattr(config, field)
+                else:
+                    data.pop(field, None)
+
+        if config:
+            serializer = self.get_serializer(config, data=data, partial=True)
+        else:
+            data['is_active'] = True
+            serializer = self.get_serializer(data=data)
+            
+        serializer.is_valid(raise_exception=True)
+        self.perform_save(serializer)
+        return Response(serializer.data)
+
+    def perform_save(self, serializer):
+        serializer.save()
+
+    @action(detail=False, methods=['post'])
+    def test_connection(self, request):
+        """测试模型连接 (可拓展)"""
+        # 这里可以实现分别测试三种模型连接的逻辑
+        return Response({'message': '测试连接成功', 'status': 'success'})
 
 
 def extract_text_from_file(file_path, document_type):

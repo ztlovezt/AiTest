@@ -945,28 +945,25 @@ def refine_requirements_markdown(requirement_text: str, api_key: str = None, bas
                                   temperature: float = 0.3) -> str:
     """
     使用 LLM 对需求文本进行结构化整理
-
-    Args:
-        requirement_text: 需求文本
-        api_key: API Key
-        base_url: API Base URL
-        model_name: 模型名称
-        max_tokens: 最大token数
-        temperature: 温度参数
-
-    Returns:
-        整理后的 Markdown 文本
     """
     import httpx
 
-    # 从配置获取默认值
-    from backend.config_loader import config_loader
+    # 从数据库或配置获取默认值
+    from apps.knowledge_base.models import KnowledgeBaseConfig
+    db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+    
     if not api_key:
-        api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+        api_key = db_config.refiner_api_key if db_config else None
     if not base_url:
-        base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+        base_url = db_config.refiner_base_url if db_config else None
     if not model_name:
-        model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+        model_name = db_config.refiner_model if db_config and db_config.refiner_model else 'qwen-plus'
+
+    if not api_key or not base_url:
+        from backend.config_loader import config_loader
+        api_key = api_key or config_loader.get('LLM.QWEN_API_KEY', '')
+        base_url = base_url or config_loader.get('LLM.QWEN_BASE_URL', '')
+        model_name = model_name or config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
 
     if not api_key or not base_url:
         logger.warning("未配置 LLM API Key 或 Base URL，返回原始文本")
@@ -1069,14 +1066,22 @@ async def refine_requirements_markdown_async(requirement_text: str, api_key: str
     """
     import httpx
 
-    # 从配置获取默认值
-    from backend.config_loader import config_loader
+    # 从数据库或配置获取默认值
+    from apps.knowledge_base.models import KnowledgeBaseConfig
+    db_config = await KnowledgeBaseConfig.objects.filter(is_active=True).afirst()
+    
     if not api_key:
-        api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+        api_key = db_config.refiner_api_key if db_config else None
     if not base_url:
-        base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+        base_url = db_config.refiner_base_url if db_config else None
     if not model_name:
-        model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+        model_name = db_config.refiner_model if db_config and db_config.refiner_model else 'qwen-plus'
+
+    if not api_key or not base_url:
+        from backend.config_loader import config_loader
+        api_key = api_key or config_loader.get('LLM.QWEN_API_KEY', '')
+        base_url = base_url or config_loader.get('LLM.QWEN_BASE_URL', '')
+        model_name = model_name or config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
 
     if not api_key or not base_url:
         logger.warning("未配置 LLM API Key 或 Base URL，返回原始文本")

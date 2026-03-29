@@ -24,6 +24,47 @@ def get_default_tags():
     return []
 
 
+class KnowledgeBaseConfig(models.Model):
+    """知识库与大模型配置模型 (用于替代 config.yaml 中的 LLM 配置)"""
+    
+    # 基础设置
+    is_active = models.BooleanField(default=True, verbose_name='是否启用该配置')
+    
+    # Embedding 模型配置
+    embedding_api_key = models.CharField(max_length=200, verbose_name='Embedding API Key', blank=True, null=True)
+    embedding_base_url = models.CharField(max_length=200, verbose_name='Embedding API Base URL', blank=True, null=True)
+    embedding_model = models.CharField(max_length=100, default='text-embedding-v3', verbose_name='Embedding 模型名称')
+    
+    # Refiner (文档结构化) 模型配置
+    refiner_api_key = models.CharField(max_length=200, verbose_name='Refiner API Key', blank=True, null=True)
+    refiner_base_url = models.CharField(max_length=200, verbose_name='Refiner API Base URL', blank=True, null=True)
+    refiner_model = models.CharField(max_length=100, default='qwen-plus', verbose_name='Refiner 模型名称')
+    refiner_max_tokens = models.IntegerField(default=8192, verbose_name='Refiner 最大Token数')
+    refiner_temperature = models.FloatField(default=0.3, verbose_name='Refiner 温度参数')
+    
+    # Vision (智谱GLM图片解析) 模型配置
+    zhipu_api_key = models.CharField(max_length=200, verbose_name='智谱 API Key', blank=True, null=True)
+    zhipu_base_url = models.CharField(max_length=200, default='https://open.bigmodel.cn/api/paas/v4', verbose_name='智谱 API Base URL', blank=True, null=True)
+    zhipu_vision_model = models.CharField(max_length=100, default='glm-4v-flash', verbose_name='智谱视觉模型名称')
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
+
+    class Meta:
+        db_table = 'knowledge_base_configs'
+        verbose_name = '知识库模型配置'
+        verbose_name_plural = '知识库模型配置'
+
+    def save(self, *args, **kwargs):
+        # 保证只有一个 active 的配置
+        if self.is_active:
+            KnowledgeBaseConfig.objects.filter(is_active=True).update(is_active=False)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"知识库配置 ({'启用' if self.is_active else '禁用'})"
+
+
 def knowledge_docs_upload_path(instance, filename):
     """自定义上传路径，将知识库文档存储在kb_{id}/YYYY/MM/子目录下"""
     now = datetime.now()

@@ -34,14 +34,25 @@ class GLMVisionParser:
         self._load_config()
 
     def _load_config(self):
-        """加载智谱 GLM 配置"""
+        """加载智谱 GLM 配置，优先从数据库读取，其次尝试 config.yaml"""
+        # 1. 尝试从数据库加载配置
+        from apps.knowledge_base.models import KnowledgeBaseConfig
+        db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+        
+        if db_config and db_config.zhipu_api_key:
+            self.api_key = db_config.zhipu_api_key
+            self.base_url = db_config.zhipu_base_url or 'https://open.bigmodel.cn/api/paas/v4'
+            self.model = db_config.zhipu_vision_model or 'glm-4v-flash'
+            return
+
+        # 2. 如果数据库未配置，退退回 config.yaml 或 环境变量
         if config_loader:
             llm_config = config_loader.get_llm_config()
             self.api_key = llm_config.get('ZHIPU_API_KEY')
             self.base_url = llm_config.get('ZHIPU_BASE_URL', 'https://open.bigmodel.cn/api/paas/v4')
             self.model = llm_config.get('ZHIPU_VISION_MODEL', 'glm-4v-flash')
 
-        # 备选：从环境变量读取
+        # 3. 备选：从环境变量读取
         if not self.api_key:
             self.api_key = os.environ.get('ZHIPU_API_KEY')
         if not self.base_url:
@@ -803,18 +814,26 @@ class VectorStoreService:
         try:
             from chromadb.utils import embedding_functions
 
-            # 从 config.yaml 读取 LLM 配置
             api_key = None
             base_url = None
             embedding_model = None
 
-            if config_loader:
+            # 1. 优先尝试从数据库读取配置
+            from apps.knowledge_base.models import KnowledgeBaseConfig
+            db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+            if db_config and db_config.embedding_api_key:
+                api_key = db_config.embedding_api_key
+                base_url = db_config.embedding_base_url
+                embedding_model = db_config.embedding_model or "text-embedding-v3"
+            
+            # 2. 如果数据库未配置，回退到 config.yaml
+            if not api_key and config_loader:
                 llm_config = config_loader.get_llm_config()
                 api_key = llm_config.get('QWEN_API_KEY') or llm_config.get('DASHSCOPE_API_KEY')
                 base_url = llm_config.get('QWEN_BASE_URL') or llm_config.get('DASHSCOPE_BASE_URL')
                 embedding_model = llm_config.get('EMBEDDING_MODEL')
 
-            # 备选：从 settings 或环境变量读取
+            # 3. 备选：从 settings 或环境变量读取
             if not api_key:
                 api_key = getattr(settings, 'QWEN_API_KEY', None) or \
                           getattr(settings, 'DASHSCOPE_API_KEY', None) or \
@@ -827,7 +846,7 @@ class VectorStoreService:
 
             # 检查必要配置
             if not api_key:
-                error_msg = "未配置 Embedding API Key，请在 config.yaml 中配置 LLM.QWEN_API_KEY"
+                error_msg = "未配置 Embedding API Key，请在知识库配置或 config.yaml 中进行配置"
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 

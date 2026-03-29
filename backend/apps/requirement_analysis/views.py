@@ -3323,15 +3323,32 @@ def fetch_axure_url(request):
         content_to_refine = full_content if content_type == 'full' else incremental_content
         if use_ai_refine and content_to_refine:
             try:
-                # 从 config.yaml 读取 AI 配置
-                from backend.config_loader import config_loader
-                import httpx
+                # 优先从知识库数据库配置读取 Refiner 模型信息
+                from apps.knowledge_base.models import KnowledgeBaseConfig
+                db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+                
+                api_key = None
+                base_url = None
+                model_name = 'qwen-plus'
+                max_tokens = 8192
+                temperature = 0.3
+                
+                if db_config and db_config.refiner_api_key:
+                    api_key = db_config.refiner_api_key
+                    base_url = db_config.refiner_base_url
+                    model_name = db_config.refiner_model or 'qwen-plus'
+                    max_tokens = db_config.refiner_max_tokens or 8192
+                    temperature = db_config.refiner_temperature or 0.3
+                else:
+                    # 回退到 config.yaml
+                    from backend.config_loader import config_loader
+                    api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+                    base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+                    model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+                    max_tokens = config_loader.get('LLM.REFINER_MAX_TOKENS', 8192)
+                    temperature = config_loader.get('LLM.REFINER_TEMPERATURE', 0.3)
 
-                api_key = config_loader.get('LLM.QWEN_API_KEY', '')
-                base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
-                model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
-                max_tokens = config_loader.get('LLM.REFINER_MAX_TOKENS', 8192)
-                temperature = config_loader.get('LLM.REFINER_TEMPERATURE', 0.3)
+                import httpx
 
                 if api_key and base_url:
                     refine_prompt = f"""请整理以下从Axure原型提取的需求内容，整理为清晰的Markdown格式。
