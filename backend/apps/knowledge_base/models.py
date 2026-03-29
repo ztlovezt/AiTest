@@ -42,10 +42,20 @@ class KnowledgeBaseConfig(models.Model):
     refiner_max_tokens = models.IntegerField(default=8192, verbose_name='Refiner 最大Token数')
     refiner_temperature = models.FloatField(default=0.3, verbose_name='Refiner 温度参数')
     
-    # Vision (智谱GLM图片解析) 模型配置
-    zhipu_api_key = models.CharField(max_length=200, verbose_name='智谱 API Key', blank=True, null=True)
-    zhipu_base_url = models.CharField(max_length=200, default='https://open.bigmodel.cn/api/paas/v4', verbose_name='智谱 API Base URL', blank=True, null=True)
-    zhipu_vision_model = models.CharField(max_length=100, default='glm-4v-flash', verbose_name='智谱视觉模型名称')
+    # Vision (视觉模型文档解析) 配置 - 支持任意兼容 OpenAI 接口的视觉模型
+    vision_api_key = models.CharField(max_length=200, verbose_name='Vision API Key', blank=True, null=True)
+    vision_base_url = models.CharField(max_length=200, verbose_name='Vision API Base URL', blank=True, null=True, help_text='留空则使用默认值，智谱: https://open.bigmodel.cn/api/paas/v4, OpenAI: https://api.openai.com/v1')
+    vision_model = models.CharField(max_length=100, default='glm-4v-flash', verbose_name='Vision 模型名称', help_text='支持任意兼容 OpenAI 接口的视觉模型，如: gpt-4o, gpt-4-vision-preview, qwen-vl-max, glm-4v-flash 等')
+    vision_provider = models.CharField(
+        max_length=20, 
+        default='zhipu', 
+        verbose_name='Vision 服务商',
+        help_text='用于选择文档解析方式: zhipu 使用智谱文件解析API，openai 使用通用视觉模型逐页解析',
+        choices=[
+            ('zhipu', '智谱 (使用文件解析API)'),
+            ('openai', 'OpenAI兼容 (使用视觉模型逐页解析)'),
+        ]
+    )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
@@ -106,10 +116,10 @@ class KnowledgeBase(models.Model):
         help_text='是否将文档内容向量化存储到向量数据库'
     )
     # 文档解析方式
-    use_glm_direct = models.BooleanField(
+    use_vision_direct = models.BooleanField(
         default=True,
-        verbose_name='使用智谱GLM直接解析',
-        help_text='是否直接使用智谱GLM大模型解析整个文档（推荐），否则使用本地解析+图片识别'
+        verbose_name='使用视觉模型直接解析',
+        help_text='是否直接使用视觉模型解析整个文档（推荐），否则使用本地解析+图片识别'
     )
     # 向量化状态
     vectorization_status = models.CharField(

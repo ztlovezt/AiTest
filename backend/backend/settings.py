@@ -204,6 +204,8 @@ PATHS_DATA_FACTORY_STATIC_IMG = paths_config.get('data_factory_static_img', 'sta
 PATHS_APP_AUTOMATION_SCREENSHOTS = paths_config.get('app_automation_screenshots', 'app-automation/screenshots')
 PATHS_UI_AUTOMATION_SCREENSHOTS = paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots')
 PATHS_LOGS = paths_config.get('logs', 'logs')
+PATHS_CHROMA_DB = paths_config.get('chroma_db', '../expand/chroma_db')
+
 
 # 超时配置
 timeouts_config = config_loader.get_timeouts_config()

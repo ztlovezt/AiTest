@@ -2181,7 +2181,7 @@ def _send_webhook_notification(task, execution_log, notification_setting, notifi
                         "elements": [{
                             "tag": "div",
                             "text": {
-                                "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
+                                "content": rendered_content,
                                 "tag": "lark_md"
                             }
                         }],
@@ -2886,7 +2886,7 @@ def _send_webhook_notification(task, execution_log, notification_setting, notifi
                             "elements": [{
                                 "tag": "div",
                                 "text": {
-                                    "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
+                                    "content": rendered_content,
                                     "tag": "lark_md"
                                 }
                             }],

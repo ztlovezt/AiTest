@@ -61,7 +61,13 @@ export default {
     currentConfig: '当前配置信息',
     embeddingTitle: '向量化 (Embedding) 模型配置',
     refinerTitle: '内容整理 (Refiner) 模型配置',
-    zhipuTitle: '文档解析 (智谱 Vision) 模型配置',
+    visionTitle: '文档解析 (Vision) 模型配置',
+    visionHint: '支持任意兼容 OpenAI 接口的视觉模型。智谱使用文件解析API效果更佳，OpenAI兼容模式使用视觉模型逐页解析。',
+    provider: '服务商',
+    providers: {
+      zhipu: '智谱 (文件解析API)',
+      openai: 'OpenAI兼容 (视觉模型)'
+    },
     modelName: '模型名称',
     maxTokens: '最大 Token 数',
     temperature: '温度 (Temperature)',

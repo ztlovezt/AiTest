@@ -61,7 +61,13 @@ export default {
     currentConfig: 'Current Configuration',
     embeddingTitle: 'Embedding Model Config',
     refinerTitle: 'Content Refiner Model Config',
-    zhipuTitle: 'Document Parser (Zhipu Vision) Config',
+    visionTitle: 'Document Parser (Vision) Config',
+    visionHint: 'Supports any OpenAI-compatible vision model. Zhipu uses file parsing API for better results, OpenAI compatible mode uses vision model for page-by-page parsing.',
+    provider: 'Provider',
+    providers: {
+      zhipu: 'Zhipu (File Parsing API)',
+      openai: 'OpenAI Compatible (Vision Model)'
+    },
     modelName: 'Model Name',
     maxTokens: 'Max Tokens',
     temperature: 'Temperature',

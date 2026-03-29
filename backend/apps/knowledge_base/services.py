@@ -16,55 +16,143 @@ except Exception:
     import logging
     logger = logging.getLogger(__name__)
 
-# 使用统一的配置加载器
-try:
-    from backend.config_loader import config_loader
-except ImportError:
-    config_loader = None
-    logger.warning("无法导入 config_loader，将使用环境变量")
+
+def get_knowledge_base_config():
+    """
+    获取知识库配置
+    
+    Returns:
+        dict: 配置信息，包含 configured, has_embedding, has_vision, has_refiner 等状态
+    """
+    config_status = {
+        'configured': False,
+        'has_embedding': False,
+        'has_vision': False,
+        'has_refiner': False,
+        'config': None,
+        'message': ''
+    }
+    
+    try:
+        from django.db import connection
+        from django.core.exceptions import OperationalError, ProgrammingError
+        
+        if connection.introspection.table_names():
+            from apps.knowledge_base.models import KnowledgeBaseConfig
+            db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+            
+            if db_config:
+                config_status['config'] = db_config
+                config_status['has_embedding'] = bool(db_config.embedding_api_key)
+                config_status['has_vision'] = bool(db_config.vision_api_key)
+                config_status['has_refiner'] = bool(db_config.refiner_api_key)
+                config_status['configured'] = (
+                    config_status['has_embedding'] or 
+                    config_status['has_vision'] or 
+                    config_status['has_refiner']
+                )
+                
+                if not config_status['configured']:
+                    config_status['message'] = '知识库配置未设置，请在设置中心配置知识库相关参数'
+            else:
+                config_status['message'] = '未找到激活的知识库配置，请在设置中心配置知识库相关参数'
+        else:
+            config_status['message'] = '数据库表尚未创建，请先执行数据库迁移'
+            
+    except (OperationalError, ProgrammingError, Exception) as e:
+        config_status['message'] = f'获取配置失败: {str(e)}'
+        logger.warning(f"获取知识库配置失败: {e}")
+    
+    return config_status
 
 
-class GLMVisionParser:
-    """智谱 GLM 视觉模型文档解析器 - 用于解析文档中的图片或直接解析整个文档"""
+def check_knowledge_base_config(require_embedding=False, require_vision=False, require_refiner=False):
+    """
+    检查知识库配置是否满足要求
+    
+    Args:
+        require_embedding: 是否需要 Embedding 配置
+        require_vision: 是否需要 Vision 配置
+        require_refiner: 是否需要 Refiner 配置
+        
+    Returns:
+        tuple: (is_valid, error_message)
+    """
+    config_status = get_knowledge_base_config()
+    
+    if not config_status['configured']:
+        return False, config_status['message'] or '知识库配置未设置，请在设置中心配置知识库相关参数'
+    
+    if require_embedding and not config_status['has_embedding']:
+        return False, 'Embedding API 未配置，请在设置中心配置 Embedding 相关参数'
+    
+    if require_vision and not config_status['has_vision']:
+        return False, 'Vision API 未配置，请在设置中心配置 Vision 相关参数'
+    
+    if require_refiner and not config_status['has_refiner']:
+        return False, 'Refiner API 未配置，请在设置中心配置 Refiner 相关参数'
+    
+    return True, ''
+
+
+class VisionParser:
+    """视觉模型文档解析器 - 支持任意兼容 OpenAI 接口的视觉模型"""
+
+    PROVIDER_ZHIPU = 'zhipu'
+    PROVIDER_OPENAI = 'openai'
+
+    DEFAULT_BASE_URLS = {
+        'zhipu': 'https://open.bigmodel.cn/api/paas/v4',
+        'openai': 'https://api.openai.com/v1',
+    }
 
     def __init__(self):
         self.api_key = None
         self.base_url = None
         self.model = None
+        self.provider = None
+        self._config_loaded = False
+
+    def _ensure_config(self):
+        """确保配置已加载（延迟加载）"""
+        if self._config_loaded:
+            return
         self._load_config()
+        self._config_loaded = True
 
     def _load_config(self):
-        """加载智谱 GLM 配置，优先从数据库读取，其次尝试 config.yaml"""
-        # 1. 尝试从数据库加载配置
-        from apps.knowledge_base.models import KnowledgeBaseConfig
-        db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+        """加载视觉模型配置，从数据库读取"""
+        try:
+            from django.db import connection
+            from django.core.exceptions import OperationalError, ProgrammingError
+            
+            if connection.introspection.table_names():
+                from apps.knowledge_base.models import KnowledgeBaseConfig
+                db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+                
+                if db_config and db_config.vision_api_key:
+                    self.api_key = db_config.vision_api_key
+                    self.provider = db_config.vision_provider or self.PROVIDER_ZHIPU
+                    self.base_url = db_config.vision_base_url or self.DEFAULT_BASE_URLS.get(self.provider, self.DEFAULT_BASE_URLS[self.PROVIDER_ZHIPU])
+                    self.model = db_config.vision_model or 'glm-4v-flash'
+                    logger.debug(f"从数据库加载 Vision 配置成功: provider={self.provider}, model={self.model}")
+                    return
+        except (OperationalError, ProgrammingError, Exception) as e:
+            logger.warning(f"数据库查询配置失败: {e}")
         
-        if db_config and db_config.zhipu_api_key:
-            self.api_key = db_config.zhipu_api_key
-            self.base_url = db_config.zhipu_base_url or 'https://open.bigmodel.cn/api/paas/v4'
-            self.model = db_config.zhipu_vision_model or 'glm-4v-flash'
-            return
-
-        # 2. 如果数据库未配置，退退回 config.yaml 或 环境变量
-        if config_loader:
-            llm_config = config_loader.get_llm_config()
-            self.api_key = llm_config.get('ZHIPU_API_KEY')
-            self.base_url = llm_config.get('ZHIPU_BASE_URL', 'https://open.bigmodel.cn/api/paas/v4')
-            self.model = llm_config.get('ZHIPU_VISION_MODEL', 'glm-4v-flash')
-
-        # 3. 备选：从环境变量读取
-        if not self.api_key:
-            self.api_key = os.environ.get('ZHIPU_API_KEY')
-        if not self.base_url:
-            self.base_url = os.environ.get('ZHIPU_BASE_URL', 'https://open.bigmodel.cn/api/paas/v4')
-        if not self.model:
-            self.model = os.environ.get('ZHIPU_VISION_MODEL', 'glm-4v-flash')
+        logger.warning("Vision API 未配置，请在设置中心配置知识库相关参数")
 
     def is_configured(self) -> bool:
-        """检查是否已配置智谱 API"""
+        """检查是否已配置视觉模型 API"""
+        self._ensure_config()
         return bool(self.api_key)
 
-    def upload_file(self, file_path: str) -> Optional[str]:
+    def get_provider(self) -> str:
+        """获取当前服务商"""
+        self._ensure_config()
+        return self.provider or self.PROVIDER_ZHIPU
+
+    def upload_file_zhipu(self, file_path: str) -> Optional[str]:
         """
         上传文件到智谱服务器（使用文件解析API）
 
@@ -75,23 +163,20 @@ class GLMVisionParser:
             任务ID (task_id)，失败返回 None
         """
         if not self.is_configured():
-            logger.warning("智谱 GLM API 未配置，跳过文件上传")
+            logger.warning("Vision API 未配置，跳过文件上传")
             return None
 
         try:
             import httpx
 
-            # 智谱文件解析API
             url = f"{self.base_url}/files/parser/create"
             headers = {
                 "Authorization": f"Bearer {self.api_key}"
             }
 
-            # 获取文件名和类型
             filename = os.path.basename(file_path)
             ext = os.path.splitext(file_path)[1].lower().replace('.', '')
 
-            # 文件类型映射
             file_type_map = {
                 'docx': 'DOCX', 'doc': 'DOC',
                 'xlsx': 'XLSX', 'xls': 'XLS',
@@ -108,7 +193,7 @@ class GLMVisionParser:
                 }
                 data = {
                     'file_type': file_type,
-                    'tool_type': 'lite'  # 使用 lite 类型，免费且速度快
+                    'tool_type': 'lite'
                 }
 
                 with httpx.Client(timeout=120) as client:
@@ -124,9 +209,9 @@ class GLMVisionParser:
             logger.error(f"文件上传/创建解析任务失败: {e}")
             return None
 
-    def parse_document_directly(self, file_path: str, prompt: str = None) -> str:
+    def parse_document_directly_zhipu(self, file_path: str, prompt: str = None) -> str:
         """
-        直接使用智谱文件解析API解析整个文档
+        使用智谱文件解析API解析整个文档
 
         Args:
             file_path: 文档路径（PDF、Word、图片等）
@@ -136,29 +221,27 @@ class GLMVisionParser:
             文档内容
         """
         if not self.is_configured():
-            logger.warning("智谱 GLM API 未配置，跳过文档解析")
+            logger.warning("Vision API 未配置，跳过文档解析")
             return ""
 
         try:
             import httpx
             import time
 
-            # 1. 创建解析任务
-            task_id = self.upload_file(file_path)
+            task_id = self.upload_file_zhipu(file_path)
             if not task_id:
                 logger.error("创建解析任务失败")
                 return ""
 
             logger.info(f"开始轮询解析结果: {os.path.basename(file_path)}")
 
-            # 2. 轮询获取解析结果
             result_url = f"{self.base_url}/files/parser/result/{task_id}/text"
             headers = {
                 "Authorization": f"Bearer {self.api_key}"
             }
 
-            max_retry = 60  # 最多轮询60次
-            interval = 3  # 每次间隔3秒
+            max_retry = 60
+            interval = 3
 
             with httpx.Client(timeout=30) as client:
                 for i in range(max_retry):
@@ -216,16 +299,15 @@ class GLMVisionParser:
             文档内容
         """
         if not self.is_configured():
-            logger.warning("智谱 GLM API 未配置，跳过文档解析")
+            logger.warning("Vision API 未配置，跳过文档解析")
             return ""
 
         try:
             if document_type == 'pdf':
-                import fitz  # PyMuPDF
+                import fitz
                 doc = fitz.open(file_path)
                 all_content = []
 
-                # 默认提示词
                 if not prompt:
                     prompt = """请详细解析这个文档页面的所有内容，包括：
 1. 所有文字内容
@@ -235,12 +317,9 @@ class GLMVisionParser:
 
                 for page_num in range(len(doc)):
                     page = doc[page_num]
-
-                    # 将页面渲染为图片
                     pix = page.get_pixmap(dpi=150)
                     img_data = pix.tobytes("png")
 
-                    # 调用视觉模型解析
                     page_content = self.parse_image_from_bytes(
                         img_data,
                         mime_type='image/png',
@@ -255,7 +334,6 @@ class GLMVisionParser:
                 return "\n\n".join(all_content)
 
             else:
-                # 其他类型直接上传解析
                 return self.parse_document_directly(file_path, prompt)
 
         except ImportError:
@@ -265,9 +343,137 @@ class GLMVisionParser:
             logger.error(f"文档解析失败: {e}")
             return ""
 
+    def parse_document_directly(self, file_path: str, prompt: str = None) -> str:
+        """
+        直接解析文档 - 根据服务商选择解析方式
+
+        Args:
+            file_path: 文档路径
+            prompt: 自定义提示词
+
+        Returns:
+            文档内容
+        """
+        if not self.is_configured():
+            logger.warning("Vision API 未配置，跳过文档解析")
+            return ""
+
+        provider = self.get_provider()
+        
+        if provider == self.PROVIDER_ZHIPU:
+            return self.parse_document_directly_zhipu(file_path, prompt)
+        else:
+            return self.parse_document_directly_openai(file_path, prompt)
+
+    def parse_document_directly_openai(self, file_path: str, prompt: str = None) -> str:
+        """
+        使用 OpenAI 兼容的视觉模型解析文档（将文档转为图片后逐页解析）
+
+        Args:
+            file_path: 文档路径
+            prompt: 自定义提示词
+
+        Returns:
+            文档内容
+        """
+        if not self.is_configured():
+            logger.warning("Vision API 未配置，跳过文档解析")
+            return ""
+
+        try:
+            ext = os.path.splitext(file_path)[1].lower()
+            
+            if ext == '.pdf':
+                return self._parse_pdf_with_vision(file_path, prompt)
+            elif ext in ['.docx', '.doc']:
+                return self._parse_docx_with_vision(file_path, prompt)
+            elif ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']:
+                return self.parse_image(file_path, prompt)
+            else:
+                logger.warning(f"不支持的文档类型: {ext}，尝试本地解析")
+                return ""
+                
+        except Exception as e:
+            logger.error(f"OpenAI 兼容视觉模型解析文档失败: {e}")
+            return ""
+
+    def _parse_pdf_with_vision(self, file_path: str, prompt: str = None) -> str:
+        """使用视觉模型解析 PDF（逐页转图片）"""
+        try:
+            import fitz
+            doc = fitz.open(file_path)
+            all_content = []
+
+            if not prompt:
+                prompt = """请详细解析这个文档页面的所有内容，包括：
+1. 所有文字内容
+2. 图片、图表的内容描述
+3. 表格数据
+请完整提取页面中的所有信息。"""
+
+            for page_num in range(len(doc)):
+                page = doc[page_num]
+                pix = page.get_pixmap(dpi=150)
+                img_data = pix.tobytes("png")
+
+                page_content = self.parse_image_from_bytes(
+                    img_data,
+                    mime_type='image/png',
+                    prompt=prompt
+                )
+
+                if page_content:
+                    all_content.append(f"=== 第 {page_num + 1} 页 ===\n{page_content}")
+                    logger.info(f"PDF 第 {page_num + 1} 页解析完成")
+
+            doc.close()
+            return "\n\n".join(all_content)
+
+        except ImportError:
+            logger.warning("PyMuPDF 未安装，无法解析 PDF")
+            return ""
+        except Exception as e:
+            logger.error(f"PDF 解析失败: {e}")
+            return ""
+
+    def _parse_docx_with_vision(self, file_path: str, prompt: str = None) -> str:
+        """使用视觉模型解析 Word 文档（先转 PDF 再解析）"""
+        try:
+            import subprocess
+            import tempfile
+            
+            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
+                tmp_pdf_path = tmp.name
+            
+            try:
+                subprocess.run([
+                    'libreoffice', '--headless', '--convert-to', 'pdf',
+                    '--outdir', os.path.dirname(tmp_pdf_path),
+                    file_path
+                ], check=True, capture_output=True, timeout=60)
+                
+                pdf_path = os.path.join(
+                    os.path.dirname(tmp_pdf_path),
+                    os.path.splitext(os.path.basename(file_path))[0] + '.pdf'
+                )
+                
+                if os.path.exists(pdf_path):
+                    content = self._parse_pdf_with_vision(pdf_path, prompt)
+                    os.remove(pdf_path)
+                    return content
+            finally:
+                if os.path.exists(tmp_pdf_path):
+                    os.remove(tmp_pdf_path)
+                    
+            return ""
+            
+        except Exception as e:
+            logger.error(f"Word 文档解析失败: {e}")
+            return ""
+
     def parse_image(self, image_path: str, prompt: str = None) -> str:
         """
-        使用 GLM 视觉模型解析图片
+        使用视觉模型解析图片
 
         Args:
             image_path: 图片路径
@@ -277,17 +483,15 @@ class GLMVisionParser:
             图片内容描述
         """
         if not self.is_configured():
-            logger.warning("智谱 GLM API 未配置，跳过图片解析")
+            logger.warning("Vision API 未配置，跳过图片解析")
             return ""
 
         try:
             import httpx
 
-            # 读取图片并转为 base64
             with open(image_path, 'rb') as f:
                 image_data = f.read()
 
-            # 获取图片格式
             ext = os.path.splitext(image_path)[1].lower()
             mime_types = {
                 '.jpg': 'image/jpeg',
@@ -299,15 +503,12 @@ class GLMVisionParser:
             }
             mime_type = mime_types.get(ext, 'image/jpeg')
 
-            # base64 编码
             image_base64 = base64.b64encode(image_data).decode('utf-8')
             image_url = f"data:{mime_type};base64,{image_base64}"
 
-            # 默认提示词
             if not prompt:
                 prompt = "请详细描述这张图片的内容，包括文字、图表、流程图等所有可见信息。如果是表格，请按表格格式输出。"
 
-            # 调用智谱 GLM 视觉 API
             url = f"{self.base_url}/chat/completions"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -340,21 +541,17 @@ class GLMVisionParser:
                 response.raise_for_status()
                 result = response.json()
 
-            # 打印完整的 API 响应
-            logger.info(f"GLM 视觉模型 API 响应: {result}")
-
             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-            logger.info(f"GLM 视觉模型解析图片成功，内容长度: {len(content)} 字符")
-            logger.info(f"解析内容: {content[:500]}...")  # 打印前500字符
+            logger.info(f"视觉模型解析图片成功，内容长度: {len(content)} 字符")
             return content
 
         except Exception as e:
-            logger.error(f"GLM 视觉模型解析图片失败: {e}")
+            logger.error(f"视觉模型解析图片失败: {e}")
             return ""
 
     def parse_image_from_bytes(self, image_data: bytes, mime_type: str = 'image/png', prompt: str = None) -> str:
         """
-        使用 GLM 视觉模型解析图片字节数据
+        使用视觉模型解析图片字节数据
 
         Args:
             image_data: 图片字节数据
@@ -365,21 +562,18 @@ class GLMVisionParser:
             图片内容描述
         """
         if not self.is_configured():
-            logger.warning("智谱 GLM API 未配置，跳过图片解析")
+            logger.warning("Vision API 未配置，跳过图片解析")
             return ""
 
         try:
             import httpx
 
-            # base64 编码
             image_base64 = base64.b64encode(image_data).decode('utf-8')
             image_url = f"data:{mime_type};base64,{image_base64}"
 
-            # 默认提示词
             if not prompt:
                 prompt = "请详细描述这张图片的内容，包括文字、图表、流程图等所有可见信息。如果是表格，请按表格格式输出。"
 
-            # 调用智谱 GLM 视觉 API
             url = f"{self.base_url}/chat/completions"
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
@@ -416,12 +610,14 @@ class GLMVisionParser:
             return content
 
         except Exception as e:
-            logger.error(f"GLM 视觉模型解析图片失败: {e}")
+            logger.error(f"视觉模型解析图片失败: {e}")
             return ""
 
 
-# 全局 GLM 视觉解析器实例
-glm_vision_parser = GLMVisionParser()
+vision_parser = VisionParser()
+
+
+glm_vision_parser = vision_parser
 
 
 class DocumentParser:
@@ -620,9 +816,9 @@ class DocumentParser:
             return ""
 
     @classmethod
-    def extract_text_with_glm(cls, file_path: str, document_type: str) -> str:
+    def extract_text_with_vision(cls, file_path: str, document_type: str) -> str:
         """
-        直接使用智谱GLM大模型解析整个文档（推荐方式）
+        直接使用视觉模型解析整个文档（推荐方式）
 
         Args:
             file_path: 文档路径
@@ -635,25 +831,24 @@ class DocumentParser:
             logger.error(f"文件不存在: {file_path}")
             return ""
 
-        if not glm_vision_parser.is_configured():
-            logger.warning("智谱 GLM API 未配置，回退到本地解析")
+        if not vision_parser.is_configured():
+            logger.warning("Vision API 未配置，回退到本地解析")
             return cls.extract_text(file_path, document_type, use_vision=False)
 
-        logger.info(f"使用智谱GLM大模型直接解析文档: {os.path.basename(file_path)}")
+        logger.info(f"使用视觉模型直接解析文档: {os.path.basename(file_path)}")
 
-        # 直接调用智谱GLM解析整个文档
-        return glm_vision_parser.parse_document_directly(file_path)
+        return vision_parser.parse_document_directly(file_path)
 
     @classmethod
-    def extract_text(cls, file_path: str, document_type: str, use_vision: bool = True, use_glm_direct: bool = False) -> str:
+    def extract_text(cls, file_path: str, document_type: str, use_vision: bool = True, use_vision_direct: bool = False) -> str:
         """
         根据文档类型提取文本
 
         Args:
             file_path: 文档路径
             document_type: 文档类型
-            use_vision: 是否使用 GLM 视觉模型解析图片（本地解析模式）
-            use_glm_direct: 是否直接使用智谱GLM大模型解析整个文档（推荐）
+            use_vision: 是否使用视觉模型解析图片（本地解析模式）
+            use_vision_direct: 是否直接使用视觉模型解析整个文档（推荐）
 
         Returns:
             提取的文本内容
@@ -662,11 +857,9 @@ class DocumentParser:
             logger.error(f"文件不存在: {file_path}")
             return ""
 
-        # 如果选择直接使用智谱GLM解析，则调用新方法
-        if use_glm_direct and glm_vision_parser.is_configured():
-            return cls.extract_text_with_glm(file_path, document_type)
+        if use_vision_direct and vision_parser.is_configured():
+            return cls.extract_text_with_vision(file_path, document_type)
 
-        # 原有的本地解析逻辑
         if document_type == 'pdf':
             return cls.extract_text_from_pdf(file_path, use_vision=use_vision)
         elif document_type in ['docx', 'doc']:
@@ -781,17 +974,25 @@ class VectorStoreService:
         self._initialized = True
         self.chroma_client = None
         self.embedding_function = None
-        self._init_chroma()
+        self._embedding_initialized = False
+
+    def _ensure_embedding(self):
+        """确保 embedding 已初始化（延迟加载）"""
+        if self._embedding_initialized:
+            return
         self._init_embedding()
+        self._embedding_initialized = True
 
     def _init_chroma(self):
         """初始化 ChromaDB 客户端"""
+        if self.chroma_client is not None:
+            return
+            
         try:
             import chromadb
             from chromadb.config import Settings
 
-            # ChromaDB 数据存储路径
-            chroma_path = os.path.join(settings.BASE_DIR, 'expand', 'chroma_db')
+            chroma_path = settings.PATHS_CHROMA_DB
             os.makedirs(chroma_path, exist_ok=True)
 
             self.chroma_client = chromadb.PersistentClient(
@@ -810,7 +1011,10 @@ class VectorStoreService:
             self.chroma_client = None
 
     def _init_embedding(self):
-        """初始化嵌入模型"""
+        """初始化嵌入模型，从数据库读取配置"""
+        if self.embedding_function is not None:
+            return
+            
         try:
             from chromadb.utils import embedding_functions
 
@@ -818,43 +1022,30 @@ class VectorStoreService:
             base_url = None
             embedding_model = None
 
-            # 1. 优先尝试从数据库读取配置
-            from apps.knowledge_base.models import KnowledgeBaseConfig
-            db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
-            if db_config and db_config.embedding_api_key:
-                api_key = db_config.embedding_api_key
-                base_url = db_config.embedding_base_url
-                embedding_model = db_config.embedding_model or "text-embedding-v3"
-            
-            # 2. 如果数据库未配置，回退到 config.yaml
-            if not api_key and config_loader:
-                llm_config = config_loader.get_llm_config()
-                api_key = llm_config.get('QWEN_API_KEY') or llm_config.get('DASHSCOPE_API_KEY')
-                base_url = llm_config.get('QWEN_BASE_URL') or llm_config.get('DASHSCOPE_BASE_URL')
-                embedding_model = llm_config.get('EMBEDDING_MODEL')
+            try:
+                from django.db import connection
+                from django.core.exceptions import OperationalError, ProgrammingError
+                
+                if connection.introspection.table_names():
+                    from apps.knowledge_base.models import KnowledgeBaseConfig
+                    db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+                    if db_config and db_config.embedding_api_key:
+                        api_key = db_config.embedding_api_key
+                        base_url = db_config.embedding_base_url
+                        embedding_model = db_config.embedding_model or "text-embedding-v3"
+                        logger.debug(f"从数据库加载 Embedding 配置成功")
+            except (OperationalError, ProgrammingError, Exception) as e:
+                logger.warning(f"数据库查询 embedding 配置失败: {e}")
 
-            # 3. 备选：从 settings 或环境变量读取
             if not api_key:
-                api_key = getattr(settings, 'QWEN_API_KEY', None) or \
-                          getattr(settings, 'DASHSCOPE_API_KEY', None) or \
-                          os.environ.get('QWEN_API_KEY') or \
-                          os.environ.get('DASHSCOPE_API_KEY')
-
-            if not base_url:
-                base_url = getattr(settings, 'QWEN_BASE_URL', None) or \
-                           os.environ.get('QWEN_BASE_URL')
-
-            # 检查必要配置
-            if not api_key:
-                error_msg = "未配置 Embedding API Key，请在知识库配置或 config.yaml 中进行配置"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
+                logger.warning("未配置 Embedding API Key，请在设置中心配置知识库相关参数，向量检索功能将不可用")
+                self.embedding_function = None
+                return
 
             if not embedding_model:
                 embedding_model = "text-embedding-v3"
-                logger.warning(f"未配置 EMBEDDING_MODEL，使用默认模型: {embedding_model}")
+                logger.info(f"使用默认 Embedding 模型: {embedding_model}")
 
-            # 使用 OpenAI 兼容的 embedding 函数
             self.embedding_function = embedding_functions.OpenAIEmbeddingFunction(
                 api_key=api_key,
                 model_name=embedding_model,
@@ -865,14 +1056,15 @@ class VectorStoreService:
         except ImportError as e:
             logger.error(f"嵌入函数初始化失败: {e}")
             self.embedding_function = None
-        except ValueError:
-            raise
         except Exception as e:
             logger.error(f"嵌入模型初始化失败: {e}")
             self.embedding_function = None
 
     def get_or_create_collection(self, collection_name: str):
         """获取或创建向量集合"""
+        self._init_chroma()
+        self._ensure_embedding()
+        
         if not self.chroma_client:
             logger.error("ChromaDB 客户端未初始化")
             return None
@@ -890,6 +1082,8 @@ class VectorStoreService:
 
     def delete_collection(self, collection_name: str) -> bool:
         """删除向量集合"""
+        self._init_chroma()
+        
         if not self.chroma_client:
             return False
 
@@ -1041,7 +1235,7 @@ class KnowledgeBaseService:
         chunk_overlap: int = 50,
         enable_vectorization: bool = True,
         use_vision: bool = True,
-        use_glm_direct: bool = False
+        use_vision_direct: bool = False
     ) -> Dict[str, Any]:
         """
         处理单个文档：解析文本、分块、向量化
@@ -1051,8 +1245,8 @@ class KnowledgeBaseService:
             chunk_size: 分块大小
             chunk_overlap: 分块重叠
             enable_vectorization: 是否进行向量化
-            use_vision: 是否使用 GLM 视觉模型解析图片（本地解析模式）
-            use_glm_direct: 是否直接使用智谱GLM大模型解析整个文档（推荐，完全跳过本地解析）
+            use_vision: 是否使用视觉模型解析图片（本地解析模式）
+            use_vision_direct: 是否直接使用视觉模型解析整个文档（推荐，完全跳过本地解析）
 
         Returns:
             处理结果
@@ -1063,21 +1257,41 @@ class KnowledgeBaseService:
             'chunk_count': 0,
             'vectorized': False,
             'error': None,
-            'parse_method': 'glm_direct' if use_glm_direct else 'local'
+            'parse_method': 'vision_direct' if use_vision_direct else 'local'
         }
 
         try:
+            if use_vision_direct:
+                is_valid, error_msg = check_knowledge_base_config(require_vision=True)
+                if not is_valid:
+                    result['error'] = error_msg
+                    from .models import KnowledgeDocument
+                    KnowledgeDocument.objects.filter(pk=document.pk).update(
+                        vector_status='failed',
+                        vector_error=error_msg
+                    )
+                    return result
+
+            if enable_vectorization:
+                is_valid, error_msg = check_knowledge_base_config(require_embedding=True)
+                if not is_valid:
+                    result['error'] = error_msg
+                    from .models import KnowledgeDocument
+                    KnowledgeDocument.objects.filter(pk=document.pk).update(
+                        vector_status='failed',
+                        vector_error=error_msg
+                    )
+                    return result
+
             # 1. 提取文本
             if document.file and os.path.exists(document.file.path):
-                if use_glm_direct:
-                    # 直接使用智谱GLM大模型解析整个文档
-                    logger.info(f"使用智谱GLM大模型直接解析文档: {document.title}")
-                    text = DocumentParser.extract_text_with_glm(
+                if use_vision_direct:
+                    logger.info(f"使用视觉模型直接解析文档: {document.title}")
+                    text = DocumentParser.extract_text_with_vision(
                         document.file.path,
                         document.document_type
                     )
                 else:
-                    # 本地解析 + GLM视觉模型解析图片
                     text = self.parser.extract_text(
                         document.file.path,
                         document.document_type,

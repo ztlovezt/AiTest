@@ -13,8 +13,7 @@ class KnowledgeBaseConfigSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        # 对前端隐藏完整 API Key，只显示首尾
-        for field in ['embedding_api_key', 'refiner_api_key', 'zhipu_api_key']:
+        for field in ['embedding_api_key', 'refiner_api_key', 'vision_api_key']:
             if ret.get(field):
                 key = ret[field]
                 if len(key) > 8:

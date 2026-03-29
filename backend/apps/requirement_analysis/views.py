@@ -1447,9 +1447,20 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                                         task.progress = 30
                                         task.save()
 
-                                        generated_cases = loop.run_until_complete(
-                                            AIModelService.generate_test_cases_stream(task, callback=stream_callback)
-                                        )
+                                        try:
+                                            generated_cases = loop.run_until_complete(
+                                                AIModelService.generate_test_cases_stream(task, callback=stream_callback)
+                                            )
+                                        except ValueError as api_error:
+                                            error_msg = str(api_error)
+                                            logger.error(f"任务 {task.task_id} API调用失败: {error_msg}")
+                                            task.final_test_cases = ''
+                                            task.status = 'failed'
+                                            task.progress = 100
+                                            task.error_message = error_msg
+                                            task.completed_at = timezone.now()
+                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at', 'error_message'])
+                                            return
 
                                         # 检查生成结果
                                         logger.info(f"任务 {task.task_id} 生成完成, generated_cases长度: {len(generated_cases) if generated_cases else 0}")
@@ -1467,14 +1478,15 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                                         task.progress = 60
                                         task.save()
 
-                                        # 如果生成结果仍然为空，跳过评审，直接标记完成
+                                        # 如果生成结果仍然为空，标记为失败
                                         if not generated_cases:
                                             logger.error(f"任务 {task.task_id} 生成测试用例失败，需求文本长度: {len(task.requirement_text) if task.requirement_text else 0}")
                                             task.final_test_cases = ''
-                                            task.status = 'completed'
+                                            task.status = 'failed'
                                             task.progress = 100
+                                            task.error_message = 'AI模型未返回有效的测试用例内容，请检查API配置和网络连接'
                                             task.completed_at = timezone.now()
-                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at'])
+                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at', 'error_message'])
                                             return
 
                                         # 流式评审和改进（根据生成配置决定是否执行）

@@ -131,10 +131,6 @@ class ConfigLoader:
         """获取前端配置"""
         return self.config.get('frontend', {})
 
-    def get_llm_config(self):
-        """获取 LLM 配置"""
-        return self.config.get('LLM', {})
-
 
 # 创建全局配置加载器实例
 config_loader = ConfigLoader()
