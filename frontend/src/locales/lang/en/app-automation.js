@@ -747,5 +747,22 @@ export default {
       appPackage: 'App Package',
       selectAppPackage: 'Select app package'
     }
+  },
+
+  settings: {
+    title: 'APP Automation Settings',
+    adbPath: 'ADB Path',
+    adbPathPlaceholder: 'e.g.: adb or D:\\Android\\platform-tools\\adb.exe',
+    adbPathTip: 'Android Debug Bridge tool path. If ADB is in system PATH, just enter "adb"',
+    saveConfig: 'Save Config',
+    reset: 'Reset',
+    currentConfigInfo: 'Current Config Info',
+    adbPathLabel: 'ADB Path',
+    updateTime: 'Updated At',
+    createTime: 'Created At',
+    adbPathRequired: 'Please enter ADB path',
+    loadConfigFailed: 'Failed to load config',
+    saveConfigSuccess: 'Config saved successfully',
+    saveConfigFailed: 'Failed to save config'
   }
 }

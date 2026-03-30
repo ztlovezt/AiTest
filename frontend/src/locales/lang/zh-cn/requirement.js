@@ -14,6 +14,7 @@ export default {
 
     // Manual Input
     manualInputTitle: '手动输入需求描述',
+    manualInputDesc: '直接输入需求标题和详细描述，快速生成测试用例',
     requirementTitle: '需求标题',
     requirementDescription: '需求描述',
     relatedProject: '关联项目（可选）',
@@ -28,6 +29,7 @@ export default {
 
     // Document Upload
     uploadTitle: '上传需求文档',
+    uploadDesc: '支持上传 Word、PDF 等格式的 PRD 需求文档文件',
     dragDropText: '拖拽文件到此处或点击选择文件',
     supportedFormats: '支持 PDF、Word、TXT、Markdown 格式',
     selectFileBtn: '选择文件',
@@ -41,6 +43,7 @@ export default {
 
     // Knowledge Base Panel
     knowledgeBaseTitle: '知识库需求',
+    knowledgeBaseDesc: '从已有的产品知识库中检索相关需求并进行用例生成',
     selectKnowledgeBase: '选择知识库',
     selectKnowledgeBasePlaceholder: '请选择知识库',
     searchQuery: '检索内容',
@@ -54,6 +57,7 @@ export default {
 
     // Axure Panel
     axureTitle: 'Axure解析需求',
+    axureDesc: '自动解析 Axure 原型链接中的文本说明和交互流程图',
     axureComingSoon: '敬请期待',
     axureDescription: '支持从Axure原型页面自动解析需求并生成测试用例',
 

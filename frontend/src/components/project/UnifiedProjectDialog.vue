@@ -304,6 +304,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { createMetaProject, updateMetaProject } from '@/api/unified-projects'
 import { ElMessage } from 'element-plus'
 import api from '@/utils/api'
@@ -320,6 +321,8 @@ import {
   MagicStick
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
+
 const props = defineProps({
   visible: Boolean,
   isEdit: Boolean,
@@ -332,38 +335,38 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'success'])
 
-const moduleTypes = [
+const moduleTypes = computed(() => [
   {
     value: 'AI',
-    label: 'AI用例生成',
+    label: t('unifiedProject.moduleTypes.AI'),
     icon: Tickets,
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   {
     value: 'AI_TEST',
-    label: 'AI智能测试',
+    label: t('unifiedProject.moduleTypes.AI_TEST'),
     icon: MagicStick,
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
   {
     value: 'API',
-    label: 'API测试',
+    label: t('unifiedProject.moduleTypes.API'),
     icon: Tickets,
     color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
   },
   {
     value: 'UI',
-    label: 'UI自动化',
+    label: t('unifiedProject.moduleTypes.UI'),
     icon: Monitor,
     color: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
   },
   {
     value: 'APP',
-    label: 'APP自动化',
+    label: t('unifiedProject.moduleTypes.APP'),
     icon: Iphone,
     color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
   }
-]
+])
 
 const moduleIcons = { AI: Link, AI_TEST: MagicStick, API: Tickets, UI: Monitor, APP: Iphone }
 const moduleColors = {
@@ -377,8 +380,9 @@ const moduleColors = {
 const getModuleIcon = (type) => moduleIcons[type] || Link
 const getModuleColor = (type) => moduleColors[type] || '#409EFF'
 const getModuleLabel = (type) => {
-  const labels = { AI: 'AI用例生成', AI_TEST: 'AI智能测试', API: 'API测试', UI: 'UI自动化', APP: 'APP自动化' }
-  return labels[type] || type
+  const keyMap = { AI: 'AI', AI_TEST: 'AI_TEST', API: 'API', UI: 'UI', APP: 'APP' }
+  const key = keyMap[type]
+  return key ? t(`unifiedProject.moduleTypes.${key}`) : type
 }
 
 const dialogVisible = computed({

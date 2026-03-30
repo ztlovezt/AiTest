@@ -31,21 +31,21 @@ export default {
     testReport: 'Report Management',
 
     // API Testing
-    apiDashboard: 'Dashboard',
+    dashboard: 'Dashboard',
     interfaceManagement: 'Interface Management',
     automationTesting: 'Automation Testing',
     requestHistory: 'Request History',
     environmentManagement: 'Environment Management',
-    apiScheduledTasks: 'Scheduled Tasks',
-    apiNotificationList: 'Notification List',
+    scheduledTasks: 'Scheduled Tasks',
+    notificationList: 'Notification List',
 
     // UI Automation
-    uiElementManagement: 'Element Management',
-    uiCaseManagement: 'Case Management',
+    elementManagement: 'Element Management',
+    caseManagement: 'Case Management',
     scriptGeneration: 'Script Generation',
     scriptList: 'Script List',
     suiteManagement: 'Suite Management',
-    uiExecutionRecords: 'Execution Records',
+    executionRecords: 'Execution Records',
 
     // APP Automation
     appDashboard: 'Dashboard',

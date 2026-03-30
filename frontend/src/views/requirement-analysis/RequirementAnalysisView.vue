@@ -124,7 +124,7 @@
             <div class="panel-icon manual-icon">✏️</div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
-              <div class="panel-desc">直接输入需求标题和详细描述，快速生成测试用例</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.manualInputDesc') }}</div>
             </div>
           </div>
           <div
@@ -134,7 +134,7 @@
             <div class="panel-icon upload-icon">📄</div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
-              <div class="panel-desc">支持上传 Word、PDF 等格式的 PRD 需求文档文件</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.uploadDesc') }}</div>
             </div>
           </div>
           <div
@@ -144,7 +144,7 @@
             <div class="panel-icon knowledge-icon">📚</div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
-              <div class="panel-desc">从已有的产品知识库中检索相关需求并进行用例生成</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.knowledgeBaseDesc') }}</div>
             </div>
           </div>
           <div
@@ -154,7 +154,7 @@
             <div class="panel-icon axure-icon">🎨</div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
-              <div class="panel-desc">自动解析 Axure 原型链接中的文本说明和交互流程图</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.axureDesc') }}</div>
             </div>
           </div>
         </div>

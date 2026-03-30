@@ -255,7 +255,7 @@
             </el-menu-item>
             <el-menu-item index="/configuration/app-env">
               <el-icon><Cellphone /></el-icon>
-              <span>APP环境配置</span>
+              <span>{{ $t('menu.appEnvConfig') }}</span>
             </el-menu-item>
             <el-menu-item index="/configuration/ai-mode">
               <el-icon><MagicStick /></el-icon>

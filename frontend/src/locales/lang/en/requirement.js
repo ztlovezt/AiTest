@@ -14,6 +14,7 @@ export default {
 
     // Manual Input
     manualInputTitle: 'Manual Input',
+    manualInputDesc: 'Enter requirement title and description to quickly generate test cases',
     requirementTitle: 'Requirement Title',
     requirementDescription: 'Requirement Description',
     relatedProject: 'Related Project (Optional)',
@@ -28,6 +29,7 @@ export default {
 
     // Document Upload
     uploadTitle: 'Upload Document',
+    uploadDesc: 'Upload PRD requirement documents in Word, PDF and other formats',
     dragDropText: 'Drag file here or click to select',
     supportedFormats: 'Supports PDF, Word, TXT, Markdown formats',
     selectFileBtn: 'Select File',
@@ -41,6 +43,7 @@ export default {
 
     // Knowledge Base Panel
     knowledgeBaseTitle: 'Knowledge Base',
+    knowledgeBaseDesc: 'Retrieve related requirements from existing product knowledge base and generate test cases',
     selectKnowledgeBase: 'Select Knowledge Base',
     selectKnowledgeBasePlaceholder: 'Please select a knowledge base',
     searchQuery: 'Search Query',
@@ -54,6 +57,7 @@ export default {
 
     // Axure Panel
     axureTitle: 'Axure Parsing',
+    axureDesc: 'Automatically parse text descriptions and interaction flowcharts from Axure prototype links',
     axureComingSoon: 'Coming Soon',
     axureDescription: 'Support automatic requirement parsing from Axure prototype pages and test case generation',
     axureOnlineLink: 'Axure Online Link',

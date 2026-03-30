@@ -17,6 +17,8 @@ export default {
       title: '数据看板',
       totalProjects: '项目总数',
       apiProjects: 'API项目',
+      aiProjects: 'AI用例生成项目',
+      aiTestProjects: 'AI智能测试项目',
       uiProjects: 'UI项目',
       appProjects: 'APP项目',
       recentProjects: '最近项目',
@@ -54,6 +56,13 @@ export default {
       deleteSuccess: '项目删除成功',
       deleteFailed: '项目删除失败',
       deleteConfirm: '确认删除该项目？此操作不可恢复。'
+    },
+    moduleTypes: {
+      AI: 'AI用例生成',
+      AI_TEST: 'AI智能测试',
+      API: 'API测试',
+      UI: 'UI自动化',
+      APP: 'APP自动化'
     }
   },
   project: {

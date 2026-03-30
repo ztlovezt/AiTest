@@ -747,5 +747,22 @@ export default {
       appPackage: '应用包',
       selectAppPackage: '选择应用包'
     }
+  },
+
+  settings: {
+    title: 'APP 自动化配置',
+    adbPath: 'ADB 路径',
+    adbPathPlaceholder: '例如: adb 或 D:\\Android\\platform-tools\\adb.exe',
+    adbPathTip: 'Android Debug Bridge 工具路径。如果 ADB 在系统 PATH 中，填写 "adb" 即可',
+    saveConfig: '保存配置',
+    reset: '重置',
+    currentConfigInfo: '当前配置信息',
+    adbPathLabel: 'ADB 路径',
+    updateTime: '更新时间',
+    createTime: '创建时间',
+    adbPathRequired: '请输入 ADB 路径',
+    loadConfigFailed: '加载配置失败',
+    saveConfigSuccess: '配置保存成功',
+    saveConfigFailed: '配置保存失败'
   }
 }

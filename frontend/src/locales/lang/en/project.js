@@ -24,6 +24,8 @@ export default {
       title: 'Dashboard',
       totalProjects: 'Total Projects',
       apiProjects: 'API Projects',
+      aiProjects: 'AI Case Gen Projects',
+      aiTestProjects: 'AI Smart Test Projects',
       uiProjects: 'UI Projects',
       appProjects: 'APP Projects',
       recentProjects: 'Recent Projects',
@@ -61,6 +63,13 @@ export default {
       deleteSuccess: 'Project deleted successfully',
       deleteFailed: 'Failed to delete project',
       deleteConfirm: 'Are you sure to delete this project? This action cannot be undone.'
+    },
+    moduleTypes: {
+      AI: 'AI Case Generation',
+      AI_TEST: 'AI Smart Testing',
+      API: 'API Testing',
+      UI: 'UI Automation',
+      APP: 'APP Automation'
     }
   },
   project: {
