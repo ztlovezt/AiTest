@@ -3,27 +3,6 @@
 # 实际使用时，请复制 config.yaml.example 为 config.yaml 并根据需要修改
 
 # ================================
-# LLM模型配置
-# ================================
-LLM:
-  # 通义千问API KEY，换成你自己的KEY
-  QWEN_API_KEY: "sk-xxxx"
-  # 通义千问API地址(OpenAI兼容模式)
-  QWEN_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  # Embedding向量化模型配置(用于知识库文档向量化)
-  EMBEDDING_MODEL: "text-embedding-v3"
-  # AI结构化处理模型配置(用于AXuCe原型内容整理等)
-  REFINER_MODEL: "qwen-plus"
-  REFINER_MAX_TOKENS: "8192"
-  REFINER_TEMPERATURE: "0.3"
-  # 智谱GLM视觉模型配置《用于知识库中文档图片解析》
-  # 换成你自己的KEY
-  ZHIPU_API_KEY: "xxxx"
-  ZHIPU_BASE_URL: "https://open.bigmodel.cn/api/paas/v4"
-  # 视觉精模型名称
-  ZHIPU_VISION_MODEL: "GLM-4.6V"
-
-# ================================
 # 服务端口配置
 # ================================
 server:

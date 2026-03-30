@@ -442,6 +442,28 @@ class VisionParser:
                 tmp_pdf_path = tmp.name
             
             try:
+                # 检查 libreoffice 是否可用
+                try:
+                    subprocess.run(['libreoffice', '--version'], check=True, capture_output=True)
+                except (subprocess.SubprocessError, FileNotFoundError):
+                    logger.warning("libreoffice 命令不可用，回退到本地解析")
+                    # 直接回退到本地解析，提取纯文本
+                    from docx import Document
+                    doc = Document(file_path)
+                    text = []
+                    for para in doc.paragraphs:
+                        if para.text.strip():
+                            text.append(para.text)
+                    for table in doc.tables:
+                        for row in table.rows:
+                            row_text = []
+                            for cell in row.cells:
+                                if cell.text.strip():
+                                    row_text.append(cell.text.strip())
+                            if row_text:
+                                text.append(" | ".join(row_text))
+                    return "\n".join(text)
+
                 subprocess.run([
                     'libreoffice', '--headless', '--convert-to', 'pdf',
                     '--outdir', os.path.dirname(tmp_pdf_path),
@@ -1561,7 +1583,6 @@ class KnowledgeBaseService:
                 result['semantic_score'] * semantic_weight +
                 result['keyword_score'] * keyword_weight
             )
-            combined_score = max(0.0, min(1.0, combined_score))
             result['combined_score'] = combined_score
             final_results.append(result)
 
