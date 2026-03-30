@@ -113,7 +113,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     serializer_class = KnowledgeBaseSerializer
     filterset_fields = ['name', 'description', 'project', 'is_active']
     search_fields = ['name', 'description']
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_class(self):
         """根据操作类型选择序列化器"""

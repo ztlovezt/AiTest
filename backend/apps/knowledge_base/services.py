@@ -16,6 +16,8 @@ except Exception:
     import logging
     logger = logging.getLogger(__name__)
 
+from django.db import connection, OperationalError, ProgrammingError
+
 
 def get_knowledge_base_config():
     """
@@ -34,9 +36,6 @@ def get_knowledge_base_config():
     }
     
     try:
-        from django.db import connection
-        from django.core.exceptions import OperationalError, ProgrammingError
-        
         if connection.introspection.table_names():
             from apps.knowledge_base.models import KnowledgeBaseConfig
             db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
@@ -123,9 +122,6 @@ class VisionParser:
     def _load_config(self):
         """加载视觉模型配置，从数据库读取"""
         try:
-            from django.db import connection
-            from django.core.exceptions import OperationalError, ProgrammingError
-            
             if connection.introspection.table_names():
                 from apps.knowledge_base.models import KnowledgeBaseConfig
                 db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
@@ -1023,9 +1019,6 @@ class VectorStoreService:
             embedding_model = None
 
             try:
-                from django.db import connection
-                from django.core.exceptions import OperationalError, ProgrammingError
-                
                 if connection.introspection.table_names():
                     from apps.knowledge_base.models import KnowledgeBaseConfig
                     db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()

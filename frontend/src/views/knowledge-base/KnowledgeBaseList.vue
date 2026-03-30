@@ -300,7 +300,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, FolderOpened, Document, Files, UploadFilled, QuestionFilled } from '@element-plus/icons-vue'
@@ -442,8 +442,11 @@ const handlePageChange = (page) => {
 // 新建
 const handleCreate = () => {
   dialogType.value = 'create'
-  resetForm()
   dialogVisible.value = true
+  // 使用 nextTick 确保对话框渲染后再重置表单
+  nextTick(() => {
+    resetForm()
+  })
 }
 
 // 编辑
@@ -553,6 +556,9 @@ const resetForm = () => {
   form.enable_vectorization = true
   currentFile.value = null
   fileList.value = []
+  if (uploadRef.value) {
+    uploadRef.value.clearFiles()
+  }
   if (formRef.value) {
     formRef.value.resetFields()
   }

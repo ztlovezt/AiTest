@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from rest_framework import serializers
+from django.db.models import Sum
 from .models import (
     KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion, KnowledgeBaseConfig
 )
@@ -55,7 +55,7 @@ class KnowledgeBaseSerializer(serializers.ModelSerializer):
         return obj.documents.count()
 
     def get_total_size(self, obj):
-        total = obj.documents.aggregate(total=models.Sum('file_size'))['total'] or 0
+        total = obj.documents.aggregate(total=Sum('file_size'))['total'] or 0
         return total
 
     def get_category_count(self, obj):

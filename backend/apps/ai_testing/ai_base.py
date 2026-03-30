@@ -823,7 +823,7 @@ try:
     from pydantic import ConfigDict
 
     ActionModel.model_config = ConfigDict(arbitrary_types_allowed=True, extra='allow')
-    logger.info("✅ Modified ActionModel.model_config to allow extra fields")
+    # logger.info("✅ Modified ActionModel.model_config to allow extra fields")
 except Exception as e:
     logger.warning(f"⚠️ Failed to modify ActionModel config: {e}")
 
@@ -1111,7 +1111,7 @@ try:
 
 
     Agent.get_model_output = _patched_get_model_output
-    logger.info("✅ Successfully patched Agent.get_model_output")
+    # logger.info("✅ Successfully patched Agent.get_model_output")
 except Exception as e:
     logger.error(f"❌ Failed to patch Agent.get_model_output: {e}")
 
@@ -1358,7 +1358,7 @@ try:
 
 
     TokenCost.register_llm = _patched_register_llm
-    logger.info("✅ Successfully patched TokenCost.register_llm")
+    # logger.info("✅ Successfully patched TokenCost.register_llm")
 except Exception as e:
     logger.error(f"❌ Failed to patch TokenCost: {e}")
 
@@ -1406,7 +1406,7 @@ try:
 
 
     BrowserSession.connect = _patched_connect
-    logger.info("✅ Successfully patched BrowserSession.connect")
+    # logger.info("✅ Successfully patched BrowserSession.connect")
 except Exception as e:
     logger.error(f"❌ Failed to patch BrowserSession.connect: {e}")
 
@@ -1481,7 +1481,7 @@ try:
 
 
     ToolRegistry.execute_action = _patched_execute_action
-    logger.info("✅ Successfully patched ToolRegistry.execute_action with alias support")
+    # logger.info("✅ Successfully patched ToolRegistry.execute_action with alias support")
 except Exception as e:
     logger.error(f"❌ Failed to patch ToolRegistry: {e}")
 
@@ -1539,7 +1539,7 @@ try:
 
         on_ScreenshotEvent._is_patched_global = True
         ScreenshotWatchdog.on_ScreenshotEvent = on_ScreenshotEvent
-        logger.info("✅ Applied Global ScreenshotWatchdog Patch")
+        # logger.info("✅ Applied Global ScreenshotWatchdog Patch")
 
     # Patch DOMWatchdog
     from browser_use.browser.watchdogs.dom_watchdog import DOMWatchdog
@@ -1558,7 +1558,7 @@ try:
 
         _capture_clean_screenshot._is_patched_global = True
         DOMWatchdog._capture_clean_screenshot = _capture_clean_screenshot
-        logger.info("✅ Applied Global DOMWatchdog Patch")
+        # logger.info("✅ Applied Global DOMWatchdog Patch")
 
 except Exception as e:
     logger.error(f"❌ Failed to apply Global Watchdog patches: {e}")
@@ -1622,7 +1622,7 @@ try:
 
 
     LocalBrowserWatchdog._find_free_port = _patched_find_free_port
-    logger.info("✅ Successfully patched LocalBrowserWatchdog._find_free_port")
+    # logger.info("✅ Successfully patched LocalBrowserWatchdog._find_free_port")
 except Exception as e:
     logger.error(f"❌ Failed to patch LocalBrowserWatchdog._find_free_port: {e}")
 

@@ -648,7 +648,7 @@ import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import { useUserStore } from '@/stores/user'
-import { hybridSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
+import { hybridSearch, semanticSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
 import { marked } from 'marked'
 
 export default {
