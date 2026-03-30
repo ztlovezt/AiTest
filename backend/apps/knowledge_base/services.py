@@ -1561,6 +1561,7 @@ class KnowledgeBaseService:
                 result['semantic_score'] * semantic_weight +
                 result['keyword_score'] * keyword_weight
             )
+            combined_score = max(0.0, min(1.0, combined_score))
             result['combined_score'] = combined_score
             final_results.append(result)
 

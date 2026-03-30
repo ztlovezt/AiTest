@@ -384,7 +384,7 @@
               <div v-for="(result, index) in knowledgeSearchResults" :key="index" class="result-item">
                 <div class="result-header">
                   <span class="result-index">#{{ index + 1 }}</span>
-                  <span class="result-score">{{ $t('knowledgeBase.similarity') }}: {{ (result.score * 100).toFixed(1) }}%</span>
+                  <span class="result-score">{{ $t('knowledgeBase.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%</span>
                 </div>
                 <div class="result-content">{{ result.content }}</div>
                 <div class="result-meta" v-if="result.document_title">
