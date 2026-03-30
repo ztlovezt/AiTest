@@ -591,9 +591,53 @@ const formatDateTime = (dateStr) => {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
+// 检查知识库配置状态
+const checkConfigStatus = async () => {
+  try {
+    const response = await api.get('/knowledge-base/check_config/')
+    const config = response.data
+    if (!config.has_embedding || !config.has_vision || !config.has_refiner) {
+      const buildStatusHtml = (name, isConfigured) => {
+        const icon = isConfigured ? '<span style="color: #67c23a; margin-right: 8px;">✓</span>' : '<span style="color: #f56c6c; margin-right: 8px;">✗</span>'
+        const color = isConfigured ? '#606266' : '#f56c6c'
+        return `<div style="margin: 8px 0; display: flex; align-items: center; color: ${color}; font-size: 14px;">${icon} ${name}</div>`
+      }
+
+      const htmlContent = `
+        <div style="margin-bottom: 16px; font-size: 14px; color: #606266;">您的知识库 AI 模型配置尚未完善，缺少以下必要配置：</div>
+        <div style="background-color: #f8f9fa; padding: 12px 20px; border-radius: 4px; margin-bottom: 16px;">
+          ${buildStatusHtml('Embedding 模型 (用于向量化检索)', config.has_embedding)}
+          ${buildStatusHtml('Vision 模型 (用于图文解析)', config.has_vision)}
+          ${buildStatusHtml('Refiner 模型 (用于内容结构化总结)', config.has_refiner)}
+        </div>
+        <div style="font-size: 13px; color: #909399;">建议您先前往设置中心完成配置，否则部分功能将无法正常使用。</div>
+      `
+
+      ElMessageBox.confirm(
+        htmlContent,
+        '配置缺失提示',
+        {
+          confirmButtonText: '前往配置',
+          cancelButtonText: t('common.cancel'),
+          type: 'warning',
+          dangerouslyUseHTMLString: true,
+          customClass: 'kb-config-warning-dialog'
+        }
+      ).then(() => {
+        router.push('/configuration/knowledge-base')
+      }).catch(() => {
+        // 用户选择暂不配置，继续留在当前页面
+      })
+    }
+  } catch (error) {
+    console.error('检查知识库配置失败:', error)
+  }
+}
+
 onMounted(() => {
   fetchProjects()
   fetchData()
+  checkConfigStatus()
 })
 </script>
 

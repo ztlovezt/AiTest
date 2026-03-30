@@ -67,6 +67,17 @@ class AICaseViewSet(viewsets.ModelViewSet):
         instance = serializer.save()
 
     def perform_destroy(self, instance):
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            # 找到并删除对应的关联记录
+            from apps.unified_projects.models import ProjectModule
+            ProjectModule.objects.filter(meta_project=meta_project, module_type='AI_TEST').delete()
+            
+            instance.unified_meta_project = None
+            instance.save()
+            # 检查是否还有其他模块关联，如果没有才删除 meta_project
+            if meta_project.modules.count() == 0:
+                meta_project.delete()
         instance.delete()
 
     @action(detail=True, methods=['post'])

@@ -97,9 +97,15 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
         )
         if instance.unified_meta_project:
             meta_project = instance.unified_meta_project
+            # 找到并删除对应的关联记录
+            from apps.unified_projects.models import ProjectModule
+            ProjectModule.objects.filter(meta_project=meta_project, module_type='API').delete()
+            
             instance.unified_meta_project = None
             instance.save()
-            meta_project.delete()
+            # 检查是否还有其他模块关联，如果没有才删除 meta_project
+            if meta_project.modules.count() == 0:
+                meta_project.delete()
         instance.delete()
 
     @action(detail=False, methods=['post'], url_path='create-sample')

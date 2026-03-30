@@ -244,11 +244,11 @@
                 <el-icon><Setting /></el-icon>
                 <span>{{ $t('menu.generationConfig') }}</span>
               </el-menu-item>
-              <el-menu-item index="/configuration/knowledge-base">
-                <el-icon><FolderOpened /></el-icon>
-                <span>{{ $t('menu.knowledgeBaseConfig') }}</span>
-              </el-menu-item>
             </el-sub-menu>
+            <el-menu-item index="/configuration/knowledge-base">
+              <el-icon><FolderOpened /></el-icon>
+              <span>{{ $t('menu.knowledgeBaseConfig') }}</span>
+            </el-menu-item>
             <el-menu-item index="/configuration/ui-env">
               <el-icon><Monitor /></el-icon>
               <span>{{ $t('menu.uiEnvConfig') }}</span>
