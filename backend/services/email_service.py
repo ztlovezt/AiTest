@@ -63,7 +63,8 @@ class EmailService:
                     body=message,
                     to=recipients,
                     cc=cc,
-                    bcc=bcc
+                    bcc=bcc,
+                    attachments=attachments
                 )
             
             if result:
@@ -79,103 +80,30 @@ class EmailService:
     
     def send_task_notification(
         self,
-        task_name: str,
-        task_type: str,
-        status: str,
+        subject: str,
+        message: str,
         recipients: List[str],
-        details: str = "",
-        execution_time: Optional[str] = None,
-        result: Optional[str] = None
+        html_content: Optional[str] = None,
+        attachments: Optional[List[Dict[str, Any]]] = None
     ) -> bool:
         """发送任务通知邮件
         
         Args:
-            task_name: 任务名称
-            task_type: 任务类型
-            status: 任务状态（success/failed）
+            subject: 邮件主题（从模板获取）
+            message: 邮件正文纯文本（从模板获取）
             recipients: 收件人列表
-            details: 详细信息
-            execution_time: 执行时间
-            result: 执行结果
+            html_content: HTML内容（从模板获取，可选）
+            attachments: 附件列表（可选）
         
         Returns:
             bool: 是否发送成功
         """
-        status_text = "成功" if status == 'success' else "失败"
-        subject = f"[TestHub] {task_type}任务执行{status_text}: {task_name}"
-        
-        message = f"""
-任务名称: {task_name}
-任务类型: {task_type}
-执行状态: {status_text}
-"""
-        
-        if execution_time:
-            message += f"执行时间: {execution_time}\n"
-        if details:
-            message += f"详细信息: {details}\n"
-        if result:
-            message += f"执行结果: {result}\n"
-        
-        message += f"\n此邮件由系统自动发送，请勿回复。"
-        
-        # 先生成HTML变量
-        execution_time_html = f"<p><strong>执行时间:</strong> {execution_time}</p>" if execution_time else ""
-        details_html = f"<p><strong>详细信息:</strong> {details}</p>" if details else ""
-        result_html = f"<p><strong>执行结果:</strong> {result}</p>" if result else ""
-        
-        # 生成HTML内容（使用普通字符串，避免f-string和format冲突）
-        html_content = """
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background-color: #f8f9fa; padding: 15px; border-bottom: 1px solid #e9ecef; }}
-        .content {{ padding: 20px; }}
-        .footer {{ margin-top: 20px; padding-top: 15px; border-top: 1px solid #e9ecef; font-size: 12px; color: #6c757d; }}
-        .status-success {{ color: #28a745; font-weight: bold; }}
-        .status-failed {{ color: #dc3545; font-weight: bold; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>TestHub 任务通知</h2>
-        </div>
-        <div class="content">
-            <p><strong>任务名称:</strong> {task_name}</p>
-            <p><strong>任务类型:</strong> {task_type}</p>
-            <p><strong>执行状态:</strong> <span class="status-{status}">{status_text}</span></p>
-            {execution_time_html}
-            {details_html}
-            {result_html}
-        </div>
-        <div class="footer">
-            <p>此邮件由系统自动发送，请勿回复。</p>
-        </div>
-    </div>
-</body>
-</html>
-"""
-        
-        html_content = html_content.format(
-            task_name=task_name,
-            task_type=task_type,
-            status=status,
-            status_text=status_text,
-            execution_time_html=execution_time_html,
-            details_html=details_html,
-            result_html=result_html
-        )
-        
         return self.send_notification_email(
             subject=subject,
             message=message,
             html_content=html_content,
-            recipients=recipients
+            recipients=recipients,
+            attachments=attachments
         )
     
     def send_bulk_emails(self, emails: List[Dict[str, Any]]) -> Dict[str, Any]:

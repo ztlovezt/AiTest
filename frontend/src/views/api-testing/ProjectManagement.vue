@@ -10,8 +10,13 @@
 
 
     <!-- 项目列表 -->
-    <el-table :data="projects" v-loading="loading" style="width: 100%">
-      <el-table-column prop="name" :label="$t('apiTesting.project.projectName')" min-width="200" />
+    <el-table :data="projects" v-loading="loading" style="width: 100%" :row-class-name="tableRowClassName">
+      <el-table-column prop="name" :label="$t('apiTesting.project.projectName')" min-width="200">
+        <template #default="scope">
+          <span v-if="scope.row.id === highlightProjectId" class="highlight-text">{{ scope.row.name }}</span>
+          <span v-else>{{ scope.row.name }}</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="project_type" :label="$t('apiTesting.project.projectType')" width="120">
         <template #default="scope">
           <el-tag :type="scope.row.project_type === 'HTTP' ? 'primary' : 'success'">
@@ -93,9 +98,11 @@
 
         <el-form-item :label="$t('apiTesting.project.projectStatus')" prop="status">
           <el-select v-model="form.status" :placeholder="$t('apiTesting.project.selectStatus')">
-            <el-option :label="$t('apiTesting.project.status.notStarted')" value="NOT_STARTED" />
-            <el-option :label="$t('apiTesting.project.status.inProgress')" value="IN_PROGRESS" />
-            <el-option :label="$t('apiTesting.project.status.completed')" value="COMPLETED" />
+            <el-option :label="$t('apiTesting.project.status.notStarted')" value="not_started" />
+            <el-option :label="$t('apiTesting.project.status.inProgress')" value="active" />
+            <el-option :label="$t('apiTesting.project.status.paused')" value="paused" />
+            <el-option :label="$t('apiTesting.project.status.completed')" value="completed" />
+            <el-option :label="$t('apiTesting.project.status.archived')" value="archived" />
           </el-select>
         </el-form-item>
 
@@ -202,12 +209,14 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox, ElDescriptions, ElDescriptionsItem } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Plus } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
 
+const route = useRoute()
 const { t } = useI18n()
 const loading = ref(false)
 const projects = ref([])
@@ -221,17 +230,26 @@ const editingProject = ref(null)
 const viewedProject = ref(null)
 const submitting = ref(false)
 const formRef = ref()
+const highlightProjectId = ref(null)
+const fromMetaProject = ref(null)
 
 const form = reactive({
   name: '',
   description: '',
   project_type: 'HTTP',
-  status: 'NOT_STARTED',
+  status: 'not_started',
   owner: null,
   member_ids: [],
   start_date: '',
   end_date: ''
 })
+
+const tableRowClassName = ({ row }) => {
+  if (row.id === highlightProjectId.value) {
+    return 'highlight-row'
+  }
+  return ''
+}
 
 const rules = computed(() => ({
   name: [
@@ -250,18 +268,22 @@ const rules = computed(() => ({
 
 const getStatusType = (status) => {
   const typeMap = {
-    'NOT_STARTED': 'info',
-    'IN_PROGRESS': 'warning',
-    'COMPLETED': 'success'
+    'not_started': 'info',
+    'active': 'success',
+    'paused': 'warning',
+    'completed': 'success',
+    'archived': 'info'
   }
   return typeMap[status] || 'info'
 }
 
 const getStatusText = (status) => {
   const statusKey = {
-    'NOT_STARTED': 'notStarted',
-    'IN_PROGRESS': 'inProgress',
-    'COMPLETED': 'completed'
+    'not_started': 'notStarted',
+    'active': 'inProgress',
+    'paused': 'paused',
+    'completed': 'completed',
+    'archived': 'archived'
   }[status]
   return statusKey ? t(`apiTesting.project.status.${statusKey}`) : status
 }
@@ -391,7 +413,7 @@ const resetForm = () => {
     name: '',
     description: '',
     project_type: 'HTTP',
-    status: 'NOT_STARTED',
+    status: 'not_started',
     owner: null,
     member_ids: [],
     start_date: '',
@@ -401,7 +423,20 @@ const resetForm = () => {
 }
 
 onMounted(async () => {
+  highlightProjectId.value = route.query.projectId ? Number(route.query.projectId) : null
+  fromMetaProject.value = route.query.fromMetaProject || null
   await Promise.all([loadProjects(), loadUsers()])
+
+  if (highlightProjectId.value) {
+    setTimeout(() => {
+      const row = document.querySelector(`[data-project-id="${highlightProjectId.value}"]`)
+      if (row) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        row.classList.add('highlight-row')
+        setTimeout(() => row.classList.remove('highlight-row'), 3000)
+      }
+    }, 100)
+  }
 })
 </script>
 
@@ -426,5 +461,14 @@ onMounted(async () => {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+.highlight-row {
+  background-color: #ecf5ff !important;
+}
+
+.highlight-text {
+  color: #409eff;
+  font-weight: 600;
 }
 </style>

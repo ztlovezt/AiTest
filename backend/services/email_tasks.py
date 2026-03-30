@@ -3,54 +3,37 @@ from django_q.tasks import async_task
 from .email_service import email_service
 
 
-def _send_task_notification_wrapper(task_name, task_type, status, recipients, details="", execution_time=None, result=None):
+def _send_task_notification_wrapper(subject, message, recipients, html_content=None, attachments=None):
     """发送任务通知邮件的包装函数"""
     return email_service.send_task_notification(
-        task_name=task_name,
-        task_type=task_type,
-        status=status,
+        subject=subject,
+        message=message,
         recipients=recipients,
-        details=details,
-        execution_time=execution_time,
-        result=result
+        html_content=html_content,
+        attachments=attachments
     )
 
 
-def send_task_notification_task(task_name, task_type, status, recipients, details="", execution_time=None, result=None):
+def send_task_notification_task(subject, message, recipients, html_content=None, attachments=None):
     """异步发送任务通知邮件
     
     Args:
-        task_name: 任务名称
-        task_type: 任务类型
-        status: 任务状态（success/failed）
+        subject: 邮件主题（从模板获取）
+        message: 邮件正文纯文本（从模板获取）
         recipients: 收件人列表
-        details: 详细信息
-        execution_time: 执行时间
-        result: 执行结果
+        html_content: HTML内容（从模板获取，可选）
+        attachments: 附件列表（可选）
     
     Returns:
         str: 任务ID
     """
-    # 从task_type中提取模块名称作为分组
-    group = '通知任务'
-    if task_type:
-        if 'API' in task_type:
-            group = 'API测试'
-        elif 'UI' in task_type:
-            group = 'UI测试'
-        elif 'APP' in task_type:
-            group = 'APP测试'
-    
     return async_task(
         _send_task_notification_wrapper,
-        task_name,
-        task_type,
-        status,
+        subject,
+        message,
         recipients,
-        details,
-        execution_time,
-        result,
-        group=group
+        html_content,
+        attachments
     )
 
 

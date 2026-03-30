@@ -127,6 +127,27 @@ class TestExecutor:
 
             print(f"[TestExecutor] 执行完成")
 
+            # 返回执行结果
+            if self.execution:
+                from django.utils.timezone import localtime
+                start_time = localtime(self.execution.started_at).strftime('%Y-%m-%d %H:%M:%S') if self.execution.started_at else None
+                end_time = localtime(self.execution.finished_at).strftime('%Y-%m-%d %H:%M:%S') if self.execution.finished_at else None
+                
+                return {
+                    'success': self.execution.status == 'PASSED',
+                    'execution_id': self.execution.id,
+                    'total_cases': self.execution.total_cases,
+                    'passed_cases': self.execution.passed_cases,
+                    'failed_cases': self.execution.failed_cases,
+                    'skipped_cases': self.execution.skipped_cases,
+                    'duration': self.execution.duration,
+                    'start_time': start_time,
+                    'end_time': end_time,
+                    'result_data': self.execution.result_data,
+                    'error_message': self.execution.error_message
+                }
+            return {'success': True, 'message': 'UI测试套件执行完成'}
+
         except Exception as e:
             print(f"[TestExecutor] 测试执行失败: {str(e)}")
             import traceback
@@ -137,6 +158,12 @@ class TestExecutor:
                     status='FAILED',
                     error_msg=f"执行失败: {str(e)}\n\n{traceback.format_exc()}"
                 )
+                return {
+                    'success': False,
+                    'execution_id': self.execution.id,
+                    'error': str(e)
+                }
+            return {'success': False, 'error': str(e)}
         finally:
             # 确保关闭数据库连接
             print(f"[TestExecutor] 关闭数据库连接...")

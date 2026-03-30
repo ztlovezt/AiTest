@@ -626,18 +626,40 @@ class AIModelService:
                             error_msg = error_detail.decode('utf-8')
                             logger.error(f"流式API调用返回错误: Status={response.status_code}, Body={error_msg}")
                             response.raise_for_status()
-
+                        
+                        line_count = 0
                         async for line in response.aiter_lines():
+                            line_count += 1
+                            if line_count <= 5:
+                                logger.info(f"原始响应行 {line_count}: {line[:200]}")
+                            
                             if not line.strip():
                                 continue
 
-                            if line.startswith('data: '):
-                                data_str = line[6:]
+                            if line.startswith('data:'):
+                                if line.startswith('data: '):
+                                    data_str = line[6:]
+                                else:
+                                    data_str = line[5:]
+                                
                                 if data_str.strip() == '[DONE]':
+                                    logger.info("收到 [DONE] 信号")
                                     break
 
                                 try:
                                     chunk_data = json.loads(data_str)
+                                    
+                                    if 'status' in chunk_data and chunk_data.get('status') != '200':
+                                        error_msg = chunk_data.get('msg', 'Unknown error')
+                                        logger.error(f"API返回错误: status={chunk_data.get('status')}, msg={error_msg}")
+                                        raise ValueError(f"API错误: {error_msg}")
+                                    
+                                    if 'error' in chunk_data:
+                                        error_info = chunk_data['error']
+                                        error_msg = error_info.get('message', str(error_info)) if isinstance(error_info, dict) else str(error_info)
+                                        logger.error(f"API返回错误: {error_msg}")
+                                        raise ValueError(f"API错误: {error_msg}")
+                                    
                                     if 'choices' in chunk_data and len(chunk_data['choices']) > 0:
                                         choice = chunk_data['choices'][0]
                                         delta = choice.get('delta', {})
@@ -650,12 +672,14 @@ class AIModelService:
                                                 await callback(content)
                                             yield content
 
-                                        # 如果在中途就收到了finish_reason（有些流式实现会在最后一条数据带上finish_reason）
                                         if finish_reason:
-                                            pass
+                                            logger.info(f"收到 finish_reason: {finish_reason}")
 
-                                except json.JSONDecodeError:
+                                except json.JSONDecodeError as e:
+                                    logger.warning(f"JSON解析失败: {e}, data_str={data_str[:100]}")
                                     continue
+                            else:
+                                logger.debug(f"非data行: {line[:100]}")
 
                 # 本次请求结束
                 # 检查 finish_reason

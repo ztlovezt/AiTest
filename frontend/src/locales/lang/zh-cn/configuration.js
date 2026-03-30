@@ -53,6 +53,33 @@ export default {
     }
   },
 
+  // 知识库配置
+  knowledgeBase: {
+    title: '知识库大模型配置',
+    description: '配置用于知识库向量化、文档解析以及需求整理的大模型参数',
+    apiConfig: 'API 配置',
+    currentConfig: '当前配置信息',
+    embeddingTitle: '向量化 (Embedding) 模型配置',
+    refinerTitle: '内容整理 (Refiner) 模型配置',
+    visionTitle: '文档解析 (Vision) 模型配置',
+    visionHint: '支持任意兼容 OpenAI 接口的视觉模型。智谱使用文件解析API效果更佳，OpenAI兼容模式使用视觉模型逐页解析。',
+    provider: '服务商',
+    providers: {
+      zhipu: '智谱 (文件解析API)',
+      openai: 'OpenAI兼容 (视觉模型)'
+    },
+    modelName: '模型名称',
+    maxTokens: '最大 Token 数',
+    temperature: '温度 (Temperature)',
+    messages: {
+      loadFailed: '加载配置失败',
+      saveSuccess: '配置保存成功',
+      saveFailed: '保存配置失败',
+      testSuccess: '测试连接成功',
+      testFailed: '测试连接失败'
+    }
+  },
+
   // UI 环境配置
   uiEnv: {
     title: 'UI自动化环境配置',

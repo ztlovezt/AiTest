@@ -20,7 +20,7 @@ SECRET_KEY = config('SECRET_KEY', default=config_loader.get('server.secret_key',
 DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bool)
 
 # 后端服务端口（开发环境）
-BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8000), cast=int)
+BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8001), cast=int)
 
 # 前端服务URL（用于生成报告链接等）
 FRONTEND_URL = config('FRONTEND_URL', default=config_loader.get('server.frontend_url', 'http://localhost:3000'))
@@ -65,12 +65,15 @@ LOCAL_APPS = [
     'apps.versions',
     'apps.assistant',
     'apps.requirement_analysis',
+    'apps.knowledge_base.apps.KnowledgeBaseConfig',
     'apps.api_testing',
     'apps.ui_automation.apps.UiAutomationConfig',
     'apps.app_automation.apps.AppAutomationConfig',
+    'apps.ai_testing',
     'apps.scheduler',
     'apps.core',
     'apps.data_factory',
+    'apps.unified_projects.apps.UnifiedProjectsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -201,6 +204,8 @@ PATHS_DATA_FACTORY_STATIC_IMG = paths_config.get('data_factory_static_img', 'sta
 PATHS_APP_AUTOMATION_SCREENSHOTS = paths_config.get('app_automation_screenshots', 'app-automation/screenshots')
 PATHS_UI_AUTOMATION_SCREENSHOTS = paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots')
 PATHS_LOGS = paths_config.get('logs', 'logs')
+PATHS_CHROMA_DB = paths_config.get('chroma_db', '../expand/chroma_db')
+
 
 # 超时配置
 timeouts_config = config_loader.get_timeouts_config()

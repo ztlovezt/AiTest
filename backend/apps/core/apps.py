@@ -17,14 +17,11 @@ class CoreConfig(AppConfig):
         """应用启动时执行"""
         logger.info('Core应用启动，开始加载配置...')
         
-        # 导入配置管理器
-        from .management.commands.load_config import config_manager
-        
-        # 加载配置
-        config_manager.load_config()
+        # 导入配置加载器
+        from backend.config_loader import config_loader
         
         # 记录配置信息
-        server_config = config_manager.get_server_config()
+        server_config = config_loader.get_server_config()
         import json
         logger.info(f'服务器配置已加载: {json.dumps(server_config, ensure_ascii=False)}')
         
@@ -354,10 +351,16 @@ class CoreConfig(AppConfig):
                     except Exception:
                         pass
                     
+                    # 解析参数并添加手动执行标志和执行用户ID
+                    args = eval(schedule.args or '[]')
+                    kwargs = eval(schedule.kwargs or '{}')
+                    kwargs['is_manual_execution'] = True
+                    kwargs['executed_by_id'] = request.user.id
+                    
                     task_id = async_task(
                         schedule.func, 
-                        *eval(schedule.args or '[]'), 
-                        **eval(schedule.kwargs or '{}'),
+                        *args, 
+                        **kwargs,
                         name=schedule.name,
                         group=group_name
                     )

@@ -1,0 +1,58 @@
+{
+  "uuid": "1-0",
+  "name": "get天气接口",
+  "status": "passed",
+  "stage": "finished",
+  "start": 1774798691610,
+  "stop": 1774798692610,
+  "description": "Method: GET\nURL: http://t.weather.sojson.com/api/weather/city/101030100",
+  "historyId": "1-0",
+  "fullName": "api套件测试 / get天气接口",
+  "links": [],
+  "labels": [
+    {
+      "name": "suite",
+      "value": "api套件测试"
+    },
+    {
+      "name": "testClass",
+      "value": "api套件测试"
+    },
+    {
+      "name": "package",
+      "value": "api_testing"
+    },
+    {
+      "name": "project",
+      "value": "demo测试项目"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "method",
+      "value": "GET"
+    },
+    {
+      "name": "url",
+      "value": "http://t.weather.sojson.com/api/weather/city/101030100"
+    }
+  ],
+  "steps": [
+    {
+      "name": "发送请求",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1774798691659,
+      "stop": 1774798692159,
+      "steps": []
+    },
+    {
+      "name": "验证响应",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1774798692159,
+      "stop": 1774798692659,
+      "steps": []
+    }
+  ]
+}

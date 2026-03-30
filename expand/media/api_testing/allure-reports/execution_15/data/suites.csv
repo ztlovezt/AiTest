@@ -1,0 +1,5 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"Method: GET
+URL: https://httpbin.org/get","1000","get测试","","Wed Mar 18 19:45:54 CST 2026","passed","Wed Mar 18 19:45:55 CST 2026","","demo测试","demo测试",""
+"Method: POST
+URL: https://httpbin.org/post","1000","post测试","","Wed Mar 18 19:45:54 CST 2026","passed","Wed Mar 18 19:45:55 CST 2026","","demo测试","demo测试",""

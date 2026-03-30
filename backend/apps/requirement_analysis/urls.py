@@ -12,7 +12,8 @@ from .views import (
     TestCaseGenerationTaskViewSet,
     ConfigStatusViewSet,
     upload_and_analyze,
-    analyze_text
+    analyze_text,
+    fetch_axure_url
 )
 
 # 创建DRF路由器
@@ -37,4 +38,5 @@ urlpatterns = [
     # 特殊API端点
     path('upload-and-analyze/', upload_and_analyze, name='upload-and-analyze'),
     path('analyze-text/', analyze_text, name='analyze-text'),
+    path('fetch-axure-url/', fetch_axure_url, name='fetch-axure-url'),
 ]

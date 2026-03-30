@@ -785,18 +785,18 @@ export function createOperationRecord(data) {
 // ==================== 定时任务相关API ====================
 
 // 获取定时任务列表
-export function getScheduledTasks(params) {
+export function getSchedulerSchedules(params) {
   return request({
-    url: '/ui-automation/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'get',
     params
   })
 }
 
 // 创建定时任务
-export function createScheduledTask(data) {
+export function createSchedulerSchedule(data) {
   return request({
-    url: '/ui-automation/scheduled-tasks/',
+    url: '/scheduler/schedules/',
     method: 'post',
     data
   })
@@ -805,48 +805,40 @@ export function createScheduledTask(data) {
 // 获取定时任务详情
 export function getScheduledTaskDetail(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'get'
   })
 }
 
 // 更新定时任务
-export function updateScheduledTask(id, data) {
+export function updateSchedulerSchedule(id, data) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'patch',
     data
   })
 }
 
 // 删除定时任务
-export function deleteScheduledTask(id) {
+export function deleteSchedulerSchedule(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/`,
+    url: `/scheduler/schedules/${id}/`,
     method: 'delete'
   })
 }
 
-// 暂停定时任务
-export function pauseScheduledTask(id) {
+export function toggleSchedulerSchedule(id, is_active) {
+  const action = is_active ? 'resume' : 'pause'
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/pause/`,
-    method: 'post'
-  })
-}
-
-// 恢复定时任务
-export function resumeScheduledTask(id) {
-  return request({
-    url: `/ui-automation/scheduled-tasks/${id}/resume/`,
+    url: `/scheduler/schedules/${id}/${action}/`,
     method: 'post'
   })
 }
 
 // 立即运行任务
-export function runScheduledTask(id) {
+export function executeSchedulerSchedule(id) {
   return request({
-    url: `/ui-automation/scheduled-tasks/${id}/run_now/`,
+    url: `/scheduler/schedules/${id}/execute/`,
     method: 'post'
   })
 }
@@ -909,7 +901,7 @@ export function setDefaultNotificationConfig(id) {
 // 获取通知日志列表
 export function getNotificationLogs(params) {
   return request({
-    url: '/ui-automation/notification-logs/',
+    url: '/ui-automation/ui-notification-logs/',
     method: 'get',
     params
   })
@@ -918,7 +910,7 @@ export function getNotificationLogs(params) {
 // 重试发送通知
 export function retryNotification(id) {
   return request({
-    url: `/ui-automation/notification-logs/${id}/retry/`,
+    url: `/ui-automation/ui-notification-logs/${id}/retry/`,
     method: 'post'
   })
 }
@@ -1063,78 +1055,5 @@ export function getAIExecutionReport(id, params = {}) {
     url: `/ui-automation/ai-execution-records/${id}/report/`,
     method: 'get',
     params
-  })
-}
-
-// 导出 AI 执行报告为 PDF
-export function exportAIExecutionReportPDF(id, params = {}) {
-  return request({
-    url: `/ui-automation/ai-execution-records/${id}/export-pdf/`,
-    method: 'get',
-    params,
-    responseType: 'blob'
-  })
-}
-
-// ==================== Django-Q 统一调度器API ====================
-
-export function getSchedulerSchedules(params) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'get',
-    params
-  })
-}
-
-export function createSchedulerSchedule(data) {
-  return request({
-    url: '/scheduler/schedules/',
-    method: 'post',
-    data
-  })
-}
-
-export function updateSchedulerSchedule(id, data) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'patch',
-    data
-  })
-}
-
-export function deleteSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/`,
-    method: 'delete'
-  })
-}
-
-export function executeSchedulerSchedule(id) {
-  return request({
-    url: `/scheduler/schedules/${id}/execute/`,
-    method: 'post'
-  })
-}
-
-export function toggleSchedulerSchedule(id, action) {
-  return request({
-    url: `/scheduler/schedules/${id}/toggle/`,
-    method: 'post',
-    data: { action }
-  })
-}
-
-export function getSchedulerHistory(id, params = {}) {
-  return request({
-    url: `/scheduler/schedules/${id}/history/`,
-    method: 'get',
-    params
-  })
-}
-
-export function getSchedulerStatistics() {
-  return request({
-    url: '/scheduler/schedules/statistics/',
-    method: 'get'
   })
 }

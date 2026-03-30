@@ -241,10 +241,10 @@ const loadDashboardData = async () => {
 
     // 更新统计数据
     const stats = statsRes.data
-    projectCount.value = stats.project_count || 0
-    testCaseCount.value = stats.test_case_count || 0
-    suiteCount.value = stats.suite_count || 0
-    executionCount.value = stats.execution_count || 0
+    projectCount.value = stats.projectCount || stats.project_count || 0
+    testCaseCount.value = stats.testCaseCount || stats.test_case_count || 0
+    suiteCount.value = stats.testSuiteCount || stats.suite_count || 0
+    executionCount.value = stats.executionCount || stats.execution_count || 0
 
     // 操作记录
     operationRecords.value = recordsRes.data.results || recordsRes.data || []

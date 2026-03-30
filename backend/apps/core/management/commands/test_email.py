@@ -5,6 +5,8 @@
 from django.core.management.base import BaseCommand
 from django.core.mail import EmailMessage, EmailMultiAlternatives
 from django.conf import settings
+from django.utils import timezone
+from backend.config_loader import config_loader
 
 
 class Command(BaseCommand):
@@ -18,14 +20,17 @@ class Command(BaseCommand):
         # 打印当前配置
         self.print_email_config()
         
+        # 获取测试邮箱地址
+        test_email_address = self.get_test_email_address()
+        
         # 运行测试
         results = []
         
         # 测试1: 简单邮件
-        results.append(("简单邮件", self.test_simple_email()))
+        results.append(("简单邮件", self.test_simple_email(test_email_address)))
         
         # 测试2: HTML邮件
-        results.append(("HTML邮件", self.test_html_email()))
+        results.append(("HTML邮件", self.test_html_email(test_email_address)))
         
         # 总结
         self.stdout.write('\n' + '='*60)
@@ -45,6 +50,18 @@ class Command(BaseCommand):
         
         self.stdout.write('='*60 + '\n')
 
+    def get_test_email_address(self):
+        """获取测试邮箱地址"""
+        email_config = config_loader.get_email_config()
+        test_email = email_config.get('test_email')
+        
+        if test_email:
+            self.stdout.write(f"使用配置文件中的测试邮箱: {test_email}")
+            return test_email
+        else:
+            self.stdout.write(self.style.WARNING("配置文件中未设置 test_email，使用默认测试邮箱"))
+            return None
+
     def print_email_config(self):
         """打印当前邮件配置"""
         self.stdout.write('\n' + '='*60)
@@ -62,7 +79,7 @@ class Command(BaseCommand):
         self.stdout.write(f"超时时间: {settings.EMAIL_TIMEOUT}秒")
         self.stdout.write('='*60)
 
-    def test_simple_email(self):
+    def test_simple_email(self, test_email_address):
         """测试简单邮件发送"""
         self.stdout.write('\n' + '='*60)
         self.stdout.write('测试1: 发送简单文本邮件')
@@ -73,7 +90,7 @@ class Command(BaseCommand):
                 subject='[TestHub] 邮件配置测试',
                 body='这是一封测试邮件，用于验证邮件配置是否正确。\n\n如果您收到这封邮件，说明邮件配置成功！',
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                to=['3011456083@qq.com'],
+                to=[test_email_address],
             )
             email.encoding = 'utf-8'
             
@@ -86,22 +103,24 @@ class Command(BaseCommand):
             traceback.print_exc()
             return False
 
-    def test_html_email(self):
+    def test_html_email(self, test_email_address):
         """测试HTML邮件发送"""
         self.stdout.write('\n' + '='*60)
         self.stdout.write('测试2: 发送HTML格式邮件')
         self.stdout.write('='*60)
         
         try:
+            current_time = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+            
             html_content = '''
             <html>
             <head>
                 <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background: #007bff; color: white; padding: 20px; text-align: center; }
-                    .content { padding: 20px; background: #f8f9fa; margin-top: 20px; }
-                    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                    body {{ font-family: Arial, sans-serif; line-height:1.6; color: #333; }}
+                    .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                    .header {{ background: #007bff; color: white; padding: 20px; text-align: center; }}
+                    .content {{ padding: 20px; background: #f8f9fa; margin-top: 20px; }}
+                    .footer {{ text-align: center; padding: 20px; color: #666; font-size: 12px; }}
                 </style>
             </head>
             <body>
@@ -115,7 +134,7 @@ class Command(BaseCommand):
                         <p><strong>测试信息：</strong></p>
                         <ul>
                             <li>发件人: {from_email}</li>
-                            <li>收件人: 3011456083@qq.com</li>
+                            <li>收件人: {to_email}</li>
                             <li>发送时间: {time}</li>
                         </ul>
                         <p>如果您看到这封邮件的格式正确，说明HTML邮件发送功能正常！</p>
@@ -128,14 +147,15 @@ class Command(BaseCommand):
             </html>
             '''.format(
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                time="2026-03-09"
+                to_email=test_email_address,
+                time=current_time
             )
             
             email = EmailMultiAlternatives(
                 subject='[TestHub] HTML邮件配置测试',
                 body='这是一封HTML格式邮件的纯文本版本。',
                 from_email=settings.DEFAULT_FROM_EMAIL,
-                to=['3011456083@qq.com'],
+                to=[test_email_address],
             )
             
             email.encoding = 'utf-8'

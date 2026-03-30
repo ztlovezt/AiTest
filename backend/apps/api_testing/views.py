@@ -87,7 +87,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
-        """删除项目时记录日志"""
+        """删除项目时记录日志并同步删除元项目"""
         log_operation(
             operation_type='delete',
             resource_type='project',
@@ -95,6 +95,17 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             resource_name=instance.name,
             user=self.request.user
         )
+        if instance.unified_meta_project:
+            meta_project = instance.unified_meta_project
+            # 找到并删除对应的关联记录
+            from apps.unified_projects.models import ProjectModule
+            ProjectModule.objects.filter(meta_project=meta_project, module_type='API').delete()
+            
+            instance.unified_meta_project = None
+            instance.save()
+            # 检查是否还有其他模块关联，如果没有才删除 meta_project
+            if meta_project.modules.count() == 0:
+                meta_project.delete()
         instance.delete()
 
     @action(detail=False, methods=['post'], url_path='create-sample')
@@ -108,7 +119,7 @@ class ApiProjectViewSet(viewsets.ModelViewSet):
             name='宠物店API示例项目',
             description='参考Apifox宠物店示例，包含用户管理、宠物管理、订单管理等接口',
             project_type='HTTP',
-            status='IN_PROGRESS',
+            status='active',
             owner=request.user,
             start_date=datetime.now().date()
         )
@@ -345,11 +356,23 @@ class ApiRequestViewSet(viewsets.ModelViewSet):
             # 创建变量解析器
             resolver = VariableResolver()
 
-            # 解析环境变量
+            # 解析环境变量（先加载全局变量，再加载指定环境变量覆盖）
             variables = {}
+            global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
+            if global_env and global_env.variables:
+                for key, val in global_env.variables.items():
+                    if isinstance(val, dict) and 'currentValue' in val:
+                        variables[key] = val['currentValue']
+                    else:
+                        variables[key] = val
             if environment_id:
                 env = Environment.objects.get(id=environment_id)
-                variables.update(env.variables)
+                if env.variables:
+                    for key, val in env.variables.items():
+                        if isinstance(val, dict) and 'currentValue' in val:
+                            variables[key] = val['currentValue']
+                        else:
+                            variables[key] = val
 
             # 使用前端发送的更新后的数据，如果没有则使用数据库中的数据
             request_params = request.data.get('params', api_request.params)
@@ -700,10 +723,21 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 api_request = suite_request.request
 
                 try:
-                    # 解析环境变量
+                    # 解析环境变量（先加载全局变量，再加载套件环境变量覆盖）
                     variables = {}
-                    if test_suite.environment:
-                        variables.update(test_suite.environment.variables)
+                    global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
+                    if global_env and global_env.variables:
+                        for key, val in global_env.variables.items():
+                            if isinstance(val, dict) and 'currentValue' in val:
+                                variables[key] = val['currentValue']
+                            else:
+                                variables[key] = val
+                    if test_suite.environment and test_suite.environment.variables:
+                        for key, val in test_suite.environment.variables.items():
+                            if isinstance(val, dict) and 'currentValue' in val:
+                                variables[key] = val['currentValue']
+                            else:
+                                variables[key] = val
 
                     # 替换URL中的变量（先解析动态函数，再替换环境变量）
                     url = self._replace_variables(api_request.url, variables)
@@ -1168,7 +1202,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
             color: #333;
         }}
         .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
             color: white;
             padding: 0;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
@@ -1337,7 +1371,7 @@ class TestExecutionViewSet(viewsets.ReadOnlyModelViewSet):
             font-size: 0.9rem;
         }}
         a {{
-            color: #667eea;
+            color: #4facfe;
             text-decoration: none;
         }}
         a:hover {{
@@ -2153,7 +2187,7 @@ def _send_webhook_notification(task, execution_log, notification_setting, notifi
                         "elements": [{
                             "tag": "div",
                             "text": {
-                                "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
+                                "content": rendered_content,
                                 "tag": "lark_md"
                             }
                         }],
@@ -2858,7 +2892,7 @@ def _send_webhook_notification(task, execution_log, notification_setting, notifi
                             "elements": [{
                                 "tag": "div",
                                 "text": {
-                                    "content": rendered_content.replace('**', '**').replace('\n\n', '\n'),
+                                    "content": rendered_content,
                                     "tag": "lark_md"
                                 }
                             }],

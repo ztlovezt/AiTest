@@ -3,19 +3,21 @@ AI测试报告PDF生成器
 使用reportlab生成专业的PDF报告
 """
 import os
+from html import escape
 from datetime import datetime
-from typing import Dict, List, Any
+from typing import Dict, Any
 from io import BytesIO
 
 try:
-    from reportlab.lib.pagesizes import A4, letter
+    from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import cm
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase.cidfonts import UnicodeCIDFont
     REPORTLAB_AVAILABLE = True
 except ImportError as e:
     REPORTLAB_AVAILABLE = False
@@ -30,7 +32,7 @@ logger = logging.getLogger('django')
 class AIReportPDFGenerator:
     """AI测试报告PDF生成器"""
 
-    def __init__(self, report_data: Dict[str, Any], report_type: str = 'summary'):
+    def __init__(self, report_data: Dict[str, Any], report_type: str = 'summary', report_category: str = 'ui_automation'):
         """
         初始化PDF生成器
 
@@ -43,25 +45,57 @@ class AIReportPDFGenerator:
 
         self.report_data = report_data
         self.report_type = report_type
+        self.report_category = report_category
         self.buffer = BytesIO()
 
         # 注册中文字体
         self._register_fonts()
 
         # 创建样式
+        self.theme = self._get_theme()
         self.styles = self._create_styles()
+
+    def _get_theme(self):
+        if self.report_category == 'ai_testing':
+            return {
+                'title_prefix': 'AI智能测试',
+                'title_color': colors.HexColor('#0f4c81'),
+                'heading_color': colors.HexColor('#125d98'),
+                'subheading_color': colors.HexColor('#3c6e71'),
+                'text_color': colors.HexColor('#243b53'),
+                'muted_color': colors.HexColor('#5c677d'),
+                'accent': colors.HexColor('#1f8ef1'),
+                'accent_soft': colors.HexColor('#eaf4ff'),
+                'success': colors.HexColor('#19a974'),
+                'danger': colors.HexColor('#d64545'),
+                'border': colors.HexColor('#b8c4d6'),
+                'footer_text': 'TestHub AI Testing Report',
+            }
+        return {
+            'title_prefix': 'AI测试执行',
+            'title_color': colors.HexColor('#2c3e50'),
+            'heading_color': colors.HexColor('#34495e'),
+            'subheading_color': colors.HexColor('#7f8c8d'),
+            'text_color': colors.HexColor('#2c3e50'),
+            'muted_color': colors.HexColor('#7f8c8d'),
+            'accent': colors.HexColor('#3498db'),
+            'accent_soft': colors.HexColor('#ecf0f1'),
+            'success': colors.HexColor('#27ae60'),
+            'danger': colors.HexColor('#e74c3c'),
+            'border': colors.grey,
+            'footer_text': 'TestHub UI Automation Report',
+        }
 
     def _register_fonts(self):
         """注册中文字体"""
         try:
-            # 尝试注册系统中常见的中文字体
             font_paths = [
-                # macOS
-                '/System/Library/Fonts/STHeiti Light.ttc',
-                '/System/Library/Fonts/PingFang.ttc',
                 '/System/Library/Fonts/Supplemental/Arial Unicode.ttf',
+                '/System/Library/Fonts/Supplemental/Songti.ttc',
+                '/System/Library/Fonts/Supplemental/STHeiti Light.ttc',
                 # Linux
                 '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc',
+                '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttf',
                 '/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf',
                 # Windows
                 'C:/Windows/Fonts/simhei.ttf',
@@ -81,9 +115,14 @@ class AIReportPDFGenerator:
                         continue
 
             if not font_registered:
-                logger.warning("⚠️ No Chinese font found, PDF may not display Chinese correctly")
-                # 使用Helvetica作为备用
-                self.font_name = 'Helvetica'
+                try:
+                    pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
+                    self.font_name = 'STSong-Light'
+                    font_registered = True
+                    logger.info("✅ Registered fallback CID font: STSong-Light")
+                except Exception as e:
+                    logger.warning(f"⚠️ Failed to register CID font STSong-Light: {e}")
+                    self.font_name = 'Helvetica'
             else:
                 self.font_name = 'ChineseFont'
 
@@ -101,9 +140,10 @@ class AIReportPDFGenerator:
             parent=styles['Heading1'],
             fontName=self.font_name,
             fontSize=24,
-            textColor=colors.HexColor('#2c3e50'),
-            spaceAfter=30,
+            textColor=self.theme['title_color'],
+            spaceAfter=18,
             alignment=TA_CENTER,
+            leading=30,
         ))
 
         styles.add(ParagraphStyle(
@@ -111,9 +151,10 @@ class AIReportPDFGenerator:
             parent=styles['Heading2'],
             fontName=self.font_name,
             fontSize=18,
-            textColor=colors.HexColor('#34495e'),
+            textColor=self.theme['heading_color'],
             spaceAfter=12,
             spaceBefore=20,
+            leading=24,
         ))
 
         styles.add(ParagraphStyle(
@@ -121,9 +162,10 @@ class AIReportPDFGenerator:
             parent=styles['Heading3'],
             fontName=self.font_name,
             fontSize=14,
-            textColor=colors.HexColor('#7f8c8d'),
+            textColor=self.theme['subheading_color'],
             spaceAfter=10,
             spaceBefore=15,
+            leading=18,
         ))
 
         styles.add(ParagraphStyle(
@@ -131,9 +173,10 @@ class AIReportPDFGenerator:
             parent=styles['Normal'],
             fontName=self.font_name,
             fontSize=11,
-            textColor=colors.HexColor('#2c3e50'),
+            textColor=self.theme['text_color'],
             spaceAfter=8,
             leading=16,
+            wordWrap='CJK',
         ))
 
         styles.add(ParagraphStyle(
@@ -141,10 +184,85 @@ class AIReportPDFGenerator:
             parent=styles['Normal'],
             fontName=self.font_name,
             fontSize=10,
-            textColor=colors.HexColor('#7f8c8d'),
+            textColor=self.theme['muted_color'],
+            leading=14,
+            wordWrap='CJK',
+        ))
+
+        styles.add(ParagraphStyle(
+            name='TableCell',
+            parent=styles['CustomNormal'],
+            fontSize=10,
+            leading=14,
+            spaceAfter=0,
+            wordWrap='CJK',
+        ))
+
+        styles.add(ParagraphStyle(
+            name='TableHeader',
+            parent=styles['TableCell'],
+            textColor=colors.whitesmoke,
+        ))
+
+        styles.add(ParagraphStyle(
+            name='Footer',
+            parent=styles['CustomSmall'],
+            alignment=TA_CENTER,
+            textColor=self.theme['muted_color'],
+            fontSize=9,
+            leading=12,
         ))
 
         return styles
+
+    def _paragraph(self, value, style_name='TableCell'):
+        text = '-' if value is None or value == '' else str(value)
+        safe_text = escape(text).replace('\n', '<br/>')
+        return Paragraph(safe_text, self.styles[style_name])
+
+    def _build_table(self, rows, col_widths, header_rows=1, body_first_col_background=None, center_columns=None):
+        formatted_rows = []
+        for row_index, row in enumerate(rows):
+            style_name = 'TableHeader' if row_index < header_rows else 'TableCell'
+            formatted_rows.append([self._paragraph(cell, style_name) for cell in row])
+
+        table = Table(formatted_rows, colWidths=col_widths, repeatRows=header_rows)
+        style_commands = [
+            ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+            ('GRID', (0, 0), (-1, -1), 0.5, self.theme['border']),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 8),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('BACKGROUND', (0, 0), (-1, header_rows - 1), self.theme['accent']),
+            ('TEXTCOLOR', (0, 0), (-1, header_rows - 1), colors.whitesmoke),
+        ]
+
+        if body_first_col_background is not None and len(rows) > header_rows:
+            style_commands.append(('BACKGROUND', (0, header_rows), (0, -1), body_first_col_background))
+
+        for column_index in center_columns or []:
+            style_commands.append(('ALIGN', (column_index, 0), (column_index, -1), 'CENTER'))
+
+        table.setStyle(TableStyle(style_commands))
+        return table
+
+    def _draw_page_frame(self, canvas, doc):
+        canvas.saveState()
+        page_width, page_height = A4
+        canvas.setStrokeColor(self.theme['accent'])
+        canvas.setLineWidth(1.2)
+        canvas.line(doc.leftMargin, page_height - 1.1 * cm, page_width - doc.rightMargin, page_height - 1.1 * cm)
+        canvas.setStrokeColor(self.theme['border'])
+        canvas.setLineWidth(0.6)
+        canvas.line(doc.leftMargin, 1.2 * cm, page_width - doc.rightMargin, 1.2 * cm)
+        canvas.setFont(self.font_name, 9)
+        canvas.setFillColor(self.theme['muted_color'])
+        canvas.drawString(doc.leftMargin, page_height - 0.8 * cm, self.theme['footer_text'])
+        canvas.drawRightString(page_width - doc.rightMargin, page_height - 0.8 * cm, datetime.now().strftime('%Y-%m-%d %H:%M'))
+        canvas.drawCentredString(page_width / 2, 0.7 * cm, f'第 {canvas.getPageNumber()} 页')
+        canvas.restoreState()
 
     def generate(self) -> BytesIO:
         """
@@ -177,7 +295,7 @@ class AIReportPDFGenerator:
             story.extend(self._build_performance_report())
 
         # 生成PDF
-        doc.build(story)
+        doc.build(story, onFirstPage=self._draw_page_frame, onLaterPages=self._draw_page_frame)
         self.buffer.seek(0)
         return self.buffer
 
@@ -191,8 +309,12 @@ class AIReportPDFGenerator:
             'detailed': '详细步骤报告',
             'performance': '性能分析报告'
         }
-        title = f"AI测试执行 - {report_type_names.get(self.report_type, '测试报告')}"
+        title = f"{self.theme['title_prefix']} - {report_type_names.get(self.report_type, '测试报告')}"
         story.append(Paragraph(title, self.styles['CustomTitle']))
+
+        subtitle = self.report_data.get('execution_details', {}).get('task_description') or '自动生成执行报告'
+        story.append(Paragraph(subtitle, self.styles['CustomSmall']))
+        story.append(Spacer(1, 0.2*cm))
 
         # 执行详情
         overview = self.report_data.get('overview', {})
@@ -208,15 +330,12 @@ class AIReportPDFGenerator:
             ['生成时间', datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
         ]
 
-        info_table = Table(info_data, colWidths=[5*cm, 10*cm])
-        info_table.setStyle(TableStyle([
-            ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-            ('FONTSIZE', (0, 0), (-1, -1), 11),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
-            ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
-            ('PAD', (0, 0), (-1, -1), 8),
-        ]))
+        info_table = self._build_table(
+            info_data,
+            col_widths=[5*cm, 10*cm],
+            header_rows=0,
+            body_first_col_background=self.theme['accent_soft']
+        )
         story.append(info_table)
         story.append(Spacer(1, 0.5*cm))
 
@@ -240,18 +359,13 @@ class AIReportPDFGenerator:
                 ['跳过', str(statistics.get('skipped', 0))],
             ]
 
-            stats_table = Table(stats_data, colWidths=[8*cm, 7*cm])
-            stats_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#3498db')),
-                ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#ecf0f1')),
-                ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-                ('PAD', (0, 0), (-1, -1), 8),
-            ]))
+            stats_table = self._build_table(
+                stats_data,
+                col_widths=[8*cm, 7*cm],
+                header_rows=1,
+                body_first_col_background=self.theme['accent_soft'],
+                center_columns=[1]
+            )
             story.append(stats_table)
             story.append(Spacer(1, 0.5*cm))
 
@@ -269,17 +383,11 @@ class AIReportPDFGenerator:
                     status_display
                 ])
 
-            timeline_table = Table(timeline_data, colWidths=[2.5*cm, 8*cm, 4.5*cm])
-            timeline_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3498db')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('PAD', (0, 0), (-1, -1), 6),
-            ]))
+            timeline_table = self._build_table(
+                timeline_data,
+                col_widths=[2.5*cm, 8*cm, 4.5*cm],
+                header_rows=1
+            )
             story.append(timeline_table)
 
         # 添加性能分析摘要（如果数据可用）
@@ -309,18 +417,13 @@ class AIReportPDFGenerator:
                 ['最短耗时', f"{metrics.get('min_step_duration', 0)} 秒"],
             ]
 
-            perf_table = Table(perf_data, colWidths=[8*cm, 7*cm])
-            perf_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#27ae60')),
-                ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#ecf0f1')),
-                ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-                ('PAD', (0, 0), (-1, -1), 6),
-            ]))
+            perf_table = self._build_table(
+                perf_data,
+                col_widths=[8*cm, 7*cm],
+                header_rows=1,
+                body_first_col_background=colors.HexColor('#edf9f2'),
+                center_columns=[1]
+            )
             story.append(perf_table)
             story.append(Spacer(1, 0.3*cm))
 
@@ -345,18 +448,13 @@ class AIReportPDFGenerator:
                     distribution_data.append([name, str(count)])
 
             if len(distribution_data) > 1:
-                distribution_table = Table(distribution_data, colWidths=[8*cm, 7*cm])
-                distribution_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#27ae60')),
-                    ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#ecf0f1')),
-                    ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
-                    ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                    ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-                    ('PAD', (0, 0), (-1, -1), 6),
-                ]))
+                distribution_table = self._build_table(
+                    distribution_data,
+                    col_widths=[8*cm, 7*cm],
+                    header_rows=1,
+                    body_first_col_background=colors.HexColor('#edf9f2'),
+                    center_columns=[1]
+                )
                 story.append(distribution_table)
 
     def _build_detailed_report(self):
@@ -385,16 +483,12 @@ class AIReportPDFGenerator:
                 if thinking:
                     step_data.append(['思考', thinking])
 
-                step_table = Table(step_data, colWidths=[3*cm, 12*cm])
-                step_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
-                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                    ('PAD', (0, 0), (-1, -1), 6),
-                ]))
+                step_table = self._build_table(
+                    step_data,
+                    col_widths=[3*cm, 12*cm],
+                    header_rows=0,
+                    body_first_col_background=self.theme['accent_soft']
+                )
                 story.append(step_table)
                 story.append(Spacer(1, 0.3*cm))
 
@@ -430,16 +524,13 @@ class AIReportPDFGenerator:
                 ['最短步骤耗时', f"{metrics.get('min_step_duration', 0)} 秒"],
             ]
 
-            metrics_table = Table(metrics_data, colWidths=[8*cm, 7*cm])
-            metrics_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#ecf0f1')),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#2c3e50')),
-                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-                ('PAD', (0, 0), (-1, -1), 8),
-            ]))
+            metrics_table = self._build_table(
+                metrics_data,
+                col_widths=[8*cm, 7*cm],
+                header_rows=1,
+                body_first_col_background=self.theme['accent_soft'],
+                center_columns=[1]
+            )
             story.append(metrics_table)
             story.append(Spacer(1, 0.5*cm))
 
@@ -466,18 +557,13 @@ class AIReportPDFGenerator:
                 if count > 0:
                     distribution_data.append([name, str(count)])
 
-            distribution_table = Table(distribution_data, colWidths=[8*cm, 7*cm])
-            distribution_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 11),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (0, 0), colors.HexColor('#3498db')),
-                ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#ecf0f1')),
-                ('TEXTCOLOR', (0, 0), (0, 0), colors.whitesmoke),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                ('ALIGN', (1, 0), (1, -1), 'CENTER'),
-                ('PAD', (0, 0), (-1, -1), 8),
-            ]))
+            distribution_table = self._build_table(
+                distribution_data,
+                col_widths=[8*cm, 7*cm],
+                header_rows=1,
+                body_first_col_background=self.theme['accent_soft'],
+                center_columns=[1]
+            )
             story.append(distribution_table)
             story.append(Spacer(1, 0.5*cm))
 
@@ -495,18 +581,12 @@ class AIReportPDFGenerator:
                     f"{bn.get('slower_than_avg_by', 0)}%"
                 ])
 
-            bottleneck_table = Table(bottleneck_data, colWidths=[2*cm, 8*cm, 3*cm, 2*cm])
-            bottleneck_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
-                ('FONTSIZE', (0, 0), (-1, -1), 9),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#e74c3c')),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('TEXTCOLOR', (0, 1), (-1, -1), colors.HexColor('#2c3e50')),
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('ALIGN', (2, 0), (3, -1), 'CENTER'),
-                ('PAD', (0, 0), (-1, -1), 6),
-            ]))
+            bottleneck_table = self._build_table(
+                bottleneck_data,
+                col_widths=[2*cm, 8*cm, 3*cm, 2*cm],
+                header_rows=1,
+                center_columns=[2, 3]
+            )
             story.append(bottleneck_table)
             story.append(Spacer(1, 0.5*cm))
 

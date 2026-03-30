@@ -200,8 +200,7 @@ testhub_platform/
 │   │       ├── run_all_scheduled_tasks.py  # 统一定时任务调度器
 │   │       ├── init_locator_strategies.py  # 初始化元素定位策略
 │   │       ├── download_webdrivers.py      # 下载浏览器驱动
-│   │       ├── init_system_tasks.py        # 初始化系统定时任务
-│   │       └── aggregate_performance_stats.py  # 聚合性能统计数据
+│   │       └── init_system_tasks.py        # 初始化系统定时任务
 │   ├── requirement_analysis/       # AI 需求分析
 │   ├── assistant/                  # 智能助手
 │   ├── api_testing/                # API 测试
@@ -403,28 +402,11 @@ git clone <repository-url>
 cd testhub_platform
 ```
 
-2. **创建虚拟环境**
+2. **配置环境变量**
 
 ```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-```
-
-3. **安装依赖**
-
-```bash
-pip install -r requirements.txt
-```
-
-4. **配置环境变量**
-
-```bash
-# 复制示例配置文件到 .env 文件
-# 按照.env文件模板配置你的数据库连接信息等
-cp backend/.env.example backend/.env
+# 复制示例配置文件、根据实际情况修改配置项
+cp config.yaml.example config.yaml
 ```
 
 **重要配置项**：
@@ -432,6 +414,25 @@ cp backend/.env.example backend/.env
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD`: 数据库连接信息
 - `BACKEND_PORT`: 后端服务端口（默认 8000）
 - `SECRET_KEY`: Django 密钥（生产环境请修改）
+
+3. **创建虚拟环境**
+
+```bash
+# 在backend目录下创建虚拟环境
+cd backend
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+```
+
+4. **安装依赖**
+
+```bash
+# 在backend目录下执行
+pip install -r requirements.txt
+```
 
 5. **初始化数据库**
 
@@ -441,12 +442,7 @@ mysql -u root -p
 CREATE DATABASE testhub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
 
-# 创建 migrations 目录（如果不存在）
-mkdir -p apps/testcases/migrations
-echo "# This file is intentionally left empty" > apps/testcases/migrations/__init__.py
-
-# 执行迁移
-python manage.py makemigrations
+# 无需生成迁移文件，直接执行下面迁移命令，创建数据库表
 python manage.py migrate
 
 # 创建超级用户（只需执行一次）
@@ -467,27 +463,21 @@ python manage.py init_locator_strategies
 python manage.py load_component_pack
 ```
 
-8. **启动定时任务**（只需执行一次）
-
-```bash
-# 创建定时任务表
-python manage.py migrate scheduler
-```
-
-9. **初始化系统定时任务**（只需执行一次）
+8. **初始化系统定时任务**（只需执行一次）
 
 ```bash
 # 初始化性能统计聚合等系统定时任务
 python manage.py init_system_tasks
 ```
 
-10. **启动服务**（每次开发都需要启动）
+9. **启动服务**（每次开发都需要启动）
 
 **方式一：使用启动脚本（推荐）**
 
 Windows 用户可以使用提供的启动脚本同时启动两个服务：
 
 ```bash
+# 在backend目录下执行
 # Windows: 双击运行启动脚本
 start.bat
 ```
@@ -495,6 +485,7 @@ start.bat
 Linux/Mac 用户可以使用提供的启动脚本同时启动两个服务：
 
 ```bash
+# 在backend目录下执行
 # Linux/Mac: 运行启动脚本
 chmod +x start.sh
 ./start.sh
@@ -519,16 +510,6 @@ python manage.py start_backend.py
 python manage.py qcluster
 ```
 
-11. **数据工厂模块初始化**（只需执行一次）
-
-数据工厂模块需要创建数据库表：
-
-```bash
-# 创建数据工厂表
-python manage.py makemigrations data_factory
-python manage.py migrate data_factory
-```
-
 ---
 
 ## 📋 系统管理命令
@@ -538,12 +519,6 @@ python manage.py migrate data_factory
 ```bash
 # 初始化系统定时任务（首次部署时执行）
 python manage.py init_system_tasks
-
-# 手动聚合指定日期的性能统计数据
-python manage.py aggregate_performance_stats --date 2026-03-07
-
-# 手动聚合昨天的性能统计数据
-python manage.py aggregate_performance_stats
 ```
 
 ### 定时任务管理
@@ -563,6 +538,12 @@ python manage.py qcluster
 | 实时性能统计聚合 | 每 30 分钟 | 聚合当天的实时性能数据 |
 
 ### 通知模板变量
+
+1. **消息通知模板(非必须)**（只需执行一次）
+```bash
+# 创建消息通知模板
+python manage.py init_notification_templates
+```
 
 在通知模板中可以使用以下变量：
 
@@ -599,14 +580,15 @@ npm install
 2. **配置环境变量**
 
 ```bash
-# 复制示例配置文件到 .env 文件
-cp .env.example .env
+# 如需自定义前端端口，请修改 `config.yaml` 文件。
+# 例如：将前端端口改为 3001
+frontend_port: 3001
 ```
 
 **重要配置项**：
 
-- `VITE_FRONTEND_PORT`: 前端服务端口（默认 3000）
-- `VITE_API_BASE_URL`: 后端 API 地址（默认 http://127.0.0.1:8000）
+- `frontend_port`: 前端服务端口（默认 3000）
+- `default_url`: 前端默认地址（默认 http://localhost:3000）
 
 3. **启动开发服务器**
 

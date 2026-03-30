@@ -35,8 +35,13 @@ export default {
   fetchFailed: '获取数据失败',
   saveFailed: '保存失败',
   createSuccess: '创建成功',
+  createFailed: '创建失败',
   updateSuccess: '更新成功',
+  updateFailed: '更新失败',
   deleteSuccess: '删除成功',
   deleteFailed: '删除失败',
-  deleteConfirm: '确定要删除吗？此操作不可恢复。'
+  deleteConfirm: '确定要删除吗？此操作不可恢复.',
+  index: '序号',
+  actions: '操作',
+  detail: '详情'
 }

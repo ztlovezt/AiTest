@@ -11,13 +11,15 @@ export default {
     uiAutomation: 'UI自动化测试',
     appAutomation: 'APP自动化测试',
     aiIntelligentMode: 'AI 智能模式',
-    configuration: '配置中心'
+    configuration: '配置中心',
+    unifiedProject: '项目管理'
   },
   menu: {
     // AI用例生成
     intelligentCaseGeneration: '智能用例生成',
     aiCaseGeneration: 'AI用例生成',
     aiGeneratedTestcases: 'AI生成用例记录',
+    knowledgeBase: '知识库管理',
     promptConfig: '提示词配置',
     projectManagement: '项目管理',
     testCases: '测试用例',
@@ -46,33 +48,36 @@ export default {
     executionRecords: '执行记录',
 
     // APP自动化
-    dashboard: '数据看板',
-    projectManagement: '项目管理',
-    deviceManagement: '设备管理',
-    packageManagement: '包名管理',
-    elementManagement: '元素管理',
-    sceneBuilder: '用例编排',
-    testCases: '测试用例',
-    testSuites: '测试套件',
-    executionRecords: '执行记录',
-    testReports: '报告管理',
-    scheduledTasks: '定时任务',
-    notificationList: '通知列表',
+    appDashboard: '数据看板',
+    appProjectManagement: '项目管理',
+    appDeviceManagement: '设备管理',
+    appPackageManagement: '包名管理',
+    appElementManagement: '元素管理',
+    appSceneBuilder: '用例编排',
+    appTestCases: '测试用例',
+    appTestSuites: '测试套件',
+    appExecutionRecords: '执行记录',
+    appTestReports: '报告管理',
+    appScheduledTasks: '定时任务',
+    appNotificationList: '通知列表',
 
     // AI智能模式
     aiIntelligentTesting: 'AI 智能测试',
+    aiProjectManagement: 'AI 项目管理',
     aiCaseManagement: 'AI 用例管理',
     aiExecutionRecords: 'AI测试报告',
 
     // 配置中心
     aiCaseGenerationConfig: 'AI用例生成配置',
     aiModelConfig: '用例模型配置',
-    promptConfig: '提示词配置',
+    promptConfigCenter: '提示词配置',
     generationConfig: '生成行为配置',
+    knowledgeBaseConfig: '知识库配置',
     uiEnvConfig: 'UI环境配置',
     appEnvConfig: 'APP环境配置',
     aiModeConfig: 'AI智能模式配置',
     scheduledTaskConfig: '消息通知配置',
-    difyConfig: 'AI评测师配置'
+    difyConfig: 'AI评测师配置',
+    projectManagementCenter: '项目管理'
   }
 }

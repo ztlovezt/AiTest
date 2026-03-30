@@ -145,12 +145,22 @@
                 <template #prepend>
                   <el-select v-model="selectedEnvironment" :placeholder="$t('apiTesting.interface.environment')" class="env-select">
                     <el-option :label="$t('apiTesting.common.noEnvironment')" :value="null" />
-                    <el-option
-                      v-for="env in environments"
-                      :key="env.id"
-                      :label="env.name"
-                      :value="env.id"
-                    />
+                    <el-option-group v-if="globalEnvironments.length" :label="$t('apiTesting.interface.globalEnv')">
+                      <el-option
+                        v-for="env in globalEnvironments"
+                        :key="env.id"
+                        :label="env.name"
+                        :value="env.id"
+                      />
+                    </el-option-group>
+                    <el-option-group v-if="projectEnvironments.length" :label="$t('apiTesting.interface.projectEnv')">
+                      <el-option
+                        v-for="env in projectEnvironments"
+                        :key="env.id"
+                        :label="env.name"
+                        :value="env.id"
+                      />
+                    </el-option-group>
                   </el-select>
                 </template>
               </el-input>
@@ -661,88 +671,14 @@
           <div v-if="response" class="response-section">
             <div class="response-header">
               <h3>{{ $t('apiTesting.interface.response') }}</h3>
-              <div class="response-info">
-                <el-tag :type="getStatusType(response.status_code)">
-                  {{ response.status_code }}
-                </el-tag>
-                <span class="response-time">{{ response.response_time ? response.response_time.toFixed(0) : 0 }}ms</span>
-              </div>
             </div>
-
-            <el-tabs v-model="responseActiveTab">
-              <el-tab-pane label="Body" name="body">
-                <div class="response-body">
-                  <div class="response-actions">
-                    <el-button-group>
-                      <el-button size="small" @click="formatResponse">{{ $t('apiTesting.interface.format') }}</el-button>
-                      <el-button size="small" @click="copyResponse">{{ $t('apiTesting.interface.copy') }}</el-button>
-                      <el-button size="small" @click="toggleJsonPathExtractor">
-                        {{ $t('apiTesting.interface.jsonPathExtract') }}
-                      </el-button>
-                    </el-button-group>
-                  </div>
-                  <div v-if="showJsonPathExtractor" class="jsonpath-extractor">
-                    <div class="jsonpath-input">
-                      <el-input
-                        v-model="jsonPathExpression"
-                        :placeholder="$t('apiTesting.interface.jsonPathExample')"
-                        size="small"
-                        @input="evaluateJsonPath"
-                      >
-                        <template #append>
-                          <el-button size="small" @click="copyJsonPathResult">{{ $t('apiTesting.interface.copyResult') }}</el-button>
-                        </template>
-                      </el-input>
-                    </div>
-                    <div v-if="jsonPathResult !== null" class="jsonpath-result">
-                      <strong>{{ $t('apiTesting.interface.extractResult') }}</strong>
-                      <pre>{{ jsonPathResult }}</pre>
-                    </div>
-                  </div>
-                  <div class="response-content" v-html="highlightedResponseBody"></div>
-                </div>
-              </el-tab-pane>
-
-              <el-tab-pane label="Headers" name="headers">
-                <div class="response-headers">
-                  <div v-for="(value, key) in (response.response_data?.headers || {})" :key="key" class="header-row">
-                    <strong>{{ key }}:</strong> {{ value }}
-                  </div>
-                </div>
-              </el-tab-pane>
-
-              <el-tab-pane :label="$t('apiTesting.interface.assertionResults')" name="assertions" v-if="response.assertions_results && response.assertions_results.length > 0">
-                <div class="assertions-results">
-                  <div
-                    v-for="(result, index) in response.assertions_results"
-                    :key="index"
-                    class="assertion-result-item"
-                    :class="{ 'passed': result.passed, 'failed': !result.passed }"
-                  >
-                    <div class="assertion-result-header">
-                      <el-tag :type="result.passed ? 'success' : 'danger'" size="small">
-                        {{ result.passed ? $t('apiTesting.interface.passed') : $t('apiTesting.interface.failed') }}
-                      </el-tag>
-                      <span class="assertion-name">{{ result.name }}</span>
-                    </div>
-                    <div class="assertion-result-details">
-                      <div class="result-row">
-                        <span class="label">{{ $t('apiTesting.interface.expected') }}</span>
-                        <span class="value">{{ formatAssertionValue(result.expected) }}</span>
-                      </div>
-                      <div class="result-row">
-                        <span class="label">{{ $t('apiTesting.interface.actual') }}</span>
-                        <span class="value">{{ formatAssertionValue(result.actual) }}</span>
-                      </div>
-                      <div class="result-row" v-if="result.error">
-                        <span class="label">{{ $t('apiTesting.interface.error') }}</span>
-                        <span class="value error">{{ result.error }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </el-tab-pane>
-            </el-tabs>
+            <ResponseViewer
+              :response-data="response.response_data"
+              :status-code="response.status_code"
+              :response-time="response.response_time || 0"
+              :assertions="response.assertions_results || []"
+              @select-path="onResponsePathSelect"
+            />
           </div>
         </div>
       </div>
@@ -936,6 +872,7 @@ import { Plus, Folder, Document, MagicStick, Search, Close } from '@element-plus
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
+import ResponseViewer from './components/ResponseViewer.vue'
 import { RequestModelParser } from '@/utils/requestModel'
 import { getVariableFunctions } from '@/api/data-factory'
 import { CodeGenerator } from '@/utils/codeGenerator'
@@ -951,6 +888,8 @@ const selectedProject = ref(null)
 const collections = ref([])
 const flatCollections = ref([])
 const environments = ref([])
+const globalEnvironments = computed(() => environments.value.filter(e => e.scope === 'GLOBAL'))
+const projectEnvironments = computed(() => environments.value.filter(e => e.scope === 'LOCAL'))
 const selectedEnvironment = ref(null)
 const selectedRequest = ref(null)
 const response = ref(null)
@@ -1105,13 +1044,14 @@ const loadCollections = async (projectId) => {
 
 const loadEnvironments = async (projectId) => {
   try {
-    const response = await api.get('/api-testing/environments/', {
-      params: {
-        project: projectId
-      }
-    })
-    // 后端可能返回分页格式 { results: [...] } 或直接返回数组
-    environments.value = response.data.results || response.data || []
+    // 同时加载全局环境和项目环境
+    const [globalRes, projectRes] = await Promise.all([
+      api.get('/api-testing/environments/', { params: { scope: 'GLOBAL' } }),
+      projectId ? api.get('/api-testing/environments/', { params: { project: projectId } }) : Promise.resolve({ data: [] })
+    ])
+    const globalEnvs = globalRes.data.results || globalRes.data || []
+    const projectEnvs = projectRes.data.results || projectRes.data || []
+    environments.value = [...globalEnvs, ...projectEnvs]
   } catch (error) {
     ElMessage.error('加载环境失败')
     console.error('加载环境失败:', error)
@@ -1362,6 +1302,11 @@ const closeCodeGenerateDialog = () => {
 
 const toggleJsonPathExtractor = () => {
   showJsonPathExtractor.value = !showJsonPathExtractor.value
+}
+
+const onResponsePathSelect = (path) => {
+  // 选中的 JSONPath 可用于断言或变量提取
+  jsonPathExpression.value = path
 }
 
 const addRequest = () => {
@@ -1623,7 +1568,12 @@ const getStatusType = (status) => {
 
 const sendRequest = async () => {
   if (!selectedRequest.value || !selectedRequest.value.url) {
-    ElMessage.warning('请填写请求URL')
+    ElMessage.warning(t('apiTesting.interface.pleaseInputUrl'))
+    return
+  }
+
+  if (!selectedRequest.value.id) {
+    ElMessage.warning(t('apiTesting.interface.saveBeforeSend'))
     return
   }
 

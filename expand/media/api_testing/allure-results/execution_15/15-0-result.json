@@ -1,0 +1,58 @@
+{
+  "uuid": "15-0",
+  "name": "post测试",
+  "status": "passed",
+  "stage": "finished",
+  "start": 1773834354034,
+  "stop": 1773834355034,
+  "description": "Method: POST\nURL: https://httpbin.org/post",
+  "historyId": "4-0",
+  "fullName": "demo测试 / post测试",
+  "links": [],
+  "labels": [
+    {
+      "name": "suite",
+      "value": "demo测试"
+    },
+    {
+      "name": "testClass",
+      "value": "demo测试"
+    },
+    {
+      "name": "package",
+      "value": "api_testing"
+    },
+    {
+      "name": "project",
+      "value": "测试demo"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "method",
+      "value": "POST"
+    },
+    {
+      "name": "url",
+      "value": "https://httpbin.org/post"
+    }
+  ],
+  "steps": [
+    {
+      "name": "发送请求",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1773834354081,
+      "stop": 1773834354581,
+      "steps": []
+    },
+    {
+      "name": "验证响应",
+      "status": "passed",
+      "stage": "finished",
+      "start": 1773834354581,
+      "stop": 1773834355081,
+      "steps": []
+    }
+  ]
+}

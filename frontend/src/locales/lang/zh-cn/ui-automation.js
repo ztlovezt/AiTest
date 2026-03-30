@@ -114,8 +114,11 @@ export default {
   // 状态
   status: {
     notStarted: '未开始',
+    active: '进行中',
+    paused: '暂停',
+    completed: '已完成',
+    archived: '已归档',
     inProgress: '进行中',
-    completed: '已结束',
     pending: '待执行',
     running: '执行中',
     passed: '通过',
@@ -648,6 +651,23 @@ export default {
         exportSuccess: 'PDF报告导出成功！',
         exportFailed: '导出报告失败，请稍后重试'
       }
+    },
+    // AI项目管理
+    project: {
+      title: 'AI 测试项目管理',
+      newProject: '新建AI项目',
+      descPlaceholder: '请输入项目描述（可选）',
+      createProject: '创建AI项目',
+      editProject: '编辑AI项目',
+      messages: {
+        loadFailed: '获取项目列表失败',
+        createSuccess: '创建成功',
+        createFailed: '创建项目失败',
+        updateSuccess: '更新成功',
+        updateFailed: '更新项目失败',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除项目失败'
+      }
     }
   },
 
@@ -820,7 +840,14 @@ export default {
       pauseSuccess: '任务已暂停',
       pauseFailed: '暂停任务失败',
       resumeSuccess: '任务已恢复',
-      resumeFailed: '恢复任务失败'
+      resumeFailed: '恢复任务失败',
+      nameRequired: '请输入任务名称',
+      scheduleTypeRequired: '请选择调度类型',
+      testSuiteRequired: '请选择测试套件',
+      testCaseRequired: '请选择测试用例',
+      cronRequired: '请输入Cron表达式',
+      minutesRequired: '请输入间隔分钟数',
+      nextRunRequired: '请选择执行时间'
     }
   },
 
@@ -902,6 +929,7 @@ export default {
       selectPlatform: '请选择平台',
       // 机器人配置
       botName: '机器人名称',
+      emailName: '邮件名称',
       enable: '启用',
       isDefault: '设为默认',
       platformType: '平台类型',
@@ -1254,6 +1282,21 @@ export default {
     targetElement: '目标元素:',
     stepDesc: '步骤描述:',
     detailErrorInfo: '详细错误信息:',
+    variableCategory: {
+      randomNumber: '随机数',
+      randomString: '随机字符串'
+    },
+    variable: {
+      randomInt: {
+        desc: '生成指定范围内的随机整数，参数：最小值、最大值、数量'
+      },
+      randomFloat: {
+        desc: '生成指定范围内的随机浮点数，参数：最小值、最大值、小数位数、数量'
+      },
+      randomString: {
+        desc: '生成随机字符串，参数：长度、字符类型(all/letter/number)、数量'
+      }
+    },
     variableCategories: {
       randomNumber: '随机数',
       randomString: '随机字符串',

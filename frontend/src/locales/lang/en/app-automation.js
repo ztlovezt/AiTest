@@ -101,8 +101,11 @@ export default {
     nameLengthValidation: 'Length should be between 2 and 200 characters',
     status: {
       notStarted: 'Not Started',
-      inProgress: 'In Progress',
-      completed: 'Completed'
+      active: 'Active',
+      paused: 'Paused',
+      completed: 'Completed',
+      archived: 'Archived',
+      inProgress: 'In Progress'
     }
   },
 
@@ -271,12 +274,11 @@ export default {
     networkError: 'Network error: Unable to connect to server, please check network connection',
     error: 'Error',
     pleaseEnterCategoryName: 'Please enter category name',
+    delete: 'Delete',
     deleteSuccess: 'Deleted successfully',
     deleteFailed: 'Failed to delete',
     confirmDeleteCategoryMessage: 'Confirm to delete category',
     canOnlyDeleteEmptyDirectory: 'Can only delete empty directories',
-    confirmDelete: 'Confirm Delete',
-    delete: 'Delete',
     elementImage: 'Element Image',
     currentImage: 'Current Image',
     loadFailed: 'Load Failed',
@@ -332,12 +334,12 @@ export default {
     viewReport: 'View Report',
     stop: 'Stop',
     viewAll: 'View All',
-    status: {
+    statusMap: {
       draft: 'Draft',
       active: 'Active',
       archived: 'Archived'
     },
-    priority: {
+    priorityMap: {
       low: 'Low',
       medium: 'Medium',
       high: 'High'
@@ -745,5 +747,22 @@ export default {
       appPackage: 'App Package',
       selectAppPackage: 'Select app package'
     }
+  },
+
+  settings: {
+    title: 'APP Automation Settings',
+    adbPath: 'ADB Path',
+    adbPathPlaceholder: 'e.g.: adb or D:\\Android\\platform-tools\\adb.exe',
+    adbPathTip: 'Android Debug Bridge tool path. If ADB is in system PATH, just enter "adb"',
+    saveConfig: 'Save Config',
+    reset: 'Reset',
+    currentConfigInfo: 'Current Config Info',
+    adbPathLabel: 'ADB Path',
+    updateTime: 'Updated At',
+    createTime: 'Created At',
+    adbPathRequired: 'Please enter ADB path',
+    loadConfigFailed: 'Failed to load config',
+    saveConfigSuccess: 'Config saved successfully',
+    saveConfigFailed: 'Failed to save config'
   }
 }

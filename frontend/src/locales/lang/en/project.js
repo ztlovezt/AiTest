@@ -1,4 +1,77 @@
 export default {
+  unifiedProject: {
+    title: 'Unified Project Management',
+    createProject: 'Create Project',
+    editProject: 'Edit Project',
+    searchPlaceholder: 'Search project name',
+    statusFilter: 'Filter by status',
+    projectName: 'Project Name',
+    description: 'Description',
+    modules: 'Modules',
+    owner: 'Owner',
+    createdAt: 'Created At',
+    actions: 'Actions',
+    basicInfo: 'Basic Information',
+    noModules: 'No modules yet',
+    status: {
+      notStarted: 'Not Started',
+      active: 'Active',
+      paused: 'Paused',
+      completed: 'Completed',
+      archived: 'Archived'
+    },
+    dashboard: {
+      title: 'Dashboard',
+      totalProjects: 'Total Projects',
+      apiProjects: 'API Projects',
+      aiProjects: 'AI Case Gen Projects',
+      aiTestProjects: 'AI Smart Test Projects',
+      uiProjects: 'UI Projects',
+      appProjects: 'APP Projects',
+      recentProjects: 'Recent Projects',
+      viewAll: 'View All',
+      noProjects: 'No projects yet',
+      quickActions: 'Quick Actions',
+      createProject: 'Create Project',
+      manageProjects: 'Manage Projects',
+      apiTesting: 'API Testing',
+      uiAutomation: 'UI Automation',
+      appAutomation: 'APP Automation',
+      viewReports: 'View Reports',
+      moduleOverview: 'Module Overview',
+      projects: 'projects',
+      apiModule: {
+        title: 'API Testing Module',
+        description: 'HTTP/WebSocket API testing, environment management, automated testing'
+      },
+      uiModule: {
+        title: 'UI Automation Module',
+        description: 'Web UI automation testing based on Playwright/Selenium'
+      },
+      appModule: {
+        title: 'APP Automation Module',
+        description: 'Android APP automation testing based on Airtest'
+      }
+    },
+    messages: {
+      fetchListFailed: 'Failed to fetch project list',
+      fetchDetailFailed: 'Failed to fetch project details',
+      createSuccess: 'Project created successfully',
+      createFailed: 'Failed to create project',
+      updateSuccess: 'Project updated successfully',
+      updateFailed: 'Failed to update project',
+      deleteSuccess: 'Project deleted successfully',
+      deleteFailed: 'Failed to delete project',
+      deleteConfirm: 'Are you sure to delete this project? This action cannot be undone.'
+    },
+    moduleTypes: {
+      AI: 'AI Case Generation',
+      AI_TEST: 'AI Smart Testing',
+      API: 'API Testing',
+      UI: 'UI Automation',
+      APP: 'APP Automation'
+    }
+  },
   project: {
     // List page
     projectManagement: 'Project Management',
@@ -13,6 +86,7 @@ export default {
     actions: 'Actions',
 
     // Status
+    notStarted: 'Not Started',
     active: 'Active',
     paused: 'Paused',
     completed: 'Completed',
@@ -94,6 +168,8 @@ export default {
     appAutomationDesc: 'Android APP automation testing based on Airtest',
     dataFactory: 'Data Factory',
     dataFactoryDesc: 'Flexible test data construction and management',
+    unifiedProject: 'Unified Project Management',
+    unifiedProjectDesc: 'Cross-module unified project management platform',
     aiIntelligentMode: 'AI Intelligent Mode',
     aiIntelligentModeDesc: 'Natural language-based intelligent test execution',
     aiEvaluator: 'AI Evaluator',

@@ -25,18 +25,23 @@
           </el-col>
           <el-col :span="4">
             <el-select v-model="statusFilter" :placeholder="$t('uiAutomation.project.statusFilter')" clearable @change="handleFilter">
-              <el-option :label="$t('uiAutomation.status.notStarted')" value="NOT_STARTED" />
-              <el-option :label="$t('uiAutomation.status.inProgress')" value="IN_PROGRESS" />
-              <el-option :label="$t('uiAutomation.status.completed')" value="COMPLETED" />
+              <el-option :label="$t('uiAutomation.status.notStarted')" value="not_started" />
+              <el-option :label="$t('uiAutomation.status.active')" value="active" />
+              <el-option :label="$t('uiAutomation.status.paused')" value="paused" />
+              <el-option :label="$t('uiAutomation.status.completed')" value="completed" />
+              <el-option :label="$t('uiAutomation.status.archived')" value="archived" />
             </el-select>
           </el-col>
         </el-row>
       </div>
       
-      <el-table :data="projects" v-loading="loading" style="width: 100%">
+      <el-table :data="projects" v-loading="loading" style="width: 100%" :row-class-name="tableRowClassName">
         <el-table-column prop="name" :label="$t('uiAutomation.project.projectName')" min-width="200">
           <template #default="{ row }">
-            <el-link @click="goToProjectDetail(row.id)" type="primary">
+            <el-link v-if="row.id === highlightProjectId" @click="goToProjectDetail(row.id)" type="primary" class="highlight-text">
+              {{ row.name }}
+            </el-link>
+            <el-link v-else @click="goToProjectDetail(row.id)" type="primary">
               {{ row.name }}
             </el-link>
           </template>
@@ -93,9 +98,11 @@
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.common.status')" prop="status">
           <el-select v-model="createForm.status" :placeholder="$t('uiAutomation.project.rules.selectStatus')">
-            <el-option :label="$t('uiAutomation.status.notStarted')" value="NOT_STARTED" />
-            <el-option :label="$t('uiAutomation.status.inProgress')" value="IN_PROGRESS" />
-            <el-option :label="$t('uiAutomation.status.completed')" value="COMPLETED" />
+            <el-option :label="$t('uiAutomation.status.notStarted')" value="not_started" />
+            <el-option :label="$t('uiAutomation.status.active')" value="active" />
+            <el-option :label="$t('uiAutomation.status.paused')" value="paused" />
+            <el-option :label="$t('uiAutomation.status.completed')" value="completed" />
+            <el-option :label="$t('uiAutomation.status.archived')" value="archived" />
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.project.baseUrl')" prop="base_url">
@@ -127,9 +134,11 @@
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.common.status')" prop="status">
           <el-select v-model="editForm.status" :placeholder="$t('uiAutomation.project.rules.selectStatus')">
-            <el-option :label="$t('uiAutomation.status.notStarted')" value="NOT_STARTED" />
-            <el-option :label="$t('uiAutomation.status.inProgress')" value="IN_PROGRESS" />
-            <el-option :label="$t('uiAutomation.status.completed')" value="COMPLETED" />
+            <el-option :label="$t('uiAutomation.status.notStarted')" value="not_started" />
+            <el-option :label="$t('uiAutomation.status.active')" value="active" />
+            <el-option :label="$t('uiAutomation.status.paused')" value="paused" />
+            <el-option :label="$t('uiAutomation.status.completed')" value="completed" />
+            <el-option :label="$t('uiAutomation.status.archived')" value="archived" />
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('uiAutomation.project.baseUrl')" prop="base_url">
@@ -183,11 +192,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, View, Edit, Delete } from '@element-plus/icons-vue'
 import { getUiProjects, createUiProject, updateUiProject, deleteUiProject } from '@/api/ui_automation'
 import { useI18n } from 'vue-i18n'
 
+const route = useRoute()
 const { t } = useI18n()
 
 // 项目数据
@@ -198,6 +209,8 @@ const pagination = reactive({
   currentPage: 1,
   pageSize: 10
 })
+const highlightProjectId = ref(null)
+const fromMetaProject = ref(null)
 
 // 搜索和筛选
 const searchText = ref('')
@@ -214,7 +227,7 @@ const currentEditId = ref(null)
 const createForm = reactive({
   name: '',
   description: '',
-  status: 'IN_PROGRESS',
+  status: 'active',
   base_url: '',
   start_date: null,
   end_date: null
@@ -223,7 +236,7 @@ const createForm = reactive({
 const editForm = reactive({
   name: '',
   description: '',
-  status: 'IN_PROGRESS',
+  status: 'active',
   base_url: '',
   start_date: null,
   end_date: null
@@ -241,6 +254,13 @@ const formRules = computed(() => ({
   ]
 }))
 
+const tableRowClassName = ({ row }) => {
+  if (row.id === highlightProjectId.value) {
+    return 'highlight-row'
+  }
+  return ''
+}
+
 // 格式化日期
 const formatDate = (row, column, cellValue) => {
   if (!cellValue) return ''
@@ -257,9 +277,11 @@ const formatDate = (row, column, cellValue) => {
 // 获取状态样式
 const getStatusType = (status) => {
   const statusMap = {
-    'NOT_STARTED': 'warning',
-    'IN_PROGRESS': 'primary',
-    'COMPLETED': 'success'
+    'not_started': 'warning',
+    'active': 'primary',
+    'paused': 'info',
+    'completed': 'success',
+    'archived': 'info'
   }
   return statusMap[status] || 'default'
 }
@@ -267,9 +289,11 @@ const getStatusType = (status) => {
 // 获取状态文本
 const getStatusText = (status) => {
   const statusKey = {
-    'NOT_STARTED': 'notStarted',
-    'IN_PROGRESS': 'inProgress',
-    'COMPLETED': 'completed'
+    'not_started': 'notStarted',
+    'active': 'active',
+    'paused': 'paused',
+    'completed': 'completed',
+    'archived': 'archived'
   }[status]
   return statusKey ? t(`uiAutomation.status.${statusKey}`) : status
 }
@@ -418,7 +442,7 @@ const handleCreate = async () => {
     Object.keys(createForm).forEach(key => {
       createForm[key] = ''
     })
-    createForm.status = 'IN_PROGRESS'
+    createForm.status = 'active'
     
     loadProjects()
   } catch (error) {
@@ -453,7 +477,22 @@ const handleEdit = async () => {
 
 // 组件挂载时加载数据
 onMounted(() => {
+  highlightProjectId.value = route.query.projectId ? Number(route.query.projectId) : null
+  fromMetaProject.value = route.query.fromMetaProject || null
   loadProjects()
+
+  if (highlightProjectId.value) {
+    nextTick(() => {
+      setTimeout(() => {
+        const row = document.querySelector(`[data-project-id="${highlightProjectId.value}"]`)
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          row.classList.add('highlight-row')
+          setTimeout(() => row.classList.remove('highlight-row'), 3000)
+        }
+      }, 100)
+    })
+  }
 })
 </script>
 
@@ -491,5 +530,14 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.highlight-row {
+  background-color: #ecf5ff !important;
+}
+
+.highlight-text {
+  color: #409eff;
+  font-weight: 600;
 }
 </style>

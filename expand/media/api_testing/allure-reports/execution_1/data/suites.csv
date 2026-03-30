@@ -1,0 +1,9 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"Method: GET
+URL: http://t.weather.itboy.net/api/weather/city/101030100","1000","get测试","","Sun Mar 29 23:38:11 CST 2026","passed","Sun Mar 29 23:38:12 CST 2026","","api套件测试","api套件测试",""
+"Method: GET
+URL: https://www.sojson.com/api/weather.html","1000","未命名接口","","Sun Mar 29 23:38:11 CST 2026","passed","Sun Mar 29 23:38:12 CST 2026","","api套件测试","api套件测试",""
+"Method: GET
+URL: http://shanhe.kim/api/za/nl.php","1000","日历get","","Sun Mar 29 23:38:11 CST 2026","passed","Sun Mar 29 23:38:12 CST 2026","","api套件测试","api套件测试",""
+"Method: GET
+URL: http://t.weather.sojson.com/api/weather/city/101030100","1000","get天气接口","","Sun Mar 29 23:38:11 CST 2026","passed","Sun Mar 29 23:38:12 CST 2026","","api套件测试","api套件测试",""

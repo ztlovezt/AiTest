@@ -114,8 +114,11 @@ export default {
   // Status
   status: {
     notStarted: 'Not Started',
-    inProgress: 'In Progress',
+    active: 'Active',
+    paused: 'Paused',
     completed: 'Completed',
+    archived: 'Archived',
+    inProgress: 'In Progress',
     pending: 'Pending',
     running: 'Running',
     passed: 'Passed',
@@ -648,6 +651,23 @@ export default {
         exportSuccess: 'PDF report exported successfully!',
         exportFailed: 'Failed to export report, please try again later'
       }
+    },
+    // AI Project Management
+    project: {
+      title: 'AI Test Project Management',
+      newProject: 'New AI Project',
+      descPlaceholder: 'Please enter project description (optional)',
+      createProject: 'Create AI Project',
+      editProject: 'Edit AI Project',
+      messages: {
+        loadFailed: 'Failed to load project list',
+        createSuccess: 'Created successfully',
+        createFailed: 'Failed to create project',
+        updateSuccess: 'Updated successfully',
+        updateFailed: 'Failed to update project',
+        deleteSuccess: 'Deleted successfully',
+        deleteFailed: 'Failed to delete project'
+      }
     }
   },
 
@@ -820,11 +840,16 @@ export default {
       pauseSuccess: 'Task paused',
       pauseFailed: 'Failed to pause task',
       resumeSuccess: 'Task resumed',
-      resumeFailed: 'Failed to resume task'
+      resumeFailed: 'Failed to resume task',
+      nameRequired: 'Please enter task name',
+      scheduleTypeRequired: 'Please select schedule type',
+      testSuiteRequired: 'Please select test suite',
+      testCaseRequired: 'Please select test case',
+      cronRequired: 'Please enter Cron expression',
+      minutesRequired: 'Please enter interval minutes',
+      nextRunRequired: 'Please select execution time'
     }
   },
-
-  // Notifications
   notification: {
     title: 'Notification Management',
     logs: {
@@ -887,6 +912,7 @@ export default {
       selectPlatform: 'Please select platform',
       // Robot config
       botName: 'Robot Name',
+      emailName: 'Email Name',
       enable: 'Enable',
       isDefault: 'Set as Default',
       platformType: 'Platform Type',
@@ -1254,6 +1280,21 @@ export default {
     targetElement: 'Target Element:',
     stepDesc: 'Step Description:',
     detailErrorInfo: 'Detailed Error Info:',
+    variableCategory: {
+      randomNumber: 'Random Number',
+      randomString: 'Random String'
+    },
+    variable: {
+      randomInt: {
+        desc: 'Generate random integer within specified range, params: min, max, count'
+      },
+      randomFloat: {
+        desc: 'Generate random float within specified range, params: min, max, precision, count'
+      },
+      randomString: {
+        desc: 'Generate random string, params: length, char_type(all/letter/number), count'
+      }
+    },
     variableCategories: {
       randomNumber: 'Random Number',
       randomString: 'Random String',

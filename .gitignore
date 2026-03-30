@@ -1,5 +1,9 @@
+# 本地开发日志（不纳入版本管理）
+devlog/
+
 # 忽略虚拟环境及项目产生的临时文件
 .venv/
+venv/
 .idea/
 .claude/
 .vscode/
@@ -8,6 +12,7 @@ __pycache__/
 .DS_Store
 .pytest_cache
 备注笔记.txt
+docs/
 # 忽略log文件，但保留.gitkeep和子目录
 
 # 忽略配置文件（但保留示例文件）
@@ -54,6 +59,8 @@ expand/media/app-automation/allure-reports/*
 !expand/media/app-automation/allure-reports/.gitkeep
 expand/media/app-automation/screenshots/*
 !expand/media/app-automation/screenshots/.gitkeep
+expand/media/knowledge_base/screenshots/*
+!expand/media/knowledge_base/screenshots/.gitkeep
 
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**
@@ -72,3 +79,8 @@ docker-compose*.yml
 nginx.conf
 Makefile
 build-multiplatform.sh
+
+# 忽略知识库的数据库文件
+backend/expand/chroma_db/*
+expand/chroma_db/*
+!expand/chroma_db/.gitkeep

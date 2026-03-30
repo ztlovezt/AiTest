@@ -189,13 +189,12 @@ const handleNavigate = (type) => {
     'app': '/app-automation/dashboard',
     'ai-intelligent': '/ai-intelligent-mode/testing',
     'assistant': '/ai-generation/assistant',
-    'config': '/configuration/ai-model',
+    'config': '/configuration/project-center',
     'data': '/data-factory'
   }
 
   if (routes[type]) {
-    const routeData = router.resolve({path: routes[type]})
-    window.open(routeData.href, '_blank')
+    router.push(routes[type])
   }
 }
 </script>
