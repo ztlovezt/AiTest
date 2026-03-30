@@ -274,6 +274,7 @@ export default {
     networkError: '网络错误: 无法连接到服务器，请检查网络连接',
     error: '错误',
     pleaseEnterCategoryName: '请输入分类名称',
+    delete: '删除',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
     confirmDeleteCategoryMessage: '确定要删除分类',

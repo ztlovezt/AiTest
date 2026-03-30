@@ -274,6 +274,7 @@ export default {
     networkError: 'Network error: Unable to connect to server, please check network connection',
     error: 'Error',
     pleaseEnterCategoryName: 'Please enter category name',
+    delete: 'Delete',
     deleteSuccess: 'Deleted successfully',
     deleteFailed: 'Failed to delete',
     confirmDeleteCategoryMessage: 'Confirm to delete category',

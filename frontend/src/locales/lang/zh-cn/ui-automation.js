@@ -840,7 +840,14 @@ export default {
       pauseSuccess: '任务已暂停',
       pauseFailed: '暂停任务失败',
       resumeSuccess: '任务已恢复',
-      resumeFailed: '恢复任务失败'
+      resumeFailed: '恢复任务失败',
+      nameRequired: '请输入任务名称',
+      scheduleTypeRequired: '请选择调度类型',
+      testSuiteRequired: '请选择测试套件',
+      testCaseRequired: '请选择测试用例',
+      cronRequired: '请输入Cron表达式',
+      minutesRequired: '请输入间隔分钟数',
+      nextRunRequired: '请选择执行时间'
     }
   },
 
@@ -1275,6 +1282,21 @@ export default {
     targetElement: '目标元素:',
     stepDesc: '步骤描述:',
     detailErrorInfo: '详细错误信息:',
+    variableCategory: {
+      randomNumber: '随机数',
+      randomString: '随机字符串'
+    },
+    variable: {
+      randomInt: {
+        desc: '生成指定范围内的随机整数，参数：最小值、最大值、数量'
+      },
+      randomFloat: {
+        desc: '生成指定范围内的随机浮点数，参数：最小值、最大值、小数位数、数量'
+      },
+      randomString: {
+        desc: '生成随机字符串，参数：长度、字符类型(all/letter/number)、数量'
+      }
+    },
     variableCategories: {
       randomNumber: '随机数',
       randomString: '随机字符串',

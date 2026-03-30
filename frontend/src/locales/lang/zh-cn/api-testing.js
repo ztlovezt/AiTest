@@ -871,7 +871,11 @@ export default {
       taskUpdated: '更新任务成功',
       taskDeleted: '删除任务成功',
       taskPaused: '任务已暂停',
-      taskActivated: '任务已激活'
+      taskActivated: '任务已激活',
+      suiteCreated: '测试套件创建成功',
+      suiteUpdated: '测试套件更新成功',
+      addSuccess: '添加成功',
+      removeSuccess: '移除成功'
     },
     error: {
       loadFailed: '加载失败',
@@ -925,7 +929,8 @@ export default {
       pleaseSelectEnvironment: '请选择环境',
       pleaseSelectProject: '请先选择一个项目',
       pleaseCreateCollection: '请先创建一个集合',
-      websocketNotInSuite: 'WebSocket项目不支持测试套件功能'
+      websocketNotInSuite: 'WebSocket项目不支持测试套件功能',
+      selectAtLeastOneRequest: '请至少选择一个请求'
     },
     info: {
       websocketClosed: 'WebSocket连接已关闭',

@@ -869,7 +869,11 @@ export default {
       taskUpdated: 'Task updated successfully',
       taskDeleted: 'Task deleted successfully',
       taskPaused: 'Task paused',
-      taskActivated: 'Task activated'
+      taskActivated: 'Task activated',
+      suiteCreated: 'Test suite created successfully',
+      suiteUpdated: 'Test suite updated successfully',
+      addSuccess: 'Added successfully',
+      removeSuccess: 'Removed successfully'
     },
     error: {
       loadFailed: 'Failed to load',
@@ -923,7 +927,8 @@ export default {
       pleaseSelectEnvironment: 'Please select an environment',
       pleaseSelectProject: 'Please select a project first',
       pleaseCreateCollection: 'Please create a collection first',
-      websocketNotInSuite: 'WebSocket projects do not support test suite functionality'
+      websocketNotInSuite: 'WebSocket projects do not support test suite functionality',
+      selectAtLeastOneRequest: 'Please select at least one request'
     },
     info: {
       websocketClosed: 'WebSocket connection closed',
