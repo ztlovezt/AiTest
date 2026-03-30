@@ -150,34 +150,6 @@ email:
   timeout: 30
 
 # ================================
-# 定时任务配置
-# ================================
-scheduler:
-  # 任务检查间隔（秒）
-  check_interval: 60
-  # 是否启用调度器
-  enabled: true
-
-# ================================
-# 文件上传配置
-# ================================
-upload:
-  # 最大上传文件大小（MB）
-  max_file_size: 10
-  # 允许的文件类型
-  allowed_extensions:
-    - ".jpg"
-    - ".jpeg"
-    - ".png"
-    - ".gif"
-    - ".pdf"
-    - ".doc"
-    - ".docx"
-    - ".txt"
-    - ".xls"
-    - ".xlsx"
-
-# ================================
 # Allure 配置
 # ================================
 allure:
@@ -212,8 +184,8 @@ paths:
   app_automation_screenshots: "app-automation/screenshots"
   # UI 自动化截图目录
   ui_automation_screenshots: "ui_automation/screenshots"
-  # 日志目录
-  logs: "logs"
+  # Chroma 向量数据库目录
+  chroma_db: "expand/chroma_db"
 
 # ================================
 # 超时配置
@@ -239,17 +211,6 @@ timeouts:
   element_scroll: 5000
   # 截图超时（毫秒）
   screenshot: 5000
-
-# ================================
-# 前端配置
-# ================================
-frontend:
-  # 前端默认地址
-  default_url: "http://localhost:3000"
-  # 前端本地地址列表
-  local_urls:
-    - "http://localhost:3000"
-    - "http://127.0.0.1:3000"
 
 # ================================
 # Docker镜像配置 - Docker Hub 示例

@@ -274,12 +274,25 @@ def execute_test_suite(test_suite, environment, executed_by):
         execution.results = results
         execution.save()
         
+        # 计算执行时长
+        duration = 0
+        if execution.start_time and execution.end_time:
+            duration = (execution.end_time - execution.start_time).total_seconds()
+        
+        # 格式化开始时间和结束时间
+        from django.utils import timezone as tz
+        start_time_str = tz.localtime(execution.start_time).strftime('%Y-%m-%d %H:%M:%S') if execution.start_time else None
+        end_time_str = tz.localtime(execution.end_time).strftime('%Y-%m-%d %H:%M:%S') if execution.end_time else None
+        
         return {
             'success': True,
             'execution_id': execution.id,
             'passed_count': passed_count,
             'failed_count': failed_count,
             'total_count': execution.total_requests,
+            'duration': duration,
+            'start_time': start_time_str,
+            'end_time': end_time_str,
             'results': results
         }
         
@@ -339,6 +352,7 @@ def execute_api_request(api_request, environment, executed_by):
         
         # 执行请求
         start_time = time.time()
+        start_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))
         response = requests.request(
             method=api_request.method,
             url=url,
@@ -348,6 +362,7 @@ def execute_api_request(api_request, environment, executed_by):
             timeout=30
         )
         end_time = time.time()
+        end_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))
         response_time = (end_time - start_time) * 1000
         
         # 执行断言验证
@@ -385,6 +400,9 @@ def execute_api_request(api_request, environment, executed_by):
             'history_id': history.id,
             'status_code': response.status_code,
             'response_time': response_time,
+            'duration': response_time / 1000 if response_time else 0,
+            'start_time': start_time_str,
+            'end_time': end_time_str,
             'assertions_results': assertions_results,
             'response_data': {
                 'headers': dict(response.headers),

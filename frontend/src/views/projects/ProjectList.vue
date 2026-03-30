@@ -25,6 +25,7 @@
           </el-col>
           <el-col :span="4">
             <el-select v-model="statusFilter" :placeholder="$t('project.statusFilter')" clearable @change="handleFilter">
+              <el-option :label="$t('project.notStarted')" value="not_started" />
               <el-option :label="$t('project.active')" value="active" />
               <el-option :label="$t('project.paused')" value="paused" />
               <el-option :label="$t('project.completed')" value="completed" />
@@ -98,6 +99,7 @@
         </el-form-item>
         <el-form-item :label="$t('project.status')" prop="status">
           <el-select v-model="form.status" :placeholder="$t('project.selectStatus')">
+            <el-option :label="$t('project.notStarted')" value="not_started" />
             <el-option :label="$t('project.active')" value="active" />
             <el-option :label="$t('project.paused')" value="paused" />
             <el-option :label="$t('project.completed')" value="completed" />
@@ -143,7 +145,7 @@ const form = reactive({
   id: null,
   name: '',
   description: '',
-  status: 'active'
+  status: 'not_started'
 })
 
 const rules = {
@@ -268,6 +270,7 @@ const deleteProject = async (project) => {
 
 const getStatusType = (status) => {
   const typeMap = {
+    not_started: 'info',
     active: 'success',
     paused: 'warning',
     completed: 'info',
@@ -278,6 +281,7 @@ const getStatusType = (status) => {
 
 const getStatusText = (status) => {
   const textMap = {
+    not_started: t('project.notStarted'),
     active: t('project.active'),
     paused: t('project.paused'),
     completed: t('project.completed'),

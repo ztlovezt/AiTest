@@ -27,6 +27,7 @@ class ModernEmailSender:
         bcc: Optional[List[str]] = None,
         reply_to: Optional[List[str]] = None,
         headers: Optional[dict] = None,
+        attachments: Optional[List[dict]] = None,
     ) -> bool:
         """发送简单邮件"""
         try:
@@ -42,6 +43,18 @@ class ModernEmailSender:
                 headers=headers,
             )
             email.encoding = 'utf-8'
+            
+            if attachments:
+                for attachment in attachments:
+                    if 'file_path' in attachment:
+                        email.attach_file(attachment['file_path'])
+                    elif 'content' in attachment:
+                        email.attach(
+                            attachment.get('filename', 'attachment'),
+                            attachment['content'],
+                            attachment.get('mimetype', 'text/html')
+                        )
+            
             email.send()
             return True
         except Exception as e:
@@ -73,11 +86,9 @@ class ModernEmailSender:
             )
             
             email.encoding = 'utf-8'
-            email.content_subtype = 'html'
+            email.content_subtype = 'plain'
             
-            from email.mime.text import MIMEText
-            html_part = MIMEText(html_body, 'html', 'utf-8')
-            email.attach(html_part)
+            email.attach_alternative(html_body, 'text/html')
             
             if attachments:
                 for attachment in attachments:
@@ -87,7 +98,7 @@ class ModernEmailSender:
                         email.attach(
                             attachment.get('filename', 'attachment'),
                             attachment['content'],
-                            attachment.get('mimetype', 'application/octet-stream')
+                            attachment.get('mimetype', 'text/html')
                         )
             
             email.send()

@@ -53,6 +53,33 @@ export default {
     }
   },
 
+  // Knowledge Base Configuration
+  knowledgeBase: {
+    title: 'Knowledge Base Model Config',
+    description: 'Configure LLM parameters for vectorization, document parsing and requirement refining',
+    apiConfig: 'API Configuration',
+    currentConfig: 'Current Configuration',
+    embeddingTitle: 'Embedding Model Config',
+    refinerTitle: 'Content Refiner Model Config',
+    visionTitle: 'Document Parser (Vision) Config',
+    visionHint: 'Supports any OpenAI-compatible vision model. Zhipu uses file parsing API for better results, OpenAI compatible mode uses vision model for page-by-page parsing.',
+    provider: 'Provider',
+    providers: {
+      zhipu: 'Zhipu (File Parsing API)',
+      openai: 'OpenAI Compatible (Vision Model)'
+    },
+    modelName: 'Model Name',
+    maxTokens: 'Max Tokens',
+    temperature: 'Temperature',
+    messages: {
+      loadFailed: 'Failed to load configuration',
+      saveSuccess: 'Configuration saved successfully',
+      saveFailed: 'Failed to save configuration',
+      testSuccess: 'Connection test successful',
+      testFailed: 'Connection test failed'
+    }
+  },
+
   // UI Environment Configuration
   uiEnv: {
     title: 'UI Automation Environment',

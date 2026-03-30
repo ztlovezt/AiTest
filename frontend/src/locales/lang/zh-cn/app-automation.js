@@ -101,8 +101,11 @@ export default {
     nameLengthValidation: '长度在 2 到 200 个字符',
     status: {
       notStarted: '未开始',
-      inProgress: '进行中',
-      completed: '已结束'
+      active: '进行中',
+      paused: '暂停',
+      completed: '已完成',
+      archived: '已归档',
+      inProgress: '进行中'
     }
   },
 
@@ -271,12 +274,11 @@ export default {
     networkError: '网络错误: 无法连接到服务器，请检查网络连接',
     error: '错误',
     pleaseEnterCategoryName: '请输入分类名称',
+    delete: '删除',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
     confirmDeleteCategoryMessage: '确定要删除分类',
     canOnlyDeleteEmptyDirectory: '只能删除空目录',
-    confirmDelete: '删除确认',
-    delete: '删除',
     elementImage: '元素图片',
     currentImage: '当前图片',
     loadFailed: '加载失败',
@@ -332,12 +334,12 @@ export default {
     viewReport: '查看报告',
     stop: '停止',
     viewAll: '查看全部',
-    status: {
+    statusMap: {
       draft: '草稿',
       active: '激活',
       archived: '已归档'
     },
-    priority: {
+    priorityMap: {
       low: '低',
       medium: '中',
       high: '高'
@@ -437,8 +439,6 @@ export default {
     apiTemplate: 'API 示例模板',
     use: '使用',
     noTemplates: '暂无模板',
-    importPackage: '导入组件包',
-    exportPackage: '导出组件包',
     overwriteExistingComponents: '覆盖已有组件',
     selectFile: '选择文件',
     selectPackage: '选择组件包',
@@ -747,5 +747,22 @@ export default {
       appPackage: '应用包',
       selectAppPackage: '选择应用包'
     }
+  },
+
+  settings: {
+    title: 'APP 自动化配置',
+    adbPath: 'ADB 路径',
+    adbPathPlaceholder: '例如: adb 或 D:\\Android\\platform-tools\\adb.exe',
+    adbPathTip: 'Android Debug Bridge 工具路径。如果 ADB 在系统 PATH 中，填写 "adb" 即可',
+    saveConfig: '保存配置',
+    reset: '重置',
+    currentConfigInfo: '当前配置信息',
+    adbPathLabel: 'ADB 路径',
+    updateTime: '更新时间',
+    createTime: '创建时间',
+    adbPathRequired: '请输入 ADB 路径',
+    loadConfigFailed: '加载配置失败',
+    saveConfigSuccess: '配置保存成功',
+    saveConfigFailed: '配置保存失败'
   }
 }

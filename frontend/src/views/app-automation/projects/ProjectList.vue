@@ -18,9 +18,11 @@
           </el-col>
           <el-col :span="4">
             <el-select v-model="statusFilter" :placeholder="t('appAutomation.project.statusFilter')" clearable @change="loadProjects">
-              <el-option :label="t('appAutomation.project.status.notStarted')" value="NOT_STARTED" />
-              <el-option :label="t('appAutomation.project.status.inProgress')" value="IN_PROGRESS" />
-              <el-option :label="t('appAutomation.project.status.completed')" value="COMPLETED" />
+              <el-option :label="t('appAutomation.project.status.notStarted')" value="not_started" />
+              <el-option :label="t('appAutomation.project.status.active')" value="active" />
+              <el-option :label="t('appAutomation.project.status.paused')" value="paused" />
+              <el-option :label="t('appAutomation.project.status.completed')" value="completed" />
+              <el-option :label="t('appAutomation.project.status.archived')" value="archived" />
             </el-select>
           </el-col>
           <el-col :span="4">
@@ -31,17 +33,20 @@
       </div>
 
       <!-- 项目列表 -->
-      <el-table :data="projects" v-loading="loading" border stripe>
-        <el-table-column prop="name" :label="t('appAutomation.project.projectName')" min-width="160" show-overflow-tooltip />
+      <el-table :data="projects" v-loading="loading" border stripe :row-class-name="tableRowClassName">
+        <el-table-column :label="t('appAutomation.project.projectName')" min-width="160" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.id === highlightProjectId" class="highlight-text">{{ row.name }}</span>
+            <span v-else>{{ row.name }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="description" :label="t('appAutomation.project.projectDesc')" min-width="200" show-overflow-tooltip>
           <template #default="{ row }">{{ row.description || '-' }}</template>
         </el-table-column>
         <el-table-column :label="t('appAutomation.project.projectStatus')" min-width="90">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)" size="small">
-              {{ row.status === 'NOT_STARTED' ? t('appAutomation.project.status.notStarted') : 
-                 row.status === 'IN_PROGRESS' ? t('appAutomation.project.status.inProgress') : 
-                 row.status === 'COMPLETED' ? t('appAutomation.project.status.completed') : row.status }}
+              {{ getStatusDisplayText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -100,9 +105,11 @@
         </el-form-item>
         <el-form-item :label="t('appAutomation.project.projectStatus')" prop="status">
           <el-select v-model="form.status" :placeholder="t('appAutomation.project.selectStatus')" style="width:100%">
-            <el-option :label="t('appAutomation.project.status.notStarted')" value="NOT_STARTED" />
-            <el-option :label="t('appAutomation.project.status.inProgress')" value="IN_PROGRESS" />
-            <el-option :label="t('appAutomation.project.status.completed')" value="COMPLETED" />
+            <el-option :label="t('appAutomation.project.status.notStarted')" value="not_started" />
+            <el-option :label="t('appAutomation.project.status.active')" value="active" />
+            <el-option :label="t('appAutomation.project.status.paused')" value="paused" />
+            <el-option :label="t('appAutomation.project.status.completed')" value="completed" />
+            <el-option :label="t('appAutomation.project.status.archived')" value="archived" />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('appAutomation.project.startDate')">
@@ -125,9 +132,7 @@
           <el-descriptions-item :label="t('appAutomation.project.projectName')">{{ selectedProject.name }}</el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.project.projectStatus')">
             <el-tag :type="getStatusType(selectedProject.status)">
-              {{ selectedProject.status === 'NOT_STARTED' ? t('appAutomation.project.status.notStarted') : 
-                 selectedProject.status === 'IN_PROGRESS' ? t('appAutomation.project.status.inProgress') : 
-                 selectedProject.status === 'COMPLETED' ? t('appAutomation.project.status.completed') : selectedProject.status }}
+              {{ getStatusDisplayText(selectedProject.status) }}
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.project.owner')">{{ selectedProject.owner_name || '-' }}</el-descriptions-item>
@@ -148,12 +153,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search } from '@element-plus/icons-vue'
 import { getAppProjects, createAppProject, updateAppProject, deleteAppProject } from '@/api/app-automation.js'
 
+const route = useRoute()
 const { t } = useI18n()
 
 const loading = ref(false)
@@ -162,19 +169,33 @@ const projects = ref([])
 const searchText = ref('')
 const statusFilter = ref('')
 const pagination = reactive({ current: 1, size: 20, total: 0 })
+const highlightProjectId = ref(null)
+const fromMetaProject = ref(null)
 
 const statusMap = computed(() => ({
-  'NOT_STARTED': t('appAutomation.project.status.notStarted'),
-  'IN_PROGRESS': t('appAutomation.project.status.inProgress'),
-  'COMPLETED': t('appAutomation.project.status.completed')
+  'not_started': t('appAutomation.project.status.notStarted'),
+  'active': t('appAutomation.project.status.active'),
+  'paused': t('appAutomation.project.status.paused'),
+  'completed': t('appAutomation.project.status.completed'),
+  'archived': t('appAutomation.project.status.archived')
 }))
 
 const getStatusType = (status) => {
-  const map = { 'NOT_STARTED': 'warning', 'IN_PROGRESS': 'primary', 'COMPLETED': 'success' }
+  const map = {
+    'not_started': 'warning',
+    'active': 'primary',
+    'paused': 'info',
+    'completed': 'success',
+    'archived': 'info'
+  }
   return map[status] || 'info'
 }
 
 const getStatusText = (status) => {
+  return statusMap.value[status] || status
+}
+
+const getStatusDisplayText = (status) => {
   return statusMap.value[status] || status
 }
 
@@ -186,7 +207,7 @@ const formRef = ref(null)
 const form = reactive({
   name: '',
   description: '',
-  status: 'IN_PROGRESS',
+  status: 'active',
   start_date: null,
   end_date: null,
 })
@@ -201,7 +222,37 @@ const formRules = {
 const detailVisible = ref(false)
 const selectedProject = ref(null)
 
-onMounted(loadProjects)
+const tableRowClassName = ({ row }) => {
+  if (row.id === highlightProjectId.value) {
+    return 'highlight-row'
+  }
+  return ''
+}
+
+const formatDateToISO = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+  return d.toISOString().split('T')[0]
+}
+
+onMounted(() => {
+  highlightProjectId.value = route.query.projectId ? Number(route.query.projectId) : null
+  fromMetaProject.value = route.query.fromMetaProject || null
+  loadProjects()
+
+  if (highlightProjectId.value) {
+    nextTick(() => {
+      setTimeout(() => {
+        const row = document.querySelector(`[data-project-id="${highlightProjectId.value}"]`)
+        if (row) {
+          row.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          row.classList.add('highlight-row')
+          setTimeout(() => row.classList.remove('highlight-row'), 3000)
+        }
+      }, 100)
+    })
+  }
+})
 
 async function loadProjects() {
   loading.value = true
@@ -219,7 +270,7 @@ async function loadProjects() {
 function openCreateDialog() {
   isEdit.value = false
   editId.value = null
-  Object.assign(form, { name: '', description: '', status: 'IN_PROGRESS', start_date: null, end_date: null })
+  Object.assign(form, { name: '', description: '', status: 'active', start_date: null, end_date: null })
   dialogVisible.value = true
 }
 
@@ -230,8 +281,8 @@ function openEditDialog(row) {
     name: row.name,
     description: row.description || '',
     status: row.status,
-    start_date: row.start_date || null,
-    end_date: row.end_date || null,
+    start_date: row.start_date ? new Date(row.start_date) : null,
+    end_date: row.end_date ? new Date(row.end_date) : null,
   })
   dialogVisible.value = true
 }
@@ -242,11 +293,16 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    const projectData = {
+      ...form,
+      start_date: formatDateToISO(form.start_date),
+      end_date: formatDateToISO(form.end_date)
+    }
     if (isEdit.value) {
-      await updateAppProject(editId.value, { ...form })
+      await updateAppProject(editId.value, projectData)
       ElMessage.success('项目更新成功')
     } else {
-      await createAppProject({ ...form })
+      await createAppProject(projectData)
       ElMessage.success('项目创建成功')
     }
     dialogVisible.value = false
@@ -283,4 +339,6 @@ function formatDateTime(dt) {
 .card-container { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .filter-bar { margin-bottom: 20px; }
 .pagination-container { margin-top: 20px; display: flex; justify-content: flex-end; }
+.highlight-row { background-color: #ecf5ff !important; }
+.highlight-text { color: #409eff; font-weight: 600; }
 </style>

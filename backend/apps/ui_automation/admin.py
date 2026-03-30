@@ -6,8 +6,7 @@ from .models import (
     ScriptElementUsage, TestSuite, TestSuiteScript, TestSuiteTestCase,
     TestExecution, TestEnvironment, Screenshot,
     TestCase, TestCaseStep, TestCaseExecution,
-    OperationRecord, UiNotificationLog,
-    AICase, AIExecutionRecord
+    OperationRecord, UiNotificationLog
 )
 from apps.core.admin_mixins import StandardAdminMixin
 
@@ -157,9 +156,9 @@ class TestCaseExecutionAdmin(StandardAdminMixin, admin.ModelAdmin):
 @admin.register(OperationRecord)
 class OperationRecordAdmin(StandardAdminMixin, admin.ModelAdmin):
     """操作记录 Admin"""
-    list_display = ['user', 'operation_type', 'resource_type', 'resource_name', 'created_at']
+    list_display = ['operation_type', 'resource_type', 'resource_name', 'user', 'created_at']
     list_filter = ['operation_type', 'resource_type', 'created_at']
-    search_fields = ['resource_name']
+    search_fields = ['resource_name', 'detail']
 
 
 @admin.register(UiNotificationLog)
@@ -170,18 +169,3 @@ class UiNotificationLogAdmin(StandardAdminMixin, admin.ModelAdmin):
     search_fields = ['sender_name', 'sender_email']
     readonly_fields = ['created_at', 'sent_at']
     # date_hierarchy = 'created_at'
-
-
-@admin.register(AICase)
-class AICaseAdmin(StandardAdminMixin, admin.ModelAdmin):
-    """AI测试用例 Admin"""
-    list_display = ['name', 'project', 'created_at']
-    list_filter = ['project', 'created_at']
-    search_fields = ['name', 'description']
-
-
-@admin.register(AIExecutionRecord)
-class AIExecutionRecordAdmin(StandardAdminMixin, admin.ModelAdmin):
-    """AI执行记录 Admin"""
-    list_display = ['ai_case', 'status', 'start_time', 'duration']
-    list_filter = ['status', 'start_time']

@@ -122,8 +122,11 @@ export default {
     inputProjectDesc: '请输入项目描述',
     status: {
       notStarted: '未开始',
-      inProgress: '进行中',
-      completed: '已结束'
+      active: '进行中',
+      paused: '暂停',
+      completed: '已完成',
+      archived: '已归档',
+      inProgress: '进行中'
     },
     confirmDelete: '确定要删除项目 "{name}" 吗？',
     none: '无',
@@ -168,7 +171,11 @@ export default {
     selectInterface: '请选择一个接口查看详情，或点击上方绿色按钮创建新接口',
     requestName: '请求名称',
     inputRequestUrl: '输入请求URL',
+    pleaseInputUrl: '请填写请求URL',
+    saveBeforeSend: '请先保存接口到集合后再发送请求',
     environment: '环境',
+    globalEnv: '全局环境',
+    projectEnv: '项目环境',
     send: '发送',
     connect: '连接',
     connecting: '连接中',
@@ -718,16 +725,7 @@ export default {
         encryption: '加密',
         datetime: '时间日期',
         crontab: 'Crontab',
-        uncategorized: '未分类',
-        // 中文分类名称映射（用于API返回的中文分类名称）
-        '随机数': '随机数',
-        '测试数据': '测试数据',
-        '字符串': '字符串',
-        '编码转换': '编码转换',
-        '加密': '加密',
-        '时间日期': '时间日期',
-        'crontab': 'Crontab',
-        '未分类': '未分类'
+        uncategorized: '未分类'
       },
       // 变量描述
       variables: {
@@ -873,7 +871,11 @@ export default {
       taskUpdated: '更新任务成功',
       taskDeleted: '删除任务成功',
       taskPaused: '任务已暂停',
-      taskActivated: '任务已激活'
+      taskActivated: '任务已激活',
+      suiteCreated: '测试套件创建成功',
+      suiteUpdated: '测试套件更新成功',
+      addSuccess: '添加成功',
+      removeSuccess: '移除成功'
     },
     error: {
       loadFailed: '加载失败',
@@ -927,7 +929,8 @@ export default {
       pleaseSelectEnvironment: '请选择环境',
       pleaseSelectProject: '请先选择一个项目',
       pleaseCreateCollection: '请先创建一个集合',
-      websocketNotInSuite: 'WebSocket项目不支持测试套件功能'
+      websocketNotInSuite: 'WebSocket项目不支持测试套件功能',
+      selectAtLeastOneRequest: '请至少选择一个请求'
     },
     info: {
       websocketClosed: 'WebSocket连接已关闭',
@@ -939,5 +942,30 @@ export default {
       deleteTitle: '确认删除',
       clearTitle: '确认清空'
     }
+  },
+
+  // 响应可视化
+  response: {
+    body: '响应体',
+    time: '耗时',
+    size: '大小',
+    treeView: '树形',
+    tableView: '表格',
+    rawView: '原始',
+    preview: '预览',
+    copy: '复制',
+    copied: '已复制到剪贴板',
+    expandAll: '全部展开',
+    collapseAll: '全部折叠',
+    searchPlaceholder: '搜索键名或值...',
+    searchHeaders: '搜索响应头...',
+    pathCopied: 'JSONPath 已复制',
+    assertions: '断言',
+    passed: '通过',
+    failed: '失败',
+    unnamed: '未命名断言',
+    expected: '期望值',
+    actual: '实际值',
+    error: '错误'
   }
 }

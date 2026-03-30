@@ -1,4 +1,70 @@
 export default {
+  unifiedProject: {
+    title: '项目中心',
+    createProject: '创建项目',
+    editProject: '编辑项目',
+    searchPlaceholder: '搜索项目名称',
+    statusFilter: '筛选状态',
+    projectName: '项目名称',
+    description: '描述',
+    modules: '模块',
+    owner: '负责人',
+    createdAt: '创建时间',
+    actions: '操作',
+    basicInfo: '基本信息',
+    noModules: '暂无模块',
+    dashboard: {
+      title: '数据看板',
+      totalProjects: '项目总数',
+      apiProjects: 'API项目',
+      aiProjects: 'AI用例生成项目',
+      aiTestProjects: 'AI智能测试项目',
+      uiProjects: 'UI项目',
+      appProjects: 'APP项目',
+      recentProjects: '最近项目',
+      viewAll: '查看全部',
+      noProjects: '暂无项目',
+      quickActions: '快捷操作',
+      createProject: '创建项目',
+      manageProjects: '管理项目',
+      apiTesting: 'API测试',
+      uiAutomation: 'UI自动化',
+      appAutomation: 'APP自动化',
+      viewReports: '查看报告',
+      moduleOverview: '模块概览',
+      projects: '个项目',
+      apiModule: {
+        title: 'API测试模块',
+        description: '支持HTTP/WebSocket协议的接口测试、环境管理、自动化测试'
+      },
+      uiModule: {
+        title: 'UI自动化模块',
+        description: '基于Playwright/Selenium的Web UI自动化测试'
+      },
+      appModule: {
+        title: 'APP自动化模块',
+        description: '基于Airtest的Android APP自动化测试'
+      }
+    },
+    messages: {
+      fetchListFailed: '获取项目列表失败',
+      fetchDetailFailed: '获取项目详情失败',
+      createSuccess: '项目创建成功',
+      createFailed: '项目创建失败',
+      updateSuccess: '项目更新成功',
+      updateFailed: '项目更新失败',
+      deleteSuccess: '项目删除成功',
+      deleteFailed: '项目删除失败',
+      deleteConfirm: '确认删除该项目？此操作不可恢复。'
+    },
+    moduleTypes: {
+      AI: 'AI用例生成',
+      AI_TEST: 'AI智能测试',
+      API: 'API测试',
+      UI: 'UI自动化',
+      APP: 'APP自动化'
+    }
+  },
   project: {
     // List page
     projectManagement: '项目管理',
@@ -13,6 +79,7 @@ export default {
     actions: '操作',
 
     // Status
+    notStarted: '未开始',
     active: '进行中',
     paused: '已暂停',
     completed: '已完成',
@@ -94,6 +161,8 @@ export default {
     appAutomationDesc: '基于Airtest的Android APP自动化测试',
     dataFactory: '数据工厂',
     dataFactoryDesc: '灵活的测试数据构造与管理',
+    unifiedProject: '项目管理',
+    unifiedProjectDesc: '统一进行项目管理',
     aiIntelligentMode: 'AI 智能模式',
     aiIntelligentModeDesc: '基于自然语言的智能化测试执行',
     aiEvaluator: 'AI评测师',

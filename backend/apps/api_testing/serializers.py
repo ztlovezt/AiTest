@@ -59,6 +59,7 @@ class ApiProjectSerializer(serializers.ModelSerializer):
             members = User.objects.filter(id__in=member_ids)
             project.members.set(members)
 
+        self._sync_to_unified(project)
         return project
 
     def update(self, instance, validated_data):
@@ -69,7 +70,50 @@ class ApiProjectSerializer(serializers.ModelSerializer):
             members = User.objects.filter(id__in=member_ids)
             project.members.set(members)
 
+        self._sync_to_unified(project)
         return project
+
+    def _sync_to_unified(self, project):
+        from apps.unified_projects.models import MetaProject, ProjectModule
+
+        if project.unified_meta_project:
+            meta_project = project.unified_meta_project
+            meta_project.name = project.name
+            meta_project.description = project.description
+            meta_project.status = project.status
+            meta_project.save()
+
+            try:
+                project_module = meta_project.modules.get(module_type='API')
+                project_module.config = {
+                    'project_type': project.project_type,
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                    'start_date': str(project.start_date) if project.start_date else None,
+                    'end_date': str(project.end_date) if project.end_date else None,
+                }
+                project_module.save()
+            except ProjectModule.DoesNotExist:
+                pass
+        else:
+            meta_project = MetaProject.objects.create(
+                name=project.name,
+                description=project.description,
+                status=project.status,
+                owner=project.owner
+            )
+            project.unified_meta_project = meta_project
+            project.save()
+
+            ProjectModule.objects.create(
+                meta_project=meta_project,
+                module_type='API',
+                config={
+                    'project_type': project.project_type,
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                }
+            )
 
 
 class ApiCollectionSerializer(serializers.ModelSerializer):

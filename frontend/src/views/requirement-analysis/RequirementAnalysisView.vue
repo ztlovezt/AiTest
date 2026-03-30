@@ -114,9 +114,55 @@
     </div>
 
     <div class="main-content">
-      <!-- 手动输入需求描述区域 -->
-      <div class="manual-input-section" v-if="!isGenerating && !showResults">
-        <div class="manual-input-card">
+      <!-- 面板选择器 -->
+      <div class="panel-selector" v-if="!isGenerating && !showResults">
+        <div class="panel-tabs">
+          <div
+            class="panel-tab"
+            :class="{ active: activePanel === 'manual' }"
+            @click="activePanel = 'manual'">
+            <div class="panel-icon manual-icon">✏️</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.manualInputDesc') }}</div>
+            </div>
+          </div>
+          <div
+            class="panel-tab"
+            :class="{ active: activePanel === 'upload' }"
+            @click="activePanel = 'upload'">
+            <div class="panel-icon upload-icon">📄</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.uploadDesc') }}</div>
+            </div>
+          </div>
+          <div
+            class="panel-tab"
+            :class="{ active: activePanel === 'knowledge' }"
+            @click="handleKnowledgePanelClick">
+            <div class="panel-icon knowledge-icon">📚</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.knowledgeBaseDesc') }}</div>
+            </div>
+          </div>
+          <div
+            class="panel-tab"
+            :class="{ active: activePanel === 'axure' }"
+            @click="handleAxurePanelClick">
+            <div class="panel-icon axure-icon">🎨</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.axureDesc') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 手动输入需求面板 -->
+      <div class="panel-content manual-input-section" v-if="activePanel === 'manual' && !isGenerating && !showResults">
+        <div class="panel-card">
           <h2>{{ $t('requirementAnalysis.manualInputTitle') }}</h2>
           <div class="input-form">
             <div class="form-group">
@@ -159,14 +205,9 @@
         </div>
       </div>
 
-      <!-- 分隔线 -->
-      <div class="divider" v-if="!isGenerating && !showResults">
-        <span>{{ $t('requirementAnalysis.dividerOr') }}</span>
-      </div>
-
-      <!-- 文档上传区域 -->
-      <div class="upload-section" v-if="!isGenerating && !showResults">
-        <div class="upload-card">
+      <!-- 上传需求文档面板 -->
+      <div class="panel-content upload-section" v-if="activePanel === 'upload' && !isGenerating && !showResults">
+        <div class="panel-card">
           <h2>{{ $t('requirementAnalysis.uploadTitle') }}</h2>
           <div class="upload-area"
                @dragover.prevent
@@ -228,6 +269,270 @@
               <span v-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
               <span v-else>{{ $t('requirementAnalysis.generateButton') }}</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 知识库需求面板 -->
+      <div class="panel-content knowledge-section" v-if="activePanel === 'knowledge' && !isGenerating && !showResults">
+        <div class="panel-card">
+          <h2>{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</h2>
+
+          <div class="knowledge-search-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>{{ $t('requirementAnalysis.selectKnowledgeBase') }}</label>
+                <select v-model="selectedKnowledgeBase" class="form-select">
+                  <option value="">{{ $t('requirementAnalysis.selectKnowledgeBasePlaceholder') }}</option>
+                  <option v-for="kb in knowledgeBaseList" :key="kb.id" :value="kb.id">
+                    {{ kb.name }}
+                  </option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>{{ $t('requirementAnalysis.associatedProject') }}</label>
+                <select v-model="selectedKnowledgeProject" class="form-select">
+                  <option value="">{{ $t('requirementAnalysis.selectProject') }}</option>
+                  <option v-for="project in projects" :key="project.id" :value="project.id">
+                    {{ project.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 检索类型选择 -->
+            <div class="search-type-row">
+              <label class="search-type-label">{{ $t('knowledgeBase.searchType') }}:</label>
+              <div class="search-type-buttons">
+                <button
+                  class="search-type-btn"
+                  :class="{ active: knowledgeSearchType === 'hybrid' }"
+                  @click="knowledgeSearchType = 'hybrid'">
+                  {{ $t('knowledgeBase.hybridSearchType') }}
+                </button>
+                <button
+                  class="search-type-btn"
+                  :class="{ active: knowledgeSearchType === 'semantic' }"
+                  @click="knowledgeSearchType = 'semantic'">
+                  {{ $t('knowledgeBase.semanticSearchType') }}
+                </button>
+                <button
+                  class="search-type-btn"
+                  :class="{ active: knowledgeSearchType === 'keyword' }"
+                  @click="knowledgeSearchType = 'keyword'">
+                  {{ $t('knowledgeBase.keywordSearchType') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 检索参数 -->
+            <div class="search-params">
+              <div class="param-item">
+                <span class="param-label">{{ $t('knowledgeBase.similarityThreshold') }}:</span>
+                <input
+                  type="range"
+                  v-model.number="knowledgeSearchParams.similarityThreshold"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  class="param-slider">
+                <span class="param-value">{{ (knowledgeSearchParams.similarityThreshold * 100).toFixed(0) }}%</span>
+              </div>
+              <div class="param-item">
+                <span class="param-label">{{ $t('knowledgeBase.topK') }}:</span>
+                <select v-model.number="knowledgeSearchParams.topK" class="param-select">
+                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+                </select>
+              </div>
+              <div class="param-item param-item-wide" v-if="knowledgeSearchType === 'hybrid'">
+                <span class="param-label">{{ $t('knowledgeBase.keywordWeight') }}</span>
+                <input
+                  type="range"
+                  v-model.number="knowledgeSearchParams.keywordWeight"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  class="param-slider">
+                <span class="param-value">{{ (knowledgeSearchParams.keywordWeight * 100).toFixed(0) }}%</span>
+              </div>
+            </div>
+
+            <!-- 检索内容输入框 -->
+            <div class="form-group">
+              <label>{{ $t('requirementAnalysis.searchQuery') }}</label>
+              <div class="search-input-row">
+                <input
+                  v-model="knowledgeSearchQuery"
+                  type="text"
+                  class="form-input"
+                  :placeholder="$t('requirementAnalysis.searchQueryPlaceholder')"
+                  @keyup.enter="handleKnowledgeSearch">
+                <button
+                  class="search-btn"
+                  @click="handleKnowledgeSearch"
+                  :disabled="isKnowledgeSearching || !selectedKnowledgeBase">
+                  {{ isKnowledgeSearching ? $t('requirementAnalysis.searching') : $t('knowledgeBase.search') }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 检索结果 -->
+          <div class="search-results" v-if="knowledgeSearchResults.length > 0">
+            <h3>{{ $t('requirementAnalysis.searchResults') }} ({{ knowledgeSearchResults.length }})</h3>
+            <div class="result-list">
+              <div v-for="(result, index) in knowledgeSearchResults" :key="index" class="result-item">
+                <div class="result-header">
+                  <span class="result-index">#{{ index + 1 }}</span>
+                  <span class="result-score">{{ $t('knowledgeBase.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%</span>
+                </div>
+                <div class="result-content">{{ result.content }}</div>
+                <div class="result-meta" v-if="result.document_title">
+                  <span>{{ $t('requirementAnalysis.sourceDocument') }}: {{ result.document_title }}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              class="generate-knowledge-btn"
+              @click="generateFromKnowledge"
+              :disabled="isGenerating">
+              <span v-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
+              <span v-else>{{ $t('requirementAnalysis.generateFromKnowledge') }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Axure解析需求面板 -->
+      <div class="panel-content axure-section" v-if="activePanel === 'axure' && !isGenerating && !showResults">
+        <div class="panel-card">
+          <h2>{{ $t('requirementAnalysis.axureTitle') }}</h2>
+
+          <div class="axure-form">
+            <div class="form-group">
+              <label>{{ $t('requirementAnalysis.axureOnlineLink') }}</label>
+              <div class="axure-input-row">
+                <input
+                  v-model="axureUrl"
+                  type="text"
+                  class="form-input"
+                  :placeholder="$t('requirementAnalysis.axureUrlPlaceholder')">
+                <button
+                  class="parse-btn"
+                  @click="parseAxureUrl"
+                  :disabled="isAxureParsing || !axureUrl">
+                  {{ isAxureParsing ? $t('requirementAnalysis.parsing') : $t('requirementAnalysis.confirmParse') }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 内容类型选择和AI结构化 -->
+            <div class="form-group">
+              <div class="inline-options">
+                <label class="radio-label">
+                  <input type="radio" v-model="axureContentType" value="full">
+                  {{ $t('requirementAnalysis.fullContent') }}
+                </label>
+                <label class="radio-label">
+                  <input type="radio" v-model="axureContentType" value="incremental">
+                  {{ $t('requirementAnalysis.incrementalContent') }}
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="axureUseAiRefine">
+                  {{ $t('requirementAnalysis.useAiRefine') }}
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>{{ $t('requirementAnalysis.associatedProject') }}</label>
+              <select v-model="selectedAxureProject" class="form-select">
+                <option value="">{{ $t('requirementAnalysis.selectProject') }}</option>
+                <option v-for="project in projects" :key="project.id" :value="project.id">
+                  {{ project.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 解析结果展示 -->
+          <div class="axure-result" v-if="axureContent || axureIncrementalContent">
+            <h3>{{ $t('requirementAnalysis.parseResult') }}</h3>
+
+            <!-- 标签页切换 - 根据选择的内容类型显示对应标签 -->
+            <div class="content-tabs">
+              <button
+                v-if="axureContentType === 'full'"
+                class="content-tab active">
+                {{ $t('requirementAnalysis.fullContent') }}
+                <span class="content-length">({{ axureContent ? axureContent.length : 0 }} {{ $t('requirementAnalysis.characters') }})</span>
+              </button>
+              <button
+                v-if="axureContentType === 'incremental'"
+                class="content-tab active">
+                {{ $t('requirementAnalysis.incrementalContent') }}
+                <span class="content-length">({{ axureIncrementalContent ? axureIncrementalContent.length : 0 }} {{ $t('requirementAnalysis.characters') }})</span>
+              </button>
+              <button
+                v-if="axureMermaidCode"
+                class="content-tab"
+                :class="{ active: activeTab === 'flowchart' }"
+                @click="activeTab = 'flowchart'">
+                {{ $t('requirementAnalysis.flowchartContent') || '流程图' }}
+                <span class="content-length">(Mermaid)</span>
+              </button>
+            </div>
+
+            <!-- 内容展示区域 - 可编辑的预览模式 -->
+            <div class="content-display">
+              <div v-if="axureContentType === 'full' && activeTab !== 'flowchart'" class="full-content">
+                <div
+                  v-if="axureContent"
+                  class="markdown-preview editable-preview"
+                  contenteditable="true"
+                  @blur="onAxureContentBlur($event, 'full')"
+                  v-html="formatMarkdown(axureContent)">
+                </div>
+                <div v-else class="no-content">
+                  {{ $t('requirementAnalysis.noIncrementalContent') }}
+                </div>
+              </div>
+              <div v-else-if="axureContentType === 'incremental' && activeTab !== 'flowchart'" class="incremental-content">
+                <div
+                  v-if="axureIncrementalContent"
+                  class="markdown-preview editable-preview"
+                  contenteditable="true"
+                  @blur="onAxureContentBlur($event, 'incremental')"
+                  v-html="formatMarkdown(axureIncrementalContent)">
+                </div>
+                <div v-else class="no-content">
+                  {{ $t('requirementAnalysis.noIncrementalContent') }}
+                </div>
+              </div>
+              <div v-if="activeTab === 'flowchart'" class="flowchart-content">
+                <div v-if="axureMermaidCode" class="mermaid-container">
+                  <div class="mermaid" v-html="renderedMermaid"></div>
+                  <div class="mermaid-code">
+                    <h4>Mermaid 代码</h4>
+                    <pre>{{ axureMermaidCode }}</pre>
+                  </div>
+                </div>
+                <div v-else class="no-content">
+                  {{ $t('requirementAnalysis.noFlowchartContent') || '未检测到流程图' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="axure-actions">
+              <button
+                class="generate-axure-btn"
+                @click="generateFromAxure"
+                :disabled="isGenerating || isAxureParsing">
+                <span v-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
+                <span v-else>{{ $t('requirementAnalysis.generateFromAxure') }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -343,11 +648,16 @@ import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import { useUserStore } from '@/stores/user'
+import { hybridSearch, semanticSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
+import { marked } from 'marked'
 
 export default {
   name: 'RequirementAnalysisView',
   data() {
     return {
+      // 面板选择
+      activePanel: 'manual', // manual, upload, knowledge, axure
+
       // 全局输出模式设置
       globalOutputMode: 'stream',  // 默认使用流式输出
 
@@ -364,6 +674,31 @@ export default {
       selectedProject: '',
       projects: [],
       isDragOver: false,
+
+      // 知识库需求相关
+      knowledgeBaseList: [],
+      selectedKnowledgeBase: '',
+      knowledgeSearchQuery: '',
+      knowledgeSearchResults: [],
+      knowledgeSearchType: 'hybrid', // hybrid, semantic, keyword
+      knowledgeSearchParams: {
+        topK: 5,
+        similarityThreshold: 0.5,
+        keywordWeight: 0.7
+      },
+      isKnowledgeSearching: false,
+      selectedKnowledgeProject: '',
+
+      // Axure解析相关
+      axureUrl: '',
+      axureContent: '',
+      axureIncrementalContent: '',
+      axureMermaidCode: '',
+      renderedMermaid: '',
+      isAxureParsing: false,
+      selectedAxureProject: '',
+      axureUseAiRefine: true,
+      axureContentType: 'full',  // 内容类型：'full' 或 'incremental'
 
       // 生成状态
       isGenerating: false,
@@ -441,6 +776,7 @@ export default {
   mounted() {
     this.progressText = this.$t('requirementAnalysis.preparing')
     this.loadProjects()
+    this.loadKnowledgeBases()
     this.checkConfigStatus()
   },
 
@@ -467,6 +803,62 @@ export default {
   },
 
   methods: {
+    async checkKbConfigAndSwitchPanel(panelName) {
+      try {
+        const response = await api.get('/knowledge-base/check_config/')
+        const config = response.data
+        
+        // 如果是 Axure 面板，主要依赖 Refiner 模型（如果有使用AI结构化）和配置情况
+        // 这里为了统一和严格，我们在进入这两个依赖大模型的面板时都做统一的完整性校验
+        if (config.has_embedding && config.has_vision && config.has_refiner) {
+          this.activePanel = panelName
+        } else {
+          const buildStatusHtml = (name, isConfigured) => {
+            const icon = isConfigured ? '<span style="color: #67c23a; margin-right: 8px;">✓</span>' : '<span style="color: #f56c6c; margin-right: 8px;">✗</span>'
+            const color = isConfigured ? '#606266' : '#f56c6c'
+            return `<div style="margin: 8px 0; display: flex; align-items: center; color: ${color}; font-size: 14px;">${icon} ${name}</div>`
+          }
+
+          const htmlContent = `
+            <div style="margin-bottom: 16px; font-size: 14px; color: #606266;">您的知识库 AI 模型配置尚未完善，缺少以下必要配置：</div>
+            <div style="background-color: #f8f9fa; padding: 12px 20px; border-radius: 4px; margin-bottom: 16px;">
+              ${buildStatusHtml('Embedding 模型 (用于向量化检索)', config.has_embedding)}
+              ${buildStatusHtml('Vision 模型 (用于图文解析)', config.has_vision)}
+              ${buildStatusHtml('Refiner 模型 (用于内容结构化总结)', config.has_refiner)}
+            </div>
+            <div style="font-size: 13px; color: #909399;">建议您先前往设置中心完成配置，否则部分功能将无法正常使用。</div>
+          `
+          
+          this.$confirm(
+            htmlContent,
+            '配置缺失提示',
+            {
+              confirmButtonText: '前往配置',
+              cancelButtonText: '取消',
+              type: 'warning',
+              dangerouslyUseHTMLString: true,
+              customClass: 'kb-config-warning-dialog'
+            }
+          ).then(() => {
+            this.$router.push('/configuration/knowledge-base')
+          }).catch(() => {
+            // 用户点击取消，不切换面板
+          })
+        }
+      } catch (error) {
+        console.error('检查知识库配置失败:', error)
+        this.activePanel = panelName // 接口失败时降级允许进入
+      }
+    },
+
+    async handleKnowledgePanelClick() {
+      await this.checkKbConfigAndSwitchPanel('knowledge')
+    },
+
+    async handleAxurePanelClick() {
+      await this.checkKbConfigAndSwitchPanel('axure')
+    },
+
     async loadProjects() {
       try {
         const response = await api.get('/projects/')
@@ -474,6 +866,215 @@ export default {
       } catch (error) {
         console.error(this.$t('requirementAnalysis.loadProjectsFailed'), error)
       }
+    },
+
+    async loadKnowledgeBases() {
+      try {
+        const response = await getKnowledgeBaseList({ status: 'active' })
+        this.knowledgeBaseList = response.data.results || response.data
+      } catch (error) {
+        console.error('Failed to load knowledge bases:', error)
+      }
+    },
+
+    async handleKnowledgeSearch() {
+      if (!this.knowledgeSearchQuery.trim()) {
+        ElMessage.warning(this.$t('knowledgeBase.searchQueryRequired'))
+        return
+      }
+      if (!this.selectedKnowledgeBase) {
+        ElMessage.warning(this.$t('requirementAnalysis.selectKnowledgeBase'))
+        return
+      }
+
+      this.isKnowledgeSearching = true
+      this.knowledgeSearchResults = []
+
+      try {
+        let response
+        if (this.knowledgeSearchType === 'hybrid') {
+          response = await hybridSearch(this.selectedKnowledgeBase, {
+            query: this.knowledgeSearchQuery,
+            top_k: this.knowledgeSearchParams.topK,
+            similarity_threshold: this.knowledgeSearchParams.similarityThreshold,
+            keyword_weight: this.knowledgeSearchParams.keywordWeight
+          })
+        } else if (this.knowledgeSearchType === 'semantic') {
+          response = await semanticSearch(this.selectedKnowledgeBase, {
+            query: this.knowledgeSearchQuery,
+            top_k: this.knowledgeSearchParams.topK,
+            similarity_threshold: this.knowledgeSearchParams.similarityThreshold
+          })
+        } else {
+          // keyword search - use hybrid search with keyword_weight=1
+          response = await hybridSearch(this.selectedKnowledgeBase, {
+            query: this.knowledgeSearchQuery,
+            top_k: this.knowledgeSearchParams.topK,
+            similarity_threshold: this.knowledgeSearchParams.similarityThreshold,
+            keyword_weight: 1.0
+          })
+        }
+        this.knowledgeSearchResults = response.data.results || []
+        if (this.knowledgeSearchResults.length === 0) {
+          ElMessage.info(this.$t('knowledgeBase.noResults'))
+        }
+      } catch (error) {
+        console.error('Knowledge search failed:', error)
+        ElMessage.error(this.$t('knowledgeBase.searchFailed'))
+      } finally {
+        this.isKnowledgeSearching = false
+      }
+    },
+
+    async generateFromKnowledge() {
+      if (this.knowledgeSearchResults.length === 0) {
+        ElMessage.error(this.$t('requirementAnalysis.noSearchResults'))
+        return
+      }
+
+      // 合并检索结果作为需求文本
+      const requirementText = this.knowledgeSearchResults.map((result, index) => {
+        return `【需求片段 ${index + 1}】\n${result.content}`
+      }).join('\n\n')
+
+      const title = this.$t('requirementAnalysis.knowledgeBaseRequirement')
+
+      await this.startGeneration(
+        title,
+        requirementText,
+        this.selectedKnowledgeProject,
+        this.globalOutputMode
+      )
+    },
+
+    async parseAxureUrl() {
+      if (!this.axureUrl) {
+        ElMessage.warning(this.$t('requirementAnalysis.pleaseEnterAxureUrl'))
+        return
+      }
+
+      this.isAxureParsing = true
+      this.axureContent = ''
+      this.axureMermaidCode = ''
+
+      try {
+        console.log('开始解析Axure URL:', this.axureUrl)
+        // Axure 解析需要较长时间（可能超过 2 分钟），设置 5 分钟超时
+        const response = await api.post('/requirement-analysis/fetch-axure-url/', {
+          url: this.axureUrl,
+          use_ai_refine: this.axureUseAiRefine,
+          content_type: this.axureContentType
+        }, {
+          timeout: 300000  // 5 分钟超时
+        })
+
+        console.log('Axure解析完整响应:', JSON.stringify(response.data, null, 2))
+        console.log('success状态:', response.data.success)
+
+        if (response.data.success) {
+          // 根据content_type存储对应内容
+          const returnedContentType = response.data.content_type || this.axureContentType
+          if (returnedContentType === 'incremental') {
+            this.axureIncrementalContent = response.data.incremental_content || ''
+            this.axureContent = ''  // 清空全量内容，避免显示错误
+            console.log('增量内容长度:', this.axureIncrementalContent.length)
+          } else {
+            this.axureContent = response.data.full_content || ''
+            this.axureIncrementalContent = ''  // 清空增量内容
+            console.log('全量内容长度:', this.axureContent.length)
+          }
+
+          // 处理流程图 Mermaid 代码
+          if (response.data.mermaid_code) {
+            this.axureMermaidCode = response.data.mermaid_code
+            console.log('检测到流程图，Mermaid代码长度:', this.axureMermaidCode.length)
+            // 渲染 Mermaid
+            this.$nextTick(() => {
+              this.renderMermaid()
+            })
+          } else {
+            this.axureMermaidCode = ''
+          }
+          ElMessage.success(response.data.message || this.$t('requirementAnalysis.parseSuccess'))
+        } else {
+          console.error('解析失败 - success为false:', response.data.error)
+          ElMessage.error(response.data.error || this.$t('requirementAnalysis.parseFailed'))
+        }
+      } catch (error) {
+        console.error('Axure解析请求异常:', error)
+        console.error('错误详情:', error.response ? error.response.data : error.message)
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          ElMessage.error('解析超时，Axure 原型页面加载较慢，请稍后重试')
+        } else {
+          ElMessage.error(this.$t('requirementAnalysis.parseFailed') + ': ' + (error.message || '未知错误'))
+        }
+      } finally {
+        this.isAxureParsing = false
+        console.log('解析结束, axureContent最终值:', this.axureContent ? this.axureContent.length + '字符' : '空')
+      }
+    },
+
+    renderMermaid() {
+      // 渲染 Mermaid 流程图
+      if (!this.axureMermaidCode) {
+        this.renderedMermaid = ''
+        return
+      }
+      try {
+        // 使用 mermaid CDN 或已安装的库
+        if (window.mermaid) {
+          window.mermaid.render('mermaid-flowchart', this.axureMermaidCode).then((svg) => {
+            this.renderedMermaid = svg
+          }).catch((err) => {
+            console.error('Mermaid 渲染失败:', err)
+            this.renderedMermaid = `<pre>${this.axureMermaidCode}</pre>`
+          })
+        } else {
+          // 如果 mermaid 库未加载，直接显示代码
+          this.renderedMermaid = `<pre>${this.axureMermaidCode}</pre>`
+        }
+      } catch (error) {
+        console.error('Mermaid 渲染异常:', error)
+        this.renderedMermaid = `<pre>${this.axureMermaidCode}</pre>`
+      }
+    },
+
+    // 处理可编辑预览区域的内容变更
+    onAxureContentBlur(event, contentType) {
+      const element = event.target
+      // 获取编辑后的纯文本内容（从HTML转换回markdown格式）
+      const htmlContent = element.innerText
+
+      if (contentType === 'full') {
+        // 更新全量内容 - 将HTML内容转换为markdown格式的纯文本
+        this.axureContent = this.htmlToMarkdown(htmlContent)
+      } else if (contentType === 'incremental') {
+        // 更新增量内容
+        this.axureIncrementalContent = this.htmlToMarkdown(htmlContent)
+      }
+    },
+
+    // 简单的HTML转Markdown（用于保存编辑后的内容）
+    htmlToMarkdown(text) {
+      // 由于contenteditable会保留HTML结构，这里直接使用innerText获取的纯文本
+      // 表格内容会以制表符分隔的形式保存
+      return text
+    },
+
+    async generateFromAxure() {
+      if (!this.axureContent) {
+        ElMessage.error(this.$t('requirementAnalysis.noAxureContent'))
+        return
+      }
+
+      const title = this.$t('requirementAnalysis.axureRequirement')
+
+      await this.startGeneration(
+        title,
+        this.axureContent,
+        this.selectedAxureProject,
+        this.globalOutputMode
+      )
     },
 
     async checkConfigStatus() {
@@ -1207,15 +1808,32 @@ export default {
       return `${year}-${month}-${day} ${hours}:${minutes}`;
     },
 
-    // 格式化Markdown为HTML（简化版）
+    // 格式化Markdown为HTML（使用marked库）
     formatMarkdown(content) {
       if (!content) return '';
+      try {
+        // 配置marked选项
+        marked.setOptions({
+          breaks: true,  // 支持换行
+          gfm: true  // 支持GitHub Flavored Markdown（表格等）
+        });
+        // 解析并返回HTML
+        return marked.parse(content);
+      } catch (error) {
+        console.error('Markdown解析失败:', error);
+        // 如果marked失败，回退到简单处理
+        return this.simpleFormatMarkdown(content);
+      }
+    },
 
-      // 先去除"新增"标记，在markdown转换之前处理
-      // 这样可以避免markdown转换后无法匹配的问题
+    // 简单的Markdown格式化（回退方案)
+    simpleFormatMarkdown(content) {
+      if (!content) return '';
+
+      // 先去除"新增"标记
       let html = content
-          .replace(/\*\*新增\*\*-/g, '')  // **新增**-xxx -> xxx (保留xxx的原有格式)
-          .replace(/新增-/g, '');  // 新增-xxx -> xxx (保留xxx的原有格式)
+          .replace(/\*\*新增\*\*-/g, '')
+          .replace(/新增-/g, '');
 
       // 转义HTML特殊字符
       html = html
@@ -1223,8 +1841,7 @@ export default {
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
 
-      // 转换Markdown语法
-      // 标题 #
+      // 标题
       html = html.replace(/^#{6}\s+(.+)$/gm, '<h6>$1</h6>');
       html = html.replace(/^#{5}\s+(.+)$/gm, '<h5>$1</h5>');
       html = html.replace(/^#{4}\s+(.+)$/gm, '<h4>$1</h4>');
@@ -1232,21 +1849,15 @@ export default {
       html = html.replace(/^#{2}\s+(.+)$/gm, '<h2>$1</h2>');
       html = html.replace(/^#{1}\s+(.+)$/gm, '<h1>$1</h1>');
 
-      // 粗体 **text** 或 __text__
+      // 粗体
       html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-      html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-
-      // 斜体 *text* 或 _text_
+      // 斜体
       html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-      html = html.replace(/_(.+?)_/g, '<em>$1</em>');
-
-      // 代码块 ```code```
+      // 代码块
       html = html.replace(/```([\s\S]+?)```/g, '<pre><code>$1</code></pre>');
-
-      // 行内代码 `code`
+      // 行内代码
       html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-      // 换行符转换为<br>
+      // 换行符
       html = html.replace(/\n/g, '<br>');
 
       return html;
@@ -1597,7 +2208,7 @@ export default {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
   border-radius: 24px 24px 0 0;
 }
 
@@ -1777,10 +2388,10 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
 }
 
 .guide-actions .skip-action {
@@ -1888,6 +2499,770 @@ export default {
 
 .mode-option.active .mode-desc {
   color: #475569;
+}
+
+/* 面板选择器样式 - 现代化改进 */
+.panel-selector {
+  margin-bottom: 32px;
+}
+
+.panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
+}
+
+.panel-tab {
+  display: block;
+  padding: 24px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  height: 180px; /* 增加高度以容纳多行文本 */
+  box-sizing: border-box;
+}
+
+.panel-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
+}
+
+.panel-tab:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
+}
+
+.panel-tab.active {
+  background: white;
+  border-color: #3b82f6;
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+}
+
+.panel-tab.active::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+}
+
+.panel-icon {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 2.2rem;
+  line-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  text-align: center;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.panel-tab.active .panel-icon {
+  background: #eff6ff;
+  transform: scale(1.05);
+}
+
+.panel-content-wrapper {
+  position: absolute;
+  top: 92px; /* icon(24+56) + 12px 间距 */
+  left: 24px;
+  right: 24px;
+  display: block;
+}
+
+.panel-label {
+  font-size: 1.1rem;
+  color: #334155;
+  font-weight: 600;
+  text-align: left;
+  line-height: 24px;
+  height: 24px;
+  margin: 0 0 8px 0; /* 底部间距 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+
+.panel-tab.active .panel-label {
+  color: #1d4ed8;
+}
+
+.panel-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.6;
+  height: 3.2em; /* 1.6 * 2行 = 3.2em，保证有足够空间渲染两行 */
+  text-align: left;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 限制2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 面板内容样式 */
+.panel-content {
+  margin-bottom: 30px;
+}
+
+.panel-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e8ed;
+}
+
+.panel-card h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.5rem;
+}
+
+/* 知识库面板样式 */
+.knowledge-search-form {
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.search-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.search-input-row .form-input {
+  flex: 1;
+}
+
+.search-btn {
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.search-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.search-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.search-params {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-top: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.param-item-wide{
+  flex: 1;
+  min-width: 250px;
+}
+
+.param-label{
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+}
+
+.param-slider{
+  width: 120px;
+}
+
+.param-select{
+  width: 80px;
+}
+
+.param-value{
+  min-width: 40px;
+  font-size: 14px;
+  color: #409eff;
+  font-weight: 500;
+}
+
+/* 检索类型选择样式 */
+.search-type-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 15px 0;
+}
+
+.search-type-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.search-type-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.search-type-btn {
+  padding: 8px 16px;
+  border: 1px solid #dcdfe6;
+  background: #f5f7fa;
+  color: #606266;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+  transition: all 0.3s ease;
+}
+
+.search-type-btn:hover {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.search-type-btn.active {
+  background: #409eff;
+  color: white;
+  border-color: #409eff;
+}
+
+.search-type-btn.active:hover {
+  background: #337ecc;
+}
+
+/* 检索结果样式 */
+.search-results {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e8ed;
+}
+
+.search-results h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.result-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.result-item {
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.result-index {
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+.result-score {
+  font-size: 0.85rem;
+  color: #27ae60;
+  background: #e8f5e9;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.result-content {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #495057;
+  white-space: pre-wrap;
+}
+
+.result-meta {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.generate-knowledge-btn {
+  width: 100%;
+  padding: 15px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  margin-top: 15px;
+  transition: background 0.3s ease;
+}
+
+.generate-knowledge-btn:hover:not(:disabled) {
+  background: #219a52;
+}
+
+.generate-knowledge-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* Axure占位符样式 */
+/* Axure面板样式 */
+.axure-form {
+  margin-bottom: 20px;
+}
+
+.axure-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.axure-input-row .form-input {
+  flex: 1;
+}
+
+.parse-btn {
+  padding: 12px 24px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.parse-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.parse-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+.axure-result {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e1e8ed;
+}
+
+.axure-result h3 {
+  color: #2c3e50;
+  margin-bottom: 15px;
+  font-size: 1.1rem;
+}
+
+.result-preview {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.result-preview pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #495057;
+}
+
+.generate-axure-btn {
+  width: 100%;
+  padding: 15px;
+  background: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: background 0.3s ease;
+}
+
+.generate-axure-btn:hover:not(:disabled) {
+  background: #219a52;
+}
+
+.generate-axure-btn:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+}
+
+/* Mermaid 流程图样式 */
+.mermaid-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mermaid-container .mermaid {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  overflow-x: auto;
+}
+
+.mermaid-container .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaid-code {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.mermaid-code h4 {
+  color: #a0aec0;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.mermaid-code pre {
+  color: #e2e8f0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.flowchart-content {
+  padding: 15px;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.view-toggle-btn {
+  padding: 6px 14px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  background: #f5f5f5;
+  color: #333;
+  transition: all 0.2s;
+}
+
+.view-toggle-btn:hover {
+  background: #e8e8e8;
+}
+
+.view-toggle-btn.active {
+  background: #4CAF50;
+  color: #fff;
+  border-color: #4CAF50;
+}
+
+.markdown-preview {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 15px;
+  min-height: 150px;
+  max-height: none;
+  overflow-y: visible;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4 {
+  margin-top: 15px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 5px;
+}
+
+.markdown-preview h1 { font-size: 18px; }
+.markdown-preview h2 { font-size: 16px; }
+.markdown-preview h3 { font-size: 15px; }
+.markdown-preview h4 { font-size: 14px; }
+
+.markdown-preview p {
+  margin-bottom: 10px;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  padding-left: 20px;
+  margin-bottom: 10px;
+}
+
+.markdown-preview li {
+  margin-bottom: 4px;
+}
+
+.markdown-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  border: 1px solid #333;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-preview th {
+  background: #e8e8e8;
+  font-weight: bold;
+}
+
+/* 编辑文本框样式 */
+.edit-textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  line-height: 1.6;
+  resize: vertical;
+  background: #fafafa;
+  color: #333;
+}
+
+.edit-textarea:focus {
+  outline: none;
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 可编辑预览样式 */
+.editable-preview {
+  outline: none;
+  min-height: 200px;
+  cursor: text;
+}
+
+.editable-preview:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.editable-preview:hover {
+  border-color: #c0c4cc;
+}
+
+/* 可编辑预览样式 */
+.editable-preview {
+  outline: none;
+  min-height: 300px;
+  padding: 15px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  background: #fff;
+  cursor: text;
+  transition: border-color 0.3s;
+}
+
+.editable-preview:hover {
+  border-color: #c0c4cc;
+}
+
+.editable-preview:focus {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+/* 可编辑预览中的表格样式 */
+.editable-preview table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  border: 1px solid #333;
+}
+
+.editable-preview th,
+.editable-preview td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.editable-preview th {
+  background: #e8e8e8;
+  font-weight: bold;
+}
+
+.markdown-preview pre {
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.markdown-preview code {
+  background: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-preview pre code {
+  background: none;
+  padding: 0;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 12px;
+  margin: 10px 0;
+  color: #666;
+}
+
+.markdown-preview a {
+  color: #1a73e8;
+  text-decoration: none;
+}
+
+.markdown-preview a:hover {
+  text-decoration: underline;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.content-type-options {
+  display: flex;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+.inline-options {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #606266;
+}
+
+.radio-label input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .panel-tabs {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .search-params {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .param-item {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .param-slider {
+    width: 100px;
+  }
+
+  .param-select {
+    width: 70px;
+  }
 }
 
 .form-input, .form-select, .form-textarea {
@@ -2069,14 +3444,14 @@ export default {
 
 .current-mode-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 500;
   margin-left: 8px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
 }
 
 .progress-info {
@@ -2147,6 +3522,26 @@ export default {
   color: #2c3e50;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+/* stream-content 表格样式 */
+.stream-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 10px 0;
+  border: 1px solid #333;
+}
+
+.stream-content th,
+.stream-content td {
+  border: 1px solid #333;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.stream-content th {
+  background: #e8e8e8;
+  font-weight: bold;
 }
 
 .stream-content::-webkit-scrollbar {
@@ -2554,10 +3949,10 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
-  box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
 }
 
 .guide-actions .skip-action {

@@ -115,7 +115,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
             notification_types = []
             if getattr(config, 'notify_on_email', False):
                 notification_types.append('邮箱通知')
-            if getattr(config, 'notify_on_webhook', False) or getattr(config, 'use_webhook', False):
+            if getattr(config, 'notify_on_webhook', False):
                 notification_types.append('Webhook')
             if notification_types:
                 return ' + '.join(notification_types)

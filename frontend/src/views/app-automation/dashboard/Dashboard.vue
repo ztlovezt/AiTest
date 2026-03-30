@@ -293,10 +293,10 @@ onUnmounted(() => {
       font-size: 24px;
       color: white;
       
-      &.bg-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
       &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
       &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-      &.bg-purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+      &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
     }
     
     .stat-info {
@@ -438,10 +438,10 @@ onUnmounted(() => {
         font-size: 24px;
         color: white;
         
-        &.bg-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
         &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        &.bg-purple { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
       }
       
       .action-label {

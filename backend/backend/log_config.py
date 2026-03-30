@@ -65,8 +65,11 @@ class LogConfig:
         """获取日志格式"""
         try:
             format_config = logging_config.get('format', None)
-            
+
             if format_config:
+                # 将标准 logging 格式转换为 loguru 兼容格式
+                format_config = format_config.replace('{levelname}', '{level}')
+                format_config = format_config.replace('{asctime}', '{time:YYYY-MM-DD HH:mm:ss}')
                 return format_config
             else:
                 return "{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level} - {message}"
@@ -304,7 +307,7 @@ def log_debug(logger, message, *args, **kwargs):
 def log_success(logger, message, *args, **kwargs):
     """
     记录成功日志
-    
+
     Args:
         logger: logger实例
         message: 日志消息

@@ -54,12 +54,110 @@ class AppProjectCreateSerializer(serializers.ModelSerializer):
             'members': {'required': False},
         }
 
+    def create(self, validated_data):
+        project = super().create(validated_data)
+        self._sync_to_unified(project)
+        return project
+
+    def _sync_to_unified(self, project):
+        from apps.unified_projects.models import MetaProject, ProjectModule
+
+        if project.unified_meta_project:
+            meta_project = project.unified_meta_project
+            meta_project.name = project.name
+            meta_project.description = project.description
+            meta_project.status = project.status
+            meta_project.save()
+
+            try:
+                project_module = meta_project.modules.get(module_type='APP')
+                project_module.config = {
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                    'platform': getattr(project, 'platform', 'android'),
+                    'device_id': getattr(project, 'device_id', ''),
+                    'app_package': getattr(project, 'app_package', ''),
+                    'app_activity': getattr(project, 'app_activity', ''),
+                    'start_date': str(project.start_date) if project.start_date else None,
+                    'end_date': str(project.end_date) if project.end_date else None,
+                }
+                project_module.save()
+            except ProjectModule.DoesNotExist:
+                pass
+        else:
+            meta_project = MetaProject.objects.create(
+                name=project.name,
+                description=project.description,
+                status=project.status,
+                owner=project.owner
+            )
+            project.unified_meta_project = meta_project
+            project.save()
+
+            ProjectModule.objects.create(
+                meta_project=meta_project,
+                module_type='APP',
+                config={
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                }
+            )
+
 
 class AppProjectUpdateSerializer(serializers.ModelSerializer):
     """APP项目更新序列化器"""
     class Meta:
         model = AppProject
         fields = ('name', 'description', 'status', 'start_date', 'end_date', 'members')
+
+    def update(self, instance, validated_data):
+        project = super().update(instance, validated_data)
+        self._sync_to_unified(project)
+        return project
+
+    def _sync_to_unified(self, project):
+        from apps.unified_projects.models import MetaProject, ProjectModule
+
+        if project.unified_meta_project:
+            meta_project = project.unified_meta_project
+            meta_project.name = project.name
+            meta_project.description = project.description
+            meta_project.status = project.status
+            meta_project.save()
+
+            try:
+                project_module = meta_project.modules.get(module_type='APP')
+                project_module.config = {
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                    'platform': getattr(project, 'platform', 'android'),
+                    'device_id': getattr(project, 'device_id', ''),
+                    'app_package': getattr(project, 'app_package', ''),
+                    'app_activity': getattr(project, 'app_activity', ''),
+                    'start_date': str(project.start_date) if project.start_date else None,
+                    'end_date': str(project.end_date) if project.end_date else None,
+                }
+                project_module.save()
+            except ProjectModule.DoesNotExist:
+                pass
+        else:
+            meta_project = MetaProject.objects.create(
+                name=project.name,
+                description=project.description,
+                status=project.status,
+                owner=project.owner
+            )
+            project.unified_meta_project = meta_project
+            project.save()
+
+            ProjectModule.objects.create(
+                meta_project=meta_project,
+                module_type='APP',
+                config={
+                    'owner': project.owner.id if project.owner else None,
+                    'member_ids': list(project.members.values_list('id', flat=True)),
+                }
+            )
 
 
 # ========== 配置序列化器 ==========

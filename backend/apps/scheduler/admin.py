@@ -16,14 +16,20 @@ from apps.core.admin_mixins import StandardAdminMixin
 @staff_member_required
 def schedule_execute_now(request, schedule_id):
     """立即执行定时任务"""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"schedule_execute_now 被调用: schedule_id={schedule_id}, user={request.user.username}, user_id={request.user.id}")
+    
     try:
         schedule = Schedule.objects.get(id=schedule_id)
         from apps.scheduler.task_executor import execute_task
-        task_id = execute_task(schedule_id)
+        task_id = execute_task(schedule_id, is_manual_execution=True, executed_by_id=request.user.id)
+        logger.info(f"execute_task 返回: task_id={task_id}")
         messages.success(request, f'任务已提交执行: {schedule.name}, task_id={task_id}')
     except Schedule.DoesNotExist:
         messages.error(request, f'任务不存在: {schedule_id}')
     except Exception as e:
+        logger.error(f"执行失败: {e}", exc_info=True)
         messages.error(request, f'执行失败: {str(e)}')
     
     return HttpResponseRedirect(reverse('admin:django_q_schedule_changelist'))
@@ -137,7 +143,7 @@ class ScheduleAdmin(StandardAdminMixin, admin.ModelAdmin):
     def execute_now_button(self, obj):
         """立即执行按钮"""
         return format_html(
-            '<a href="/scheduler/admin/schedule/{}/execute/" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">立即执行</a>',
+            '<a href="/admin/scheduler/schedule/{}/execute/" class="button" style="background-color: #417690; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px;">立即执行</a>',
             obj.id
         )
     execute_now_button.short_description = _('操作')

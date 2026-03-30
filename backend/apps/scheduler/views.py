@@ -177,6 +177,9 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             notification_config_ids = []
             if 'notification_config_ids' in data and data['notification_config_ids']:
                 notification_config_ids = data['notification_config_ids']
+                logger.info(f"从 validated_data 获取 notification_config_ids: {notification_config_ids}")
+            else:
+                logger.info(f"validated_data 中没有 notification_config_ids, data keys: {data.keys()}")
             
             schedule, config = create_scheduled_task(
                 name=data['name'],
@@ -195,7 +198,6 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 description=data.get('description', ''),
                 notify_on_success=data.get('notify_on_success', False),
                 notify_on_failure=data.get('notify_on_failure', True),
-                notification_config=None,
                 notify_emails=[],
                 webhook_url='',
                 notification_template=notification_template,
@@ -206,9 +208,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 try:
                     from core.models import UnifiedNotificationConfig
                     configs = UnifiedNotificationConfig.objects.filter(id__in=notification_config_ids)
+                    logger.info(f"找到 {configs.count()} 个通知配置")
                     config.notification_configs.set(configs)
+                    logger.info(f"已设置通知配置到任务 {config.id}")
                 except Exception as e:
                     logger.error(f"设置通知配置失败: {e}")
+            else:
+                logger.warning(f"notification_config_ids 为空，跳过设置通知配置")
             
             if 'notify_on_email' in data:
                 config.notify_on_email = data['notify_on_email']
@@ -299,6 +305,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
         try:
             args = eval(schedule.args) if schedule.args else []
             kwargs = eval(schedule.kwargs) if schedule.kwargs else {}
+            kwargs['is_manual_execution'] = True
+            kwargs['executed_by_id'] = request.user.id
             task_id = async_task(schedule.func, *args, **kwargs)
             
             return Response({

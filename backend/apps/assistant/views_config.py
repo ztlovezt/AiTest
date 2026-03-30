@@ -18,13 +18,20 @@ class DifyConfigViewSet(viewsets.ModelViewSet):
         active_config = DifyConfig.get_active_config()
         if active_config:
             serializer = self.get_serializer(active_config)
-            # 返回时隐藏完整的API key，只显示部分
             data = serializer.data
             if 'api_key' in data and data['api_key']:
                 data['api_key_masked'] = data['api_key'][:8] + '****'
                 del data['api_key']
+            data['configured'] = True
             return Response(data)
-        return Response({'message': '未找到激活的配置'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({
+            'configured': False,
+            'id': None,
+            'api_url': '',
+            'api_key_masked': '',
+            'is_active': False,
+            'message': '未找到激活的配置'
+        }, status=status.HTTP_200_OK)
     
     def create(self, request):
         """创建新配置"""

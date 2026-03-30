@@ -29,9 +29,10 @@ import UiExecutionList from '@/views/ui-automation/executions/ExecutionList.vue'
 import UiReportList from '@/views/ui-automation/reports/ReportList.vue'
 import UiScheduledTasks from '@/views/ui-automation/scheduled-tasks/ScheduledTasks.vue'
 import UiNotificationLogs from '@/views/ui-automation/notification/NotificationLogs.vue'
-import UiAITesting from '@/views/ui-automation/ai/AITesting.vue'
-import UiAICaseList from '@/views/ui-automation/ai/AICaseList.vue'
-import UiAIExecutionRecords from '@/views/ui-automation/ai/AIExecutionRecords.vue'
+import UiAITesting from '@/views/ai-testing/AITesting.vue'
+import UiAICaseList from '@/views/ai-testing/AICaseList.vue'
+import UiAIExecutionRecords from '@/views/ai-testing/AIExecutionRecords.vue'
+import UiAIProjectList from '@/views/ai-testing/AIProjectList.vue'
 
 /** @type {import('vue-router').RouteRecordRaw[]} */
 const routes = [
@@ -62,6 +63,27 @@ const routes = [
     name: 'Assistant',
     component: () => import('@/views/assistant/AssistantView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/reports',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: 'list'
+      },
+      {
+        path: 'list',
+        name: 'ReportList',
+        component: () => import('@/views/reports/ReportList.vue')
+      },
+      {
+        path: 'schedule/:id',
+        name: 'ScheduleReport',
+        component: () => import('@/views/reports/ReportList.vue')
+      }
+    ]
   },
   {
     path: '/ai-generation',
@@ -161,6 +183,16 @@ const routes = [
         path: 'generated-testcases',
         name: 'GeneratedTestCases',
         component: () => import('@/views/requirement-analysis/GeneratedTestCaseList.vue')
+      },
+      {
+        path: 'knowledge-base',
+        name: 'KnowledgeBase',
+        component: () => import('@/views/knowledge-base/KnowledgeBaseList.vue')
+      },
+      {
+        path: 'knowledge-base/:id',
+        name: 'KnowledgeBaseDetail',
+        component: () => import('@/views/knowledge-base/KnowledgeBaseDetail.vue')
       },
       {
         path: 'task-detail/:taskId',
@@ -318,17 +350,42 @@ const routes = [
       {
         path: 'testing',
         name: 'AITesting',
-        component: UiAITesting
+        component: UiAITesting,
+        meta: {
+          title: 'route.uiAITesting',
+          icon: 'MagicStick',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'projects',
+        name: 'AIProjectList',
+        component: UiAIProjectList,
+        meta: {
+          title: 'route.uiAIProjectList',
+          icon: 'Folder',
+          requiresAuth: true
+        }
       },
       {
         path: 'cases',
         name: 'AICaseList',
-        component: UiAICaseList
+        component: UiAICaseList,
+        meta: {
+          title: 'route.uiAICaseList',
+          icon: 'Files',
+          requiresAuth: true
+        }
       },
       {
         path: 'execution-records',
         name: 'AIExecutionRecords',
-        component: UiAIExecutionRecords
+        component: UiAIExecutionRecords,
+        meta: {
+          title: 'route.uiAIExecutionRecords',
+          icon: 'Document',
+          requiresAuth: true
+        }
       }
     ]
   },
@@ -349,7 +406,17 @@ const routes = [
         children: [
           {
             path: '',
-            redirect: 'ai-model'
+            redirect: 'project-center'
+          },
+          {
+            path: 'project-center',
+            name: 'ConfigProjectCenter',
+            component: () => import('@/views/unified-projects/Dashboard.vue')
+          },
+          {
+            path: 'meta-projects/:id',
+            name: 'ConfigMetaProjectDetail',
+            component: () => import('@/views/unified-projects/UnifiedProjectDetail.vue')
           },
           {
             path: 'ai-model',
@@ -365,6 +432,11 @@ const routes = [
             path: 'generation-config',
             name: 'ConfigGenerationConfig',
             component: () => import('@/views/requirement-analysis/GenerationConfigView.vue')
+          },
+          {
+            path: 'knowledge-base',
+            name: 'ConfigKnowledgeBase',
+            component: () => import('@/views/configuration/KnowledgeBaseConfig.vue')
           },
           {
             path: 'ui-env',
@@ -465,6 +537,31 @@ const routes = [
         path: 'reports',
         name: 'AppReportList',
         component: () => import('@/views/app-automation/reports/ReportList.vue')
+      }
+    ]
+  },
+  {
+    path: '/meta-projects',
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        redirect: 'dashboard'
+      },
+      {
+        path: 'dashboard',
+        name: 'UnifiedProjectDashboard',
+        component: () => import('@/views/unified-projects/Dashboard.vue')
+      },
+      {
+        path: 'list',
+        redirect: 'dashboard'
+      },
+      {
+        path: ':id',
+        name: 'UnifiedProjectDetail',
+        component: () => import('@/views/unified-projects/UnifiedProjectDetail.vue')
       }
     ]
   }
