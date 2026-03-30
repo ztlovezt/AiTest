@@ -1929,18 +1929,12 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 if origin in allowed_origins:
                     return origin
 
-                # 兼容未配置时的本地开发默认 - 使用配置文件中的前端地址
-                local_defaults = getattr(settings, 'FRONTEND_LOCAL_URLS',
-                                         ['http://localhost:3000', 'http://127.0.0.1:3000'])
-                if origin in local_defaults:
-                    return origin
-
                 # 如果未匹配，优先返回第一个允许的 origin（避免返回错误的 localhost）
                 if allowed_origins:
                     return allowed_origins[0]
 
                 # 最后兜底：返回请求 origin（若存在）- 使用配置文件中的默认前端地址
-                default_url = getattr(settings, 'FRONTEND_DEFAULT_URL', 'http://localhost:3000')
+                default_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
                 return origin or default_url
             except Exception as e:
                 logger.error(f"获取CORS Origin失败: {e}")

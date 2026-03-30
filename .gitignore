@@ -45,26 +45,40 @@ expand/document/requirement_docs/*
 !expand/document/requirement_docs/.gitkeep
 
 # 忽略接口测试运行时产生的 Allure 报告文件，但保留.gitkeep文件
-expand/media/api-testing/allure-results/*
-!expand/media/api-testing/allure-results/.gitkeep
-expand/media/api-testing/allure-reports/*
-!expand/media/api-testing/allure-reports/.gitkeep
-expand/media/api-testing/allure-static/*
-!expand/media/api-testing/allure-static/.gitkeep
+expand/media/api_testing/allure-results/*
+!expand/media/api_testing/allure-results/.gitkeep
+expand/media/api_testing/allure-reports/*
+!expand/media/api_testing/allure-reports/.gitkeep
+expand/media/api_testing/allure-static/*
+!expand/media/api_testing/allure-static/.gitkeep
 
 # 忽略 APP 自动化运行时产生的文件，但保留.gitkeep文件
-expand/media/app-automation/allure-results/*
-!expand/media/app-automation/allure-results/.gitkeep
-expand/media/app-automation/allure-reports/*
-!expand/media/app-automation/allure-reports/.gitkeep
-expand/media/app-automation/screenshots/*
-!expand/media/app-automation/screenshots/.gitkeep
-expand/media/knowledge_base/screenshots/*
-!expand/media/knowledge_base/screenshots/.gitkeep
-
+expand/media/app_automation/allure-results/*
+!expand/media/app_automation/allure-results/.gitkeep
+expand/media/app_automation/allure-reports/*
+!expand/media/app_automation/allure-reports/.gitkeep
+expand/media/app_automation/screenshots/*
+!expand/media/app_automation/screenshots/.gitkeep
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**
 !apps/app_automation/Template/
+
+# 忽略UI自动化运行时产生的截图文件，但保留.gitkeep文件
+!expand/media/ui_automation/screenshots/.gitkeep
+expand/media/ui_automation/screenshots/*
+
+# 忽略知识库上传文件，但保留.gitkeep文件
+expand/media/knowledge_base/*
+!expand/media/knowledge_base/.gitkeep
+
+# 忽略知识库生成的数据库文件
+backend/expand/chroma_db/*
+expand/chroma_db/*
+!expand/chroma_db/.gitkeep
+
+# 忽略导入的测试用例文件，但保留.gitkeep文件
+expand/media/testcase_imports/*
+!expand/media/testcase_imports/.gitkeep
 
 # 忽略前端文件
 frontend/node_modules/
@@ -79,8 +93,3 @@ docker-compose*.yml
 nginx.conf
 Makefile
 build-multiplatform.sh
-
-# 忽略知识库的数据库文件
-backend/expand/chroma_db/*
-expand/chroma_db/*
-!expand/chroma_db/.gitkeep
