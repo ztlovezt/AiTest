@@ -33,13 +33,12 @@ def process_test_case_import(record_id):
         
         expected_headers = {
             '用例标题': 'title',
-            '用例描述': 'description',
             '前置条件': 'preconditions',
             '操作步骤': 'steps',
             '预期结果': 'expected_result',
             '优先级': 'priority',
-            '状态': 'status',
-            '测试类型': 'test_type'
+            '测试类型': 'test_type',
+            '关联版本': 'related_versions'
         }
         
         col_map = {}
@@ -60,7 +59,6 @@ def process_test_case_import(record_id):
         error_summary = []
 
         priority_map = {'低': 'low', '中': 'medium', '高': 'high', '紧急': 'critical'}
-        status_map = {'草稿': 'draft', '激活': 'active', '废弃': 'deprecated'}
         type_map = {
             '功能测试': 'functional', '集成测试': 'integration', 'API测试': 'api',
             'UI测试': 'ui', '性能测试': 'performance', '安全测试': 'security'
@@ -90,33 +88,59 @@ def process_test_case_import(record_id):
                 continue
 
             priority_text = get_val('priority', '中')
-            status_text = get_val('status', '草稿')
             type_text = get_val('test_type', '功能测试')
 
             priority = priority_map.get(priority_text, 'medium')
-            status = status_map.get(status_text, 'draft')
+            # 状态字段已被移除，默认设置为 'draft' (草稿)
+            status = 'draft'
             test_type = type_map.get(type_text, 'functional')
+            
+            # 处理关联版本字段 (逗号分隔的字符串转为列表)
+            # 由于 versions 是 ManyToManyField，需要在 TestCase 创建后通过 set() 方法关联
+            related_versions_text = get_val('related_versions')
+            version_names = [v.strip() for v in related_versions_text.split(',')] if related_versions_text else []
 
             # Check duplicate (Optional: skip if exists in same project)
             if TestCase.objects.filter(project_id=record.project_id, title=title).exists():
                 duplicate_count += 1
-                failed_count += 1
-                error_summary.append({'row': row_idx, 'error': f'项目中已存在同名用例: {title}'})
+                error_summary.append({'row': row_idx, 'error': '用例标题在当前项目中已存在'})
                 continue
 
             try:
-                TestCase.objects.create(
+                from apps.versions.models import Version
+                test_case = TestCase.objects.create(
                     project_id=record.project_id,
                     title=title,
-                    description=get_val('description'),
                     preconditions=get_val('preconditions'),
                     steps=get_val('steps'),
-                    expected_result=expected_result,
+                    expected_result=get_val('expected_result'),
                     priority=priority,
                     status=status,
                     test_type=test_type,
                     author=record.created_by
                 )
+                
+                # 关联版本
+                if version_names:
+                    versions_to_add = []
+                    for v_name in version_names:
+                        if not v_name:
+                            continue
+                        # 查找当前项目下的同名版本，如果不存在则自动创建
+                        version, created = Version.objects.get_or_create(
+                            name=v_name,
+                            defaults={
+                                'description': f'导入测试用例自动创建的版本',
+                                'created_by': record.created_by
+                            }
+                        )
+                        # 将版本与当前项目关联
+                        version.projects.add(record.project_id)
+                        versions_to_add.append(version)
+                        
+                    if versions_to_add:
+                        test_case.versions.set(versions_to_add)
+                
                 success_count += 1
             except Exception as e:
                 failed_count += 1
