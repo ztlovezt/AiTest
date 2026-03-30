@@ -5,6 +5,7 @@ from asgiref.sync import sync_to_async
 from django.db import connection, DatabaseError
 from django.utils import timezone
 from django.db import models
+from django.http import HttpResponse
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -305,6 +306,10 @@ class AICaseViewSet(viewsets.ModelViewSet):
             'message': 'AI 用例开始执行',
             'execution_id': execution_record.id
         })
+
+    @action(detail=True, methods=['post'], url_path='execute')
+    def execute(self, request, pk=None):
+        return self.run(request, pk=pk)
 
     def _process_gif_recording(self, execution_record, history):
         """
@@ -1036,6 +1041,249 @@ class AIExecutionRecordViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    def _get_task_statistics(self, execution_record):
+        tasks = execution_record.planned_tasks or []
+        stats = {
+            'total': len(tasks),
+            'completed': 0,
+            'pending': 0,
+            'failed': 0,
+            'skipped': 0
+        }
+
+        for task in tasks:
+            task_status = str(task.get('status', 'pending')).strip().lower()
+            if task_status in ('completed', 'passed', 'success'):
+                stats['completed'] += 1
+            elif task_status in ('failed', 'error'):
+                stats['failed'] += 1
+            elif task_status in ('skipped', 'stopped'):
+                stats['skipped'] += 1
+            else:
+                stats['pending'] += 1
+
+        return stats
+
+    def _format_duration(self, duration):
+        duration = float(duration or 0)
+        minutes = int(duration // 60)
+        seconds = int(duration % 60)
+        if minutes > 0:
+            return f'{minutes}分{seconds}秒'
+        return f'{seconds}秒'
+
+    def _status_display(self, status_value):
+        status_map = {
+            'passed': '成功',
+            'failed': '失败',
+            'running': '执行中',
+            'pending': '等待中',
+            'stopped': '已停止'
+        }
+        return status_map.get(str(status_value or '').strip().lower(), str(status_value or '-'))
+
+    def _status_color(self, status_value):
+        color_map = {
+            'passed': 'success',
+            'failed': 'danger',
+            'running': 'warning',
+            'pending': 'info',
+            'stopped': 'info'
+        }
+        return color_map.get(str(status_value or '').strip().lower(), 'info')
+
+    def _extract_step_action_text(self, step):
+        action = step.get('action') if isinstance(step, dict) else None
+        if isinstance(action, str):
+            return action
+        if isinstance(action, dict):
+            action_name = next(iter(action.keys()), None)
+            action_params = action.get(action_name, {})
+            if isinstance(action_params, dict) and action_params:
+                summary = ', '.join(f'{k}={v}' for k, v in list(action_params.items())[:2])
+                return f'{action_name}: {summary}' if summary else str(action_name or '-')
+            return str(action_name or '-')
+        if isinstance(action, list) and action:
+            first_action = action[0]
+            if isinstance(first_action, dict):
+                action_name = next(iter(first_action.keys()), None)
+                return str(action_name or '-')
+            return str(first_action)
+        return str(action or '-')
+
+    def _extract_step_action_name(self, step):
+        action = step.get('action') if isinstance(step, dict) else None
+        if isinstance(action, dict):
+            return str(next(iter(action.keys()), 'other'))
+        if isinstance(action, list) and action and isinstance(action[0], dict):
+            return str(next(iter(action[0].keys()), 'other'))
+        if isinstance(action, str):
+            lowered = action.lower()
+            for keyword in ['click', 'input', 'navigate', 'scroll', 'wait', 'done', 'open_tab', 'search_google']:
+                if keyword in lowered:
+                    return keyword
+        return 'other'
+
+    def _extract_step_duration(self, step):
+        if not isinstance(step, dict):
+            return None
+        for key in ['duration', 'duration_seconds', 'elapsed', 'execution_time']:
+            value = step.get(key)
+            if value is None:
+                continue
+            try:
+                return round(float(value), 2)
+            except (TypeError, ValueError):
+                continue
+        return None
+
+    def _extract_errors(self, execution_record):
+        errors = []
+        for line in str(execution_record.logs or '').splitlines():
+            normalized = line.strip()
+            if not normalized:
+                continue
+            lowered = normalized.lower()
+            if any(token in lowered for token in ['执行出错', '异常', 'error', 'failed', 'warning', 'not found']):
+                error_type = 'warning' if 'warning' in lowered else 'error'
+                errors.append({'type': error_type, 'message': normalized})
+        return errors[-20:]
+
+    def _build_execution_report(self, execution_record, report_type='summary'):
+        stats = self._get_task_statistics(execution_record)
+        total_steps = len(execution_record.steps_completed or [])
+        completion_rate = round((stats['completed'] / stats['total']) * 100, 2) if stats['total'] else (100 if execution_record.status == 'passed' else 0)
+
+        overview = {
+            'status': self._status_display(execution_record.status),
+            'status_color': self._status_color(execution_record.status),
+            'duration_formatted': self._format_duration(execution_record.duration),
+            'completion_rate': completion_rate,
+            'total_steps': total_steps
+        }
+
+        timeline = []
+        for task in execution_record.planned_tasks or []:
+            task_status = str(task.get('status', 'pending')).strip().lower()
+            timeline.append({
+                'id': task.get('id'),
+                'description': task.get('description', ''),
+                'status': task_status,
+                'status_display': self._status_display(task_status)
+            })
+
+        detailed_steps = []
+        step_durations = []
+        for index, step in enumerate(execution_record.steps_completed or [], start=1):
+            action_text = self._extract_step_action_text(step if isinstance(step, dict) else {})
+            step_status = str((step or {}).get('status', 'completed')) if isinstance(step, dict) else 'completed'
+            duration = self._extract_step_duration(step)
+            if duration is not None:
+                step_durations.append(duration)
+            detailed_steps.append({
+                'step_number': index,
+                'status': step_status,
+                'action': action_text,
+                'element': (step or {}).get('element') if isinstance(step, dict) else None,
+                'thinking': (step or {}).get('thinking') if isinstance(step, dict) else None,
+                'duration': duration
+            })
+
+        action_distribution = {}
+        for step in execution_record.steps_completed or []:
+            action_name = self._extract_step_action_name(step if isinstance(step, dict) else {})
+            action_distribution[action_name] = action_distribution.get(action_name, 0) + 1
+
+        metrics = None
+        bottlenecks = []
+        recommendations = []
+        if step_durations:
+            avg_duration = round(sum(step_durations) / len(step_durations), 2)
+            max_duration = round(max(step_durations), 2)
+            min_duration = round(min(step_durations), 2)
+            metrics = {
+                'avg_step_duration': avg_duration,
+                'max_step_duration': max_duration,
+                'min_step_duration': min_duration
+            }
+            for step in detailed_steps:
+                if step.get('duration') is not None and avg_duration > 0 and step['duration'] > avg_duration * 1.5:
+                    bottlenecks.append({
+                        'step_number': step['step_number'],
+                        'action': step['action'],
+                        'duration': step['duration'],
+                        'slower_than_avg_by': round(((step['duration'] - avg_duration) / avg_duration) * 100, 2)
+                    })
+            bottlenecks = bottlenecks[:10]
+            if bottlenecks:
+                recommendations.append(f'发现 {len(bottlenecks)} 个相对耗时较高的步骤，建议优先检查对应页面响应与元素定位稳定性')
+            if avg_duration >= 5:
+                recommendations.append('平均步骤耗时偏高，建议检查网络速度、页面加载性能或等待策略')
+
+        if stats['failed'] > 0:
+            recommendations.append('存在失败任务，建议优先查看详细步骤中的失败动作与执行日志')
+        if not recommendations:
+            recommendations.append('执行过程整体稳定，建议继续关注关键步骤的成功率与耗时变化')
+
+        report = {
+            'overview': overview,
+            'statistics': stats,
+            'timeline': timeline,
+            'detailed_steps': detailed_steps,
+            'errors': self._extract_errors(execution_record),
+            'metrics': metrics,
+            'action_distribution': action_distribution,
+            'bottlenecks': bottlenecks,
+            'recommendations': recommendations,
+            'gif_path': execution_record.gif_path
+        }
+
+        if report_type == 'summary':
+            return report
+        if report_type == 'detailed':
+            return report
+        if report_type == 'performance':
+            return report
+        return report
+
+    @action(detail=True, methods=['get'], url_path='report')
+    def report(self, request, pk=None):
+        execution_record = self.get_object()
+        report_type = request.query_params.get('report_type', 'summary')
+        report_data = self._build_execution_report(execution_record, report_type)
+        return Response({
+            'success': True,
+            'data': report_data
+        })
+
+    @action(detail=True, methods=['get'], url_path='export_pdf')
+    def export_pdf(self, request, pk=None):
+        execution_record = self.get_object()
+        report_type = request.query_params.get('report_type', 'summary')
+        report_data = self._build_execution_report(execution_record, report_type)
+        report_data['execution_details'] = {
+            'case_name': execution_record.case_name,
+            'execution_mode': execution_record.execution_mode,
+            'task_description': execution_record.task_description,
+            'start_time': execution_record.start_time.isoformat() if execution_record.start_time else None,
+            'end_time': execution_record.end_time.isoformat() if execution_record.end_time else None,
+        }
+
+        try:
+            from apps.ui_automation.pdf_generator import AIReportPDFGenerator
+
+            generator = AIReportPDFGenerator(report_data, report_type=report_type, report_category='ai_testing')
+            pdf_buffer = generator.generate()
+            pdf_bytes = pdf_buffer.getvalue()
+        except Exception as e:
+            logger.error(f'导出 AI 测试 PDF 失败: {e}', exc_info=True)
+            return Response({'success': False, 'error': f'导出PDF失败: {e}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        filename = f'ai_execution_report_{execution_record.id}.pdf'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
     def _process_gif_recording(self, execution_record, history):
         """
         处理GIF录制文件
@@ -1079,3 +1327,6 @@ class AIExecutionRecordViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.error(f"❌ Error moving GIF file: {e}")
             logger.warning(f"⚠️ Failed to process GIF recording: {e}")
+
+    def _auto_mark_completed_tasks(self, execution_record):
+        return AICaseViewSet._auto_mark_completed_tasks(self, execution_record)
