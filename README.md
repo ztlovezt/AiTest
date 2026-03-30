@@ -588,7 +588,7 @@ frontend_port: 3001
 **重要配置项**：
 
 - `frontend_port`: 前端服务端口（默认 3000）
-- `default_url`: 前端默认地址（默认 http://localhost:3000）
+- `frontend_url`: 前端服务地址（默认 http://localhost:3000）
 
 3. **启动开发服务器**
 
