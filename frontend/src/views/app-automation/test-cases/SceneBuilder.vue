@@ -2963,7 +2963,7 @@ defineExpose({
     border-radius: 4px;
     margin-bottom: 8px;
     cursor: grab;
-    background: #fafafa;
+    background: var(--th-color-surface-muted);
 }
 
 .palette-left {
@@ -3095,12 +3095,12 @@ defineExpose({
     border: 1px solid #ebeef5;
     border-radius: 6px;
     cursor: pointer;
-    background: #fff;
+    background: var(--th-color-surface);
 }
 
 .scene-item.active {
-    border-color: #409eff;
-    background: #ecf5ff;
+    border-color: var(--th-color-primary);
+    background: var(--th-color-info-soft);
 }
 
 .scene-item-main {
@@ -3110,8 +3110,8 @@ defineExpose({
 }
 
 .scene-index {
-    background: #409eff;
-    color: #fff;
+    background: var(--th-color-primary);
+    color: var(--th-color-surface);
     font-size: 12px;
     padding: 2px 6px;
     border-radius: 10px;
@@ -3145,7 +3145,7 @@ defineExpose({
     border: 1px solid #e6a23c;
     border-top: none;
     border-radius: 0 0 6px 6px;
-    background: #fdf6ec;
+    background: var(--th-color-warning-soft);
     padding: 6px 6px 4px 6px;
 }
 
@@ -3154,7 +3154,7 @@ defineExpose({
     padding: 7px 10px !important;
     margin-left: 16px !important;
     border-color: #dcdfe6 !important;
-    background: #fff !important;
+    background: var(--th-color-surface) !important;
     font-size: 13px;
 }
 
@@ -3241,7 +3241,7 @@ defineExpose({
 
 .element-selector-filter {
     padding: 10px;
-    background-color: #f5f7fa;
+    background-color: var(--th-color-surface-muted);
     border-radius: 4px;
 }
 
@@ -3260,7 +3260,7 @@ defineExpose({
 .field-group {
     margin-bottom: 20px;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     border-radius: 4px;
     border: 1px solid #e4e7ed;
 }

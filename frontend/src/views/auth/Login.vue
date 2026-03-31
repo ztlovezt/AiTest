@@ -219,7 +219,7 @@ const features = computed(() => [
     icon: Connection,
     title: t('auth.multiTypeTesting'),
     description: t('auth.multiTypeTestingDesc'),
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    color: 'linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%)'
   },
   {
     icon: TrendCharts,
@@ -267,7 +267,7 @@ const handleLogin = async () => {
 .login-container {
   height: 100vh;
   display: flex;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   overflow: hidden;
 }
 

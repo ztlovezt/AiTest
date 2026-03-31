@@ -1353,13 +1353,13 @@ onActivated(async () => {
 }
 
 .test-case-item:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
 .test-case-item.active {
-  border-color: #409eff;
-  background-color: #f0f8ff;
+  border-color: var(--th-color-primary);
+  background-color: var(--th-color-info-soft);
 }
 
 .case-header {
@@ -1400,7 +1400,7 @@ onActivated(async () => {
 }
 
 .step-count {
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 500;
 }
 
@@ -1446,7 +1446,7 @@ onActivated(async () => {
   margin-bottom: 20px;
   border: 1px solid #e6e6e6;
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   overflow: hidden;
 }
 
@@ -1483,7 +1483,7 @@ onActivated(async () => {
 }
 
 .steps-scroll-container::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 3px;
 }
 
@@ -1505,7 +1505,7 @@ onActivated(async () => {
 }
 
 .step-item:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .step-header {
@@ -1513,7 +1513,7 @@ onActivated(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px 6px 0 0;
 }
 
@@ -1529,7 +1529,7 @@ onActivated(async () => {
 }
 
 .step-number {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
   width: 24px;
   height: 24px;
@@ -1582,7 +1582,7 @@ onActivated(async () => {
 .execution-result .result-header {
   padding: 15px;
   border-bottom: 1px solid #e6e6e6;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px 6px 0 0;
 }
 
@@ -1626,7 +1626,7 @@ onActivated(async () => {
 .logs-container {
   max-height: 500px;
   overflow-y: auto;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   padding: 15px;
   border-radius: 4px;
 }
@@ -1636,7 +1636,7 @@ onActivated(async () => {
   padding: 12px;
   background: white;
   border-radius: 4px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--th-color-primary);
 }
 
 .log-item:last-child {
@@ -1665,7 +1665,7 @@ onActivated(async () => {
   align-items: flex-start;  /* 改为 flex-start，适配多行文本 */
   gap: 8px;
   color: #f56c6c;
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   padding: 8px 12px;
   border-radius: 4px;
   margin-top: 8px;
@@ -1710,7 +1710,7 @@ onActivated(async () => {
   position: relative;
   width: 100%;
   min-height: 200px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   border: 2px solid #e6e6e6;
   overflow: hidden;
@@ -1718,7 +1718,7 @@ onActivated(async () => {
 }
 
 .screenshot-item:hover .screenshot-wrapper {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .screenshot-wrapper img {
@@ -1809,7 +1809,7 @@ onActivated(async () => {
 .preview-info {
   margin-bottom: 20px;
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px;
 }
 
@@ -1829,7 +1829,7 @@ onActivated(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   padding: 20px;
   max-height: 70vh;
@@ -1850,7 +1850,7 @@ onActivated(async () => {
 }
 
 .error-item {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 2px solid #f56c6c;
   border-radius: 8px;
   padding: 20px;
@@ -1867,7 +1867,7 @@ onActivated(async () => {
   justify-content: space-between;
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .error-header .el-tag {
@@ -1881,7 +1881,7 @@ onActivated(async () => {
 }
 
 .error-step {
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   color: #f56c6c;
   padding: 5px 12px;
   border-radius: 4px;
@@ -1890,7 +1890,7 @@ onActivated(async () => {
 }
 
 .error-meta {
-  background: #f9f9f9;
+  background: var(--th-color-surface-muted);
   padding: 15px;
   border-radius: 6px;
   margin-bottom: 15px;
@@ -1926,7 +1926,7 @@ onActivated(async () => {
 
 .details-header {
   background: #1e1e1e;
-  color: #fff;
+  color: var(--th-color-surface);
   padding: 10px 15px;
   font-weight: 600;
   font-size: 14px;
@@ -1971,24 +1971,24 @@ onActivated(async () => {
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
   color: white;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34;
-  border-color: #5daf34;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
 }
 </style>

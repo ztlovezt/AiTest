@@ -411,7 +411,7 @@ onMounted(async () => {
   flex: 1;
   padding: 20px;
   overflow: auto;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
 }
 
 .pagination {
@@ -458,7 +458,7 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 15px;
-  background-color: #fafafa;
+  background-color: var(--th-color-surface-muted);
   border-bottom: 1px solid #e6e6e6;
 }
 

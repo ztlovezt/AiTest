@@ -3,7 +3,10 @@ export default {
     home: 'Home',
     logout: 'Logout',
     profile: 'Profile',
-    language: 'Language'
+    language: 'Language',
+    themeSwitch: 'Theme',
+    themeLight: 'Hoppscotch Light',
+    themeDark: 'Hoppscotch Dark'
   },
   modules: {
     aiGeneration: 'AI Test Case Generation',

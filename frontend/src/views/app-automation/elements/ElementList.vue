@@ -222,7 +222,7 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item :label="t('appAutomation.element.config')" :span="2">
-          <pre style="margin: 0; padding: 10px; background: #f5f7fa; border-radius: 4px;">{{ JSON.stringify(viewingElement.config, null, 2) }}</pre>
+          <pre style="margin: 0; padding: 10px; background: var(--th-color-surface-muted); border-radius: 4px;">{{ JSON.stringify(viewingElement.config, null, 2) }}</pre>
         </el-descriptions-item>
         <el-descriptions-item :label="t('appAutomation.element.usageCount')">{{ viewingElement.usage_count || 0 }}</el-descriptions-item>
         <el-descriptions-item :label="t('appAutomation.element.createTime')">{{ formatDateTime(viewingElement.created_at) }}</el-descriptions-item>
@@ -494,7 +494,7 @@ onMounted(() => {
       overflow: hidden;
       
       &:hover {
-        border-color: #409eff;
+        border-color: var(--th-color-primary);
       }
     }
   }
@@ -508,7 +508,7 @@ onMounted(() => {
   .batch-actions {
     margin-top: 15px;
     padding: 10px;
-    background: #ecf5ff;
+    background: var(--th-color-info-soft);
     border: 1px solid #b3d8ff;
     border-radius: 4px;
     display: flex;
@@ -516,7 +516,7 @@ onMounted(() => {
     justify-content: space-between;
     
     span {
-      color: #409eff;
+      color: var(--th-color-primary);
       font-weight: 500;
     }
   }

@@ -1489,7 +1489,7 @@ const updatePage = async () => {
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .sidebar-header {
@@ -1530,8 +1530,8 @@ const updatePage = async () => {
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 4px;
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 .copy-icon {
@@ -1544,7 +1544,7 @@ const updatePage = async () => {
 }
 
 .copy-icon:hover {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .delete-icon {
@@ -1616,7 +1616,7 @@ const updatePage = async () => {
 }
 
 .context-menu li:hover {
-  background-color: #f5f7fa;
-  color: #409eff;
+  background-color: var(--th-color-surface-muted);
+  color: var(--th-color-primary);
 }
 </style>

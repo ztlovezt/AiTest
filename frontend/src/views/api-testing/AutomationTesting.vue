@@ -167,7 +167,7 @@
               <el-table-column prop="total_requests" :label="$t('apiTesting.automation.totalRequests')" width="100" />
               <el-table-column prop="passed_requests" :label="$t('apiTesting.automation.passedCount')" width="100">
                 <template #default="scope">
-                  <span style="color: #67c23a">{{ scope.row.passed_requests }}</span>
+                  <span style="color: var(--th-color-success)">{{ scope.row.passed_requests }}</span>
                 </template>
               </el-table-column>
               <el-table-column prop="failed_requests" :label="$t('apiTesting.automation.failedCount')" width="100">
@@ -935,7 +935,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 15px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-bottom: 1px solid #e4e7ed;
   font-weight: 500;
 }
@@ -945,18 +945,18 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--th-color-surface-muted);
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
 .suite-item:hover {
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .suite-item.active {
   background: #e1f3d8;
-  border-color: #67c23a;
+  border-color: var(--th-color-success);
 }
 
 .suite-info {
@@ -1072,8 +1072,8 @@ onMounted(() => {
   margin-left: auto;
 }
 
-.method-tag.get { background: #67c23a; }
-.method-tag.post { background: #409eff; }
+.method-tag.get { background: var(--th-color-success); }
+.method-tag.post { background: var(--th-color-primary); }
 .method-tag.put { background: #e6a23c; }
 .method-tag.delete { background: #f56c6c; }
 .method-tag.patch { background: #909399; }

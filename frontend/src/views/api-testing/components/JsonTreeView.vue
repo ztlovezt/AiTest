@@ -285,7 +285,7 @@ const TreeNode = defineComponent({
   max-height: 500px;
   overflow: auto;
   padding: 8px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-radius: 4px;
   border: 1px solid #ebeef5;
 }
@@ -316,7 +316,7 @@ const TreeNode = defineComponent({
 }
 
 .tree-toggle:hover {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .tree-toggle-placeholder {
@@ -369,7 +369,7 @@ const TreeNode = defineComponent({
 }
 
 .highlight {
-  background: #fff3cd;
+  background: var(--th-color-surface)3cd;
   border-radius: 2px;
   padding: 0 2px;
 }

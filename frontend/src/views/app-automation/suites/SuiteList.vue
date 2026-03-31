@@ -702,7 +702,7 @@ onMounted(() => {
 }
 
 .pass-fail {
-  .pass { color: #67c23a; font-weight: 600; }
+  .pass { color: var(--th-color-success); font-weight: 600; }
   .fail { color: #f56c6c; font-weight: 600; }
 }
 
@@ -727,7 +727,7 @@ onMounted(() => {
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     border-bottom: 1px solid #e4e7ed;
     font-weight: 600;
     font-size: 14px;
@@ -752,17 +752,17 @@ onMounted(() => {
   font-size: 13px;
 
   &:hover {
-    background: #ecf5ff;
+    background: var(--th-color-info-soft);
   }
 
   &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
   }
 
   &.selected {
-    background: #f0f9eb;
+    background: var(--th-color-success-soft);
     cursor: grab;
 
     &:hover {
@@ -793,12 +793,12 @@ onMounted(() => {
   }
 
   .add-icon {
-    color: #409eff;
+    color: var(--th-color-primary);
     flex-shrink: 0;
   }
 
   .added-icon {
-    color: #67c23a;
+    color: var(--th-color-success);
     flex-shrink: 0;
   }
 
@@ -823,7 +823,7 @@ onMounted(() => {
 // 表格样式
 :deep(.el-table) {
   .el-table__header th {
-    background-color: #fafafa;
+    background-color: var(--th-color-surface-muted);
     color: #606266;
     font-weight: 600;
   }

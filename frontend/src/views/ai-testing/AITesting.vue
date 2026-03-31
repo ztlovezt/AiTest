@@ -102,8 +102,8 @@
                 :class="task.status"
               >
                 <div class="task-status-icon">
-                  <el-icon v-if="task.status === 'completed'" color="#67C23A"><CircleCheckFilled /></el-icon>
-                  <el-icon v-else-if="task.status === 'in_progress'" class="is-loading" color="#409EFF"><Loading /></el-icon>
+                  <el-icon v-if="task.status === 'completed'" color="var(--th-color-success)"><CircleCheckFilled /></el-icon>
+                  <el-icon v-else-if="task.status === 'in_progress'" class="is-loading" color="var(--th-color-primary)"><Loading /></el-icon>
                   <el-icon v-else color="#909399"><CircleCheck /></el-icon>
                 </div>
                 <div class="task-content">
@@ -354,7 +354,7 @@ onMounted(() => {
 }
 
 .card-container {
-  background-color: #fff;
+  background-color: var(--th-color-surface);
   border-radius: 4px;
   padding: 20px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -366,11 +366,11 @@ onMounted(() => {
   font-weight: 600;
   margin-bottom: 15px;
   padding-left: 10px;
-  border-left: 4px solid #409eff;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .task-list-container {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
   border-radius: 4px;
   padding: 15px;
   margin-bottom: 20px;
@@ -389,17 +389,17 @@ onMounted(() => {
     }
     
     &.completed {
-      background-color: #f0f9eb;
+      background-color: var(--th-color-success-soft);
       .task-desc {
-        color: #67c23a;
+        color: var(--th-color-success);
         text-decoration: line-through;
       }
     }
     
     &.in_progress {
-      background-color: #ecf5ff;
+      background-color: var(--th-color-info-soft);
       .task-desc {
-        color: #409eff;
+        color: var(--th-color-primary);
         font-weight: bold;
       }
     }
@@ -438,7 +438,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #409eff;
+  color: var(--th-color-primary);
   
   .el-icon {
     font-size: 24px;
@@ -452,7 +452,7 @@ onMounted(() => {
   height: 300px;
   overflow-y: auto;
   padding: 15px;
-  color: #fff;
+  color: var(--th-color-surface);
   font-family: 'Consolas', 'Monaco', monospace;
   
   .empty-logs {

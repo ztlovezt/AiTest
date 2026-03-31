@@ -9,9 +9,9 @@
         <el-menu
           :default-active="$route.path"
           router
-          background-color="#001529"
-          text-color="#fff"
-          active-text-color="#1890ff"
+          background-color="var(--th-color-surface)"
+          text-color="var(--th-color-surface)"
+          active-text-color="var(--th-color-primary)"
         >
           <!-- AI用例生成模块菜单 -->
           <template v-if="currentModule === 'ai-generation'">
@@ -302,6 +302,28 @@
                 </template>
               </el-dropdown>
 
+              <!-- 主题切换 -->
+              <el-dropdown @command="handleThemeChange" class="theme-dropdown">
+                <span class="theme-selector">
+                  <el-icon class="theme-icon">
+                    <Sunny v-if="appStore.theme === 'hoppscotch-light'" />
+                    <Moon v-else />
+                  </el-icon>
+                  <span>{{ currentThemeLabel }}</span>
+                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                </span>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'">
+                      <el-icon><Sunny /></el-icon> {{ $t('nav.themeLight') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'">
+                      <el-icon><Moon /></el-icon> {{ $t('nav.themeDark') }}
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
+
               <!-- 用户信息 -->
               <el-dropdown @command="handleCommand" class="user-dropdown">
                 <span class="user-info">
@@ -522,6 +544,8 @@ const handleCommand = (command) => {
 	}
 
 .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
   background-color: #001529;
   height: 100%;
   display: flex;
@@ -571,8 +595,11 @@ const handleCommand = (command) => {
 }
 
 .el-header {
-  background-color: white;
-  border-bottom: 1px solid #e8e8e8;
+  background: var(--th-header-bg);
+  border-bottom: 1px solid var(--th-header-border);
+  box-shadow: var(--th-header-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 0;
   flex-shrink: 0;
   height: 60px !important;
@@ -609,7 +636,7 @@ const handleCommand = (command) => {
 
     .username {
       margin: 0 8px;
-      color: #303133;
+      color: var(--th-color-text);
       font-size: 14px;
     }
   }
@@ -626,7 +653,7 @@ const handleCommand = (command) => {
       display: flex;
       align-items: center;
       cursor: pointer;
-      color: #303133;
+      color: var(--th-color-text);
       font-size: 14px;
       outline: none;
 
@@ -645,7 +672,31 @@ const handleCommand = (command) => {
       }
 
       &:hover {
-        color: #1890ff;
+        color: var(--th-color-primary);
+      }
+    }
+  }
+
+  .theme-dropdown {
+    .theme-selector {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      color: var(--th-color-text);
+      font-size: 14px;
+      outline: none;
+
+      .theme-icon {
+        font-size: 16px;
+        margin-right: 6px;
+      }
+
+      span {
+        margin: 0 4px;
+      }
+
+      &:hover {
+        color: var(--th-color-primary);
       }
     }
   }
@@ -664,13 +715,43 @@ const handleCommand = (command) => {
 
       .username {
         margin: 0 8px;
-        color: #303133;
+        color: var(--th-color-text);
       }
     }
   }
 
+
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
 .el-main {
-  background-color: #f5f5f5;
+  background-color: var(--th-color-bg);
   padding: 20px;
   flex: 1;
   overflow-y: auto;
@@ -679,20 +760,84 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1920px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 220px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 18px;
   }
 }
 
 @media screen and (max-width: 1600px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 200px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 16px;
   }
 
@@ -706,10 +851,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1440px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 180px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 14px;
   }
 
@@ -723,10 +900,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1366px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 180px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 12px;
   }
 
@@ -744,10 +953,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1280px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 160px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 12px;
   }
 
@@ -770,10 +1011,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1024px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 140px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 10px;
   }
 
@@ -800,6 +1073,8 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 768px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     position: fixed;
     left: 0;
     top: 0;
@@ -813,7 +1088,37 @@ const handleCommand = (command) => {
     }
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 8px;
   }
 
@@ -836,10 +1141,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 480px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 220px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 6px;
   }
 

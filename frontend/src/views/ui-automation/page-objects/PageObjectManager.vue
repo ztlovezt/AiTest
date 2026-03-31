@@ -789,7 +789,7 @@ onMounted(async () => {
   align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid #e6e6e6;
-  background-color: #fafafa;
+  background-color: var(--th-color-surface-muted);
 }
 
 .page-object-list {
@@ -808,13 +808,13 @@ onMounted(async () => {
 }
 
 .page-object-item:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 
 .page-object-item.active {
-  border-color: #409eff;
-  background-color: #f0f8ff;
+  border-color: var(--th-color-primary);
+  background-color: var(--th-color-info-soft);
 }
 
 .item-header {
@@ -843,7 +843,7 @@ onMounted(async () => {
 
 .class-name {
   font-family: monospace;
-  background-color: #f5f5f5;
+  background-color: var(--th-color-surface-muted);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 12px;
@@ -867,7 +867,7 @@ onMounted(async () => {
   align-items: center;
   padding: 15px 20px;
   border-bottom: 1px solid #e6e6e6;
-  background-color: #fafafa;
+  background-color: var(--th-color-surface-muted);
 }
 
 .design-area {
@@ -903,8 +903,8 @@ onMounted(async () => {
 }
 
 .element-item:hover {
-  border-color: #409eff;
-  background-color: #f0f8ff;
+  border-color: var(--th-color-primary);
+  background-color: var(--th-color-info-soft);
 }
 
 .element-item:active {
@@ -961,7 +961,7 @@ onMounted(async () => {
 }
 
 .canvas-element:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
 }
 

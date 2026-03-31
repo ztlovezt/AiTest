@@ -563,7 +563,7 @@ onMounted(async () => {
 }
 
 .priority-tag {
-  &.low { color: #67c23a; }
+  &.low { color: var(--th-color-success); }
   &.medium { color: #e6a23c; }
   &.high { color: #f56c6c; }
   &.critical { color: #f56c6c; font-weight: bold; }

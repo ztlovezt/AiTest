@@ -665,7 +665,7 @@ onMounted(() => {
 }
 
 .provider-badge.anthropic {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #e65100;
 }
 
@@ -721,12 +721,12 @@ onMounted(() => {
 }
 
 .test-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
 }
 
 .test-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .test-btn:disabled {
@@ -740,7 +740,7 @@ onMounted(() => {
 }
 
 .edit-btn:hover {
-  background: #e67e22;
+  background: var(--th-color-warning);
 }
 
 .delete-btn {
@@ -793,7 +793,7 @@ onMounted(() => {
 }
 
 .add-first-config-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 15px 30px;
@@ -805,7 +805,7 @@ onMounted(() => {
 }
 
 .add-first-config-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .modal-header {
@@ -835,7 +835,7 @@ onMounted(() => {
 
 .close-btn:hover {
   color: #333 !important;
-  background: #f0f0f0 !important;
+  background: var(--th-color-surface-muted) !important;
   border-radius: 3px !important;
 }
 
@@ -865,7 +865,7 @@ onMounted(() => {
 
 .form-input:focus, .form-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -913,15 +913,15 @@ onMounted(() => {
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: var(--th-color-text-muted);
 }
 
 .test-btn-form {
-  background: #3498db;
+  background: var(--th-color-primary);
 }
 
 .test-btn-form:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .confirm-btn {

@@ -3,7 +3,10 @@ export default {
     home: '首页',
     logout: '退出登录',
     profile: '个人设置',
-    language: '语言切换'
+    language: '语言切换',
+    themeSwitch: '主题',
+    themeLight: 'Hoppscotch 浅色',
+    themeDark: 'Hoppscotch 深色'
   },
   modules: {
     aiGeneration: 'AI用例生成',

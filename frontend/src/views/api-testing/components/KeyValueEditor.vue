@@ -525,7 +525,7 @@ defineExpose({
 
 .header {
   display: flex;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-bottom: 1px solid #e4e7ed;
   padding: 8px;
   font-weight: 500;
@@ -540,7 +540,7 @@ defineExpose({
 
 .row {
   display: flex;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--th-color-surface-muted);
   padding: 8px;
   min-height: 40px;
   align-items: center;
@@ -583,25 +583,25 @@ defineExpose({
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
   color: white;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34;
-  border-color: #5daf34;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
 }
 
 .file-name {
@@ -612,7 +612,7 @@ defineExpose({
 
 .footer {
   padding: 8px;
-  border-top: 1px solid #f5f7fa;
+  border-top: 1px solid var(--th-color-surface-muted);
   background: #fafbfc;
 }
 
@@ -634,7 +634,7 @@ defineExpose({
 }
 
 :deep(.el-table th) {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
   font-weight: 600;
   color: #303133;
 }
@@ -652,10 +652,10 @@ defineExpose({
 }
 
 :deep(.el-table__row:hover) {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
 }
 
 :deep(.el-table__row.current-row) {
-  background-color: #ecf5ff;
+  background-color: var(--th-color-info-soft);
 }
 </style>

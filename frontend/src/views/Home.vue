@@ -362,7 +362,7 @@ const handleNavigate = (type) => {
     transform: translateY(-6px);
     box-shadow: var(--th-shadow-md);
     border-color: rgba(124, 58, 237, 0.4);
-    background: #fff;
+    background: var(--th-color-surface);
   }
 
   &:focus-visible {
@@ -436,7 +436,7 @@ const handleNavigate = (type) => {
   }
 
   &.assistant-icon {
-    --icon-bg: #fff7ed;
+    --icon-bg: var(--th-color-surface)7ed;
     --icon-color: #ea580c;
   }
 }

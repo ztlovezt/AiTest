@@ -315,7 +315,7 @@ onUnmounted(() => {
   font-size: 12px;
   
   .stat-item {
-    &.success { color: #67c23a; }
+    &.success { color: var(--th-color-success); }
     &.danger { color: #f56c6c; }
   }
 }
@@ -325,7 +325,7 @@ onUnmounted(() => {
   overflow-y: auto;
   
   pre {
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     padding: 15px;
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;

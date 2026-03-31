@@ -2068,7 +2068,7 @@ export default {
 }
 
 .output-mode-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -2118,7 +2118,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px;
@@ -2140,7 +2140,7 @@ export default {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(90deg, var(--th-color-info) 0%, #00f2fe 100%);
   border-radius: 24px 24px 0 0;
 }
 
@@ -2320,7 +2320,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
@@ -2592,7 +2592,7 @@ export default {
 .param-value{
   min-width: 40px;
   font-size: 14px;
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 500;
 }
 
@@ -2618,7 +2618,7 @@ export default {
 .search-type-btn {
   padding: 8px 16px;
   border: 1px solid #dcdfe6;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   color: #606266;
   cursor: pointer;
   border-radius: 4px;
@@ -2627,14 +2627,14 @@ export default {
 }
 
 .search-type-btn:hover {
-  border-color: #409eff;
-  color: #409eff;
+  border-color: var(--th-color-primary);
+  color: var(--th-color-primary);
 }
 
 .search-type-btn.active {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .search-type-btn.active:hover {
@@ -2867,7 +2867,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   color: #333;
   transition: all 0.2s;
 }
@@ -2878,12 +2878,12 @@ export default {
 
 .view-toggle-btn.active {
   background: #4CAF50;
-  color: #fff;
+  color: var(--th-color-surface);
   border-color: #4CAF50;
 }
 
 .markdown-preview {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 15px;
@@ -2953,13 +2953,13 @@ export default {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.6;
   resize: vertical;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   color: #333;
 }
 
 .edit-textarea:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -2971,7 +2971,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -2986,7 +2986,7 @@ export default {
   padding: 15px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  background: #fff;
+  background: var(--th-color-surface);
   cursor: text;
   transition: border-color 0.3s;
 }
@@ -2996,7 +2996,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3021,14 +3021,14 @@ export default {
 }
 
 .markdown-preview pre {
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   padding: 10px;
   border-radius: 4px;
   overflow-x: auto;
 }
 
 .markdown-preview code {
-  background: #f0f0f0;
+  background: var(--th-color-surface-muted);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
@@ -3140,7 +3140,7 @@ export default {
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -3215,7 +3215,7 @@ export default {
 }
 
 .upload-area.drag-over {
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   background: #f8f9fa;
 }
 
@@ -3236,7 +3236,7 @@ export default {
 }
 
 .select-file-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3308,7 +3308,7 @@ export default {
 
 .current-mode-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -3526,7 +3526,7 @@ export default {
 }
 
 .step.active .step-number {
-  background: #3498db;
+  background: var(--th-color-primary);
 }
 
 .step-text {
@@ -3635,7 +3635,7 @@ export default {
 }
 
 .new-generation-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3661,7 +3661,7 @@ export default {
   background: #f8f9fa;
   border-radius: 6px;
   padding: 20px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .testcase-content pre, .review-content pre {
@@ -3711,21 +3711,21 @@ export default {
 }
 
 .download-btn {
-  background-color: #1abc9c;
+  background-color: var(--th-color-success);
   color: white;
 }
 
 .download-btn:hover {
-  background-color: #16a085;
+  background-color: var(--th-color-success);
 }
 
 .save-btn {
-  background-color: #3498db;
+  background-color: var(--th-color-primary);
   color: white;
 }
 
 .save-btn:hover {
-  background-color: #2980b9;
+  background-color: var(--th-color-primary);
 }
 
 @media (max-width: 768px) {
@@ -3767,7 +3767,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px !important;
@@ -3813,7 +3813,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);

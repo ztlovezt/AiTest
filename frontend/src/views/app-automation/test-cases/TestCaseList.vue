@@ -814,13 +814,13 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 10px 16px;
   margin-top: 12px;
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
   border: 1px solid #b3d8ff;
   border-radius: 4px;
   font-size: 14px;
 
   strong {
-    color: #409eff;
+    color: var(--th-color-primary);
   }
 }
 
@@ -864,7 +864,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 12px;
   padding: 4px 8px;
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
   border-radius: 4px;
 
   .progress-text {
@@ -890,7 +890,7 @@ onBeforeUnmount(() => {
 
   :deep(.el-card__header) {
     padding: 16px 20px;
-    background-color: #fafafa;
+    background-color: var(--th-color-surface-muted);
     border-bottom: 1px solid #e8e8e8;
   }
 
@@ -903,7 +903,7 @@ onBeforeUnmount(() => {
 :deep(.el-table) {
   .el-table__header {
     th {
-      background-color: #fafafa;
+      background-color: var(--th-color-surface-muted);
       color: #606266;
       font-weight: 600;
     }
@@ -911,7 +911,7 @@ onBeforeUnmount(() => {
 
   .el-table__body {
     tr:hover {
-      background-color: #f5f7fa;
+      background-color: var(--th-color-surface-muted);
     }
   }
 }

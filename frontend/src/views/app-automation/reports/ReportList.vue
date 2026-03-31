@@ -70,7 +70,7 @@
           <el-table-column :label="t('appAutomation.report.caseStats')" min-width="180">
             <template #default="{ row }">
               <div class="step-stats">
-                <span style="color:#67c23a">{{ t('appAutomation.report.passed') }} {{ row.passed_count || 0 }}</span>
+                <span style="color:var(--th-color-success)">{{ t('appAutomation.report.passed') }} {{ row.passed_count || 0 }}</span>
                 <el-divider direction="vertical" />
                 <span style="color:#f56c6c">{{ t('appAutomation.report.failed') }} {{ row.failed_count || 0 }}</span>
                 <el-divider direction="vertical" />
@@ -175,7 +175,7 @@
           <el-table-column :label="t('appAutomation.report.stepStats')" min-width="180">
             <template #default="{ row }">
               <div class="step-stats">
-                <span style="color:#67c23a">{{ t('appAutomation.report.passed') }} {{ row.passed_steps || 0 }}</span>
+                <span style="color:var(--th-color-success)">{{ t('appAutomation.report.passed') }} {{ row.passed_steps || 0 }}</span>
                 <el-divider direction="vertical" />
                 <span style="color:#f56c6c">{{ t('appAutomation.report.failed') }} {{ row.failed_steps || 0 }}</span>
                 <el-divider direction="vertical" />
@@ -287,7 +287,7 @@
         <el-table-column label="步骤统计" width="200">
           <template #default="{ row }">
             <div class="step-stats">
-              <span style="color:#67c23a">通过 {{ row.passed_steps || 0 }}</span>
+              <span style="color:var(--th-color-success)">通过 {{ row.passed_steps || 0 }}</span>
               <el-divider direction="vertical" />
               <span style="color:#f56c6c">失败 {{ row.failed_steps || 0 }}</span>
               <el-divider direction="vertical" />
@@ -428,8 +428,8 @@ const suiteStatsCards = computed(() => {
     ? Math.round(executed.reduce((sum, s) => sum + getSuitePassRate(s), 0) / executed.length)
     : 0
   return [
-    { label: t('appAutomation.report.totalSuites'), value: suitePagination.total, color: '#409eff' },
-    { label: t('appAutomation.report.executed'), value: executed.length, color: '#67c23a' },
+    { label: t('appAutomation.report.totalSuites'), value: suitePagination.total, color: 'var(--th-color-primary)' },
+    { label: t('appAutomation.report.executed'), value: executed.length, color: 'var(--th-color-success)' },
     { label: t('appAutomation.report.recentFailed'), value: failed.length, color: '#f56c6c' },
     { label: t('appAutomation.report.avgPassRate'), value: avgRate + '%', color: '#e6a23c' },
   ]
@@ -532,8 +532,8 @@ const caseStatsCards = computed(() => {
     ? Math.round(data.reduce((sum, r) => sum + (r.pass_rate || 0), 0) / data.length)
     : 0
   return [
-    { label: t('appAutomation.report.totalReports'), value: casePagination.total, color: '#409eff' },
-    { label: t('appAutomation.report.pagePassed'), value: success, color: '#67c23a' },
+    { label: t('appAutomation.report.totalReports'), value: casePagination.total, color: 'var(--th-color-primary)' },
+    { label: t('appAutomation.report.pagePassed'), value: success, color: 'var(--th-color-success)' },
     { label: t('appAutomation.report.pageFailed'), value: failed, color: '#f56c6c' },
     { label: t('appAutomation.report.pageAvgPassRate'), value: avgRate + '%', color: '#e6a23c' },
   ]
@@ -585,7 +585,7 @@ async function deleteCaseReport(row) {
 // getDisplayStatus 已从 helpers 导入
 
 function getPassRateColor(rate) {
-  if (rate >= 80) return '#67c23a'
+  if (rate >= 80) return 'var(--th-color-success)'
   if (rate >= 50) return '#e6a23c'
   return '#f56c6c'
 }
@@ -614,7 +614,7 @@ function formatDuration(seconds) {
 .detail-stat { text-align: center; padding: 16px; border-radius: 8px; }
 .detail-stat-num { font-size: 24px; font-weight: bold; }
 .detail-stat-label { font-size: 13px; color: #606266; margin-top: 4px; }
-.success-bg { background: #f0f9eb; color: #67c23a; }
-.danger-bg { background: #fef0f0; color: #f56c6c; }
+.success-bg { background: var(--th-color-success-soft); color: var(--th-color-success); }
+.danger-bg { background: var(--th-color-danger-soft); color: #f56c6c; }
 .info-bg { background: #f4f4f5; color: #909399; }
 </style>

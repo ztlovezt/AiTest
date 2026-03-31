@@ -1464,17 +1464,17 @@ const getMethodClass = (method) => {
 
 const getMethodColor = (method) => {
   const colors = {
-    'get': '#61affe',
-    'post': '#49cc90',
-    'put': '#fca130',
-    'delete': '#f93e3e',
-    'patch': '#50e3c2',
-    'head': '#9013fe',
-    'options': '#0ebeff',
-    'connect': '#7f8c8d',
-    'trace': '#e67e22'
+    'get': 'var(--th-color-primary)',
+    'post': 'var(--th-color-success)',
+    'put': 'var(--th-color-warning)',
+    'delete': 'var(--th-color-danger)',
+    'patch': 'var(--th-color-info)',
+    'head': 'var(--th-color-primary-strong)',
+    'options': 'var(--th-color-primary)',
+    'connect': 'var(--th-color-text-muted)',
+    'trace': 'var(--th-color-warning)'
   }
-  return colors[(method || 'GET').toLowerCase()] || '#61affe'
+  return colors[(method || 'GET').toLowerCase()] || 'var(--th-color-primary)'
 }
 
 const requestMethod = computed({
@@ -2609,7 +2609,7 @@ const useLocalVariableCategories = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -2623,7 +2623,7 @@ const useLocalVariableCategories = () => {
 .sidebar {
   width: 300px;
   border-right: 1px solid #e4e7ed;
-  background: #ffffff;
+  background: var(--th-color-surface);
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -2691,7 +2691,7 @@ const useLocalVariableCategories = () => {
 }
 
 .tree-node:hover .node-label {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .node-edit {
@@ -2717,39 +2717,39 @@ const useLocalVariableCategories = () => {
 }
 
 .method-tag.get {
-  background-color: #61affe;
+  background-color: var(--th-color-primary);
 }
 
 .method-tag.post {
-  background-color: #49cc90;
+  background-color: var(--th-color-success);
 }
 
 .method-tag.put {
-  background-color: #fca130;
+  background-color: var(--th-color-warning);
 }
 
 .method-tag.delete {
-  background-color: #f93e3e;
+  background-color: var(--th-color-danger);
 }
 
 .method-tag.patch {
-  background-color: #50e3c2;
+  background-color: var(--th-color-info);
 }
 
 .method-tag.head {
-  background-color: #9013fe;
+  background-color: var(--th-color-primary-strong);
 }
 
 .method-tag.options {
-  background-color: #0ebeff;
+  background-color: var(--th-color-primary);
 }
 
 .method-tag.connect {
-  background-color: #7f8c8d;
+  background-color: var(--th-color-text-muted);
 }
 
 .method-tag.trace {
-  background-color: #e67e22;
+  background-color: var(--th-color-warning);
 }
 
 /* 搜索结果 */
@@ -2794,7 +2794,7 @@ const useLocalVariableCategories = () => {
 }
 
 .search-result-item:hover {
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
 }
 
 .search-result-content {
@@ -2833,7 +2833,7 @@ const useLocalVariableCategories = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
 }
 
 .request-detail {
@@ -2848,7 +2848,7 @@ const useLocalVariableCategories = () => {
 .request-header {
   margin-bottom: 0;
   padding: 24px;
-  background: #ffffff;
+  background: var(--th-color-surface);
   border-radius: 12px;
   border: 1px solid #e9ecef;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -2878,57 +2878,57 @@ const useLocalVariableCategories = () => {
 
 /* 为不同方法的选择器添加颜色 */
 .method-select.get :deep(.el-select .el-input__wrapper) {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #61affe !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.post :deep(.el-select .el-input__wrapper) {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
   color: white !important;
-  border-color: #49cc90 !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .method-select.put :deep(.el-select .el-input__wrapper) {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #fca130 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 .method-select.delete :deep(.el-select .el-input__wrapper) {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
   color: white !important;
-  border-color: #f93e3e !important;
+  border-color: var(--th-color-danger) !important;
 }
 
 .method-select.patch :deep(.el-select .el-input__wrapper) {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
   color: white !important;
-  border-color: #50e3c2 !important;
+  border-color: var(--th-color-info) !important;
 }
 
 .method-select.head :deep(.el-select .el-input__wrapper) {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
   color: white !important;
-  border-color: #9013fe !important;
+  border-color: var(--th-color-primary-strong) !important;
 }
 
 .method-select.options :deep(.el-select .el-input__wrapper) {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #0ebeff !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.connect :deep(.el-select .el-input__wrapper) {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
   color: white !important;
-  border-color: #7f8c8d !important;
+  border-color: var(--th-color-text-muted) !important;
 }
 
 .method-select.trace :deep(.el-select .el-input__wrapper) {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #e67e22 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 /* 方法选择器通用样式 */
@@ -2984,12 +2984,12 @@ const useLocalVariableCategories = () => {
 }
 
 .method-select :deep(.el-select-dropdown__item:hover) {
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
 }
 
 .method-select :deep(.el-select-dropdown__item.selected) {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 /* 为不同方法的下拉选项添加颜色 */
@@ -3008,39 +3008,39 @@ const useLocalVariableCategories = () => {
 }
 
 .method-select :deep(.el-select-dropdown__item.method-get::before) {
-  background-color: #61affe;
+  background-color: var(--th-color-primary);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-post::before) {
-  background-color: #49cc90;
+  background-color: var(--th-color-success);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-put::before) {
-  background-color: #fca130;
+  background-color: var(--th-color-warning);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-delete::before) {
-  background-color: #f93e3e;
+  background-color: var(--th-color-danger);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-patch::before) {
-  background-color: #50e3c2;
+  background-color: var(--th-color-info);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-head::before) {
-  background-color: #9013fe;
+  background-color: var(--th-color-primary-strong);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-options::before) {
-  background-color: #0ebeff;
+  background-color: var(--th-color-primary);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-connect::before) {
-  background-color: #7f8c8d;
+  background-color: var(--th-color-text-muted);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-trace::before) {
-  background-color: #e67e22;
+  background-color: var(--th-color-warning);
 }
 
 .url-input {
@@ -3200,7 +3200,7 @@ const useLocalVariableCategories = () => {
 }
 
 .response-actions .el-button:hover {
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   color: #5046e5;
 }
 
@@ -3340,7 +3340,7 @@ const useLocalVariableCategories = () => {
 .script-buttons .el-button:hover {
   transform: none;
   box-shadow: none;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .script-factory-btn {
@@ -3389,29 +3389,29 @@ const useLocalVariableCategories = () => {
 .raw-options .el-button:hover {
   transform: none;
   box-shadow: none;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a !important;
-  border-color: #67c23a !important;
+  background-color: var(--th-color-success) !important;
+  border-color: var(--th-color-success) !important;
   color: white !important;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34 !important;
-  border-color: #5daf34 !important;
+  background-color: var(--th-color-success) !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .raw-body {
@@ -3529,15 +3529,15 @@ const useLocalVariableCategories = () => {
 }
 
 .tab-button.active {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
 }
 
 .tab-button:hover:not(.active) {
   border-color: #c6e2ff;
-  color: #409eff;
+  color: var(--th-color-primary);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -3680,7 +3680,7 @@ const useLocalVariableCategories = () => {
 }
 
 .variable-item:hover {
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
   border-color: #c6e2ff;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -3711,10 +3711,10 @@ const useLocalVariableCategories = () => {
 
 .variable-example {
   font-size: 12px;
-  color: #67c23a;
+  color: var(--th-color-success);
   font-family: 'Courier New', Courier, monospace;
   margin-top: 4px;
-  background: #f0f9eb;
+  background: var(--th-color-success-soft);
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid #c2e7b0;
@@ -3764,23 +3764,23 @@ const useLocalVariableCategories = () => {
 }
 
 .status-badge.success {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: var(--th-color-success-soft);
+  color: var(--th-color-success);
 }
 
 .status-badge.warning {
-  background: #fdf6ec;
+  background: var(--th-color-warning-soft);
   color: #e6a23c;
 }
 
 .status-badge.danger {
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   color: #f56c6c;
 }
 
 .status-badge.info {
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 /* 断言结果 */
@@ -3801,7 +3801,7 @@ const useLocalVariableCategories = () => {
 }
 
 .assertion-result-item.passed {
-  border-left: 4px solid #67c23a;
+  border-left: 4px solid var(--th-color-success);
 }
 
 .assertion-result-item.failed {
@@ -3915,28 +3915,28 @@ const useLocalVariableCategories = () => {
 }
 
 .websocket-message-item.sent {
-  border-left: 4px solid #409eff;
-  background: #ecf5ff;
+  border-left: 4px solid var(--th-color-primary);
+  background: var(--th-color-info-soft);
 }
 
 .websocket-message-item.received {
-  border-left: 4px solid #67c23a;
-  background: #f0f9eb;
+  border-left: 4px solid var(--th-color-success);
+  background: var(--th-color-success-soft);
 }
 
 .websocket-message-item.connected {
-  border-left: 4px solid #67c23a;
-  background: #f0f9eb;
+  border-left: 4px solid var(--th-color-success);
+  background: var(--th-color-success-soft);
 }
 
 .websocket-message-item.info {
   border-left: 4px solid #909399;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .websocket-message-item.error {
   border-left: 4px solid #f56c6c;
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
 }
 
 .message-header {
@@ -3955,17 +3955,17 @@ const useLocalVariableCategories = () => {
 
 .message-type.sent {
   background: #d9ecff;
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .message-type.received {
   background: #e8f5e8;
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .message-type.connected {
   background: #e8f5e8;
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .message-type.info {
@@ -4114,94 +4114,94 @@ const useLocalVariableCategories = () => {
 }
 
 .method-tag.get {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
 }
 
 .method-tag.post {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
 }
 
 .method-tag.put {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
 }
 
 .method-tag.delete {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
 }
 
 .method-tag.patch {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
 }
 
 .method-tag.head {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
 }
 
 .method-tag.options {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
 }
 
 .method-tag.connect {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
 }
 
 .method-tag.trace {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
 }
 
 /* 覆盖方法选择器样式 */
 .method-select.get :deep(.el-select .el-input__wrapper) {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #61affe !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.post :deep(.el-select .el-input__wrapper) {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
   color: white !important;
-  border-color: #49cc90 !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .method-select.put :deep(.el-select .el-input__wrapper) {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #fca130 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 .method-select.delete :deep(.el-select .el-input__wrapper) {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
   color: white !important;
-  border-color: #f93e3e !important;
+  border-color: var(--th-color-danger) !important;
 }
 
 .method-select.patch :deep(.el-select .el-input__wrapper) {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
   color: white !important;
-  border-color: #50e3c2 !important;
+  border-color: var(--th-color-info) !important;
 }
 
 .method-select.head :deep(.el-select .el-input__wrapper) {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
   color: white !important;
-  border-color: #9013fe !important;
+  border-color: var(--th-color-primary-strong) !important;
 }
 
 .method-select.options :deep(.el-select .el-input__wrapper) {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #0ebeff !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.connect :deep(.el-select .el-input__wrapper) {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
   color: white !important;
-  border-color: #7f8c8d !important;
+  border-color: var(--th-color-text-muted) !important;
 }
 
 .method-select.trace :deep(.el-select .el-input__wrapper) {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #e67e22 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 /* 覆盖方法选择器通用样式 */

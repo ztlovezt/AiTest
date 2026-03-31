@@ -239,7 +239,7 @@
                   <div>{{ $t('uiAutomation.scheduledTask.cronHelp.everyMonth') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">{{ $t('uiAutomation.scheduledTask.cronHelpLink') }}</span>
+              <span style="cursor: pointer; color: var(--th-color-primary);">{{ $t('uiAutomation.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>

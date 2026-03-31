@@ -625,7 +625,7 @@ onMounted(async () => {
   padding: 20px;
   height: 100%;
   overflow-y: auto;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
 }
 
 .page-header {
@@ -645,7 +645,7 @@ onMounted(async () => {
 }
 
 .card-container {
-  background-color: #fff;
+  background-color: var(--th-color-surface);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -669,7 +669,7 @@ onMounted(async () => {
   .logs-container {
     max-height: 500px;
     overflow-y: auto;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     padding: 15px;
     border-radius: 4px;
 
@@ -678,7 +678,7 @@ onMounted(async () => {
       padding: 12px;
       background: white;
       border-radius: 4px;
-      border-left: 3px solid #409eff;
+      border-left: 3px solid var(--th-color-primary);
 
       &:last-child {
         margin-bottom: 0;
@@ -706,7 +706,7 @@ onMounted(async () => {
         align-items: flex-start;  /* 改为 flex-start，适配多行文本 */
         gap: 8px;
         color: #f56c6c;
-        background: #fef0f0;
+        background: var(--th-color-danger-soft);
         padding: 8px 12px;
         border-radius: 4px;
         margin-top: 8px;
@@ -762,7 +762,7 @@ onMounted(async () => {
         align-items: center;
         gap: 8px;
         padding: 12px 20px;
-        background: #fef0f0;
+        background: var(--th-color-danger-soft);
         color: #f56c6c;
         border: 1px solid #fbc4c4;
         border-radius: 4px;
@@ -778,7 +778,7 @@ onMounted(async () => {
         align-items: center;
         gap: 8px;
         padding: 12px 20px;
-        background: #fff7e6;
+        background: var(--th-color-surface)7e6;
         color: #e6a23c;
         border: 1px solid #f5dab1;
         border-radius: 4px;
@@ -805,7 +805,7 @@ onMounted(async () => {
   }
 
   .error-item {
-    background: #fff;
+    background: var(--th-color-surface);
     border: 2px solid #f56c6c;
     border-radius: 8px;
     padding: 20px;
@@ -841,7 +841,7 @@ onMounted(async () => {
     justify-content: space-between;
     margin-bottom: 15px;
     padding-bottom: 15px;
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid var(--th-color-surface-muted);
   }
 
   .error-header .el-tag {

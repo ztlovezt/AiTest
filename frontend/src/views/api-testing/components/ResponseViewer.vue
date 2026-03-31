@@ -362,7 +362,7 @@ function formatAssertionValue(value) {
   font-size: 13px;
 }
 
-.time-fast { color: #67c23a; }
+.time-fast { color: var(--th-color-success); }
 .time-normal { color: #e6a23c; }
 .time-slow { color: #f56c6c; }
 
@@ -382,7 +382,7 @@ function formatAssertionValue(value) {
 }
 
 .raw-body {
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border: 1px solid #ebeef5;
   border-radius: 4px;
   padding: 12px;
@@ -458,13 +458,13 @@ function formatAssertionValue(value) {
 }
 
 .assertion-item.passed {
-  border-left-color: #67c23a;
-  background: #f0f9eb;
+  border-left-color: var(--th-color-success);
+  background: var(--th-color-success-soft);
 }
 
 .assertion-item.failed {
   border-left-color: #f56c6c;
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
 }
 
 .assertion-header {

@@ -805,7 +805,7 @@ export default {
 }
 
 .role-badge.reviewer {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #f57c00;
 }
 
@@ -835,12 +835,12 @@ export default {
 }
 
 .test-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
 }
 
 .test-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .test-btn:disabled {
@@ -854,7 +854,7 @@ export default {
 }
 
 .edit-btn:hover {
-  background: #e67e22;
+  background: var(--th-color-warning);
 }
 
 .delete-btn {
@@ -907,7 +907,7 @@ export default {
 }
 
 .add-first-config-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 15px 30px;
@@ -922,7 +922,7 @@ export default {
 }
 
 .add-first-config-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .modal-header {
@@ -952,7 +952,7 @@ export default {
 
 .close-btn:hover {
   color: #333 !important;
-  background: #f0f0f0 !important;
+  background: var(--th-color-surface-muted) !important;
   border-radius: 3px !important;
 }
 
@@ -982,7 +982,7 @@ export default {
 
 .form-input:focus, .form-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -1033,7 +1033,7 @@ export default {
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: var(--th-color-text-muted);
 }
 
 .confirm-btn {
@@ -1083,7 +1083,7 @@ export default {
   padding: 15px;
   background: #f8f9fa;
   border-radius: 6px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .api-response label {

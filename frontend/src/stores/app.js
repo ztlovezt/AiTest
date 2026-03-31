@@ -5,6 +5,12 @@ import i18n from '@/locales'
 export const useAppStore = defineStore('app', () => {
   // 状态：当前语言
   const language = ref(localStorage.getItem('app-lang') || 'zh-cn')
+  const theme = ref(localStorage.getItem('app-theme') || 'hoppscotch-light')
+
+  const applyTheme = (value) => {
+    if (typeof document === 'undefined') return
+    document.documentElement.setAttribute('data-theme', value)
+  }
 
   // 动作：切换语言
   const setLanguage = (lang) => {
@@ -17,5 +23,13 @@ export const useAppStore = defineStore('app', () => {
     document.querySelector('html')?.setAttribute('lang', lang)
   }
 
-  return { language, setLanguage }
+  const setTheme = (value) => {
+    theme.value = value
+    localStorage.setItem('app-theme', value)
+    applyTheme(value)
+  }
+
+  applyTheme(theme.value)
+
+  return { language, theme, setLanguage, setTheme }
 })

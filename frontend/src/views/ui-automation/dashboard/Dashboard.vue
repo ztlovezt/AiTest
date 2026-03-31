@@ -371,31 +371,31 @@ onMounted(() => {
 }
 
 .stat-icon.bg-blue {
-  background-color: #1890ff;
+  background-color: var(--th-color-primary);
 }
 
 .stat-icon.bg-green {
-  background-color: #52c41a;
+  background-color: var(--th-color-success);
 }
 
 .stat-icon.bg-purple {
-  background-color: #722ed1;
+  background-color: var(--th-color-primary-strong);
 }
 
 .stat-icon.bg-orange {
-  background-color: #fa8c16;
+  background-color: var(--th-color-warning);
 }
 
 .stat-icon.bg-red {
-  background-color: #f5222d;
+  background-color: var(--th-color-danger);
 }
 
 .stat-icon.bg-cyan {
-  background-color: #13c2c2;
+  background-color: var(--th-color-info);
 }
 
 .stat-icon.bg-indigo {
-  background-color: #597ef7;
+  background-color: var(--th-color-primary);
 }
 
 .stat-info {
@@ -430,7 +430,7 @@ onMounted(() => {
 .activity-item {
   display: flex;
   padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .activity-item:last-child {
@@ -441,7 +441,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -450,38 +450,38 @@ onMounted(() => {
 }
 
 .activity-icon.icon-create {
-  background-color: #e6f7ff;
-  color: #1890ff;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 .activity-icon.icon-edit {
-  background-color: #fff7e6;
-  color: #fa8c16;
+  background-color: var(--th-color-surface)7e6;
+  color: var(--th-color-warning);
 }
 
 .activity-icon.icon-delete {
-  background-color: #fff1f0;
-  color: #f5222d;
+  background-color: var(--th-color-surface)1f0;
+  color: var(--th-color-danger);
 }
 
 .activity-icon.icon-run {
-  background-color: #f6ffed;
-  color: #52c41a;
+  background-color: var(--th-color-success-soft);
+  color: var(--th-color-success);
 }
 
 .activity-icon.icon-rerun {
-  background-color: #f9f0ff;
-  color: #722ed1;
+  background-color: var(--th-color-primary-soft);
+  color: var(--th-color-primary-strong);
 }
 
 .activity-icon.icon-save {
-  background-color: #e6fffb;
-  color: #13c2c2;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-info);
 }
 
 .activity-icon.icon-rename {
-  background-color: #fff7e6;
-  color: #fa8c16;
+  background-color: var(--th-color-surface)7e6;
+  color: var(--th-color-warning);
 }
 
 .activity-content {
@@ -496,7 +496,7 @@ onMounted(() => {
 
 .activity-text .operation-user {
   font-weight: 600;
-  color: #1890ff;
+  color: var(--th-color-primary);
 }
 
 .activity-text .operation-action {
@@ -533,13 +533,13 @@ onMounted(() => {
   text-align: center;
   padding: 15px 10px;
   border-radius: 8px;
-  background-color: #f9f9f9;
+  background-color: var(--th-color-surface-muted);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .action-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -557,31 +557,31 @@ onMounted(() => {
 }
 
 .action-icon.bg-blue {
-  background-color: #1890ff;
+  background-color: var(--th-color-primary);
 }
 
 .action-icon.bg-green {
-  background-color: #52c41a;
+  background-color: var(--th-color-success);
 }
 
 .action-icon.bg-cyan {
-  background-color: #13c2c2;
+  background-color: var(--th-color-info);
 }
 
 .action-icon.bg-purple {
-  background-color: #722ed1;
+  background-color: var(--th-color-primary-strong);
 }
 
 .action-icon.bg-orange {
-  background-color: #fa8c16;
+  background-color: var(--th-color-warning);
 }
 
 .action-icon.bg-red {
-  background-color: #f5222d;
+  background-color: var(--th-color-danger);
 }
 
 .action-icon.bg-indigo {
-  background-color: #597ef7;
+  background-color: var(--th-color-primary);
 }
 
 .action-label {
@@ -611,13 +611,13 @@ onMounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
   font-size: 36px;
-  color: #1890ff;
+  color: var(--th-color-primary);
 }
 
 .feature-title {

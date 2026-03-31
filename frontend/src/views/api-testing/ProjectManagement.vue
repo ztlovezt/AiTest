@@ -464,11 +464,11 @@ onMounted(async () => {
 }
 
 .highlight-row {
-  background-color: #ecf5ff !important;
+  background-color: var(--th-color-info-soft) !important;
 }
 
 .highlight-text {
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 600;
 }
 </style>

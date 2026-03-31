@@ -532,7 +532,7 @@
             <el-form-item v-if="['aes_encrypt', 'aes_decrypt'].includes(currentTool.name) && toolForm.mode === 'CBC'" :label="$t('dataFactory.form.iv')">
               <el-input v-model="toolForm.iv" :placeholder="$t('dataFactory.form.ivPlaceholder')" maxlength="32" show-word-limit>
                 <template #append>
-                  <el-button type="primary" size="default" @click="generateRandomIV" style="background-color: #409eff; border-color: #409eff; color: white;">
+                  <el-button type="primary" size="default" @click="generateRandomIV" style="background-color: var(--th-color-primary); border-color: var(--th-color-primary); color: white;">
                     <el-icon><Refresh /></el-icon>
                     {{ $t('dataFactory.actions.generateRandomIV') }}
                   </el-button>
@@ -2223,7 +2223,7 @@ onMounted(async () => {
 .data-factory-container {
   padding: 20px;
   min-height: calc(100vh - 60px);
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .header-card {
@@ -2247,18 +2247,18 @@ onMounted(async () => {
     transition: color 0.3s;
 
     &:hover {
-      color: #409eff;
+      color: var(--th-color-primary);
     }
 
     .title-icon {
       font-size: 32px;
-      color: #409eff;
+      color: var(--th-color-primary);
     }
   }
 
   .page-subtitle {
     font-size: 16px;
-    color: #7f8c8d;
+    color: var(--th-color-text-muted);
     margin: 0;
   }
 
@@ -2311,8 +2311,8 @@ onMounted(async () => {
         gap: 12px;
 
         &:hover {
-          background: #fff;
-          border-color: #409eff;
+          background: var(--th-color-surface);
+          border-color: var(--th-color-primary);
           box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
           transform: translateY(-2px);
         }
@@ -2320,12 +2320,12 @@ onMounted(async () => {
         .tool-icon {
           width: 40px;
           height: 40px;
-          background: #e6f7ff;
+          background: var(--th-color-info-soft);
           border-radius: 8px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #409eff;
+          color: var(--th-color-primary);
           font-size: 20px;
         }
 
@@ -2341,7 +2341,7 @@ onMounted(async () => {
 
           .tool-desc {
             font-size: 12px;
-            color: #7f8c8d;
+            color: var(--th-color-text-muted);
             margin: 0;
             line-height: 1.4;
           }
@@ -2354,7 +2354,7 @@ onMounted(async () => {
 
         &:hover .tool-arrow {
           transform: translateX(5px);
-          color: #409eff;
+          color: var(--th-color-primary);
         }
       }
     }
@@ -2378,7 +2378,7 @@ onMounted(async () => {
 
       .scenario-icon {
         font-size: 48px;
-        color: #409eff;
+        color: var(--th-color-primary);
         margin-bottom: 15px;
       }
 
@@ -2391,7 +2391,7 @@ onMounted(async () => {
 
       .scenario-desc {
         font-size: 14px;
-        color: #7f8c8d;
+        color: var(--th-color-text-muted);
         margin: 0 0 15px 0;
         line-height: 1.5;
       }
@@ -2452,7 +2452,7 @@ onMounted(async () => {
     pre {
       margin: 0;
       padding: 10px;
-      background: #fff;
+      background: var(--th-color-surface);
       border-radius: 4px;
       overflow-x: auto;
       max-height: 400px;
@@ -2469,7 +2469,7 @@ onMounted(async () => {
         justify-content: center;
         align-items: center;
         padding: 20px;
-        background: #fff;
+        background: var(--th-color-surface);
         border-radius: 8px;
         border: 2px dashed #dcdfe6;
         min-height: 200px;
@@ -2493,7 +2493,7 @@ onMounted(async () => {
         align-items: center;
         gap: 15px;
         padding: 10px;
-        background: #fff;
+        background: var(--th-color-surface);
         border-radius: 8px;
       }
     }
@@ -2510,7 +2510,7 @@ onMounted(async () => {
       .el-table__header {
         th {
           text-align: center;
-          background-color: #f5f7fa;
+          background-color: var(--th-color-surface-muted);
         }
       }
     }
@@ -2603,7 +2603,7 @@ onMounted(async () => {
         width: 50px;
         text-align: right;
         font-size: 14px;
-        color: #409eff;
+        color: var(--th-color-primary);
         font-weight: 600;
         flex-shrink: 0;
       }
@@ -2646,7 +2646,7 @@ onMounted(async () => {
       align-items: center;
       margin-bottom: 10px;
       padding: 10px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       border-radius: 6px;
       
       h4 {
@@ -2665,7 +2665,7 @@ onMounted(async () => {
         
         span {
           padding: 2px 8px;
-          background: #fff;
+          background: var(--th-color-surface);
           border-radius: 4px;
           border: 1px solid #dcdfe6;
         }
@@ -2677,7 +2677,7 @@ onMounted(async () => {
       overflow: auto;
       overflow-x: auto;
       padding: 10px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       border-radius: 6px;
       border: 1px solid #dcdfe6;
       display: flex;
@@ -2703,7 +2703,7 @@ onMounted(async () => {
       align-items: center;
       justify-content: center;
       min-height: 200px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       border-radius: 6px;
       border: 1px solid #dcdfe6;
     }
@@ -2726,7 +2726,7 @@ onMounted(async () => {
       flex: 1;
       overflow: auto;
       overflow-x: auto;
-      background: #fff;
+      background: var(--th-color-surface);
       border-radius: 4px;
       padding: 10px;
       max-height: 280px;
@@ -2847,12 +2847,12 @@ onMounted(async () => {
     justify-content: center;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
-    background: #fafafa;
+    background: var(--th-color-surface-muted);
     transition: all 0.3s;
     
     &:hover {
-      border-color: #409eff;
-      background: #f0f9ff;
+      border-color: var(--th-color-primary);
+      background: var(--th-color-info-soft);
     }
   }
   
@@ -2879,12 +2879,12 @@ onMounted(async () => {
     justify-content: center;
     border: 2px dashed #d9d9d9;
     border-radius: 8px;
-    background: #fafafa;
+    background: var(--th-color-surface-muted);
     transition: all 0.3s;
     
     &:hover {
-      border-color: #409eff;
-      background: #f0f9ff;
+      border-color: var(--th-color-primary);
+      background: var(--th-color-info-soft);
     }
   }
   
@@ -2938,7 +2938,7 @@ onMounted(async () => {
       align-items: center;
       justify-content: center;
       gap: 8px;
-      color: #fff;
+      color: var(--th-color-surface);
       opacity: 0;
       transition: opacity 0.3s;
       cursor: pointer;
@@ -3012,7 +3012,7 @@ onMounted(async () => {
     pre {
       margin: 0;
       padding: 10px;
-      background: #fff;
+      background: var(--th-color-surface);
       border-radius: 4px;
       max-height: 280px;
       font-size: 13px;
@@ -3049,7 +3049,7 @@ onMounted(async () => {
       flex: 1;
       overflow: auto;
       overflow-x: auto;
-      background: #fff;
+      background: var(--th-color-surface);
       border-radius: 4px;
       padding: 10px;
       max-height: 280px;

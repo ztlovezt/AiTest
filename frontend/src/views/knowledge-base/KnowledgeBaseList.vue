@@ -74,7 +74,7 @@
       <el-row :gutter="20">
         <el-col :span="8">
           <div class="stat-card">
-            <div class="stat-icon" style="background-color: #409eff;">
+            <div class="stat-icon" style="background-color: var(--th-color-primary);">
               <el-icon><FolderOpened /></el-icon>
             </div>
             <div class="stat-info">
@@ -85,7 +85,7 @@
         </el-col>
         <el-col :span="8">
           <div class="stat-card">
-            <div class="stat-icon" style="background-color: #67c23a;">
+            <div class="stat-icon" style="background-color: var(--th-color-success);">
               <el-icon><Document /></el-icon>
             </div>
             <div class="stat-info">
@@ -616,7 +616,7 @@ onMounted(() => {
   }
 
   .filter-section {
-    background: #fff;
+    background: var(--th-color-surface);
     padding: 20px;
     border-radius: 4px;
     margin-bottom: 20px;
@@ -632,7 +632,7 @@ onMounted(() => {
     margin-bottom: 20px;
 
     .stat-card {
-      background: #fff;
+      background: var(--th-color-surface);
       border-radius: 4px;
       padding: 20px;
       display: flex;
@@ -646,7 +646,7 @@ onMounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #fff;
+        color: var(--th-color-surface);
         font-size: 24px;
       }
 
@@ -666,14 +666,14 @@ onMounted(() => {
   }
 
   .table-section {
-    background: #fff;
+    background: var(--th-color-surface);
     border-radius: 4px;
     padding: 20px;
     margin-bottom: 20px;
   }
 
   .pagination-section {
-    background: #fff;
+    background: var(--th-color-surface);
     border-radius: 4px;
     padding: 15px 20px;
     display: flex;

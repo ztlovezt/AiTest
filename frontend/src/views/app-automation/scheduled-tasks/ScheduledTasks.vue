@@ -100,7 +100,7 @@
       <el-table-column :label="t('appAutomation.scheduledTask.executionStats')" width="140">
         <template #default="{ row }">
           <span>{{ t('appAutomation.scheduledTask.total') }} {{ row.total_runs || 0 }}  </span>
-          <span style="color:#67c23a">{{ t('appAutomation.scheduledTask.success') }} {{ row.successful_runs || 0 }}  </span>
+          <span style="color:var(--th-color-success)">{{ t('appAutomation.scheduledTask.success') }} {{ row.successful_runs || 0 }}  </span>
           <span style="color:#f56c6c">{{ t('appAutomation.scheduledTask.failed') }} {{ row.failed_runs || 0 }}</span>
         </template>
       </el-table-column>
@@ -216,7 +216,7 @@
                   <div>{{ t('appAutomation.scheduledTask.cronHelp.everyMonth') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">{{ t('appAutomation.scheduledTask.cronHelpLink') }}</span>
+              <span style="cursor: pointer; color: var(--th-color-primary);">{{ t('appAutomation.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>

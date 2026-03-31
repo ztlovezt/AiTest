@@ -22,7 +22,7 @@
         <el-table-column prop="total_requests" :label="$t('apiTesting.report.totalRequests')" width="100" />
         <el-table-column prop="passed_requests" :label="$t('apiTesting.report.passedCount')" width="100">
           <template #default="scope">
-            <span style="color: #67c23a">{{ scope.row.passed_requests }}</span>
+            <span style="color: var(--th-color-success)">{{ scope.row.passed_requests }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="failed_requests" :label="$t('apiTesting.report.failedCount')" width="100">

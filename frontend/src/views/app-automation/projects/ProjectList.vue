@@ -336,9 +336,9 @@ function formatDateTime(dt) {
 .page-container { padding: 20px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .page-title { margin: 0; font-size: 20px; }
-.card-container { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.card-container { background: var(--th-color-surface); border-radius: 8px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .filter-bar { margin-bottom: 20px; }
 .pagination-container { margin-top: 20px; display: flex; justify-content: flex-end; }
-.highlight-row { background-color: #ecf5ff !important; }
-.highlight-text { color: #409eff; font-weight: 600; }
+.highlight-row { background-color: var(--th-color-info-soft) !important; }
+.highlight-text { color: var(--th-color-primary); font-weight: 600; }
 </style>

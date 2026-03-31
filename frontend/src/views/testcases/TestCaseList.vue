@@ -202,7 +202,7 @@
         </el-table-column>
         <el-table-column label="结果统计" width="180">
           <template #default="{ row }">
-            <span style="color: #67C23A">成功: {{ row.success_count }}</span> | 
+            <span style="color: var(--th-color-success)">成功: {{ row.success_count }}</span> | 
             <span style="color: #F56C6C">失败: {{ row.failed_count }}</span> | 
             <span style="color: #E6A23C">重复: {{ row.duplicate_count }}</span>
           </template>
@@ -773,7 +773,7 @@ onMounted(() => {
   flex-direction: column;
   flex: 1;
   overflow: hidden;
-  background: #fff;
+  background: var(--th-color-surface);
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
@@ -807,7 +807,7 @@ onMounted(() => {
 }
 
 .priority-tag {
-  &.low { color: #67c23a; }
+  &.low { color: var(--th-color-success); }
   &.medium { color: #e6a23c; }
   &.high { color: #f56c6c; }
   &.critical { color: #f56c6c; font-weight: bold; }
@@ -875,7 +875,7 @@ onMounted(() => {
 
 .preview-info {
   padding: 15px;
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
   border-radius: 4px;
 
   p {

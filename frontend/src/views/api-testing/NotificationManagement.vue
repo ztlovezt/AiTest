@@ -591,7 +591,7 @@ onMounted(() => {
 <style scoped>
 .notification-management {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   min-height: 100%;
 }
 
@@ -645,7 +645,7 @@ onMounted(() => {
 .notification-detail .content-pre {
   white-space: pre-wrap;
   word-wrap: break-word;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   padding: 12px;
   border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
