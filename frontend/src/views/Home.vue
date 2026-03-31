@@ -202,11 +202,40 @@ const handleNavigate = (type) => {
 <style scoped lang="scss">
 .home-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(59, 130, 246, 0.12), transparent 55%),
+    linear-gradient(180deg, #eef2f7 0%, #f7f9fc 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.home-container::before {
+  content: "";
+  position: absolute;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: rgba(124, 58, 237, 0.08);
+  top: -180px;
+  right: -120px;
+  filter: blur(2px);
+}
+
+.home-container::after {
+  content: "";
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.08);
+  bottom: -160px;
+  left: -120px;
+  filter: blur(2px);
 }
 
 .content-wrapper {
@@ -214,28 +243,37 @@ const handleNavigate = (type) => {
   max-width: 1200px;
   width: 100%;
   position: relative;
+  padding: 72px 0 32px;
+  z-index: 1;
 }
 
 .header-actions {
   position: absolute;
   top: 0;
   right: 0;
-  padding: 10px;
+  padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--th-color-border);
+  border-radius: 999px;
+  box-shadow: var(--th-shadow-sm);
+  backdrop-filter: blur(8px);
 
   .language-dropdown {
     .el-dropdown-link {
       display: flex;
       align-items: center;
       cursor: pointer;
-      color: #5e6d82;
-      transition: color 0.3s;
+      color: var(--th-color-text-muted);
+      transition: color 0.2s ease;
       outline: none;
 
-      &:focus {
-        outline: none;
+      &:focus-visible {
+        outline: 3px solid rgba(124, 58, 237, 0.35);
+        outline-offset: 2px;
+        border-radius: 6px;
       }
 
       .language-icon {
@@ -250,7 +288,7 @@ const handleNavigate = (type) => {
       }
 
       &:hover {
-        color: #409eff;
+        color: var(--th-color-primary);
       }
     }
   }
@@ -259,12 +297,14 @@ const handleNavigate = (type) => {
     display: flex;
     align-items: center;
     cursor: pointer;
-    color: #5e6d82;
-    transition: color 0.3s;
+    color: var(--th-color-text-muted);
+    transition: color 0.2s ease;
     outline: none;
 
-    &:focus {
-      outline: none;
+    &:focus-visible {
+      outline: 3px solid rgba(124, 58, 237, 0.35);
+      outline-offset: 2px;
+      border-radius: 6px;
     }
 
     .username {
@@ -273,7 +313,7 @@ const handleNavigate = (type) => {
     }
 
     &:hover {
-      color: #409eff;
+      color: var(--th-color-primary);
     }
   }
 }
@@ -284,124 +324,159 @@ const handleNavigate = (type) => {
 }
 
 .main-title {
-  font-size: 3.5rem;
-  color: #2c3e50;
-  margin-bottom: 1rem;
+  font-size: 3.4rem;
+  color: var(--th-color-text);
+  margin-bottom: 0.8rem;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
+  font-family: var(--th-font-display);
 }
 
 .subtitle {
-  font-size: 1.5rem;
-  color: #5e6d82;
-  margin-bottom: 4rem;
+  font-size: 1.15rem;
+  color: var(--th-color-text-muted);
+  margin-bottom: 3.2rem;
 }
 
 .cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 30px;
-  padding: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 28px;
+  padding: 0 8px;
 }
 
 .nav-card {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 16px;
-  padding: 40px 20px;
+  background: rgba(255, 255, 255, 0.88);
+  border-radius: var(--th-radius-lg);
+  padding: 32px 22px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  box-shadow: var(--th-shadow-sm);
   display: flex;
   flex-direction: column;
   align-items: center;
+  border: 1px solid var(--th-color-border);
+  animation: fade-up 0.6s ease both;
 
   &:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 30px rgba(0, 0, 0, 0.1);
+    transform: translateY(-6px);
+    box-shadow: var(--th-shadow-md);
+    border-color: rgba(124, 58, 237, 0.4);
     background: #fff;
   }
 
+  &:focus-visible {
+    outline: 3px solid rgba(124, 58, 237, 0.35);
+    outline-offset: 4px;
+  }
+
   h3 {
-    font-size: 1.5rem;
-    color: #2c3e50;
+    font-size: 1.3rem;
+    color: var(--th-color-text);
     margin: 20px 0 10px;
+    font-family: var(--th-font-display);
+    font-weight: 600;
   }
 
   p {
-    color: #7f8c8d;
-    line-height: 1.5;
+    color: var(--th-color-text-muted);
+    line-height: 1.6;
     margin: 0;
+    font-size: 0.95rem;
   }
 }
 
 .card-icon {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  margin-bottom: 10px;
-  transition: all 0.3s ease;
+  font-size: 36px;
+  margin-bottom: 8px;
+  transition: transform 0.25s ease;
+  background: var(--icon-bg);
+  color: var(--icon-color);
+  box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.06);
 
   &.ai-icon {
-    background: #e8f4ff;
-    color: #409eff;
+    --icon-bg: #ede9fe;
+    --icon-color: #6d28d9;
   }
 
   &.api-icon {
-    background: #f0f9eb;
-    color: #67c23a;
+    --icon-bg: #e0f2fe;
+    --icon-color: #2563eb;
   }
 
   &.ui-icon {
-    background: #fdf6ec;
-    color: #e6a23c;
+    --icon-bg: #fef3c7;
+    --icon-color: #d97706;
   }
 
   &.data-icon {
-    background: #e8f4ff;
-    color: #409eff;
+    --icon-bg: #dcfce7;
+    --icon-color: #16a34a;
   }
 
   &.app-icon {
-    background: #f9f0ff;
-    color: #722ed1;
+    --icon-bg: #fce7f3;
+    --icon-color: #db2777;
   }
 
   &.ai-intelligent-icon {
-    background: #f0f5ff;
-    color: #2f54eb;
+    --icon-bg: #e0e7ff;
+    --icon-color: #4338ca;
   }
 
   &.config-icon {
-    background: #e6fffb;
-    color: #13c2c2;
+    --icon-bg: #ecfdf3;
+    --icon-color: #0f766e;
   }
 
   &.assistant-icon {
-    background: #fff7e6;
-    color: #fa8c16;
+    --icon-bg: #fff7ed;
+    --icon-color: #ea580c;
   }
 }
 
 .nav-card:hover .card-icon {
-  transform: scale(1.1);
+  transform: translateY(-2px) scale(1.04);
 }
 
-@media screen and (max-width: 1920px) {
-  .main-title {
-    font-size: 3.2rem;
+.nav-card:nth-child(1) { animation-delay: 0.05s; }
+.nav-card:nth-child(2) { animation-delay: 0.1s; }
+.nav-card:nth-child(3) { animation-delay: 0.15s; }
+.nav-card:nth-child(4) { animation-delay: 0.2s; }
+.nav-card:nth-child(5) { animation-delay: 0.25s; }
+.nav-card:nth-child(6) { animation-delay: 0.3s; }
+.nav-card:nth-child(7) { animation-delay: 0.35s; }
+.nav-card:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-card {
+    animation: none;
+    transition: none;
   }
 
-  .subtitle {
-    font-size: 1.4rem;
+  .nav-card:hover {
+    transform: none;
   }
 
-  .cards-container {
-    gap: 28px;
-    padding: 18px;
+  .nav-card:hover .card-icon {
+    transform: none;
   }
 }
 
@@ -411,77 +486,35 @@ const handleNavigate = (type) => {
   }
 
   .subtitle {
-    font-size: 1.3rem;
+    font-size: 1.1rem;
   }
 
   .cards-container {
-    gap: 26px;
-    padding: 16px;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 24px;
   }
 
   .nav-card {
-    padding: 35px 18px;
+    padding: 28px 20px;
   }
 }
 
 @media screen and (max-width: 1440px) {
   .main-title {
-    font-size: 2.8rem;
+    font-size: 2.7rem;
   }
 
   .subtitle {
-    font-size: 1.2rem;
+    font-size: 1rem;
   }
 
   .cards-container {
-    gap: 24px;
-    padding: 14px;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-
-  .nav-card {
-    padding: 30px 16px;
-
-    h3 {
-      font-size: 1.4rem;
-    }
+    gap: 22px;
   }
 
   .card-icon {
     width: 70px;
     height: 70px;
-    font-size: 35px;
-  }
-}
-
-@media screen and (max-width: 1366px) {
-  .main-title {
-    font-size: 2.6rem;
-  }
-
-  .subtitle {
-    font-size: 1.1rem;
-  }
-
-  .cards-container {
-    gap: 22px;
-    padding: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  }
-
-  .nav-card {
-    padding: 28px 14px;
-
-    h3 {
-      font-size: 1.3rem;
-    }
-  }
-
-  .card-icon {
-    width: 65px;
-    height: 65px;
-    font-size: 32px;
+    font-size: 34px;
   }
 }
 
@@ -491,56 +524,46 @@ const handleNavigate = (type) => {
   }
 
   .subtitle {
-    font-size: 1rem;
+    font-size: 0.98rem;
   }
 
   .cards-container {
     gap: 20px;
-    padding: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   }
 
   .nav-card {
-    padding: 25px 12px;
+    padding: 24px 18px;
 
     h3 {
       font-size: 1.2rem;
     }
   }
-
-  .card-icon {
-    width: 60px;
-    height: 60px;
-    font-size: 30px;
-  }
 }
 
 @media screen and (max-width: 1024px) {
   .home-container {
-    padding: 15px;
+    padding: 18px;
+  }
+
+  .content-wrapper {
+    padding-top: 64px;
   }
 
   .main-title {
-    font-size: 2.2rem;
+    font-size: 2.1rem;
   }
 
   .subtitle {
-    font-size: 1rem;
-    margin-bottom: 3rem;
+    font-size: 0.95rem;
+    margin-bottom: 2.6rem;
   }
 
   .cards-container {
     gap: 18px;
-    padding: 10px;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
   .nav-card {
-    padding: 20px 10px;
-
-    h3 {
-      font-size: 1.1rem;
-    }
+    padding: 22px 16px;
 
     p {
       font-size: 0.9rem;
@@ -548,64 +571,57 @@ const handleNavigate = (type) => {
   }
 
   .card-icon {
-    width: 55px;
-    height: 55px;
-    font-size: 28px;
-  }
-
-  .header-actions {
-    padding: 8px;
+    width: 64px;
+    height: 64px;
+    font-size: 30px;
   }
 }
 
 @media screen and (max-width: 768px) {
   .home-container {
-    padding: 10px;
+    padding: 14px;
   }
 
   .content-wrapper {
-    max-width: 100%;
+    padding-top: 56px;
   }
 
   .main-title {
     font-size: 1.8rem;
-    letter-spacing: 1px;
   }
 
   .subtitle {
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     margin-bottom: 2rem;
   }
 
   .cards-container {
-    gap: 15px;
-    padding: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   }
 
   .nav-card {
-    padding: 18px 8px;
-    border-radius: 12px;
+    padding: 18px 12px;
+    border-radius: var(--th-radius-md);
 
     h3 {
-      font-size: 1rem;
-      margin: 15px 0 8px;
+      font-size: 1.05rem;
+      margin: 16px 0 6px;
     }
 
     p {
-      font-size: 0.8rem;
-      line-height: 1.3;
+      font-size: 0.82rem;
     }
   }
 
   .card-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
+    width: 56px;
+    height: 56px;
+    font-size: 26px;
   }
 
   .header-actions {
-    padding: 5px;
+    padding: 6px 10px;
 
     .username {
       display: none;
@@ -615,7 +631,7 @@ const handleNavigate = (type) => {
 
 @media screen and (max-width: 480px) {
   .home-container {
-    padding: 8px;
+    padding: 10px;
   }
 
   .main-title {
@@ -624,38 +640,30 @@ const handleNavigate = (type) => {
 
   .subtitle {
     font-size: 0.8rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.6rem;
   }
 
   .cards-container {
     gap: 12px;
-    padding: 6px;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 
   .nav-card {
-    padding: 15px 6px;
-    border-radius: 10px;
+    padding: 14px 10px;
 
     h3 {
-      font-size: 0.9rem;
-      margin: 12px 0 6px;
+      font-size: 0.95rem;
     }
 
     p {
-      font-size: 0.75rem;
-      line-height: 1.2;
+      font-size: 0.76rem;
     }
   }
 
   .card-icon {
-    width: 45px;
-    height: 45px;
-    font-size: 22px;
-  }
-
-  .header-actions {
-    padding: 3px;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
   }
 }
 </style>
