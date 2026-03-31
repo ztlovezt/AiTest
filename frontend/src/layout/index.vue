@@ -418,6 +418,7 @@ const breadcrumbTitle = computed(() => {
     '/api-testing/environments': t('menu.environmentManagement'),
     '/api-testing/reports': t('menu.testReport'),
     '/api-testing/scheduled-tasks': t('menu.scheduledTasks'),
+    '/api-testing/parameterized-data': t('menu.parameterizedData'),
     '/api-testing/notification-logs': t('menu.notificationList'),
 
     // UI自动化测试

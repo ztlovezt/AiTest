@@ -37,7 +37,10 @@ export default {
     requestHistory: 'Request History',
     environmentManagement: 'Environment Management',
     scheduledTasks: 'Scheduled Tasks',
+    apiScheduledTasks: 'Scheduled Tasks',
+    parameterizedData: 'Parameterized Data',
     notificationList: 'Notification List',
+    apiNotificationList: 'Notification List',
 
     // UI Automation
     elementManagement: 'Element Management',

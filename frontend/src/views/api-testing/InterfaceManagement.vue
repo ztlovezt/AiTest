@@ -32,6 +32,21 @@
             <el-button type="success" size="small" @click="createEmptyRequest" :title="$t('apiTesting.interface.addInterface')">
               <el-icon><Plus /></el-icon>
             </el-button>
+            <el-dropdown size="small" trigger="click" @command="handleImportExport">
+              <el-button size="small" :title="$t('apiTesting.importExport.title')">
+                <el-icon><More /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="import">
+                    <el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}
+                  </el-dropdown-item>
+                  <el-dropdown-item command="export" :disabled="!selectedProject">
+                    <el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
 
@@ -227,7 +242,7 @@
 
           <!-- 请求配置 -->
           <el-tabs v-model="activeTab" class="request-tabs">
-            <el-tab-pane label="Params" name="params">
+            <el-tab-pane :label="$t('apiTesting.interface.tabParams')" name="params">
               <KeyValueEditor
                 v-model="selectedRequest.params"
                 :placeholder-key="$t('apiTesting.interface.paramName')"
@@ -235,7 +250,7 @@
               />
             </el-tab-pane>
 
-            <el-tab-pane label="Headers" name="headers">
+            <el-tab-pane :label="$t('apiTesting.interface.tabHeaders')" name="headers">
               <KeyValueEditor
                 ref="headersEditorRef"
                 v-model="selectedRequest.headers"
@@ -314,7 +329,7 @@
 
             <!-- HTTP接口专用标签页 -->
             <template v-if="!selectedRequest || selectedRequest.request_type !== 'WEBSOCKET'">
-              <el-tab-pane label="Pre-request Script" name="pre-script">
+              <el-tab-pane :label="$t('apiTesting.interface.tabPreScript')" name="pre-script">
                 <div class="script-editor-container">
                   <el-input
                     v-model="selectedRequest.pre_request_script"
@@ -345,7 +360,7 @@
                 </div>
               </el-tab-pane>
 
-              <el-tab-pane label="Tests" name="tests">
+              <el-tab-pane :label="$t('apiTesting.interface.tabTests')" name="tests">
                 <div class="script-editor-container">
                   <el-input
                     v-model="selectedRequest.post_request_script"
@@ -578,6 +593,10 @@
                   </div>
                 </div>
               </el-tab-pane>
+
+              <el-tab-pane :label="$t('apiTesting.extractor.tabTitle')" name="extractors">
+                <ExtractorEditor v-model="selectedRequest.extractors" />
+              </el-tab-pane>
             </template>
 
             <!-- WebSocket接口专用标签页 -->
@@ -683,6 +702,14 @@
         </div>
       </div>
     </div>
+
+    <!-- 导入对话框 -->
+    <ImportDialog
+      v-model="showImportDialog"
+      :projects="projects"
+      :current-project-id="selectedProject"
+      @imported="onImported"
+    />
 
     <!-- 创建集合对话框 -->
     <el-dialog v-model="showCreateCollectionDialog" :title="$t('apiTesting.interface.createCollection')" :close-on-click-modal="false" :close-on-press-escape="false" :modal="true" :destroy-on-close="false" width="500px">
@@ -868,11 +895,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Document, MagicStick, Search, Close } from '@element-plus/icons-vue'
+import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
 import ResponseViewer from './components/ResponseViewer.vue'
+import ImportDialog from './components/ImportDialog.vue'
+import ExtractorEditor from './components/ExtractorEditor.vue'
 import { RequestModelParser } from '@/utils/requestModel'
 import { getVariableFunctions } from '@/api/data-factory'
 import { CodeGenerator } from '@/utils/codeGenerator'
@@ -899,6 +928,7 @@ const activeTab = ref('params')
 const responseActiveTab = ref('body')
 const showCreateCollectionDialog = ref(false)
 const showEditCollectionDialog = ref(false)
+const showImportDialog = ref(false)
 const showContextMenu = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
@@ -1298,6 +1328,48 @@ const closeCurlImportDialog = () => {
 
 const closeCodeGenerateDialog = () => {
   showCodeGenerateDialog.value = false
+}
+
+const handleImportExport = (command) => {
+  if (command === 'import') {
+    showImportDialog.value = true
+  } else if (command === 'export') {
+    handleExport()
+  }
+}
+
+const handleExport = async () => {
+  if (!selectedProject.value) {
+    ElMessage.warning(t('apiTesting.importExport.selectProjectFirst'))
+    return
+  }
+  try {
+    const format = await new Promise((resolve) => {
+      // 简单使用 openapi 作为默认导出格式
+      resolve('openapi')
+    })
+    const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `export_${format}.json`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(t('apiTesting.importExport.exportSuccess'))
+  } catch (error) {
+    ElMessage.error(t('apiTesting.importExport.exportFailed'))
+  }
+}
+
+const onImported = () => {
+  // 导入成功后刷新集合和请求列表
+  if (selectedProject.value) {
+    loadCollections(selectedProject.value)
+  }
 }
 
 const toggleJsonPathExtractor = () => {

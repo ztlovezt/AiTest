@@ -261,6 +261,11 @@ const routes = [
         component: ApiAIServiceConfig
       },
       {
+        path: 'parameterized-data',
+        name: 'ParameterizedData',
+        component: () => import('@/views/api-testing/ParameterizedData.vue')
+      },
+      {
         path: 'notification-logs',
         name: 'ApiNotificationLogs',
         component: NotificationLogs

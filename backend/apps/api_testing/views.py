@@ -718,36 +718,44 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
             # 创建变量解析器
             resolver = VariableResolver()
 
+            # 初始化上下文变量池（在整个套件执行期间共享）
+            context = {}
+
+            # 加载全局环境变量到上下文
+            global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
+            if global_env and global_env.variables:
+                for key, val in global_env.variables.items():
+                    if isinstance(val, dict) and 'currentValue' in val:
+                        context[key] = val['currentValue']
+                    else:
+                        context[key] = val
+
+            # 加载套件环境变量到上下文（覆盖全局）
+            if test_suite.environment and test_suite.environment.variables:
+                for key, val in test_suite.environment.variables.items():
+                    if isinstance(val, dict) and 'currentValue' in val:
+                        context[key] = val['currentValue']
+                    else:
+                        context[key] = val
+
+            # 导入变量提取器
+            from .extractor import extract_variables
+
             # 执行每个请求
             for suite_request in suite_requests:
                 api_request = suite_request.request
 
                 try:
-                    # 解析环境变量（先加载全局变量，再加载套件环境变量覆盖）
-                    variables = {}
-                    global_env = Environment.objects.filter(scope='GLOBAL', is_active=True).first()
-                    if global_env and global_env.variables:
-                        for key, val in global_env.variables.items():
-                            if isinstance(val, dict) and 'currentValue' in val:
-                                variables[key] = val['currentValue']
-                            else:
-                                variables[key] = val
-                    if test_suite.environment and test_suite.environment.variables:
-                        for key, val in test_suite.environment.variables.items():
-                            if isinstance(val, dict) and 'currentValue' in val:
-                                variables[key] = val['currentValue']
-                            else:
-                                variables[key] = val
+                    # 从上下文变量池替换变量
+                    variables = context.copy()
 
-                    # 替换URL中的变量（先解析动态函数，再替换环境变量）
+                    # 替换URL中的变量
                     url = self._replace_variables(api_request.url, variables)
                     url = resolver.resolve(url)
 
                     # 准备请求头
                     headers = {}
-                    # 支持新的数组格式和旧的对象格式
                     if isinstance(api_request.headers, list):
-                        # 新的数组格式 [{"key": "Authorization", "value": "Bearer {{token}}", "enabled": true, "description": "..."}]
                         for header_item in api_request.headers:
                             if header_item.get('enabled', True) and header_item.get('key'):
                                 key = header_item['key']
@@ -755,13 +763,12 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                                 value = resolver.resolve(value)
                                 headers[key] = value
                     else:
-                        # 旧的对象格式 {"Authorization": "Bearer {{token}}"}
-                        headers = api_request.headers.copy()
+                        headers = api_request.headers.copy() if api_request.headers else {}
                         for key, value in headers.items():
                             headers[key] = self._replace_variables(str(value), variables)
                             headers[key] = resolver.resolve(headers[key])
 
-                    params = api_request.params.copy()
+                    params = api_request.params.copy() if api_request.params else {}
                     for key, value in params.items():
                         params[key] = self._replace_variables(str(value), variables)
                         params[key] = resolver.resolve(params[key])
@@ -786,23 +793,25 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                     end_time = time.time()
                     response_time = (end_time - start_time) * 1000
 
+                    # 执行变量提取器（套件级优先，否则用请求级）
+                    extractors = suite_request.extractors or api_request.extractors or []
+                    extracted_vars, extract_details = extract_variables(response, extractors)
+                    # 将提取的变量存入上下文，供后续请求使用
+                    context.update(extracted_vars)
+
                     # 执行断言验证
                     assertions = api_request.assertions or []
-                    # 添加响应时间到断言中
                     for assertion in assertions:
                         if assertion.get('type') == 'response_time':
                             assertion['actual_time'] = response_time
 
-                    # 使用共享的断言执行方法
                     assertions_results = execute_assertions(response, assertions)
 
                     # 检查所有断言是否通过
                     passed = True
                     error_message = ''
 
-                    # 检查套件请求的断言
                     for assertion in suite_request.assertions:
-                        # 简单的状态码断言
                         if assertion.get('type') == 'status_code':
                             expected = assertion.get('value')
                             if response.status_code != expected:
@@ -810,7 +819,6 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                                 error_message = f'状态码断言失败: 期望 {expected}, 实际 {response.status_code}'
                                 break
 
-                    # 检查接口自身的断言
                     if passed and assertions_results:
                         for assertion_result in assertions_results:
                             if not assertion_result.get('passed', True):
@@ -823,7 +831,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                     else:
                         failed_count += 1
 
-                    results.append({
+                    result_item = {
                         'name': api_request.name,
                         'method': api_request.method,
                         'url': url,
@@ -831,8 +839,12 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         'response_time': response_time,
                         'passed': passed,
                         'error': error_message,
-                        'assertions_results': assertions_results
-                    })
+                        'assertions_results': assertions_results,
+                    }
+                    # 附带提取器详情
+                    if extract_details:
+                        result_item['extract_details'] = extract_details
+                    results.append(result_item)
 
                     # 保存请求历史
                     RequestHistory.objects.create(

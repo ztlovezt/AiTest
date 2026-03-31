@@ -37,6 +37,7 @@ export default {
     requestHistory: '请求历史',
     environmentManagement: '环境管理',
     scheduledTasks: '定时任务',
+    parameterizedData: '参数化数据',
     notificationList: '通知列表',
 
     // UI自动化

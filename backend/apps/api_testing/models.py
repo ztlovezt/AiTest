@@ -103,6 +103,7 @@ class ApiRequest(models.Model):
     pre_request_script = models.TextField(blank=True, verbose_name='请求前脚本')
     post_request_script = models.TextField(blank=True, verbose_name='请求后脚本')
     assertions = models.JSONField(default=list, verbose_name='断言规则')
+    extractors = models.JSONField(default=list, blank=True, verbose_name='变量提取器')
     order = models.IntegerField(default=0, verbose_name='排序')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='创建者')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
@@ -198,6 +199,7 @@ class TestSuiteRequest(models.Model):
     request = models.ForeignKey(ApiRequest, on_delete=models.CASCADE, verbose_name='API请求')
     order = models.IntegerField(default=0, verbose_name='执行顺序')
     assertions = models.JSONField(default=list, verbose_name='断言规则')
+    extractors = models.JSONField(default=list, blank=True, verbose_name='变量提取器')
     enabled = models.BooleanField(default=True, verbose_name='是否启用')
 
     class Meta:
@@ -245,6 +247,75 @@ class TestExecution(models.Model):
 
 
 # ================ 通知管理相关模型 ================
+
+
+class ParameterizedDataSet(models.Model):
+    """参数化数据集"""
+    DATA_TYPE_CHOICES = [
+        ('csv', 'CSV'),
+        ('excel', 'Excel'),
+        ('json', 'JSON'),
+        ('manual', '手动输入'),
+    ]
+
+    name = models.CharField(max_length=200, verbose_name='数据集名称')
+    project = models.ForeignKey(ApiProject, on_delete=models.CASCADE, related_name='datasets',
+                                verbose_name='所属项目')
+    data_type = models.CharField(max_length=20, choices=DATA_TYPE_CHOICES, default='manual',
+                                  verbose_name='数据类型')
+    file = models.FileField(upload_to='api-testing/datasets/', null=True, blank=True,
+                            verbose_name='数据文件')
+    data = models.JSONField(default=list, verbose_name='数据内容')
+    variables = models.JSONField(default=list, verbose_name='变量列名')
+    row_count = models.IntegerField(default=0, verbose_name='数据行数')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='创建者')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        db_table = 'api_parameterized_datasets'
+        verbose_name = '参数化数据集'
+        verbose_name_plural = '参数化数据集'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+
+class ParameterizedExecution(models.Model):
+    """参数化执行记录"""
+    STATUS_CHOICES = [
+        ('RUNNING', '运行中'),
+        ('COMPLETED', '已完成'),
+        ('FAILED', '失败'),
+    ]
+
+    request = models.ForeignKey(ApiRequest, null=True, blank=True, on_delete=models.CASCADE,
+                                verbose_name='API请求')
+    test_suite = models.ForeignKey(TestSuite, null=True, blank=True, on_delete=models.CASCADE,
+                                   verbose_name='测试套件')
+    dataset = models.ForeignKey(ParameterizedDataSet, on_delete=models.CASCADE, verbose_name='数据集')
+    environment = models.ForeignKey(Environment, null=True, blank=True, on_delete=models.SET_NULL,
+                                    verbose_name='环境')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='RUNNING',
+                              verbose_name='状态')
+    total_rows = models.IntegerField(default=0, verbose_name='总行数')
+    passed_rows = models.IntegerField(default=0, verbose_name='通过行数')
+    failed_rows = models.IntegerField(default=0, verbose_name='失败行数')
+    results = models.JSONField(default=list, verbose_name='执行结果')
+    start_time = models.DateTimeField(null=True, verbose_name='开始时间')
+    end_time = models.DateTimeField(null=True, verbose_name='结束时间')
+    executed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='执行者')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
+
+    class Meta:
+        db_table = 'api_parameterized_executions'
+        verbose_name = '参数化执行记录'
+        verbose_name_plural = '参数化执行记录'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        target = self.request.name if self.request else self.test_suite.name if self.test_suite else 'Unknown'
+        return f'Parameterized: {target} ({self.status})'
 
 
 class NotificationLog(models.Model):
