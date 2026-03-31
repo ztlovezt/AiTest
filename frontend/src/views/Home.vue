@@ -3,10 +3,10 @@
     <div class="content-wrapper">
       <div class="header-actions">
         <el-dropdown @command="handleLanguageChange" class="language-dropdown">
-          <span class="el-dropdown-link">
-            <span class="language-icon">{{ currentLanguage === 'zh-cn' ? '🇨🇳' : '🇺🇸' }}</span>
-            <span class="language-text">{{ $t('home.language.current') }}</span>
-            <el-icon class="el-icon--right"><arrow-down/></el-icon>
+          <span class="icon-button icon-button--lang" :title="$t('home.language.current')">
+            <el-icon><Compass /></el-icon>
+            <span class="lang-code">{{ currentLanguage === 'zh-cn' ? 'ZH' : 'EN' }}</span>
+            <el-icon class="caret"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -20,11 +20,28 @@
           </template>
         </el-dropdown>
 
+        <el-dropdown @command="handleThemeChange" class="theme-dropdown">
+          <span class="icon-button" :title="currentThemeLabel">
+            <el-icon>
+              <Sunny v-if="appStore.theme === 'hoppscotch-light'" />
+              <Moon v-else />
+            </el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item class="icon-only-item" command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'" :title="$t('nav.themeLight')">
+                <el-icon><Sunny /></el-icon>
+              </el-dropdown-item>
+              <el-dropdown-item class="icon-only-item" command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'" :title="$t('nav.themeDark')">
+                <el-icon><Moon /></el-icon>
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+
         <el-dropdown @command="handleCommand">
-          <span class="el-dropdown-link">
-            <el-avatar :size="32" :icon="UserFilled"/>
-            <span class="username">{{ userStore.user?.username || $t('home.user') }}</span>
-            <el-icon class="el-icon--right"><arrow-down/></el-icon>
+          <span class="icon-button" :title="userStore.user?.username || $t('home.user')">
+            <el-avatar :size="20" :src="defaultAvatar" />
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -133,6 +150,7 @@
 import {computed} from 'vue'
 import {useRouter} from 'vue-router'
 import {useI18n} from 'vue-i18n'
+import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {useUserStore} from '@/stores/user'
 import {useAppStore} from '@/stores/app'
 import {ElMessage, ElMessageBox} from 'element-plus'
@@ -160,6 +178,10 @@ const currentLanguage = computed(() => appStore.language)
 // 语言切换（无刷新）
 const handleLanguageChange = (lang) => {
   appStore.setLanguage(lang)
+}
+
+const handleThemeChange = (value) => {
+  appStore.setTheme(value)
 }
 
 const handleCommand = (command) => {
@@ -203,9 +225,9 @@ const handleNavigate = (type) => {
 .home-container {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(124, 58, 237, 0.12), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(59, 130, 246, 0.12), transparent 55%),
-    linear-gradient(180deg, #eef2f7 0%, #f7f9fc 100%);
+    radial-gradient(1200px 600px at 10% -10%, rgba(124, 58, 237, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.14), transparent 55%),
+    linear-gradient(180deg, var(--th-color-bg) 0%, var(--th-color-surface-muted) 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -220,7 +242,7 @@ const handleNavigate = (type) => {
   width: 420px;
   height: 420px;
   border-radius: 50%;
-  background: rgba(124, 58, 237, 0.08);
+  background: transparent;
   top: -180px;
   right: -120px;
   filter: blur(2px);
@@ -254,7 +276,7 @@ const handleNavigate = (type) => {
   padding: 8px 12px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.75);
   border: 1px solid var(--th-color-border);
   border-radius: 999px;
@@ -321,6 +343,55 @@ const handleNavigate = (type) => {
 .dropdown-flag {
   font-size: 16px;
   margin-right: 5px;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  color: var(--th-color-text);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.icon-button:hover {
+  color: var(--th-color-primary);
+  background: transparent;
+}
+
+.icon-button--lang {
+  width: auto;
+  padding: 0 10px;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+}
+
+.icon-button--lang .lang-code {
+  line-height: 1;
+}
+
+.icon-button--lang .caret {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.icon-button .el-avatar {
+  width: 16px;
+  height: 16px;
+  background: transparent;
+}
+
+:deep(.icon-only-item) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
 }
 
 .main-title {
@@ -666,4 +737,26 @@ const handleNavigate = (type) => {
     font-size: 24px;
   }
 }
+
+:global([data-theme="hoppscotch-dark"]) .home-container {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(56, 189, 248, 0.18), transparent 55%),
+    linear-gradient(180deg, #0b0f1a 0%, #121826 100%);
+}
+
+:global([data-theme="hoppscotch-dark"]) .header-actions {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+
+:global([data-theme="hoppscotch-dark"]) .home-container::before {
+  background: rgba(139, 92, 246, 0.2);
+}
+
+:global([data-theme="hoppscotch-dark"]) .home-container::after {
+  background: rgba(56, 189, 248, 0.2);
+}
+
 </style>

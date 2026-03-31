@@ -285,10 +285,10 @@
             <div class="header-right">
               <!-- 语言切换 -->
               <el-dropdown @command="handleLanguageChange" class="language-dropdown">
-                <span class="language-selector">
-                  <span class="language-flag">{{ appStore.language === 'zh-cn' ? '🇨🇳' : '🇺🇸' }}</span>
-                  <span>{{ currentLanguage }}</span>
-                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                <span class="icon-button icon-button--lang" :title="currentLanguage">
+                  <el-icon><Compass /></el-icon>
+                  <span class="lang-code">{{ appStore.language === 'zh-cn' ? 'ZH' : 'EN' }}</span>
+                  <el-icon class="caret"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -304,21 +304,19 @@
 
               <!-- 主题切换 -->
               <el-dropdown @command="handleThemeChange" class="theme-dropdown">
-                <span class="theme-selector">
-                  <el-icon class="theme-icon">
+                <span class="icon-button" :title="currentThemeLabel">
+                  <el-icon>
                     <Sunny v-if="appStore.theme === 'hoppscotch-light'" />
                     <Moon v-else />
                   </el-icon>
-                  <span>{{ currentThemeLabel }}</span>
-                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'">
-                      <el-icon><Sunny /></el-icon> {{ $t('nav.themeLight') }}
+                    <el-dropdown-item class="icon-only-item" command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'" :title="$t('nav.themeLight')">
+                      <el-icon><Sunny /></el-icon>
                     </el-dropdown-item>
-                    <el-dropdown-item command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'">
-                      <el-icon><Moon /></el-icon> {{ $t('nav.themeDark') }}
+                    <el-dropdown-item class="icon-only-item" command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'" :title="$t('nav.themeDark')">
+                      <el-icon><Moon /></el-icon>
                     </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
@@ -326,10 +324,8 @@
 
               <!-- 用户信息 -->
               <el-dropdown @command="handleCommand" class="user-dropdown">
-                <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
-                  <span class="username">{{ userStore.user?.username }}</span>
-                  <el-icon><ArrowDown /></el-icon>
+                <span class="icon-button" :title="userStore.user?.username">
+                  <el-avatar :size="20" :src="defaultAvatar" />
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -358,6 +354,7 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {
   Monitor, Folder, Document, Flag, Check, Collection, VideoPlay,
   DataAnalysis, ChatDotRound, DocumentCopy, Link, MagicStick,
@@ -380,6 +377,17 @@ const logoImage = computed(() => {
 // 当前语言显示
 const currentLanguage = computed(() => {
   return appStore.language === 'zh-cn' ? '简体中文' : 'English'
+})
+
+const userAvatarUrl = computed(() => {
+  const avatar = userStore.user?.avatar
+  if (avatar) {
+    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')) {
+      return avatar
+    }
+    return `/media/${avatar}`
+  }
+  return defaultAvatar
 })
 
 // 切换语言（无需刷新页面）
@@ -645,7 +653,56 @@ const handleCommand = (command) => {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    color: var(--th-color-text);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .icon-button:hover {
+    color: var(--th-color-primary);
+    background: transparent;
+  }
+
+  .icon-button--lang {
+    width: auto;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+  }
+
+  .icon-button--lang .lang-code {
+    line-height: 1;
+  }
+
+  .icon-button--lang .caret {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  :deep(.icon-only-item) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+  }
+
+  :deep(.icon-button .el-avatar) {
+    width: 16px;
+    height: 16px;
+    background: transparent;
   }
 
   .language-dropdown {
