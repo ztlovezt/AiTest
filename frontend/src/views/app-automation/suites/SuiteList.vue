@@ -506,7 +506,7 @@ const saveSuite = async () => {
       }))
       await updateSuiteTestCaseOrder(editingSuiteId.value, { test_case_orders: orderData })
 
-      ElMessage.success('套件更新成功')
+      ElMessage.success(t('appAutomation.messages.suiteUpdateSuccess'))
     } else {
       // 创建套件
       await createTestSuite({
@@ -515,13 +515,13 @@ const saveSuite = async () => {
         project: suiteForm.value.project || null,
         test_case_ids: selectedCases.value.map(c => c.id)
       })
-      ElMessage.success('套件创建成功')
+      ElMessage.success(t('appAutomation.messages.suiteCreateSuccess'))
     }
 
     dialogVisible.value = false
     loadSuites()
   } catch (error) {
-    ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message || '未知错误'))
+    ElMessage.error(t('appAutomation.messages.saveFailed') + ': ' + (error.response?.data?.message || error.message || t('appAutomation.messages.unknownError')))
   } finally {
     saving.value = false
   }
@@ -530,16 +530,16 @@ const saveSuite = async () => {
 const deleteSuite = async (suite) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除测试套件 "${suite.name}" 吗？`,
-      '确认删除',
-      { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+      t('appAutomation.messages.deleteSuiteTestConfirm', { name: suite.name }),
+      t('appAutomation.messages.deleteTestCaseTitle'),
+      { confirmButtonText: t('appAutomation.messages.confirm'), cancelButtonText: t('appAutomation.messages.cancel'), type: 'warning' }
     )
     await apiDeleteSuite(suite.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('appAutomation.messages.deleteSuccess'))
     loadSuites()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.deleteFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -565,20 +565,20 @@ const filterAvailableCases = () => {
 // ===== 执行套件 =====
 const runSuite = async (suite) => {
   if (!runConfig.value.deviceId) {
-    ElMessage.warning('请先选择设备')
+    ElMessage.warning(t('appAutomation.messages.selectDeviceFirst'))
     return
   }
 
   if (suite.test_case_count === 0) {
-    ElMessage.warning('该套件未包含任何测试用例')
+    ElMessage.warning(t('appAutomation.messages.suiteNoCases'))
     return
   }
 
   try {
     await ElMessageBox.confirm(
-      `确定要执行测试套件 "${suite.name}" 吗？\n共 ${suite.test_case_count} 个用例`,
-      '确认执行',
-      { confirmButtonText: '执行', cancelButtonText: '取消', type: 'info' }
+      t('appAutomation.messages.runSuiteConfirm', { name: suite.name, count: suite.test_case_count }),
+      t('appAutomation.messages.runSuiteTitle'),
+      { confirmButtonText: t('appAutomation.messages.executeButton'), cancelButtonText: t('appAutomation.messages.cancel'), type: 'info' }
     )
 
     const params = { device_id: runConfig.value.deviceId }
@@ -590,15 +590,15 @@ const runSuite = async (suite) => {
     const data = res.data
 
     if (data.success) {
-      ElMessage.success(data.message || '套件已提交执行')
+      ElMessage.success(data.message || t('appAutomation.messages.suiteSubmitted'))
       // 延迟刷新
       setTimeout(() => loadSuites(), 2000)
     } else {
-      ElMessage.error(data.message || '执行失败')
+      ElMessage.error(data.message || t('appAutomation.messages.executionFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('执行失败: ' + (error.response?.data?.message || error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.executionFailed') + ': ' + (error.response?.data?.message || error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -621,7 +621,7 @@ const showSuiteExecutions = async (suite) => {
 
 const viewReport = (execution) => {
   if (!execution.report_path) {
-    ElMessage.info('报告路径不存在')
+    ElMessage.info(t('appAutomation.messages.reportPathNotExist'))
     return
   }
   window.open(`/api/app-automation/executions/${execution.id}/report/`, '_blank')
@@ -631,16 +631,16 @@ const viewReport = (execution) => {
 const getSuiteDisplayStatus = (row) => {
   const status = row.execution_status
   const result = row.execution_result
-  if (status === 'not_run') return { type: 'info', text: '未执行' }
-  if (status === 'running') return { type: 'warning', text: '执行中' }
-  if (status === 'error') return { type: 'danger', text: '执行异常' }
+  if (status === 'not_run') return { type: 'info', text: t('appAutomation.messages.notExecuted') }
+  if (status === 'running') return { type: 'warning', text: t('appAutomation.messages.running') }
+  if (status === 'error') return { type: 'danger', text: t('appAutomation.messages.executionError') }
   // completed -> 显示测试结果
-  if (result === 'passed') return { type: 'success', text: '通过' }
-  if (result === 'failed') return { type: 'danger', text: '失败' }
-  if (result === 'skipped') return { type: 'warning', text: '跳过' }
+  if (result === 'passed') return { type: 'success', text: t('appAutomation.messages.passed') }
+  if (result === 'failed') return { type: 'danger', text: t('appAutomation.messages.failed') }
+  if (result === 'skipped') return { type: 'warning', text: t('appAutomation.messages.skipped') }
   // 向后兼容旧值
-  if (status === 'success') return { type: 'success', text: '通过' }
-  if (status === 'failed') return { type: 'danger', text: '失败' }
+  if (status === 'success') return { type: 'success', text: t('appAutomation.messages.passed') }
+  if (status === 'failed') return { type: 'danger', text: t('appAutomation.messages.failed') }
   return { type: 'info', text: status }
 }
 

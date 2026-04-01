@@ -418,7 +418,7 @@ const viewAllExecutions = () => {
 
 const viewReport = (execution) => {
   if (!execution.report_path) {
-    ElMessage.info('报告路径不存在')
+    ElMessage.info(t('appAutomation.messages.reportPathNotExist'))
     return
   }
   const reportUrl = `/api/app-automation/executions/${execution.id}/report/`
@@ -429,21 +429,21 @@ const viewReport = (execution) => {
 const stopTest = async (execution) => {
   try {
     await ElMessageBox.confirm(
-      '确定要停止这个测试吗？',
-      '确认停止',
+      t('appAutomation.messages.stopTestConfirm'),
+      t('appAutomation.messages.stopTestTitle'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
 
     const res = await apiStopExecution(execution.id)
     if (res.data.success) {
-      ElMessage.success('已停止执行')
+      ElMessage.success(t('appAutomation.messages.executionStopped'))
       loadExecutions()
     } else {
-      ElMessage.error(res.data.message || '停止失败')
+      ElMessage.error(res.data.message || t('appAutomation.messages.stopFailed'))
     }
   } catch (error) {
     // 用户取消
@@ -453,7 +453,7 @@ const stopTest = async (execution) => {
 // 运行测试用例
 const runCase = async (testCase) => {
   if (!form.value.deviceId) {
-    ElMessage.warning('请先选择设备')
+    ElMessage.warning(t('appAutomation.messages.selectDeviceFirst'))
     return
   }
 
@@ -473,7 +473,7 @@ const runCase = async (testCase) => {
     const data = res.data
     
     if (data.success || data.execution_id) {
-      ElMessage.success('测试已提交执行')
+      ElMessage.success(t('appAutomation.messages.testSubmitted'))
       const executionId = data.execution?.id || data.execution_id
       if (executionId) {
         trackExecution(executionId)
@@ -484,10 +484,10 @@ const runCase = async (testCase) => {
         loadExecutions()
       }, 1000)
     } else {
-      ElMessage.error('执行失败: ' + (data.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.executionFailed') + ': ' + (data.message || t('appAutomation.messages.unknownError')))
     }
   } catch (error) {
-    ElMessage.error('执行失败: ' + (error.message || '未知错误'))
+    ElMessage.error(t('appAutomation.messages.executionFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   }
 }
 
@@ -498,7 +498,7 @@ const checkExecutionStatus = (executionId) => {
       const data = res.data
       const status = data.status || data.data?.status
       if (status === 'pending') {
-        ElMessage.warning('任务未开始，请确认 Celery worker/Redis 已启动')
+        ElMessage.warning(t('appAutomation.messages.taskNotStartedHint'))
       }
     } catch (error) {
       console.error('检查执行状态失败:', error)
@@ -518,21 +518,21 @@ const editCase = (testCase) => {
 const deleteCase = async (testCase) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除测试用例 "${testCase.name}" 吗？`,
-      '确认删除',
+      t('appAutomation.messages.deleteTestCaseConfirm', { name: testCase.name }),
+      t('appAutomation.messages.deleteTestCaseTitle'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
 
     await apiDeleteTestCase(testCase.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('appAutomation.messages.deleteSuccess'))
     loadTestCases()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.deleteFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -578,9 +578,9 @@ const startPolling = (executionId) => {
         })
         if (['completed', 'error', 'stopped'].includes(res.data.status)) {
           stopPolling(executionId)
-          if (res.data.result === 'passed') ElMessage.success('测试执行通过')
-          else if (res.data.result === 'failed') ElMessage.error('测试用例失败')
-          else if (res.data.status === 'error') ElMessage.error('执行异常')
+          if (res.data.result === 'passed') ElMessage.success(t('appAutomation.messages.testPassed'))
+          else if (res.data.result === 'failed') ElMessage.error(t('appAutomation.messages.testCaseFailed'))
+          else if (res.data.status === 'error') ElMessage.error(t('appAutomation.messages.executionError'))
         }
       }
     } catch (e) {
@@ -620,9 +620,9 @@ const connectWebSocket = (executionId) => {
       updateExecutionData(data)
       if (data.status && lastStatusMessages.value[executionId] !== data.status) {
         lastStatusMessages.value[executionId] = data.status
-        if (data.result === 'passed') ElMessage.success('测试执行通过')
-        else if (data.result === 'failed') ElMessage.error('测试用例失败')
-        else if (data.status === 'error') ElMessage.error('执行异常')
+        if (data.result === 'passed') ElMessage.success(t('appAutomation.messages.testPassed'))
+        else if (data.result === 'failed') ElMessage.error(t('appAutomation.messages.testCaseFailed'))
+        else if (data.status === 'error') ElMessage.error(t('appAutomation.messages.executionError'))
       }
       if (['completed', 'error', 'stopped'].includes(data.status)) {
         closeWebSocket(executionId)
@@ -689,19 +689,19 @@ const clearSelection = () => {
 
 const batchRun = async () => {
   if (!form.value.deviceId) {
-    ElMessage.warning('请先选择设备')
+    ElMessage.warning(t('appAutomation.messages.selectDeviceFirst'))
     return
   }
   if (selectedCases.value.length === 0) {
-    ElMessage.warning('请至少选择一个用例')
+    ElMessage.warning(t('appAutomation.messages.selectAtLeastOneCase'))
     return
   }
 
   try {
     await ElMessageBox.confirm(
-      `确定要批量执行选中的 ${selectedCases.value.length} 个用例吗？`,
-      '确认批量执行',
-      { confirmButtonText: '执行', cancelButtonText: '取消', type: 'info' }
+      t('appAutomation.messages.batchRunConfirm', { count: selectedCases.value.length }),
+      t('appAutomation.messages.batchRunTitle'),
+      { confirmButtonText: t('appAutomation.messages.executeButton'), cancelButtonText: t('appAutomation.messages.cancel'), type: 'info' }
     )
 
     const deviceIdStr = availableDevices.value.find(d => d.id === form.value.deviceId)?.device_id
@@ -724,7 +724,7 @@ const batchRun = async () => {
       }
     }
 
-    ElMessage.success(`已提交 ${submitted} 个用例执行`)
+    ElMessage.success(t('appAutomation.messages.batchSubmitted', { count: submitted }))
     clearSelection()
     setTimeout(() => loadExecutions(), 1500)
   } catch (error) {

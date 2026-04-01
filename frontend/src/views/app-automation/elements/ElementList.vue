@@ -288,7 +288,7 @@ const loadElements = async () => {
     elements.value = res.data.results || []
     total.value = res.data.count || 0
   } catch (error) {
-    ElMessage.error('加载元素列表失败: ' + (error.message || '未知错误'))
+    ElMessage.error(t('appAutomation.messages.loadElementListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
     loading.value = false
   }
@@ -369,14 +369,14 @@ const handleDuplicate = async (element) => {
     }
     
     await createAppElement(duplicateData)
-    ElMessage.success(`已复制为 "${newName}"`)
+    ElMessage.success(t('appAutomation.messages.duplicatedAs', { name: newName }))
     loadElements()
   } catch (error) {
     console.error('复制失败:', error)
     const errorMsg = error.response?.data?.config?.[0] ||
-                     error.response?.data?.name?.[0] || 
-                     error.response?.data?.message || 
-                     '复制失败'
+                     error.response?.data?.name?.[0] ||
+                     error.response?.data?.message ||
+                     t('appAutomation.messages.duplicateFailed')
     ElMessage.error(errorMsg)
   }
 }
@@ -392,26 +392,26 @@ const handleSelectionChange = (selection) => {
 const handleBatchDelete = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除选中的 ${selectedElements.value.length} 个元素吗？`,
-      '批量删除确认',
+      t('appAutomation.messages.batchDeleteConfirm', { count: selectedElements.value.length }),
+      t('appAutomation.messages.batchDeleteTitle'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
-    
+
     for (const element of selectedElements.value) {
       await apiDeleteAppElement(element.id)
     }
-    
-    ElMessage.success('批量删除成功')
+
+    ElMessage.success(t('appAutomation.messages.batchDeleteSuccess'))
     selectedElements.value = []
     loadElements()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
+      ElMessage.error(t('appAutomation.messages.batchDeleteFailed'))
     }
   }
 }
@@ -419,22 +419,22 @@ const handleBatchDelete = async () => {
 const handleDelete = async (element) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除元素 "${element.name}" 吗？`,
-      '删除确认',
+      t('appAutomation.messages.deleteElementConfirm', { name: element.name }),
+      t('appAutomation.messages.deleteConfirmTitle'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
-    
+
     await apiDeleteAppElement(element.id)
-    ElMessage.success('删除成功')
+    ElMessage.success(t('appAutomation.messages.deleteSuccess'))
     loadElements()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      ElMessage.error(t('appAutomation.messages.deleteFailed'))
     }
   }
 }

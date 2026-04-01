@@ -75,7 +75,7 @@ const refreshReports = async () => {
 
 const generateAndOpenAllureReport = async (executionId) => {
   try {
-    ElMessage.info('报告生成中，请稍后……')
+    ElMessage.info(t('apiTesting.messages.info.reportGenerating'))
     
     // 调用API生成Allure报告数据
     const response = await api.post(`/api-testing/test-executions/${executionId}/generate-allure-report/`)

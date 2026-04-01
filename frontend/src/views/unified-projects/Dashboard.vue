@@ -27,7 +27,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiProjects }}</div>
-            <div class="stat-label" title="AI用例生成项目">AI用例生成项目</div>
+            <div class="stat-label" :title="$t('unifiedProject.aiProjects')">{{ $t('unifiedProject.aiProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -38,7 +38,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiTestProjects }}</div>
-            <div class="stat-label" title="AI智能测试项目">AI智能测试项目</div>
+            <div class="stat-label" :title="$t('unifiedProject.aiTestProjects')">{{ $t('unifiedProject.aiTestProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -313,7 +313,7 @@ const getStatusText = (status) => {
 }
 
 const getModuleLabel = (type) => {
-  const labelMap = { AI: 'AI用例生成', AI_TEST: 'AI智能测试', API: 'API', UI: 'UI', APP: 'APP' }
+  const labelMap = { AI: t('modules.aiGeneration'), AI_TEST: t('modules.aiIntelligentMode'), API: 'API', UI: 'UI', APP: 'APP' }
   return labelMap[type] || type
 }
 

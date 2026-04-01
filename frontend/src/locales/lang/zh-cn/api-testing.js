@@ -871,7 +871,9 @@ export default {
       taskUpdated: '更新任务成功',
       taskDeleted: '删除任务成功',
       taskPaused: '任务已暂停',
-      taskActivated: '任务已激活'
+      taskActivated: '任务已激活',
+      formatted: '格式化成功',
+      import: '导入成功'
     },
     error: {
       loadFailed: '加载失败',
@@ -915,7 +917,14 @@ export default {
       executionLogsFailed: '加载执行日志失败',
       batchDeleteFailed: '批量删除失败',
       formatFailed: '格式化失败',
-      requestFailed: '请求发送失败'
+      requestFailed: '请求发送失败',
+      searchFailed: '搜索失败',
+      switchProjectFailed: '切换项目失败',
+      parseCurlFailed: '解析CURL命令失败',
+      exportFailed: '导出失败',
+      generateCodeFailed: '生成代码失败',
+      sendMessageFailed: '发送消息失败',
+      loadVariableFunctionsFailed: '加载变量函数失败，使用本地数据'
     },
     warning: {
       pleaseConnect: '请先建立WebSocket连接',
@@ -925,17 +934,30 @@ export default {
       pleaseSelectEnvironment: '请选择环境',
       pleaseSelectProject: '请先选择一个项目',
       pleaseCreateCollection: '请先创建一个集合',
-      websocketNotInSuite: 'WebSocket项目不支持测试套件功能'
+      websocketNotInSuite: 'WebSocket项目不支持测试套件功能',
+      onlyAddUnderCollection: '只能在集合下添加接口',
+      onlyAddSubCollection: '只能在集合下添加子集合',
+      cannotEditNode: '无法编辑此节点',
+      onlyEditCollectionName: '只能编辑集合名称',
+      cannotDeleteNode: '无法删除此节点',
+      pleaseInputCollectionName: '请输入集合名称',
+      pleaseInputCurl: '请输入CURL命令',
+      pleaseSelectBinaryFile: '请选择要发送的二进制文件',
+      pleaseInputRequestUrl: '请填写请求URL',
+      pleaseInputWebSocketUrl: '请填写WebSocket URL',
+      urlRequired: '请求URL不能为空'
     },
     info: {
       websocketClosed: 'WebSocket连接已关闭',
       websocketMessageReceived: '收到WebSocket消息',
       websocketConnectedTo: 'Websocket已连接至{url}',
-      featureInDevelopment: '功能正在开发中......'
+      featureInDevelopment: '功能正在开发中......',
+      reportGenerating: '报告生成中，请稍后……'
     },
     confirm: {
       deleteTitle: '确认删除',
-      clearTitle: '确认清空'
+      clearTitle: '确认清空',
+      deleteMessage: '确定要删除{type}「{name}」吗？'
     }
   },
 

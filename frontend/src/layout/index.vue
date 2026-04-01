@@ -251,7 +251,7 @@
             </el-menu-item>
             <el-menu-item index="/configuration/app-env">
               <el-icon><Cellphone /></el-icon>
-              <span>APP环境配置</span>
+              <span>{{ $t('menu.appEnvConfig') }}</span>
             </el-menu-item>
             <el-menu-item index="/configuration/ai-mode">
               <el-icon><MagicStick /></el-icon>
@@ -297,7 +297,7 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="zh-cn" :disabled="appStore.language === 'zh-cn'">
-                      <span class="dropdown-flag">🇨🇳</span> 简体中文
+                      <span class="dropdown-flag">🇨🇳</span> {{ $t('nav.zhCN') }}
                     </el-dropdown-item>
                     <el-dropdown-item command="en" :disabled="appStore.language === 'en'">
                       <span class="dropdown-flag">🇺🇸</span> English
@@ -380,7 +380,7 @@ const logoImage = computed(() => {
 
 // 当前语言显示
 const currentLanguage = computed(() => {
-  return appStore.language === 'zh-cn' ? '简体中文' : 'English'
+  return appStore.language === 'zh-cn' ? t('nav.zhCN') : 'English'
 })
 
 const userAvatarUrl = computed(() => {
@@ -397,7 +397,7 @@ const userAvatarUrl = computed(() => {
 // 切换语言（无需刷新页面）
 const handleLanguageChange = (lang) => {
   appStore.setLanguage(lang)
-  ElMessage.success(lang === 'zh-cn' ? '语言已切换为中文' : 'Language switched to English')
+  ElMessage.success(t('nav.languageSwitched'))
 }
 
 const currentModule = computed(() => {
@@ -519,7 +519,7 @@ const showProjectManagement = computed(() => {
 const handleCommand = (command) => {
   if (command === 'logout') {
     userStore.logout()
-    ElMessage.success('退出登录成功')
+    ElMessage.success(t('nav.logoutSuccess'))
     router.push('/login')
   } else if (command === 'profile') {
     router.push('/ai-generation/profile')

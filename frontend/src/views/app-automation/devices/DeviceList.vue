@@ -299,7 +299,7 @@ const reconnectingDevices = ref({})
 const addRemoteDialogVisible = ref(false)
 const deviceInfoDialogVisible = ref(false)
 const selectedDevice = ref(null)
-const emptyText = ref('暂无设备，请点击刷新设备或添加远程设备')
+const emptyText = ref(t('appAutomation.messages.noDevicesHint'))
 const refreshTimer = ref(null)
 
 const remoteDeviceForm = ref({
@@ -309,15 +309,15 @@ const remoteDeviceForm = ref({
 
 const remoteDeviceRules = {
   ip_address: [
-    { required: true, message: '请输入IP地址', trigger: 'blur' },
+    { required: true, message: t('appAutomation.messages.pleaseEnterIpAddress'), trigger: 'blur' },
     {
       pattern: /^(\d{1,3}\.){3}\d{1,3}$/,
-      message: '请输入有效的IP地址',
+      message: t('appAutomation.messages.invalidIpAddress'),
       trigger: 'blur'
     }
   ],
   port: [
-    { required: true, message: '请输入端口号', trigger: 'blur' }
+    { required: true, message: t('appAutomation.messages.pleaseEnterPort'), trigger: 'blur' }
   ]
 }
 
@@ -328,11 +328,11 @@ const getDevices = async () => {
     const res = await getDeviceList({ page: 1, page_size: 1000 })
     devices.value = res.data.results || []
     if (devices.value.length === 0) {
-      emptyText.value = '暂无设备，请点击刷新设备或添加远程设备'
+      emptyText.value = t('appAutomation.messages.noDevicesHint')
     }
   } catch (error) {
     console.error('获取设备列表失败:', error)
-    ElMessage.error('获取设备列表失败: ' + (error.message || '未知错误'))
+    ElMessage.error(t('appAutomation.messages.getDeviceListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
     loading.value = false
   }
@@ -344,13 +344,13 @@ const refreshDevices = async () => {
     const res = await discoverDevices()
     if (res.data.success) {
       devices.value = res.data.devices || []
-      ElMessage.success(res.data.message || '设备列表已刷新')
+      ElMessage.success(res.data.message || t('appAutomation.messages.deviceListRefreshed'))
     } else {
-      ElMessage.error(res.data.message || '刷新设备列表失败')
+      ElMessage.error(res.data.message || t('appAutomation.messages.refreshDeviceListFailed'))
     }
   } catch (error) {
     console.error('刷新设备列表失败:', error)
-    ElMessage.error('刷新设备列表失败: ' + (error.message || '未知错误'))
+    ElMessage.error(t('appAutomation.messages.refreshDeviceListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
     refreshing.value = false
   }
@@ -381,15 +381,15 @@ const connectRemoteDevice = async () => {
       })
       
       if (res.data.success) {
-        ElMessage.success(res.data.message || '远程设备连接成功')
+        ElMessage.success(res.data.message || t('appAutomation.messages.remoteDeviceConnected'))
         addRemoteDialogVisible.value = false
         await getDevices()
       } else {
-        ElMessage.error(res.data.message || '连接远程设备失败')
+        ElMessage.error(res.data.message || t('appAutomation.messages.connectRemoteDeviceFailed'))
       }
     } catch (error) {
       console.error('连接远程设备失败:', error)
-      ElMessage.error('连接远程设备失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.connectRemoteDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     } finally {
       connecting.value = false
     }
@@ -398,7 +398,7 @@ const connectRemoteDevice = async () => {
 
 const reconnectDevice = async (device) => {
   if (!device.ip_address || !device.port) {
-    ElMessage.error('设备信息不完整，无法重连')
+    ElMessage.error(t('appAutomation.messages.deviceInfoIncomplete'))
     return
   }
 
@@ -411,14 +411,14 @@ const reconnectDevice = async (device) => {
     })
 
     if (res.data.success) {
-      ElMessage.success('设备重连成功')
+      ElMessage.success(t('appAutomation.messages.deviceReconnectSuccess'))
       await getDevices()
     } else {
-      ElMessage.error(res.data.message || '设备重连失败，请检查设备网络连接')
+      ElMessage.error(res.data.message || t('appAutomation.messages.deviceReconnectFailed'))
     }
   } catch (error) {
     console.error('设备重连失败:', error)
-    ElMessage.error('设备重连失败，请检查设备网络连接')
+    ElMessage.error(t('appAutomation.messages.deviceReconnectFailed'))
   } finally {
     reconnectingDevices.value[device.id] = false
   }
@@ -427,11 +427,11 @@ const reconnectDevice = async (device) => {
 const disconnectDevice = async (device) => {
   try {
     await ElMessageBox.confirm(
-      `确定要断开设备 ${device.name || device.device_id} 的连接吗？`,
-      '提示',
+      t('appAutomation.messages.disconnectDeviceConfirm', { name: device.name || device.device_id }),
+      t('appAutomation.messages.tip'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
@@ -439,15 +439,15 @@ const disconnectDevice = async (device) => {
     const res = await apiDisconnectDevice(device.id)
 
     if (res.data.success) {
-      ElMessage.success('设备已断开')
+      ElMessage.success(t('appAutomation.messages.deviceDisconnected'))
       await getDevices()
     } else {
-      ElMessage.error(res.data.message || '断开设备失败')
+      ElMessage.error(res.data.message || t('appAutomation.messages.disconnectDeviceFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('断开设备失败:', error)
-      ElMessage.error('断开设备失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.disconnectDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -460,11 +460,11 @@ const viewDeviceInfo = (device) => {
 const lockDevice = async (device) => {
   try {
     await ElMessageBox.confirm(
-      `确定要锁定设备 ${device.name || device.device_id} 吗？`,
-      '提示',
+      t('appAutomation.messages.lockDeviceConfirm', { name: device.name || device.device_id }),
+      t('appAutomation.messages.tip'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
@@ -472,15 +472,15 @@ const lockDevice = async (device) => {
     const res = await apiLockDevice(device.id)
 
     if (res.data.success) {
-      ElMessage.success('设备已锁定')
+      ElMessage.success(t('appAutomation.messages.deviceLocked'))
       await getDevices()
     } else {
-      ElMessage.error(res.data.message || '锁定设备失败')
+      ElMessage.error(res.data.message || t('appAutomation.messages.lockDeviceFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('锁定设备失败:', error)
-      ElMessage.error('锁定设备失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.lockDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -488,11 +488,11 @@ const lockDevice = async (device) => {
 const unlockDevice = async (device) => {
   try {
     await ElMessageBox.confirm(
-      `确定要解锁设备 ${device.name || device.device_id} 吗？`,
-      '提示',
+      t('appAutomation.messages.unlockDeviceConfirm', { name: device.name || device.device_id }),
+      t('appAutomation.messages.tip'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning'
       }
     )
@@ -500,15 +500,15 @@ const unlockDevice = async (device) => {
     const res = await apiUnlockDevice(device.id)
 
     if (res.data.success) {
-      ElMessage.success('设备已解锁')
+      ElMessage.success(t('appAutomation.messages.deviceUnlocked'))
       await getDevices()
     } else {
-      ElMessage.error(res.data.message || '解锁设备失败')
+      ElMessage.error(res.data.message || t('appAutomation.messages.unlockDeviceFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('解锁设备失败:', error)
-      ElMessage.error('解锁设备失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.unlockDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }
@@ -516,11 +516,11 @@ const unlockDevice = async (device) => {
 const handleDeleteDevice = async (device) => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除设备 ${device.name || device.device_id} 吗？删除后将无法恢复。`,
-      '删除设备',
+      t('appAutomation.messages.deleteDeviceConfirm', { name: device.name || device.device_id }),
+      t('appAutomation.messages.deleteDeviceTitle'),
       {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+        confirmButtonText: t('appAutomation.messages.confirm'),
+        cancelButtonText: t('appAutomation.messages.cancel'),
         type: 'warning',
         dangerouslyUseHTMLString: false
       }
@@ -529,15 +529,15 @@ const handleDeleteDevice = async (device) => {
     const res = await deleteDevice(device.id)
 
     if (res.status === 204 || res.status === 200) {
-      ElMessage.success('设备已删除')
+      ElMessage.success(t('appAutomation.messages.deviceDeleted'))
       await getDevices()
     } else {
-      ElMessage.error(res.data?.message || '删除设备失败')
+      ElMessage.error(res.data?.message || t('appAutomation.messages.deleteDeviceFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除设备失败:', error)
-      ElMessage.error('删除设备失败: ' + (error.message || '未知错误'))
+      ElMessage.error(t('appAutomation.messages.deleteDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
 }

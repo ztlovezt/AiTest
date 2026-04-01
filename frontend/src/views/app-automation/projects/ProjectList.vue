@@ -139,10 +139,10 @@
           <el-descriptions-item :label="t('appAutomation.project.memberCount')">{{ selectedProject.member_count || 0 }} 人</el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.project.testCaseCount')">{{ selectedProject.test_case_count || 0 }} 个</el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.project.testSuiteCount')">{{ selectedProject.test_suite_count || 0 }} 个</el-descriptions-item>
-          <el-descriptions-item :label="t('appAutomation.project.startDate')">{{ selectedProject.start_date || '未设置' }}</el-descriptions-item>
-          <el-descriptions-item :label="t('appAutomation.project.endDate')">{{ selectedProject.end_date || '未设置' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.startDate')">{{ selectedProject.start_date || t('appAutomation.messages.notSet') }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.endDate')">{{ selectedProject.end_date || t('appAutomation.messages.notSet') }}</el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.project.createTime')" :span="2">{{ formatDateTime(selectedProject.created_at) }}</el-descriptions-item>
-          <el-descriptions-item :label="t('appAutomation.project.projectDesc')" :span="2">{{ selectedProject.description || '无描述' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.project.projectDesc')" :span="2">{{ selectedProject.description || t('appAutomation.messages.noDescription') }}</el-descriptions-item>
         </el-descriptions>
       </div>
       <template #footer>
@@ -263,7 +263,7 @@ async function loadProjects() {
     const res = await getAppProjects(params)
     projects.value = res.data.results || res.data || []
     pagination.total = res.data.count || projects.value.length
-  } catch { ElMessage.error('加载项目列表失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.loadProjectListFailed')) }
   finally { loading.value = false }
 }
 
@@ -300,25 +300,25 @@ async function handleSubmit() {
     }
     if (isEdit.value) {
       await updateAppProject(editId.value, projectData)
-      ElMessage.success('项目更新成功')
+      ElMessage.success(t('appAutomation.messages.projectUpdateSuccess'))
     } else {
       await createAppProject(projectData)
-      ElMessage.success('项目创建成功')
+      ElMessage.success(t('appAutomation.messages.projectCreateSuccess'))
     }
     dialogVisible.value = false
     loadProjects()
   } catch (e) {
-    ElMessage.error(isEdit.value ? '更新失败' : '创建失败')
+    ElMessage.error(isEdit.value ? t('appAutomation.messages.updateFailed') : t('appAutomation.messages.createFailed'))
   } finally { submitting.value = false }
 }
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm(`确认删除项目「${row.name}」？此操作不可恢复`, '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('appAutomation.messages.deleteProjectConfirm', { name: row.name }), t('appAutomation.messages.deleteConfirmTitle'), { type: 'warning' })
     await deleteAppProject(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('appAutomation.messages.deleted'))
     loadProjects()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('appAutomation.messages.deleteFailed')) }
 }
 
 function viewDetail(row) {

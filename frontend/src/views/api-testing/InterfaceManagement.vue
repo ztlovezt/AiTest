@@ -981,7 +981,7 @@ const onSearch = async (value) => {
     // 后端可能返回分页格式 { results: [...] } 或直接返回数组
     filteredCollections.value = response.data.results || response.data || []
   } catch (error) {
-    ElMessage.error('搜索失败')
+    ElMessage.error(t('apiTesting.messages.error.searchFailed'))
     console.error('搜索失败:', error)
   }
 }
@@ -999,7 +999,7 @@ const onProjectChange = async (projectId) => {
     await loadCollections(projectId)
     await loadEnvironments(projectId)
   } catch (error) {
-    ElMessage.error('切换项目失败')
+    ElMessage.error(t('apiTesting.messages.error.switchProjectFailed'))
     console.error('切换项目失败:', error)
   }
 }
@@ -1015,7 +1015,7 @@ const loadProjects = async () => {
       await loadEnvironments(selectedProject.value)
     }
   } catch (error) {
-    ElMessage.error('加载项目失败')
+    ElMessage.error(t('apiTesting.messages.error.loadProjects'))
     console.error('加载项目失败:', error)
   }
 }
@@ -1037,7 +1037,7 @@ const loadCollections = async (projectId) => {
     // 加载请求
     await loadRequests()
   } catch (error) {
-    ElMessage.error('加载集合失败')
+    ElMessage.error(t('apiTesting.messages.error.loadCollections'))
     console.error('加载集合失败:', error)
   }
 }
@@ -1053,7 +1053,7 @@ const loadEnvironments = async (projectId) => {
     const projectEnvs = projectRes.data.results || projectRes.data || []
     environments.value = [...globalEnvs, ...projectEnvs]
   } catch (error) {
-    ElMessage.error('加载环境失败')
+    ElMessage.error(t('apiTesting.messages.error.loadEnvironments'))
     console.error('加载环境失败:', error)
   }
 }
@@ -1139,7 +1139,7 @@ const loadRequests = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('加载请求失败')
+    ElMessage.error(t('apiTesting.messages.error.loadRequests'))
     console.error('加载请求失败:', error)
   }
 }
@@ -1230,7 +1230,7 @@ const onNodeClick = async (data) => {
       response.value = null
       selectedRequest.value = requestData
     } catch (error) {
-      ElMessage.error('加载请求失败')
+      ElMessage.error(t('apiTesting.messages.error.loadRequests'))
       console.error('加载请求失败:', error)
     }
   }
@@ -1254,7 +1254,7 @@ const onNodeCollapse = (node) => {
 
 const createEmptyRequest = () => {
   if (!selectedProject.value) {
-    ElMessage.warning('请先选择项目')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseSelectProject'))
     return
   }
 
@@ -1314,7 +1314,7 @@ const addRequest = () => {
 
   const parentNode = rightClickedNode.value
   if (!parentNode || parentNode.type !== 'collection') {
-    ElMessage.warning('只能在集合下添加接口')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyAddUnderCollection'))
     return
   }
 
@@ -1341,7 +1341,7 @@ const addCollection = () => {
 
   const parentNode = rightClickedNode.value
   if (!parentNode || parentNode.type !== 'collection') {
-    ElMessage.warning('只能在集合下添加子集合')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyAddSubCollection'))
     return
   }
 
@@ -1355,7 +1355,7 @@ const editNode = () => {
 
   const node = rightClickedNode.value
   if (!node) {
-    ElMessage.warning('无法编辑此节点')
+    ElMessage.warning(t('apiTesting.messages.warning.cannotEditNode'))
     return
   }
 
@@ -1368,7 +1368,7 @@ const editNode = () => {
       editInputRef.value?.focus()
     })
   } else {
-    ElMessage.warning('只能编辑集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyEditCollectionName'))
   }
 }
 
@@ -1377,18 +1377,18 @@ const deleteNode = () => {
 
   const node = rightClickedNode.value
   if (!node) {
-    ElMessage.warning('无法删除此节点')
+    ElMessage.warning(t('apiTesting.messages.warning.cannotDeleteNode'))
     return
   }
 
   const nodeName = node.name
 
   ElMessageBox.confirm(
-    `确定要删除${node.type === 'collection' ? '集合' : '接口'}「${nodeName}」吗？`,
-    '确认删除',
+    t('apiTesting.messages.confirm.deleteMessage', { type: node.type === 'collection' ? t('apiTesting.interface.collection') : t('apiTesting.interface.request'), name: nodeName }),
+    t('apiTesting.messages.confirm.deleteTitle'),
     {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+      confirmButtonText: t('apiTesting.common.confirm'),
+      cancelButtonText: t('apiTesting.common.cancel'),
       type: 'warning'
     }
   ).then(async () => {
@@ -1398,11 +1398,11 @@ const deleteNode = () => {
       } else {
         await api.delete(`/api-testing/requests/${node.id}/`)
       }
-      ElMessage.success('删除成功')
+      ElMessage.success(t('apiTesting.messages.success.delete'))
       await loadCollections(selectedProject.value)
       showContextMenu.value = false
     } catch (error) {
-      ElMessage.error('删除失败')
+      ElMessage.error(t('apiTesting.messages.error.deleteFailed'))
       console.error('删除失败:', error)
     }
   }).catch(() => {
@@ -1421,10 +1421,10 @@ const saveCollectionName = async () => {
     await api.put(`/api-testing/collections/${editingNodeId.value}/`, {
       name: editingNodeName.value.trim()
     })
-    ElMessage.success('保存成功')
+    ElMessage.success(t('apiTesting.messages.success.save'))
     await loadCollections(selectedProject.value)
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('apiTesting.messages.error.saveFailed'))
     console.error('保存失败:', error)
   } finally {
     cancelEdit()
@@ -1450,7 +1450,7 @@ const editCollectionForm = reactive({
 })
 
 const collectionRules = {
-  name: [{ required: true, message: '请输入集合名称', trigger: 'blur' }]
+  name: [{ required: true, message: t('apiTesting.messages.warning.pleaseInputCollectionName'), trigger: 'blur' }]
 }
 
 const methodClass = computed(() => {
@@ -1641,9 +1641,9 @@ const sendRequest = async () => {
     const apiResponse = await api.post(`/api-testing/requests/${selectedRequest.value.id}/execute/`, requestData)
     response.value = apiResponse.data
 
-    ElMessage.success('请求成功')
+    ElMessage.success(t('apiTesting.messages.success.requestSent'))
   } catch (error) {
-    ElMessage.error('请求失败')
+    ElMessage.error(t('apiTesting.messages.error.requestFailed'))
     console.error('请求失败:', error)
   } finally {
     sending.value = false
@@ -1659,7 +1659,7 @@ const onHeadersUpdate = (headers) => {
 
 const saveRequest = async () => {
   if (!selectedRequest.value || !selectedRequest.value.url) {
-    ElMessage.warning('请填写请求URL')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputRequestUrl'))
     return
   }
 
@@ -1747,9 +1747,9 @@ const saveRequest = async () => {
 
     selectedRequest.value = response.data
     await loadCollections(selectedProject.value)
-    ElMessage.success('保存成功')
+    ElMessage.success(t('apiTesting.messages.success.save'))
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('apiTesting.messages.error.saveFailed'))
     console.error('保存失败:', error)
   } finally {
     saving.value = false
@@ -1848,16 +1848,16 @@ const formatResponse = () => {
     if (response.value.response_data.json) {
       response.value.response_data.json = JSON.parse(JSON.stringify(response.value.response_data.json))
     }
-    ElMessage.success('格式化成功')
+    ElMessage.success(t('apiTesting.messages.success.formatted'))
   } catch (e) {
-    ElMessage.error('格式化失败')
+    ElMessage.error(t('apiTesting.messages.error.formatFailed'))
   }
 }
 
 const copyResponse = () => {
   if (responseBody.value) {
     navigator.clipboard.writeText(responseBody.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
@@ -1897,7 +1897,7 @@ const evaluateJsonPath = () => {
 const copyJsonPathResult = () => {
   if (jsonPathResult.value) {
     navigator.clipboard.writeText(jsonPathResult.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
@@ -1910,7 +1910,7 @@ const formatAssertionValue = (value) => {
 
 const createCollection = async () => {
   if (!collectionForm.name.trim()) {
-    ElMessage.warning('请输入集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCollectionName'))
     return
   }
 
@@ -1919,31 +1919,31 @@ const createCollection = async () => {
       ...collectionForm,
       project: selectedProject.value
     })
-    ElMessage.success('创建成功')
+    ElMessage.success(t('apiTesting.messages.success.create'))
     await loadCollections(selectedProject.value)
     showCreateCollectionDialog.value = false
     collectionForm.name = ''
     collectionForm.description = ''
     collectionForm.parent = null
   } catch (error) {
-    ElMessage.error('创建失败')
+    ElMessage.error(t('apiTesting.messages.error.createFailed'))
     console.error('创建失败:', error)
   }
 }
 
 const updateCollection = async () => {
   if (!editCollectionForm.name.trim()) {
-    ElMessage.warning('请输入集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCollectionName'))
     return
   }
 
   try {
     await api.put(`/api-testing/collections/${editCollectionForm.id}/`, editCollectionForm)
-    ElMessage.success('更新成功')
+    ElMessage.success(t('apiTesting.messages.success.update'))
     await loadCollections(selectedProject.value)
     showEditCollectionDialog.value = false
   } catch (error) {
-    ElMessage.error('更新失败')
+    ElMessage.error(t('apiTesting.messages.error.updateFailed'))
     console.error('更新失败:', error)
   }
 }
@@ -1956,7 +1956,7 @@ const importCurl = () => {
 
 const parseAndImportCurl = async () => {
   if (!curlCommand.value.trim()) {
-    ElMessage.warning('请输入CURL命令')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCurl'))
     return
   }
 
@@ -1993,9 +1993,9 @@ const parseAndImportCurl = async () => {
     }
 
     showCurlImportDialog.value = false
-    ElMessage.success('导入成功')
+    ElMessage.success(t('apiTesting.messages.success.import'))
   } catch (error) {
-    ElMessage.error('解析CURL命令失败')
+    ElMessage.error(t('apiTesting.messages.error.parseCurlFailed'))
     console.error('解析CURL命令失败:', error)
   }
 }
@@ -2049,9 +2049,9 @@ const exportRequest = () => {
 
     const curlCommand = RequestModelParser.toCurl(requestModel)
     navigator.clipboard.writeText(curlCommand)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   } catch (error) {
-    ElMessage.error('导出失败')
+    ElMessage.error(t('apiTesting.messages.error.exportFailed'))
     console.error('导出失败:', error)
   }
 }
@@ -2060,7 +2060,7 @@ const generateCode = async (language) => {
   if (!selectedRequest.value) return
 
   if (!selectedRequest.value.url) {
-    ElMessage.warning('请求URL不能为空')
+    ElMessage.warning(t('apiTesting.messages.warning.urlRequired'))
     return
   }
 
@@ -2114,7 +2114,7 @@ const generateCode = async (language) => {
     generatedCode.value = code
     showCodeGenerateDialog.value = true
   } catch (error) {
-    ElMessage.error('生成代码失败')
+    ElMessage.error(t('apiTesting.messages.error.generateCodeFailed'))
     console.error('生成代码失败:', error)
   }
 }
@@ -2122,13 +2122,13 @@ const generateCode = async (language) => {
 const copyGeneratedCode = () => {
   if (generatedCode.value) {
     navigator.clipboard.writeText(generatedCode.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
 const toggleWebSocketConnection = async () => {
   if (!selectedRequest.value || !selectedRequest.value.url) {
-    ElMessage.warning('请填写WebSocket URL')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputWebSocketUrl'))
     return
   }
 
@@ -2139,7 +2139,7 @@ const toggleWebSocketConnection = async () => {
       websocketConnection.value = null
     }
     websocketConnectionStatus.value = 'disconnected'
-    ElMessage.success('WebSocket连接已关闭')
+    ElMessage.success(t('apiTesting.messages.info.websocketClosed'))
   } else {
     // 建立连接
     try {
@@ -2150,10 +2150,10 @@ const toggleWebSocketConnection = async () => {
 
       websocketConnection.value.onopen = () => {
         websocketConnectionStatus.value = 'connected'
-        ElMessage.success('WebSocket连接成功')
+        ElMessage.success(t('apiTesting.messages.success.connect'))
         websocketMessages.value.push({
           type: 'connected',
-          content: 'WebSocket连接成功',
+          content: t('apiTesting.messages.success.connect'),
           timestamp: new Date().toLocaleString()
         })
       }
@@ -2171,7 +2171,7 @@ const toggleWebSocketConnection = async () => {
         websocketConnection.value = null
         websocketMessages.value.push({
           type: 'info',
-          content: 'WebSocket连接已关闭',
+          content: t('apiTesting.messages.info.websocketClosed'),
           timestamp: new Date().toLocaleString()
         })
       }
@@ -2179,16 +2179,16 @@ const toggleWebSocketConnection = async () => {
       websocketConnection.value.onerror = (error) => {
         websocketConnectionStatus.value = 'disconnected'
         websocketConnection.value = null
-        ElMessage.error('WebSocket连接失败')
+        ElMessage.error(t('apiTesting.messages.error.connectFailed'))
         websocketMessages.value.push({
           type: 'error',
-          content: `WebSocket连接失败: ${error.message}`,
+          content: `${t('apiTesting.messages.error.connectFailed')}: ${error.message}`,
           timestamp: new Date().toLocaleString()
         })
       }
     } catch (error) {
       websocketConnectionStatus.value = 'disconnected'
-      ElMessage.error('WebSocket连接失败')
+      ElMessage.error(t('apiTesting.messages.error.connectFailed'))
       console.error('WebSocket连接失败:', error)
     }
   }
@@ -2196,12 +2196,12 @@ const toggleWebSocketConnection = async () => {
 
 const sendWebSocketMessage = () => {
   if (!websocketConnection.value || websocketConnectionStatus.value !== 'connected') {
-    ElMessage.warning('请先建立WebSocket连接')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseConnect'))
     return
   }
 
   if (websocketMessageType.value === 'binary' && !websocketBinaryFile.value) {
-    ElMessage.warning('请选择要发送的二进制文件')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseSelectBinaryFile'))
     return
   }
 
@@ -2223,7 +2223,7 @@ const sendWebSocketMessage = () => {
       websocketMessageContent.value = ''
     }
   } catch (error) {
-    ElMessage.error('发送消息失败')
+    ElMessage.error(t('apiTesting.messages.error.sendMessageFailed'))
     console.error('发送消息失败:', error)
   }
 }
@@ -2542,7 +2542,7 @@ const loadVariableFunctions = async () => {
     }
   } catch (error) {
     console.error('加载变量函数失败:', error)
-    ElMessage.error('加载变量函数失败，使用本地数据')
+    ElMessage.error(t('apiTesting.messages.error.loadVariableFunctionsFailed'))
     // 加载失败时使用本地变量分类数据
     useLocalVariableCategories()
   } finally {

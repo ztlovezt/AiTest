@@ -869,7 +869,9 @@ export default {
       taskUpdated: 'Task updated successfully',
       taskDeleted: 'Task deleted successfully',
       taskPaused: 'Task paused',
-      taskActivated: 'Task activated'
+      taskActivated: 'Task activated',
+      formatted: 'Formatted successfully',
+      import: 'Imported successfully'
     },
     error: {
       loadFailed: 'Failed to load',
@@ -913,7 +915,14 @@ export default {
       executionLogsFailed: 'Failed to load execution logs',
       batchDeleteFailed: 'Batch delete failed',
       formatFailed: 'Failed to format',
-      requestFailed: 'Request failed'
+      requestFailed: 'Request failed',
+      searchFailed: 'Search failed',
+      switchProjectFailed: 'Failed to switch project',
+      parseCurlFailed: 'Failed to parse CURL command',
+      exportFailed: 'Export failed',
+      generateCodeFailed: 'Failed to generate code',
+      sendMessageFailed: 'Failed to send message',
+      loadVariableFunctionsFailed: 'Failed to load variable functions, using local data'
     },
     warning: {
       pleaseConnect: 'Please establish WebSocket connection first',
@@ -923,17 +932,30 @@ export default {
       pleaseSelectEnvironment: 'Please select an environment',
       pleaseSelectProject: 'Please select a project first',
       pleaseCreateCollection: 'Please create a collection first',
-      websocketNotInSuite: 'WebSocket projects do not support test suite functionality'
+      websocketNotInSuite: 'WebSocket projects do not support test suite functionality',
+      onlyAddUnderCollection: 'Interfaces can only be added under a collection',
+      onlyAddSubCollection: 'Sub-collections can only be added under a collection',
+      cannotEditNode: 'Cannot edit this node',
+      onlyEditCollectionName: 'Only collection names can be edited',
+      cannotDeleteNode: 'Cannot delete this node',
+      pleaseInputCollectionName: 'Please enter collection name',
+      pleaseInputCurl: 'Please enter CURL command',
+      pleaseSelectBinaryFile: 'Please select a binary file to send',
+      pleaseInputRequestUrl: 'Please enter request URL',
+      pleaseInputWebSocketUrl: 'Please enter WebSocket URL',
+      urlRequired: 'Request URL cannot be empty'
     },
     info: {
       websocketClosed: 'WebSocket connection closed',
       websocketMessageReceived: 'WebSocket message received',
       websocketConnectedTo: 'Websocket connected to {url}',
-      featureInDevelopment: 'Feature is under development......'
+      featureInDevelopment: 'Feature is under development......',
+      reportGenerating: 'Generating report, please wait...'
     },
     confirm: {
       deleteTitle: 'Confirm Delete',
-      clearTitle: 'Confirm Clear'
+      clearTitle: 'Confirm Clear',
+      deleteMessage: 'Are you sure you want to delete {type} "{name}"?'
     }
   },
 

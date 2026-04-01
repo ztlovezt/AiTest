@@ -236,26 +236,26 @@
             <el-col :span="8">
               <div class="detail-stat success-bg">
                 <div class="detail-stat-num">{{ selectedSuite.passed_count || 0 }}</div>
-                <div class="detail-stat-label">通过用例</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.passedCases') }}</div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="detail-stat danger-bg">
                 <div class="detail-stat-num">{{ selectedSuite.failed_count || 0 }}</div>
-                <div class="detail-stat-label">失败用例</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.failedCases') }}</div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="detail-stat info-bg">
                 <div class="detail-stat-num">{{ selectedSuite.test_case_count || 0 }}</div>
-                <div class="detail-stat-label">总用例数</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.totalCases') }}</div>
               </div>
             </el-col>
           </el-row>
         </div>
 
         <div class="detail-section">
-          <h4>用例通过率</h4>
+          <h4>{{ t('appAutomation.messages.casePassRate') }}</h4>
           <el-progress
             :percentage="getSuitePassRate(selectedSuite)"
             :color="getPassRateColor(getSuitePassRate(selectedSuite))"
@@ -266,69 +266,69 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="suiteDetailVisible = false">关闭</el-button>
-        <el-button type="primary" @click="suiteDetailVisible = false; viewSuiteExecutions(selectedSuite)">查看执行记录</el-button>
+        <el-button @click="suiteDetailVisible = false">{{ t('appAutomation.messages.closeButton') }}</el-button>
+        <el-button type="primary" @click="suiteDetailVisible = false; viewSuiteExecutions(selectedSuite)">{{ t('appAutomation.messages.viewExecutionRecords') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ==================== 套件执行记录弹窗 ==================== -->
-    <el-dialog v-model="suiteExecVisible" :title="`执行记录 - ${selectedSuite?.name || ''}`" width="900px">
+    <el-dialog v-model="suiteExecVisible" :title="t('appAutomation.messages.executionRecordsTitle', { name: selectedSuite?.name || '' })" width="900px">
       <el-table :data="suiteExecRecords" v-loading="suiteExecLoading" border stripe max-height="500">
-        <el-table-column label="测试用例" min-width="180">
+        <el-table-column :label="t('appAutomation.messages.testCaseLabel')" min-width="180">
           <template #default="{ row }">{{ row.case_name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column :label="t('appAutomation.messages.statusLabel')" width="90">
           <template #default="{ row }">
             <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
               {{ getDisplayStatus(row.status, row.result).text }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="步骤统计" width="200">
+        <el-table-column :label="t('appAutomation.messages.stepStatsLabel')" width="200">
           <template #default="{ row }">
             <div class="step-stats">
-              <span style="color:var(--th-color-success)">通过 {{ row.passed_steps || 0 }}</span>
+              <span style="color:var(--th-color-success)">{{ t('appAutomation.messages.passedLabel') }} {{ row.passed_steps || 0 }}</span>
               <el-divider direction="vertical" />
-              <span style="color:#f56c6c">失败 {{ row.failed_steps || 0 }}</span>
+              <span style="color:#f56c6c">{{ t('appAutomation.messages.failedLabel') }} {{ row.failed_steps || 0 }}</span>
               <el-divider direction="vertical" />
-              <span>总计 {{ row.total_steps || 0 }}</span>
+              <span>{{ t('appAutomation.messages.totalLabel') }} {{ row.total_steps || 0 }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="耗时" width="100">
+        <el-table-column :label="t('appAutomation.messages.durationLabel')" width="100">
           <template #default="{ row }">{{ formatDuration(row.duration) }}</template>
         </el-table-column>
-        <el-table-column label="执行时间" width="170">
+        <el-table-column :label="t('appAutomation.messages.executionTimeLabel')" width="170">
           <template #default="{ row }">{{ formatDateTime(row.started_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column :label="t('appAutomation.messages.operationLabel')" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">Allure报告</el-button>
-            <el-button v-if="row.error_message" type="danger" link size="small" @click="viewCaseDetail(row)">错误</el-button>
+            <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">{{ t('appAutomation.messages.allureReportButton') }}</el-button>
+            <el-button v-if="row.error_message" type="danger" link size="small" @click="viewCaseDetail(row)">{{ t('appAutomation.messages.errorButton') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
       <template #footer>
-        <el-button @click="suiteExecVisible = false">关闭</el-button>
+        <el-button @click="suiteExecVisible = false">{{ t('appAutomation.messages.closeButton') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- ==================== 用例详情弹窗 ==================== -->
-    <el-dialog v-model="caseDetailVisible" title="用例执行报告详情" width="700px">
+    <el-dialog v-model="caseDetailVisible" :title="t('appAutomation.messages.caseReportDetailTitle')" width="700px">
       <div v-if="selectedCase">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="测试用例">{{ selectedCase.case_name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="执行设备">{{ selectedCase.device_name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="执行状态">
+          <el-descriptions-item :label="t('appAutomation.messages.testCaseField')">{{ selectedCase.case_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.deviceField')">{{ selectedCase.device_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.statusField')">
             <el-tag :type="getDisplayStatus(selectedCase.status, selectedCase.result).type">
               {{ getDisplayStatus(selectedCase.status, selectedCase.result).text }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="执行人">{{ selectedCase.user_name || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ formatDateTime(selectedCase.started_at) }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{ formatDateTime(selectedCase.finished_at) }}</el-descriptions-item>
-          <el-descriptions-item label="执行耗时">{{ formatDuration(selectedCase.duration) }}</el-descriptions-item>
-          <el-descriptions-item label="步骤通过率">
+          <el-descriptions-item :label="t('appAutomation.messages.executorField')">{{ selectedCase.user_name || '-' }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.startTimeField')">{{ formatDateTime(selectedCase.started_at) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.endTimeField')">{{ formatDateTime(selectedCase.finished_at) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.durationField')">{{ formatDuration(selectedCase.duration) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('appAutomation.messages.stepPassRateField')">
             <span :style="{ color: getPassRateColor(selectedCase.pass_rate), fontWeight: 'bold' }">
               {{ selectedCase.pass_rate || 0 }}%
             </span>
@@ -336,43 +336,43 @@
         </el-descriptions>
 
         <div class="detail-section">
-          <h4>步骤统计</h4>
+          <h4>{{ t('appAutomation.messages.stepStatsTitle') }}</h4>
           <el-row :gutter="20">
             <el-col :span="8">
               <div class="detail-stat success-bg">
                 <div class="detail-stat-num">{{ selectedCase.passed_steps || 0 }}</div>
-                <div class="detail-stat-label">通过步骤</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.passedSteps') }}</div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="detail-stat danger-bg">
                 <div class="detail-stat-num">{{ selectedCase.failed_steps || 0 }}</div>
-                <div class="detail-stat-label">失败步骤</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.failedSteps') }}</div>
               </div>
             </el-col>
             <el-col :span="8">
               <div class="detail-stat info-bg">
                 <div class="detail-stat-num">{{ selectedCase.total_steps || 0 }}</div>
-                <div class="detail-stat-label">总步骤数</div>
+                <div class="detail-stat-label">{{ t('appAutomation.messages.totalSteps') }}</div>
               </div>
             </el-col>
           </el-row>
         </div>
 
         <div v-if="selectedCase.error_message" class="detail-section">
-          <h4>错误信息</h4>
+          <h4>{{ t('appAutomation.messages.errorInfoTitle') }}</h4>
           <el-alert :title="selectedCase.error_message" type="error" show-icon :closable="false" />
         </div>
 
         <div v-if="selectedCase.report_path" class="detail-section" style="text-align:center">
           <el-button type="primary" @click="viewAllureReport(selectedCase)">
             <el-icon><DataAnalysis /></el-icon>
-            查看完整 Allure 报告
+            {{ t('appAutomation.messages.viewFullAllureReport') }}
           </el-button>
         </div>
       </div>
       <template #footer>
-        <el-button @click="caseDetailVisible = false">关闭</el-button>
+        <el-button @click="caseDetailVisible = false">{{ t('appAutomation.messages.closeButton') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -449,7 +449,7 @@ async function loadSuiteReports() {
     }
     suiteReports.value = list
     suitePagination.total = res.data.count || list.length
-  } catch { ElMessage.error('加载套件报告失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.loadSuiteReportsFailed')) }
   finally { suiteLoading.value = false }
 }
 
@@ -465,7 +465,7 @@ async function viewSuiteExecutions(suite) {
   try {
     const res = await getTestSuiteExecutions(suite.id)
     suiteExecRecords.value = res.data.data || res.data.results || res.data || []
-  } catch { ElMessage.error('加载执行记录失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.loadExecutionRecordsFailed')) }
   finally { suiteExecLoading.value = false }
 }
 
@@ -478,19 +478,19 @@ async function viewSuiteAllureReport(suite) {
     if (withReport) {
       window.open(`/api/app-automation/executions/${withReport.id}/report/`, '_blank')
     } else {
-      ElMessage.warning('该套件暂无 Allure 报告')
+      ElMessage.warning(t('appAutomation.messages.noAllureReport'))
     }
-  } catch { ElMessage.error('获取报告失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.getReportFailed')) }
 }
 
 async function deleteSuiteReport(suite) {
   try {
-    await ElMessageBox.confirm(`确认删除套件「${suite.name}」？此操作不可恢复`, '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('appAutomation.messages.deleteSuiteConfirm', { name: suite.name }), t('appAutomation.messages.deleteConfirmTitle'), { type: 'warning' })
     const { deleteTestSuite } = await import('@/api/app-automation.js')
     await deleteTestSuite(suite.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('appAutomation.messages.deleted'))
     loadSuiteReports()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('appAutomation.messages.deleteFailed')) }
 }
 
 function getSuitePassRate(suite) {
@@ -502,15 +502,15 @@ function getSuitePassRate(suite) {
 function getSuiteDisplayStatus(row) {
   const status = row.execution_status
   const result = row.execution_result
-  if (status === 'not_run') return { type: 'info', text: '未执行' }
-  if (status === 'running') return { type: 'warning', text: '执行中' }
-  if (status === 'error') return { type: 'danger', text: '执行异常' }
-  if (result === 'passed') return { type: 'success', text: '通过' }
-  if (result === 'failed') return { type: 'danger', text: '失败' }
-  if (result === 'skipped') return { type: 'warning', text: '跳过' }
+  if (status === 'not_run') return { type: 'info', text: t('appAutomation.messages.notExecuted') }
+  if (status === 'running') return { type: 'warning', text: t('appAutomation.messages.running') }
+  if (status === 'error') return { type: 'danger', text: t('appAutomation.messages.executionError') }
+  if (result === 'passed') return { type: 'success', text: t('appAutomation.messages.passed') }
+  if (result === 'failed') return { type: 'danger', text: t('appAutomation.messages.failed') }
+  if (result === 'skipped') return { type: 'warning', text: t('appAutomation.messages.skipped') }
   // 向后兼容
-  if (status === 'success') return { type: 'success', text: '通过' }
-  if (status === 'failed') return { type: 'danger', text: '失败' }
+  if (status === 'success') return { type: 'success', text: t('appAutomation.messages.passed') }
+  if (status === 'failed') return { type: 'danger', text: t('appAutomation.messages.failed') }
   return { type: 'info', text: status }
 }
 
@@ -559,7 +559,7 @@ async function loadCaseReports() {
     const res = await getExecutionList(params)
     caseReports.value = res.data.results || []
     casePagination.total = res.data.count || 0
-  } catch { ElMessage.error('加载用例报告失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.loadCaseReportsFailed')) }
   finally { caseLoading.value = false }
 }
 
@@ -569,17 +569,17 @@ function viewCaseDetail(row) {
 }
 
 function viewAllureReport(row) {
-  if (!row.report_path) return ElMessage.warning('该记录没有 Allure 报告')
+  if (!row.report_path) return ElMessage.warning(t('appAutomation.messages.noAllureReportForRecord'))
   window.open(`/api/app-automation/executions/${row.id}/report/`, '_blank')
 }
 
 async function deleteCaseReport(row) {
   try {
-    await ElMessageBox.confirm('确认删除该执行报告？', '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('appAutomation.messages.deleteCaseReportConfirm'), t('appAutomation.messages.deleteConfirmTitle'), { type: 'warning' })
     await deleteExecution(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('appAutomation.messages.deleted'))
     loadCaseReports()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('appAutomation.messages.deleteFailed')) }
 }
 
 // getDisplayStatus 已从 helpers 导入
@@ -592,10 +592,10 @@ function getPassRateColor(rate) {
 
 function formatDuration(seconds) {
   if (!seconds) return '-'
-  if (seconds < 60) return `${Math.floor(seconds)}秒`
+  if (seconds < 60) return t('appAutomation.messages.durationSeconds', { seconds: Math.floor(seconds) })
   const min = Math.floor(seconds / 60)
   const sec = Math.floor(seconds % 60)
-  return `${min}分${sec}秒`
+  return t('appAutomation.messages.durationMinSec', { min, sec })
 }
 </script>
 

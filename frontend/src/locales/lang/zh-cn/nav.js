@@ -4,6 +4,9 @@ export default {
     logout: '退出登录',
     profile: '个人设置',
     language: '语言切换',
+    zhCN: '简体中文',
+    languageSwitched: '语言已切换',
+    logoutSuccess: '退出登录成功',
     themeSwitch: '主题',
     themeLight: 'Hoppscotch 浅色',
     themeDark: 'Hoppscotch 深色'

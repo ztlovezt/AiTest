@@ -1555,12 +1555,12 @@ const resetScene = () => {
 
 const openCustomComponentDialog = () => {
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请先选择要保存的步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepsFirst'))
         return
     }
     const hasCustomStep = scenarioSteps.value.some(step => step.kind === "custom")
     if (hasCustomStep) {
-        ElMessage.warning("自定义组件中不支持嵌套自定义组件")
+        ElMessage.warning(t('appAutomation.messages.noNestedCustomComponent'))
         return
     }
     customDialogVisible.value = true
@@ -1614,12 +1614,12 @@ const selectEditStep = (index) => {
 
 const addEditStep = () => {
     if (!editStepType.value) {
-        ElMessage.warning("请选择基础组件")
+        ElMessage.warning(t('appAutomation.messages.selectBaseComponent'))
         return
     }
     const item = componentPalette.value.find(component => component.type === editStepType.value)
     if (!item) {
-        ElMessage.warning("基础组件不存在")
+        ElMessage.warning(t('appAutomation.messages.baseComponentNotExist'))
         return
     }
     const step = {
@@ -1658,9 +1658,9 @@ const duplicateEditStep = (index) => {
 
 const deleteCustomComponent = async (item) => {
     try {
-        await ElMessageBox.confirm(`确定删除自定义组件 ${item.name} 吗？`, "提示", {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
+        await ElMessageBox.confirm(t('appAutomation.messages.deleteCustomComponentConfirm', { name: item.name }), t('appAutomation.messages.tip'), {
+            confirmButtonText: t('appAutomation.messages.confirm'),
+            cancelButtonText: t('appAutomation.messages.cancel'),
             type: "warning"
         })
     } catch (error) {
@@ -1668,7 +1668,7 @@ const deleteCustomComponent = async (item) => {
     }
     try {
         await apiDeleteCustomComponent(item.id)
-        ElMessage.success("删除成功")
+        ElMessage.success(t('appAutomation.messages.deleteSuccess'))
         customComponentPalette.value = customComponentPalette.value.filter(
             component => component.id !== item.id
         )
@@ -1676,7 +1676,7 @@ const deleteCustomComponent = async (item) => {
         paletteTab.value = "custom"
     } catch (error) {
         console.error("删除自定义组件失败:", error)
-        ElMessage.error("删除失败")
+        ElMessage.error(t('appAutomation.messages.deleteFailed'))
     }
 }
 
@@ -1686,11 +1686,11 @@ const saveCustomComponent = () => {
             return
         }
         if (customDialogMode.value === "create" && scenarioSteps.value.length === 0) {
-            ElMessage.warning("请先添加场景步骤")
+            ElMessage.warning(t('appAutomation.messages.addSceneStepsFirst'))
             return
         }
         if (customDialogMode.value === "edit" && editingCustomSteps.value.length === 0) {
-            ElMessage.warning("请先添加组件步骤")
+            ElMessage.warning(t('appAutomation.messages.addComponentStepsFirst'))
             return
         }
         customSaving.value = true
@@ -1723,17 +1723,17 @@ const saveCustomComponent = () => {
                 : await apiCreateCustomComponent(payload)
             const data = response?.data || response
             if (data && (data.success || data.id)) {
-                ElMessage.success(customDialogMode.value === "edit" ? "自定义组件已更新" : "自定义组件已保存")
+                ElMessage.success(customDialogMode.value === "edit" ? t('appAutomation.messages.customComponentUpdated') : t('appAutomation.messages.customComponentSaved'))
                 customDialogVisible.value = false
                 await loadCustomComponentPalette()
                 paletteTab.value = "custom"
             } else {
-                ElMessage.error(response.data?.message || "保存失败")
+                ElMessage.error(response.data?.message || t('appAutomation.messages.saveFailed'))
             }
         } catch (error) {
             console.error("保存自定义组件失败:", error)
             const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-            ElMessage.error(`保存失败: ${errorMsg}`)
+            ElMessage.error(`${t('appAutomation.messages.saveFailed')}: ${errorMsg}`)
         } finally {
             customSaving.value = false
         }
@@ -1771,11 +1771,11 @@ const loadComponentPalette = async () => {
         } else {
             componentPalette.value = []
             componentDefinitions.value = {}
-            ElMessage.warning('暂无组件定义，请先初始化组件库（后端运行：python manage.py init_components）')
+            ElMessage.warning(t('appAutomation.messages.initComponentsHint'))
         }
     } catch (error) {
         console.error("加载组件库失败:", error)
-        ElMessage.error('加载组件库失败: ' + (error.message || '未知错误'))
+        ElMessage.error(t('appAutomation.messages.loadComponentsFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
         componentPalette.value = []
         componentDefinitions.value = {}
     }
@@ -1862,7 +1862,7 @@ const loadCaseDetail = async (caseId) => {
         }
     } catch (error) {
         console.error("加载用例失败:", error)
-        ElMessage.error("加载用例失败")
+        ElMessage.error(t('appAutomation.messages.loadCaseFailed'))
     }
 }
 
@@ -2168,7 +2168,7 @@ const getFieldPlaceholder = (field) => {
 const applyApiRequestTemplate = (template, targetStep) => {
     const step = targetStep || activeStep.value || editingActiveStep.value
     if (!step || !step.config) {
-        ElMessage.warning("请先选择步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepFirst'))
         return
     }
     const config = template && template.config
@@ -2177,7 +2177,7 @@ const applyApiRequestTemplate = (template, targetStep) => {
     Object.keys(config).forEach(key => {
         step.config[key] = config[key]
     })
-    ElMessage.success(`已应用模板：${template.name}`)
+    ElMessage.success(t('appAutomation.messages.templateApplied', { name: template.name }))
 }
 
 // 判断是否是图片分类相关字段
@@ -2486,7 +2486,7 @@ const openCaptureElementDialog = () => {
 }
 
 const handleElementCreated = () => {
-    ElMessage.success('元素创建成功')
+    ElMessage.success(t('appAutomation.messages.elementCreateSuccess'))
     // 如果元素选择器对话框打开，可以刷新元素列表
     if (elementSelectorVisible.value) {
         loadElementsForSelector()
@@ -2518,16 +2518,16 @@ const handlePackageUpload = async (option) => {
         const response = await importComponentPackage(formData)
         const data = response.data || response
         if (data.success || data.data) {
-            ElMessage.success("组件包已导入")
+            ElMessage.success(t('appAutomation.messages.componentPackageImported'))
             await loadComponentPalette()
             await loadPackageList()
         } else {
-            ElMessage.error(data.message || "导入失败")
+            ElMessage.error(data.message || t('appAutomation.messages.importFailed'))
         }
     } catch (error) {
         console.error("导入组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导入失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.importFailed'))
     } finally {
         packageUploading.value = false
     }
@@ -2543,12 +2543,12 @@ const exportPackage = async (format) => {
         const filename = getDownloadFilename(response.headers["content-disposition"])
             || `ui-component-pack.${format === "json" ? "json" : "yaml"}`
         downloadBlob(blob, filename)
-        ElMessage.success("组件包已导出")
+        ElMessage.success(t('appAutomation.messages.componentPackageExported'))
         exportDialogVisible.value = false
     } catch (error) {
         console.error("导出组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导出失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.exportFailed'))
     }
 }
 
@@ -2576,11 +2576,11 @@ const downloadBlob = (blob, filename) => {
 
 const saveScene = async () => {
     if (!sceneForm.value.name) {
-        ElMessage.warning("请输入场景名称")
+        ElMessage.warning(t('appAutomation.messages.enterSceneName'))
         return
     }
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请至少添加一个场景步骤")
+        ElMessage.warning(t('appAutomation.messages.addAtLeastOneStep'))
         return
     }
 
@@ -2609,17 +2609,17 @@ const saveScene = async () => {
 
         const responseData = caseResponse.data || caseResponse
         if (responseData && (responseData.id || responseData.success)) {
-            ElMessage.success(editingCaseId.value ? "场景更新成功" : "场景保存成功")
+            ElMessage.success(editingCaseId.value ? t('appAutomation.messages.sceneUpdateSuccess') : t('appAutomation.messages.sceneSaveSuccess'))
             if (responseData.id && !editingCaseId.value) {
                 editingCaseId.value = responseData.id
             }
         } else {
-            ElMessage.success("场景已提交保存")
+            ElMessage.success(t('appAutomation.messages.sceneSubmitted'))
         }
     } catch (error) {
         console.error("保存场景失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(`保存场景失败: ${errorMsg}`)
+        ElMessage.error(`${t('appAutomation.messages.saveSceneFailed')}: ${errorMsg}`)
     } finally {
         saving.value = false
     }
@@ -2648,7 +2648,7 @@ const loadElementsForSelector = async () => {
         elementTotal.value = data?.count || selectorElements.value.length
     } catch (error) {
         console.error('加载元素列表失败:', error)
-        ElMessage.error('加载元素列表失败')
+        ElMessage.error(t('appAutomation.messages.loadElementsFailed'))
     } finally {
         elementSelectorLoading.value = false
     }
@@ -2735,9 +2735,9 @@ const fillFieldsByTarget = (element, config, target) => {
                 }
             }
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (图片)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedImage', { target: getTargetTitle(target), name: element.name }))
         } else {
-            ElMessage.warning('该图片元素缺少文件路径')
+            ElMessage.warning(t('appAutomation.messages.imageElementNoPath'))
         }
     } else if (element.element_type === 'pos') {
         if (element.config && element.config.x !== undefined && element.config.y !== undefined) {
@@ -2746,7 +2746,7 @@ const fillFieldsByTarget = (element, config, target) => {
             config[typeField] = 'pos'
             config[valueField] = posValue
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (坐标)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedPos', { target: getTargetTitle(target), name: element.name }))
         }
     } else if (element.element_type === 'region') {
         if (element.config && 
@@ -2759,10 +2759,10 @@ const fillFieldsByTarget = (element, config, target) => {
             config[typeField] = 'region'
             config[valueField] = regionValue
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (区域)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedRegion', { target: getTargetTitle(target), name: element.name }))
         }
     } else {
-        ElMessage.warning(`元素类型 ${element.element_type} 不适用于 ${getTargetTitle(target)}`)
+        ElMessage.warning(t('appAutomation.messages.elementTypeNotApplicable', { type: element.element_type, target: getTargetTitle(target) }))
     }
 }
 
@@ -2788,7 +2788,7 @@ const applyElement = (element) => {
         : activeStep.value
     
     if (!targetStep) {
-        ElMessage.warning('请先选择一个步骤')
+        ElMessage.warning(t('appAutomation.messages.selectStepForElement'))
         return
     }
     
@@ -2813,7 +2813,7 @@ const applyElement = (element) => {
         // 填充对应的字段
         fillFieldsByTarget(element, config, target)
     } else {
-        ElMessage.warning('未指定有效的字段组')
+        ElMessage.warning(t('appAutomation.messages.noValidFieldGroup'))
     }
     
     console.log('config after:', JSON.stringify(config))
@@ -2873,7 +2873,7 @@ const clearLinkedElement = (target) => {
         }
     }
     
-    ElMessage.info(`已清除 ${getTargetTitle(target)} 关联`)
+    ElMessage.info(t('appAutomation.messages.elementLinkCleared', { target: getTargetTitle(target) }))
 }
 
 const getTypeTagColor = (type) => {

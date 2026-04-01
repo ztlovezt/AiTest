@@ -176,29 +176,29 @@ const formatDate = (dateString) => {
 const getConfigLabel = (moduleType, key) => {
   const labels = {
     API: {
-      base_url: '基础URL',
-      timeout: '超时时间',
-      retry_count: '重试次数'
+      base_url: t('unifiedProject.configLabels.baseUrl'),
+      timeout: t('unifiedProject.configLabels.timeout'),
+      retry_count: t('unifiedProject.configLabels.retryCount')
     },
     UI: {
-      base_url: '基础URL',
-      browser: '浏览器',
-      headless: '无头模式',
-      viewport_width: '视口宽度',
-      viewport_height: '视口高度'
+      base_url: t('unifiedProject.configLabels.baseUrl'),
+      browser: t('unifiedProject.configLabels.browser'),
+      headless: t('unifiedProject.configLabels.headless'),
+      viewport_width: t('unifiedProject.configLabels.viewportWidth'),
+      viewport_height: t('unifiedProject.configLabels.viewportHeight')
     },
     APP: {
-      platform: '平台',
-      device_id: '设备ID',
-      app_package: 'APP包名',
-      app_activity: '启动Activity'
+      platform: t('unifiedProject.configLabels.platform'),
+      device_id: t('unifiedProject.configLabels.deviceId'),
+      app_package: t('unifiedProject.configLabels.appPackage'),
+      app_activity: t('unifiedProject.configLabels.appActivity')
     },
     COMMON: {
-      owner: '负责人',
-      end_date: '结束日期',
-      member_ids: '成员',
-      start_date: '开始日期',
-      project_type: '项目类型'
+      owner: t('unifiedProject.configLabels.owner'),
+      end_date: t('unifiedProject.configLabels.endDate'),
+      member_ids: t('unifiedProject.configLabels.members'),
+      start_date: t('unifiedProject.configLabels.startDate'),
+      project_type: t('unifiedProject.configLabels.projectType')
     }
   }
   return labels[moduleType]?.[key] || labels.COMMON?.[key] || key
@@ -209,7 +209,7 @@ const formatConfigValue = (key, value) => {
     return '-'
   }
   if (typeof value === 'boolean') {
-    return value ? '是' : '否'
+    return value ? t('common.yes') : t('common.no')
   }
   if (Array.isArray(value)) {
     return value.length > 0 ? value.join(', ') : '-'

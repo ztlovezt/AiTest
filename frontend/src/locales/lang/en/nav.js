@@ -4,6 +4,9 @@ export default {
     logout: 'Logout',
     profile: 'Profile',
     language: 'Language',
+    zhCN: '简体中文',
+    languageSwitched: 'Language switched',
+    logoutSuccess: 'Logged out successfully',
     themeSwitch: 'Theme',
     themeLight: 'Hoppscotch Light',
     themeDark: 'Hoppscotch Dark'
