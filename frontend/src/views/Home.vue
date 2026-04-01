@@ -20,24 +20,12 @@
           </template>
         </el-dropdown>
 
-        <el-dropdown @command="handleThemeChange" class="theme-dropdown">
-          <span class="icon-button" :title="currentThemeLabel">
-            <el-icon>
-              <Sunny v-if="appStore.theme === 'hoppscotch-light'" />
-              <Moon v-else />
-            </el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item class="icon-only-item" command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'" :title="$t('nav.themeLight')">
-                <el-icon><Sunny /></el-icon>
-              </el-dropdown-item>
-              <el-dropdown-item class="icon-only-item" command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'" :title="$t('nav.themeDark')">
-                <el-icon><Moon /></el-icon>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+        <span class="icon-button" :title="appStore.theme === 'hoppscotch-light' ? $t('nav.themeDark') : $t('nav.themeLight')" @click="toggleTheme">
+          <el-icon>
+            <Moon v-if="appStore.theme === 'hoppscotch-light'" />
+            <Sunny v-else />
+          </el-icon>
+        </span>
 
         <el-dropdown @command="handleCommand">
           <span class="icon-button" :title="userStore.user?.username || $t('home.user')">
@@ -180,8 +168,8 @@ const handleLanguageChange = (lang) => {
   appStore.setLanguage(lang)
 }
 
-const handleThemeChange = (value) => {
-  appStore.setTheme(value)
+const toggleTheme = () => {
+  appStore.setTheme(appStore.theme === 'hoppscotch-light' ? 'hoppscotch-dark' : 'hoppscotch-light')
 }
 
 const handleCommand = (command) => {
@@ -225,8 +213,8 @@ const handleNavigate = (type) => {
 .home-container {
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(124, 58, 237, 0.16), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(14, 165, 233, 0.14), transparent 55%),
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--th-color-primary) 14%, transparent), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, color-mix(in srgb, var(--th-color-info) 14%, transparent), transparent 55%),
     linear-gradient(180deg, var(--th-color-bg) 0%, var(--th-color-surface-muted) 100%);
   display: flex;
   justify-content: center;
@@ -277,8 +265,8 @@ const handleNavigate = (type) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid var(--th-color-border);
+  background: var(--th-header-bg);
+  border: 1px solid var(--th-header-border);
   border-radius: 999px;
   box-shadow: var(--th-shadow-sm);
   backdrop-filter: blur(8px);
@@ -293,7 +281,7 @@ const handleNavigate = (type) => {
       outline: none;
 
       &:focus-visible {
-        outline: 3px solid rgba(124, 58, 237, 0.35);
+        outline: 3px solid color-mix(in srgb, var(--th-color-primary) 35%, transparent);
         outline-offset: 2px;
         border-radius: 6px;
       }
@@ -324,7 +312,7 @@ const handleNavigate = (type) => {
     outline: none;
 
     &:focus-visible {
-      outline: 3px solid rgba(124, 58, 237, 0.35);
+      outline: 3px solid color-mix(in srgb, var(--th-color-primary) 35%, transparent);
       outline-offset: 2px;
       border-radius: 6px;
     }
@@ -417,7 +405,7 @@ const handleNavigate = (type) => {
 }
 
 .nav-card {
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--th-color-surface);
   border-radius: var(--th-radius-lg);
   padding: 32px 22px;
   cursor: pointer;
@@ -432,12 +420,12 @@ const handleNavigate = (type) => {
   &:hover {
     transform: translateY(-6px);
     box-shadow: var(--th-shadow-md);
-    border-color: rgba(124, 58, 237, 0.4);
+    border-color: color-mix(in srgb, var(--th-color-primary) 40%, transparent);
     background: var(--th-color-surface);
   }
 
   &:focus-visible {
-    outline: 3px solid rgba(124, 58, 237, 0.35);
+    outline: 3px solid color-mix(in srgb, var(--th-color-primary) 35%, transparent);
     outline-offset: 4px;
   }
 
@@ -473,7 +461,7 @@ const handleNavigate = (type) => {
 
   &.ai-icon {
     --icon-bg: #ede9fe;
-    --icon-color: #6d28d9;
+    --icon-color: #4747c2;
   }
 
   &.api-icon {
@@ -507,7 +495,7 @@ const handleNavigate = (type) => {
   }
 
   &.assistant-icon {
-    --icon-bg: var(--th-color-surface)7ed;
+    --icon-bg: #fff7ed;
     --icon-color: #ea580c;
   }
 }
@@ -738,25 +726,5 @@ const handleNavigate = (type) => {
   }
 }
 
-:global([data-theme="hoppscotch-dark"]) .home-container {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 90% 10%, rgba(56, 189, 248, 0.18), transparent 55%),
-    linear-gradient(180deg, #0b0f1a 0%, #121826 100%);
-}
-
-:global([data-theme="hoppscotch-dark"]) .header-actions {
-  background: rgba(15, 23, 42, 0.7);
-  border-color: rgba(51, 65, 85, 0.8);
-}
-
-
-:global([data-theme="hoppscotch-dark"]) .home-container::before {
-  background: rgba(139, 92, 246, 0.2);
-}
-
-:global([data-theme="hoppscotch-dark"]) .home-container::after {
-  background: rgba(56, 189, 248, 0.2);
-}
 
 </style>

@@ -457,6 +457,11 @@ const routes = [
             path: 'dify',
             name: 'DifyConfig',
             component: () => import('@/views/configuration/DifyConfig.vue')
+          },
+          {
+            path: 'theme',
+            name: 'ConfigTheme',
+            component: () => import('@/views/configuration/ThemeConfig.vue')
           }
         ]
       }

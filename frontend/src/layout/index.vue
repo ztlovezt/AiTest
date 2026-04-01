@@ -9,9 +9,9 @@
         <el-menu
           :default-active="$route.path"
           router
-          background-color="var(--th-color-surface)"
-          text-color="var(--th-color-surface)"
-          active-text-color="var(--th-color-primary)"
+          background-color="var(--th-sidebar-bg)"
+          text-color="var(--th-sidebar-text)"
+          active-text-color="var(--th-sidebar-text-active)"
         >
           <!-- AI用例生成模块菜单 -->
           <template v-if="currentModule === 'ai-generation'">
@@ -265,6 +265,10 @@
               <el-icon><ChatDotRound /></el-icon>
               <span>{{ $t('menu.difyConfig') }}</span>
             </el-menu-item>
+            <el-menu-item index="/configuration/theme">
+              <el-icon><Brush /></el-icon>
+              <span>{{ $t('menu.themeConfig') }}</span>
+            </el-menu-item>
           </template>
         </el-menu>
       </el-aside>
@@ -358,7 +362,7 @@ import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {
   Monitor, Folder, Document, Flag, Check, Collection, VideoPlay,
   DataAnalysis, ChatDotRound, DocumentCopy, Link, MagicStick,
-  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened
+  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush
 } from '@element-plus/icons-vue'
 import logoSvg from '@/assets/images/logo.svg'
 import logoHomePng from '@/assets/images/logo_home.png'
@@ -492,6 +496,7 @@ const breadcrumbTitle = computed(() => {
     '/configuration/ai-mode': t('menu.aiModeConfig'),
     '/configuration/scheduled-task': t('menu.scheduledTaskConfig'),
     '/configuration/dify': t('menu.difyConfig'),
+    '/configuration/theme': t('menu.themeConfig'),
 
     '/profile': t('nav.profile')
   }
@@ -539,9 +544,9 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #001529;
-  color: white;
-  border-bottom: 1px solid #1f1f1f;
+  background-color: var(--th-sidebar-bg);
+  color: var(--th-sidebar-text);
+  border-bottom: 1px solid var(--th-sidebar-border);
   flex-shrink: 0;
 
 		.logo-img {
@@ -554,7 +559,6 @@ const handleCommand = (command) => {
 .el-aside {
   background: var(--th-sidebar-bg);
   border-right: 1px solid var(--th-sidebar-border);
-  background-color: #001529;
   height: 100%;
   display: flex;
   flex-direction: column;

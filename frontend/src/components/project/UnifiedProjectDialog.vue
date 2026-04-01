@@ -332,12 +332,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'success'])
 
+const primaryGradient = `linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%)`
 const moduleTypes = [
   {
     value: 'AI',
     label: 'AI用例生成',
     icon: Tickets,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: primaryGradient
   },
   {
     value: 'AI_TEST',
@@ -349,7 +350,7 @@ const moduleTypes = [
     value: 'API',
     label: 'API测试',
     icon: Tickets,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: primaryGradient
   },
   {
     value: 'UI',
@@ -367,9 +368,9 @@ const moduleTypes = [
 
 const moduleIcons = { AI: Link, AI_TEST: MagicStick, API: Tickets, UI: Monitor, APP: Iphone }
 const moduleColors = {
-  AI: '#667eea',
+  AI: 'var(--th-color-primary)',
   AI_TEST: '#f5576c',
-  API: '#667eea',
+  API: 'var(--th-color-primary)',
   UI: '#f5576c',
   APP: '#00f2fe'
 }

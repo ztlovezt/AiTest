@@ -80,6 +80,15 @@ export default {
     aiModeConfig: 'AI智能模式配置',
     scheduledTaskConfig: '消息通知配置',
     difyConfig: 'AI评测师配置',
+    themeConfig: '平台主题配置',
     projectManagementCenter: '项目管理'
+  },
+  themeConfig: {
+    indigo: 'Indigo 靛蓝',
+    indigoDesc: '沉稳专业的靛蓝色调，适合企业级测试管理平台',
+    semiOrange: 'Semi Orange 暖橙',
+    semiOrangeDesc: '源自字节跳动 Semi Design，充满活力与行动力的暖色方案',
+    current: '当前',
+    applied: '主题已应用'
   }
 }

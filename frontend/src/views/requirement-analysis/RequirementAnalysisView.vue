@@ -2402,14 +2402,14 @@ export default {
 }
 
 .mode-option:hover .mode-content {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 10%, transparent);
 }
 
 .mode-option.active .mode-content {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  border-color: var(--th-color-primary);
+  background: var(--th-color-primary-soft);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--th-color-primary) 20%, transparent);
 }
 
 .mode-title {
@@ -2426,7 +2426,7 @@ export default {
 }
 
 .mode-option.active .mode-title {
-  color: #2563eb;
+  color: var(--th-color-primary-strong);
 }
 
 .mode-option.active .mode-desc {
@@ -2468,9 +2468,9 @@ export default {
 }
 
 .panel-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, var(--th-color-primary), var(--th-color-primary-strong));
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 30%, transparent);
 }
 
 .panel-tab.active .panel-label {
@@ -2534,7 +2534,7 @@ export default {
 
 .search-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2545,7 +2545,7 @@ export default {
 }
 
 .search-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .search-btn:disabled {
@@ -2664,7 +2664,7 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 12px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .result-header {
@@ -2676,7 +2676,7 @@ export default {
 
 .result-index {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--th-color-primary);
 }
 
 .result-score {
@@ -2739,7 +2739,7 @@ export default {
 
 .parse-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2750,7 +2750,7 @@ export default {
 }
 
 .parse-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .parse-btn:disabled {

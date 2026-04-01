@@ -2542,7 +2542,7 @@ onMounted(async () => {
 
 .stats-container {
   .total-stats-card {
-    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, var(--th-color-primary-strong) 0%, var(--th-color-primary) 100%);
     border: none;
     
     :deep(.el-card__body) {

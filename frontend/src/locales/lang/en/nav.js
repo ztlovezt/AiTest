@@ -80,6 +80,15 @@ export default {
     aiModeConfig: 'AI Mode Configuration',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',
+    themeConfig: 'Theme Configuration',
     projectManagementCenter: 'Project Management Center'
+  },
+  themeConfig: {
+    indigo: 'Indigo',
+    indigoDesc: 'Professional indigo tones, ideal for enterprise test management platforms',
+    semiOrange: 'Semi Orange',
+    semiOrangeDesc: 'Inspired by ByteDance Semi Design, a vibrant warm-toned scheme full of energy',
+    current: 'Current',
+    applied: 'Theme applied'
   }
 }

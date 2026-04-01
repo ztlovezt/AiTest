@@ -421,7 +421,7 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-.stat-icon.bg-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-icon.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
 .stat-icon.bg-cyan { background: linear-gradient(135deg, #00bcd4 0%, #80deea 100%); }
 .stat-icon.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
 .stat-icon.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }

@@ -10,9 +10,9 @@
   --th-color-text: #1f2937;
   --th-color-text-muted: #6b7280;
   --th-color-border: #e5e7eb;
-  --th-color-primary: #7c3aed;
-  --th-color-primary-strong: #6d28d9;
-  --th-color-primary-soft: #ede9fe;
+  --th-color-primary: #5b5bd6;
+  --th-color-primary-strong: #4747c2;
+  --th-color-primary-soft: #eef0ff;
   --th-color-success: #22c55e;
   --th-color-warning: #f59e0b;
   --th-color-danger: #ef4444;
@@ -27,10 +27,10 @@
   --th-sidebar-border: #e2e8f0;
   --th-sidebar-text: #475569;
   --th-sidebar-text-hover: #1f2937;
-  --th-sidebar-text-active: #7c3aed;
+  --th-sidebar-text-active: #5b5bd6;
   --th-sidebar-item-bg: transparent;
-  --th-sidebar-item-bg-hover: rgba(124, 58, 237, 0.08);
-  --th-sidebar-item-bg-active: rgba(124, 58, 237, 0.16);
+  --th-sidebar-item-bg-hover: rgba(91, 91, 214, 0.08);
+  --th-sidebar-item-bg-active: rgba(91, 91, 214, 0.16);
   --th-header-bg: rgba(255, 255, 255, 0.78);
   --th-header-border: rgba(148, 163, 184, 0.35);
   --th-header-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
@@ -68,9 +68,9 @@
   --th-color-text: #e5e7eb;
   --th-color-text-muted: #9ca3af;
   --th-color-border: #2a3142;
-  --th-color-primary: #8b5cf6;
-  --th-color-primary-strong: #7c3aed;
-  --th-color-primary-soft: rgba(139, 92, 246, 0.15);
+  --th-color-primary: #7c7ce0;
+  --th-color-primary-strong: #5b5bd6;
+  --th-color-primary-soft: rgba(124, 124, 224, 0.15);
   --th-color-info: #38bdf8;
   --th-color-success-soft: rgba(34, 197, 94, 0.16);
   --th-color-warning-soft: rgba(245, 158, 11, 0.18);
@@ -80,10 +80,10 @@
   --th-sidebar-border: #1f2937;
   --th-sidebar-text: #cbd5f5;
   --th-sidebar-text-hover: #ffffff;
-  --th-sidebar-text-active: #a78bfa;
+  --th-sidebar-text-active: #9b9be8;
   --th-sidebar-item-bg: transparent;
-  --th-sidebar-item-bg-hover: rgba(167, 139, 250, 0.12);
-  --th-sidebar-item-bg-active: rgba(167, 139, 250, 0.22);
+  --th-sidebar-item-bg-hover: rgba(124, 124, 224, 0.12);
+  --th-sidebar-item-bg-active: rgba(124, 124, 224, 0.22);
   --th-header-bg: rgba(15, 23, 42, 0.75);
   --th-header-border: rgba(51, 65, 85, 0.6);
   --th-header-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
@@ -329,7 +329,7 @@ body {
 .el-table {
   --el-table-border-color: var(--th-color-border);
   --el-table-header-bg-color: var(--th-color-surface-muted);
-  --el-table-row-hover-bg-color: rgba(124, 58, 237, 0.06);
+  --el-table-row-hover-bg-color: var(--th-color-primary-soft);
 }
 
 .el-table th.el-table__cell {
