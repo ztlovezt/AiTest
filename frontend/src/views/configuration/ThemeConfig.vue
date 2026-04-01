@@ -7,7 +7,7 @@
     <div class="theme-grid">
       <!-- 主题一：Indigo -->
       <div
-        class="theme-card"
+        class="theme-card theme-indigo"
         :class="{ active: appStore.colorTheme === 'indigo' }"
         @click="selectTheme('indigo')"
       >
@@ -45,7 +45,7 @@
 
       <!-- 主题二：Semi Orange -->
       <div
-        class="theme-card"
+        class="theme-card theme-orange"
         :class="{ active: appStore.colorTheme === 'semi-orange' }"
         @click="selectTheme('semi-orange')"
       >
@@ -204,12 +204,12 @@ const selectTheme = (themeKey) => {
 }
 
 /* Hover 效果根据预览主题色 */
-.theme-card:has(.indigo-preview):hover {
+.theme-card.theme-indigo:hover {
   border-color: #5b5bd6;
   box-shadow: 0 8px 24px rgba(91, 91, 214, 0.15);
 }
 
-.theme-card:has(.orange-preview):hover {
+.theme-card.theme-orange:hover {
   border-color: #F5722B;
   box-shadow: 0 8px 24px rgba(245, 114, 43, 0.15);
 }

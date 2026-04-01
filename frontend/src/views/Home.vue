@@ -150,9 +150,11 @@ import {
   Cpu,
   Setting,
   ChatDotRound,
-  UserFilled,
   ArrowDown,
-  Cellphone
+  Cellphone,
+  Compass,
+  Moon,
+  Sunny
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -212,6 +214,7 @@ const handleNavigate = (type) => {
 <style scoped lang="scss">
 .home-container {
   min-height: 100vh;
+  background: linear-gradient(180deg, var(--th-color-bg) 0%, var(--th-color-surface-muted) 100%);
   background:
     radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--th-color-primary) 14%, transparent), transparent 60%),
     radial-gradient(900px 500px at 90% 10%, color-mix(in srgb, var(--th-color-info) 14%, transparent), transparent 55%),
@@ -281,6 +284,7 @@ const handleNavigate = (type) => {
       outline: none;
 
       &:focus-visible {
+        outline: 3px solid var(--th-color-primary-soft);
         outline: 3px solid color-mix(in srgb, var(--th-color-primary) 35%, transparent);
         outline-offset: 2px;
         border-radius: 6px;
@@ -420,6 +424,7 @@ const handleNavigate = (type) => {
   &:hover {
     transform: translateY(-6px);
     box-shadow: var(--th-shadow-md);
+    border-color: var(--th-color-primary-soft);
     border-color: color-mix(in srgb, var(--th-color-primary) 40%, transparent);
     background: var(--th-color-surface);
   }
@@ -460,8 +465,8 @@ const handleNavigate = (type) => {
   box-shadow: inset 0 0 0 1px rgba(31, 41, 55, 0.06);
 
   &.ai-icon {
-    --icon-bg: #ede9fe;
-    --icon-color: #4747c2;
+    --icon-bg: var(--th-color-primary-soft);
+    --icon-color: var(--th-color-primary-strong);
   }
 
   &.api-icon {
@@ -485,8 +490,8 @@ const handleNavigate = (type) => {
   }
 
   &.ai-intelligent-icon {
-    --icon-bg: #e0e7ff;
-    --icon-color: #4338ca;
+    --icon-bg: var(--th-color-primary-soft);
+    --icon-color: var(--th-color-primary);
   }
 
   &.config-icon {

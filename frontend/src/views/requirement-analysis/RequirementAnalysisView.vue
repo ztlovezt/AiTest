@@ -2403,12 +2403,14 @@ export default {
 
 .mode-option:hover .mode-content {
   border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 10%, transparent);
 }
 
 .mode-option.active .mode-content {
   border-color: var(--th-color-primary);
   background: var(--th-color-primary-soft);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   box-shadow: 0 4px 16px color-mix(in srgb, var(--th-color-primary) 20%, transparent);
 }
 
@@ -2470,6 +2472,7 @@ export default {
 .panel-tab.active {
   background: linear-gradient(135deg, var(--th-color-primary), var(--th-color-primary-strong));
   border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 30%, transparent);
 }
 
