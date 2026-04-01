@@ -233,7 +233,8 @@ const handleNavigate = (type) => {
   width: 420px;
   height: 420px;
   border-radius: 50%;
-  background: transparent;
+  background: var(--th-color-primary-soft);
+  background: color-mix(in srgb, var(--th-color-primary) 8%, transparent);
   top: -180px;
   right: -120px;
   filter: blur(2px);
