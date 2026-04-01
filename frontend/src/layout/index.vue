@@ -585,6 +585,14 @@ const handleCommand = (command) => {
   }
 }
 
+/* 侧边栏菜单文字溢出截断 */
+:deep(.el-menu-item span),
+:deep(.el-sub-menu__title span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .el-menu--collapse {
   width: 64px !important;
   
