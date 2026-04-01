@@ -1,8 +1,28 @@
 from rest_framework import serializers
-from django.db import models
+from django.db.models import Sum
 from .models import (
-    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion
+    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion, KnowledgeBaseConfig
 )
+
+class KnowledgeBaseConfigSerializer(serializers.ModelSerializer):
+    """知识库配置序列化器"""
+    class Meta:
+        model = KnowledgeBaseConfig
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        for field in ['embedding_api_key', 'refiner_api_key', 'vision_api_key']:
+            if ret.get(field):
+                key = ret[field]
+                if len(key) > 8:
+                    ret[f'{field}_masked'] = f"{key[:4]}****{key[-4:]}"
+                else:
+                    ret[f'{field}_masked'] = "****"
+            else:
+                ret[f'{field}_masked'] = ""
+        return ret
 
 
 class KnowledgeBaseSerializer(serializers.ModelSerializer):
@@ -35,7 +55,7 @@ class KnowledgeBaseSerializer(serializers.ModelSerializer):
         return obj.documents.count()
 
     def get_total_size(self, obj):
-        total = obj.documents.aggregate(total=models.Sum('file_size'))['total'] or 0
+        total = obj.documents.aggregate(total=Sum('file_size'))['total'] or 0
         return total
 
     def get_category_count(self, obj):

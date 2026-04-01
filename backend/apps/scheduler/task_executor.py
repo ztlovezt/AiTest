@@ -52,13 +52,18 @@ def _build_wechat_message(rendered_content):
 
 def _build_feishu_message(rendered_content, status_text, success):
     """构建飞书消息体"""
+    import re
+    content = rendered_content
+    content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
+    content = re.sub(r'\n#{1,6}\s*', '\n', content)
+    
     return {
         "msg_type": "interactive",
         "card": {
             "elements": [{
                 "tag": "div",
                 "text": {
-                    "content": rendered_content.replace('\n\n', '\n'),
+                    "content": content,
                     "tag": "lark_md"
                 }
             }],
@@ -759,6 +764,7 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
         'task_type': config.get_task_type_display(),
         'module': config.get_module_display(),
         'status': status_text,
+        'status_text': status_text,
         'status_class': 'success' if success else 'failed',
         'execution_time': local_now.strftime('%Y-%m-%d %H:%M:%S'),
         'success': '是' if success else '否',
@@ -823,6 +829,8 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             context['project_name'] = project.name
         except Exception:
             context['project_name'] = ''
+    else:
+        context['project_name'] = ''
     
     if config.environment_id:
         try:
@@ -831,14 +839,17 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             context['environment_name'] = env.name
         except Exception:
             context['environment_name'] = ''
+    else:
+        context['environment_name'] = ''
     
     if config.created_by:
         context['creator'] = config.created_by.username
         if hasattr(config.created_by, 'get_full_name') and config.created_by.get_full_name():
             context['creator'] = config.created_by.get_full_name()
     
-    # 执行人默认为系统
     context['executor'] = '系统自动执行'
+    
+    context['config_name'] = config.schedule.name if config.schedule else 'Unknown'
     
     try:
         from django.conf import settings

@@ -823,7 +823,7 @@ try:
     from pydantic import ConfigDict
 
     ActionModel.model_config = ConfigDict(arbitrary_types_allowed=True, extra='allow')
-    logger.info("✅ Modified ActionModel.model_config to allow extra fields")
+    # logger.info("✅ Modified ActionModel.model_config to allow extra fields")
 except Exception as e:
     logger.warning(f"⚠️ Failed to modify ActionModel config: {e}")
 
@@ -845,6 +845,35 @@ try:
             raise KeyboardInterrupt("Task finished")
 
         kwargs = {'output_format': self.AgentOutput}
+
+        def _build_agent_output(thinking=None, evaluation_previous_goal=None, memory=None, next_goal=None, actions_data=None):
+            parsed = AgentOutput.model_construct(
+                thinking=thinking,
+                evaluation_previous_goal=evaluation_previous_goal,
+                memory=memory,
+                next_goal=next_goal,
+                action=[]
+            )
+
+            class _ActionWrapper:
+                def __init__(self, action_dict):
+                    self._action_dict = action_dict
+
+                def model_dump(self, **kwargs):
+                    return self._action_dict
+
+                def get_index(self):
+                    for action_params in self._action_dict.values():
+                        if isinstance(action_params, dict) and 'index' in action_params:
+                            return action_params['index']
+                    return None
+
+            action_list = []
+            for action_dict in actions_data or []:
+                action_list.append(_ActionWrapper(action_dict))
+
+            object.__setattr__(parsed, 'action', action_list)
+            return parsed
 
         # Add retry logic for LLM invocation with timeout
         max_retries = 2  # 重试次数为2次
@@ -994,32 +1023,13 @@ try:
                         logger.info(
                             f"🔧 Fixed: converted {action_name}({task_id}) to proper format and added to action array")
 
-                parsed = AgentOutput.model_construct(
+                parsed = _build_agent_output(
                     thinking=content_dict.get('thinking'),
                     evaluation_previous_goal=content_dict.get('evaluation_previous_goal'),
                     memory=content_dict.get('memory'),
                     next_goal=content_dict.get('next_goal'),
-                    action=[]
+                    actions_data=content_dict.get('action', [])
                 )
-
-                class _ActionWrapper:
-                    def __init__(self, action_dict):
-                        self._action_dict = action_dict
-
-                    def model_dump(self, **kwargs):
-                        return self._action_dict
-
-                    def get_index(self):
-                        for action_params in self._action_dict.values():
-                            if isinstance(action_params, dict) and 'index' in action_params:
-                                return action_params['index']
-                        return None
-
-                action_list = []
-                for action_dict in content_dict.get('action', []):
-                    action_list.append(_ActionWrapper(action_dict))
-
-                object.__setattr__(parsed, 'action', action_list)
 
                 if len(parsed.action) > self.settings.max_actions_per_step:
                     parsed.action = parsed.action[:self.settings.max_actions_per_step]
@@ -1069,51 +1079,109 @@ try:
                             actions_data = json_module.loads(actions_content)
 
                             # 构造一个简化的 AgentOutput，使用提取的字段
-                            parsed = AgentOutput.model_construct(
+                            parsed = _build_agent_output(
                                 thinking=extracted_fields.get('thinking'),
                                 evaluation_previous_goal=extracted_fields.get('evaluation_previous_goal'),
                                 memory=extracted_fields.get('memory'),
                                 next_goal=extracted_fields.get('next_goal'),
-                                action=[]
+                                actions_data=actions_data
                             )
 
-                            class _ActionWrapper:
-                                def __init__(self, action_dict):
-                                    self._action_dict = action_dict
-
-                                def model_dump(self, **kwargs):
-                                    return self._action_dict
-
-                                def get_index(self):
-                                    for action_params in self._action_dict.values():
-                                        if isinstance(action_params, dict) and 'index' in action_params:
-                                            return action_params['index']
-                                    return None
-
-                            action_list = []
-                            for action_dict in actions_data:
-                                action_list.append(_ActionWrapper(action_dict))
-
-                            object.__setattr__(parsed, 'action', action_list)
-
                             logger.info(
-                                f"🔧 Successfully recovered {len(action_list)} actions and {len(extracted_fields)} fields from malformed JSON")
+                                f"🔧 Successfully recovered {len(parsed.action)} actions and {len(extracted_fields)} fields from malformed JSON")
                             return parsed
                     except Exception as recovery_error:
                         logger.warning(f"⚠️ Failed to recover actions from malformed JSON: {recovery_error}")
 
+                inferred_actions = []
+                mark_complete_match = re.search(r'mark(?:ing)?\s+task\s+(\d+)\s+complete', content_text, re.IGNORECASE)
+                if mark_complete_match:
+                    inferred_actions.append({'mark_task_complete': {'task_id': int(mark_complete_match.group(1))}})
+                elif re.search(r'\bcall(?:ing)?\s+done\b|\ball\s+\d+\s+tasks?\s+completed\b|\ball\s+tasks?\s+completed\b', content_text, re.IGNORECASE):
+                    inferred_actions.append({
+                        'done': {
+                            'success': True,
+                            'text': (extracted_fields.get('memory') or content_text.strip())[:1000]
+                        }
+                    })
+
+                if inferred_actions:
+                    logger.info(f"🔧 Inferred {len(inferred_actions)} actions from malformed response text")
+                    return _build_agent_output(
+                        thinking=extracted_fields.get('thinking'),
+                        evaluation_previous_goal=extracted_fields.get('evaluation_previous_goal'),
+                        memory=extracted_fields.get('memory'),
+                        next_goal=extracted_fields.get('next_goal'),
+                        actions_data=inferred_actions
+                    )
+
             # 最后的回退：调用原始方法
-            return await _original_get_model_output(self, input_messages)
+            fallback_output = await _original_get_model_output(self, input_messages)
+            if fallback_output is None:
+                logger.warning("⚠️ Original get_model_output returned None, using empty AgentOutput")
+                return _build_agent_output(next_goal='Return a valid action.', actions_data=[])
+            return fallback_output
         except Exception as e:
             # 其他异常，直接回退到原始方法
             logger.warning(f"⚠️ Custom output normalization failed, falling back: {e}")
-            return await _original_get_model_output(self, input_messages)
+            fallback_output = await _original_get_model_output(self, input_messages)
+            if fallback_output is None:
+                logger.warning("⚠️ Original get_model_output returned None after fallback, using empty AgentOutput")
+                return _build_agent_output(next_goal='Return a valid action.', actions_data=[])
+            return fallback_output
 
 
     Agent.get_model_output = _patched_get_model_output
-    logger.info("✅ Successfully patched Agent.get_model_output")
+    # logger.info("✅ Successfully patched Agent.get_model_output")
 except Exception as e:
     logger.error(f"❌ Failed to patch Agent.get_model_output: {e}")
+
+try:
+    from browser_use.agent.service import Agent
+    from browser_use.llm.messages import UserMessage as BrowserUseUserMessage
+
+    _original_get_model_output_with_retry = Agent._get_model_output_with_retry
+
+    async def _patched_get_model_output_with_retry(self, input_messages):
+        try:
+            return await _original_get_model_output_with_retry(self, input_messages)
+        except AttributeError as e:
+            if "'NoneType' object has no attribute 'action'" not in str(e):
+                raise
+
+            self.logger.warning('Model returned no structured output. Retrying...')
+            clarification_message = BrowserUseUserMessage(
+                content='You forgot to return an action. Please respond with a valid JSON action according to the expected schema with your assessment and next actions.'
+            )
+            retry_messages = input_messages + [clarification_message]
+            model_output = await self.get_model_output(retry_messages)
+
+            if model_output is None:
+                model_output = self.AgentOutput.model_construct(
+                    thinking=None,
+                    evaluation_previous_goal=None,
+                    memory=None,
+                    next_goal='Return a valid action.',
+                    action=[]
+                )
+
+            if not getattr(model_output, 'action', None):
+                action_instance = self.ActionModel()
+                setattr(
+                    action_instance,
+                    'done',
+                    {
+                        'success': False,
+                        'text': 'No next action returned by LLM!',
+                    },
+                )
+                model_output.action = [action_instance]
+
+            return model_output
+
+    Agent._get_model_output_with_retry = _patched_get_model_output_with_retry
+except Exception as e:
+    logger.error(f"❌ Failed to patch Agent._get_model_output_with_retry: {e}")
 
 # Patch TokenCost
 try:
@@ -1168,6 +1236,7 @@ try:
             sanitized_messages = [_sanitize_message(m) for m in messages]
 
             output_format = kwargs.pop('output_format', None)
+            kwargs.pop('session_id', None)
             if output_format:
                 kwargs['response_format'] = {"type": "json_object"}
 
@@ -1183,6 +1252,9 @@ try:
                     if "response_format" in str(e):
                         kwargs.pop('response_format', None)
                         # retry immediately without response_format
+                        continue
+                    if "unexpected keyword argument 'session_id'" in str(e):
+                        kwargs.pop('session_id', None)
                         continue
 
                     logger.warning(f"⚠️ LLM ainvoke failed (attempt {attempt + 1}/{max_retries}): {e}")
@@ -1358,9 +1430,46 @@ try:
 
 
     TokenCost.register_llm = _patched_register_llm
-    logger.info("✅ Successfully patched TokenCost.register_llm")
+    # logger.info("✅ Successfully patched TokenCost.register_llm")
 except Exception as e:
     logger.error(f"❌ Failed to patch TokenCost: {e}")
+
+try:
+    from browser_use.agent.views import AgentHistory, DOMInteractedElement
+
+    @staticmethod
+    def _patched_get_interacted_element(model_output, selector_map):
+        elements = []
+        for action in getattr(model_output, 'action', []) or []:
+            index = None
+            get_index = getattr(action, 'get_index', None)
+            if callable(get_index):
+                try:
+                    index = get_index()
+                except Exception:
+                    index = None
+            if index is None:
+                try:
+                    action_dict = action.model_dump() if hasattr(action, 'model_dump') else getattr(action, '_action_dict', {})
+                    if isinstance(action_dict, dict):
+                        for action_params in action_dict.values():
+                            if isinstance(action_params, dict) and 'index' in action_params:
+                                index = action_params['index']
+                                break
+                except Exception:
+                    index = None
+            if index is not None and index in selector_map:
+                try:
+                    elements.append(DOMInteractedElement.load_from_enhanced_dom_tree(selector_map[index]))
+                except Exception:
+                    elements.append(None)
+            else:
+                elements.append(None)
+        return elements
+
+    AgentHistory.get_interacted_element = _patched_get_interacted_element
+except Exception as e:
+    logger.error(f"❌ Failed to patch AgentHistory.get_interacted_element: {e}")
 
 # Patch BrowserSession.connect (Windows CDP fix)
 try:
@@ -1406,7 +1515,7 @@ try:
 
 
     BrowserSession.connect = _patched_connect
-    logger.info("✅ Successfully patched BrowserSession.connect")
+    # logger.info("✅ Successfully patched BrowserSession.connect")
 except Exception as e:
     logger.error(f"❌ Failed to patch BrowserSession.connect: {e}")
 
@@ -1481,7 +1590,7 @@ try:
 
 
     ToolRegistry.execute_action = _patched_execute_action
-    logger.info("✅ Successfully patched ToolRegistry.execute_action with alias support")
+    # logger.info("✅ Successfully patched ToolRegistry.execute_action with alias support")
 except Exception as e:
     logger.error(f"❌ Failed to patch ToolRegistry: {e}")
 
@@ -1539,7 +1648,7 @@ try:
 
         on_ScreenshotEvent._is_patched_global = True
         ScreenshotWatchdog.on_ScreenshotEvent = on_ScreenshotEvent
-        logger.info("✅ Applied Global ScreenshotWatchdog Patch")
+        # logger.info("✅ Applied Global ScreenshotWatchdog Patch")
 
     # Patch DOMWatchdog
     from browser_use.browser.watchdogs.dom_watchdog import DOMWatchdog
@@ -1558,7 +1667,7 @@ try:
 
         _capture_clean_screenshot._is_patched_global = True
         DOMWatchdog._capture_clean_screenshot = _capture_clean_screenshot
-        logger.info("✅ Applied Global DOMWatchdog Patch")
+        # logger.info("✅ Applied Global DOMWatchdog Patch")
 
 except Exception as e:
     logger.error(f"❌ Failed to apply Global Watchdog patches: {e}")
@@ -1622,7 +1731,7 @@ try:
 
 
     LocalBrowserWatchdog._find_free_port = _patched_find_free_port
-    logger.info("✅ Successfully patched LocalBrowserWatchdog._find_free_port")
+    # logger.info("✅ Successfully patched LocalBrowserWatchdog._find_free_port")
 except Exception as e:
     logger.error(f"❌ Failed to patch LocalBrowserWatchdog._find_free_port: {e}")
 
@@ -2593,6 +2702,12 @@ class BaseBrowserAgent:
                                             def model_dump(self, **kwargs):
                                                 return self._action_dict
 
+                                            def get_index(self):
+                                                for action_params in self._action_dict.values():
+                                                    if isinstance(action_params, dict) and 'index' in action_params:
+                                                        return action_params['index']
+                                                return None
+
                                         actions = [_FallbackAction(action_dict)]
                                         logger.info(
                                             f"🔧 后备机制从文本中提取到任务状态动作: {action_dict} "
@@ -2687,6 +2802,12 @@ class BaseBrowserAgent:
 
                                                     def model_dump(self, **kwargs):
                                                         return self._action_dict
+
+                                                    def get_index(self):
+                                                        for action_params in self._action_dict.values():
+                                                            if isinstance(action_params, dict) and 'index' in action_params:
+                                                                return action_params['index']
+                                                        return None
 
                                                 # 将推断的动作添加到 actions 列表的末尾，确保所有推断动作都能被处理
                                                 actions.append(_InferredAction(action_dict))

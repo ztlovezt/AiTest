@@ -1447,9 +1447,20 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                                         task.progress = 30
                                         task.save()
 
-                                        generated_cases = loop.run_until_complete(
-                                            AIModelService.generate_test_cases_stream(task, callback=stream_callback)
-                                        )
+                                        try:
+                                            generated_cases = loop.run_until_complete(
+                                                AIModelService.generate_test_cases_stream(task, callback=stream_callback)
+                                            )
+                                        except ValueError as api_error:
+                                            error_msg = str(api_error)
+                                            logger.error(f"任务 {task.task_id} API调用失败: {error_msg}")
+                                            task.final_test_cases = ''
+                                            task.status = 'failed'
+                                            task.progress = 100
+                                            task.error_message = error_msg
+                                            task.completed_at = timezone.now()
+                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at', 'error_message'])
+                                            return
 
                                         # 检查生成结果
                                         logger.info(f"任务 {task.task_id} 生成完成, generated_cases长度: {len(generated_cases) if generated_cases else 0}")
@@ -1467,14 +1478,15 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                                         task.progress = 60
                                         task.save()
 
-                                        # 如果生成结果仍然为空，跳过评审，直接标记完成
+                                        # 如果生成结果仍然为空，标记为失败
                                         if not generated_cases:
                                             logger.error(f"任务 {task.task_id} 生成测试用例失败，需求文本长度: {len(task.requirement_text) if task.requirement_text else 0}")
                                             task.final_test_cases = ''
-                                            task.status = 'completed'
+                                            task.status = 'failed'
                                             task.progress = 100
+                                            task.error_message = 'AI模型未返回有效的测试用例内容，请检查API配置和网络连接'
                                             task.completed_at = timezone.now()
-                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at'])
+                                            task.save(update_fields=['final_test_cases', 'status', 'progress', 'completed_at', 'error_message'])
                                             return
 
                                         # 流式评审和改进（根据生成配置决定是否执行）
@@ -1917,18 +1929,12 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 if origin in allowed_origins:
                     return origin
 
-                # 兼容未配置时的本地开发默认 - 使用配置文件中的前端地址
-                local_defaults = getattr(settings, 'FRONTEND_LOCAL_URLS',
-                                         ['http://localhost:3000', 'http://127.0.0.1:3000'])
-                if origin in local_defaults:
-                    return origin
-
                 # 如果未匹配，优先返回第一个允许的 origin（避免返回错误的 localhost）
                 if allowed_origins:
                     return allowed_origins[0]
 
                 # 最后兜底：返回请求 origin（若存在）- 使用配置文件中的默认前端地址
-                default_url = getattr(settings, 'FRONTEND_DEFAULT_URL', 'http://localhost:3000')
+                default_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:3000')
                 return origin or default_url
             except Exception as e:
                 logger.error(f"获取CORS Origin失败: {e}")
@@ -3323,15 +3329,32 @@ def fetch_axure_url(request):
         content_to_refine = full_content if content_type == 'full' else incremental_content
         if use_ai_refine and content_to_refine:
             try:
-                # 从 config.yaml 读取 AI 配置
-                from backend.config_loader import config_loader
-                import httpx
+                # 优先从知识库数据库配置读取 Refiner 模型信息
+                from apps.knowledge_base.models import KnowledgeBaseConfig
+                db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
+                
+                api_key = None
+                base_url = None
+                model_name = 'qwen-plus'
+                max_tokens = 8192
+                temperature = 0.3
+                
+                if db_config and db_config.refiner_api_key:
+                    api_key = db_config.refiner_api_key
+                    base_url = db_config.refiner_base_url
+                    model_name = db_config.refiner_model or 'qwen-plus'
+                    max_tokens = db_config.refiner_max_tokens or 8192
+                    temperature = db_config.refiner_temperature or 0.3
+                else:
+                    # 回退到 config.yaml
+                    from backend.config_loader import config_loader
+                    api_key = config_loader.get('LLM.QWEN_API_KEY', '')
+                    base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
+                    model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
+                    max_tokens = config_loader.get('LLM.REFINER_MAX_TOKENS', 8192)
+                    temperature = config_loader.get('LLM.REFINER_TEMPERATURE', 0.3)
 
-                api_key = config_loader.get('LLM.QWEN_API_KEY', '')
-                base_url = config_loader.get('LLM.QWEN_BASE_URL', '')
-                model_name = config_loader.get('LLM.REFINER_MODEL', 'qwen-plus')
-                max_tokens = config_loader.get('LLM.REFINER_MAX_TOKENS', 8192)
-                temperature = config_loader.get('LLM.REFINER_TEMPERATURE', 0.3)
+                import httpx
 
                 if api_key and base_url:
                     refine_prompt = f"""请整理以下从Axure原型提取的需求内容，整理为清晰的Markdown格式。

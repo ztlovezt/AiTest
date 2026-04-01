@@ -203,7 +203,8 @@ PATHS_UI_COMPONENT_PACK = paths_config.get('ui_component_pack', 'apps/core/manag
 PATHS_DATA_FACTORY_STATIC_IMG = paths_config.get('data_factory_static_img', 'static_files/img')
 PATHS_APP_AUTOMATION_SCREENSHOTS = paths_config.get('app_automation_screenshots', 'app-automation/screenshots')
 PATHS_UI_AUTOMATION_SCREENSHOTS = paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots')
-PATHS_LOGS = paths_config.get('logs', 'logs')
+PATHS_CHROMA_DB = paths_config.get('chroma_db', '../expand/chroma_db')
+
 
 # 超时配置
 timeouts_config = config_loader.get_timeouts_config()
@@ -218,11 +219,6 @@ TIMEOUTS_PAGE_LOAD_DOMCONTENTLOADED = timeouts_config.get('page_load_domcontentl
 TIMEOUTS_ELEMENT_CLICK = timeouts_config.get('element_click', 2000)
 TIMEOUTS_ELEMENT_SCROLL = timeouts_config.get('element_scroll', 5000)
 TIMEOUTS_SCREENSHOT = timeouts_config.get('screenshot', 5000)
-
-# 前端配置
-frontend_config = config_loader.get_frontend_config()
-FRONTEND_DEFAULT_URL = frontend_config.get('default_url', 'http://localhost:3000')
-FRONTEND_LOCAL_URLS = frontend_config.get('local_urls', ['http://localhost:3000', 'http://127.0.0.1:3000'])
 
 # 缓存配置
 cache_config = config_loader.get_cache_config()

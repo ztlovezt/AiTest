@@ -107,14 +107,6 @@ class ConfigLoader:
         """获取邮件配置"""
         return self.config.get('email', {})
 
-    def get_scheduler_config(self):
-        """获取定时任务配置"""
-        return self.config.get('scheduler', {})
-
-    def get_upload_config(self):
-        """获取文件上传配置"""
-        return self.config.get('upload', {})
-
     def get_allure_config(self):
         """获取 Allure 配置"""
         return self.config.get('allure', {})
@@ -126,14 +118,6 @@ class ConfigLoader:
     def get_timeouts_config(self):
         """获取超时配置"""
         return self.config.get('timeouts', {})
-
-    def get_frontend_config(self):
-        """获取前端配置"""
-        return self.config.get('frontend', {})
-
-    def get_llm_config(self):
-        """获取 LLM 配置"""
-        return self.config.get('LLM', {})
 
 
 # 创建全局配置加载器实例

@@ -245,6 +245,10 @@
                 <span>{{ $t('menu.generationConfig') }}</span>
               </el-menu-item>
             </el-sub-menu>
+            <el-menu-item index="/configuration/knowledge-base">
+              <el-icon><FolderOpened /></el-icon>
+              <span>{{ $t('menu.knowledgeBaseConfig') }}</span>
+            </el-menu-item>
             <el-menu-item index="/configuration/ui-env">
               <el-icon><Monitor /></el-icon>
               <span>{{ $t('menu.uiEnvConfig') }}</span>
@@ -448,6 +452,7 @@ const breadcrumbTitle = computed(() => {
     '/api-testing/environments': t('menu.environmentManagement'),
     '/api-testing/reports': t('menu.testReport'),
     '/api-testing/scheduled-tasks': t('menu.scheduledTasks'),
+    '/api-testing/parameterized-data': t('menu.parameterizedData'),
     '/api-testing/notification-logs': t('menu.notificationList'),
 
     // UI自动化测试
@@ -492,6 +497,7 @@ const breadcrumbTitle = computed(() => {
     '/configuration/ai-model': t('menu.aiModelConfig'),
     '/configuration/prompt-config': t('menu.promptConfigCenter'),
     '/configuration/generation-config': t('menu.generationConfig'),
+    '/configuration/knowledge-base': t('menu.knowledgeBaseConfig'),
     '/configuration/ui-env': t('menu.uiEnvConfig'),
     '/configuration/ai-mode': t('menu.aiModeConfig'),
     '/configuration/scheduled-task': t('menu.scheduledTaskConfig'),

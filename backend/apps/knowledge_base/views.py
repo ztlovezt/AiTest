@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse
@@ -9,17 +10,81 @@ from django.utils import timezone
 import os
 
 from .models import (
-    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion
+    KnowledgeBase, KnowledgeCategory, KnowledgeDocument, DocumentVersion, KnowledgeBaseConfig
 )
 from .serializers import (
     KnowledgeBaseSerializer, KnowledgeBaseCreateSerializer,
     KnowledgeCategorySerializer, KnowledgeCategoryTreeSerializer,
-    KnowledgeDocumentSerializer, DocumentUploadSerializer, DocumentVersionSerializer
+    KnowledgeDocumentSerializer, DocumentUploadSerializer, DocumentVersionSerializer,
+    KnowledgeBaseConfigSerializer
 )
-from .services import knowledge_base_service, DocumentParser
+from .services import (
+    knowledge_base_service, DocumentParser, 
+    get_knowledge_base_config, check_knowledge_base_config
+)
 from backend.log_config import get_logger
 
 logger = get_logger(__name__)
+
+
+class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
+    """知识库大模型配置视图集"""
+    queryset = KnowledgeBaseConfig.objects.all()
+    serializer_class = KnowledgeBaseConfigSerializer
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request, *args, **kwargs):
+        """获取当前激活的配置"""
+        config = self.queryset.filter(is_active=True).first()
+        if not config:
+            return Response({
+                'configured': False,
+                'id': None,
+                'embedding_model': 'text-embedding-v3',
+                'refiner_model': 'qwen-plus',
+                'refiner_max_tokens': 8192,
+                'refiner_temperature': 0.3,
+                'vision_base_url': '',
+                'vision_model': 'glm-4v-flash',
+                'vision_provider': 'zhipu',
+                'message': '未找到激活的配置'
+            })
+        
+        serializer = self.get_serializer(config)
+        data = serializer.data
+        data['configured'] = True
+        return Response(data)
+
+    def create(self, request, *args, **kwargs):
+        """保存/更新配置（单例模式）"""
+        data = request.data
+        config = self.queryset.filter(is_active=True).first()
+        
+        for field in ['embedding_api_key', 'refiner_api_key', 'vision_api_key']:
+            if data.get(field) and data[field].startswith('****') or data.get(field) and '****' in data[field]:
+                if config:
+                    data[field] = getattr(config, field)
+                else:
+                    data.pop(field, None)
+
+        if config:
+            serializer = self.get_serializer(config, data=data, partial=True)
+        else:
+            data['is_active'] = True
+            serializer = self.get_serializer(data=data)
+            
+        serializer.is_valid(raise_exception=True)
+        self.perform_save(serializer)
+        return Response(serializer.data)
+
+    def perform_save(self, serializer):
+        serializer.save()
+
+    @action(detail=False, methods=['post'])
+    def test_connection(self, request):
+        """测试模型连接 (可拓展)"""
+        # 这里可以实现分别测试三种模型连接的逻辑
+        return Response({'message': '测试连接成功', 'status': 'success'})
 
 
 def extract_text_from_file(file_path, document_type):
@@ -48,7 +113,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
     serializer_class = KnowledgeBaseSerializer
     filterset_fields = ['name', 'description', 'project', 'is_active']
     search_fields = ['name', 'description']
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_serializer_class(self):
         """根据操作类型选择序列化器"""
@@ -75,18 +140,25 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
         """创建知识库，支持同时上传初始文档"""
         knowledge_base = serializer.save(created_by=self.request.user)
 
-        # 如果启用了向量化，创建向量集合
         if knowledge_base.enable_vectorization:
-            collection_name = knowledge_base_service.create_knowledge_base_collection(
-                knowledge_base
-            )
-            if collection_name:
-                knowledge_base.vectorization_status = 'processing'
-                knowledge_base.save(update_fields=['vectorization_status'])
-            else:
+            is_valid, error_msg = check_knowledge_base_config(require_embedding=True)
+            if not is_valid:
                 knowledge_base.vectorization_status = 'failed'
-                knowledge_base.vectorization_error = '创建向量集合失败'
-                knowledge_base.save(update_fields=['vectorization_status', 'vectorization_error'])
+                knowledge_base.vectorization_error = error_msg
+                knowledge_base.enable_vectorization = False
+                knowledge_base.save(update_fields=['vectorization_status', 'vectorization_error', 'enable_vectorization'])
+                logger.warning(f"知识库创建时 Embedding 配置检查失败: {error_msg}")
+            else:
+                collection_name = knowledge_base_service.create_knowledge_base_collection(
+                    knowledge_base
+                )
+                if collection_name:
+                    knowledge_base.vectorization_status = 'processing'
+                    knowledge_base.save(update_fields=['vectorization_status'])
+                else:
+                    knowledge_base.vectorization_status = 'failed'
+                    knowledge_base.vectorization_error = '创建向量集合失败'
+                    knowledge_base.save(update_fields=['vectorization_status', 'vectorization_error'])
 
         # 如果有初始上传的文档，异步处理
         initial_document = getattr(knowledge_base, '_initial_document', None)
@@ -112,7 +184,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                         chunk_size=kb.chunk_size,
                         chunk_overlap=kb.chunk_overlap,
                         enable_vectorization=kb.enable_vectorization,
-                        use_glm_direct=getattr(kb, 'use_glm_direct', True)  # 默认使用智谱GLM直接解析
+                        use_vision_direct=getattr(kb, 'use_vision_direct', True)
                     )
                     logger.info(f"初始文档处理完成: {result}")
 
@@ -189,6 +261,18 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
             'archived_count': kb.documents.filter(status='archived').count(),
         })
 
+    @action(detail=False, methods=['get'])
+    def check_config(self, request):
+        """检查知识库配置状态"""
+        config_status = get_knowledge_base_config()
+        return Response({
+            'configured': config_status['configured'],
+            'has_embedding': config_status['has_embedding'],
+            'has_vision': config_status['has_vision'],
+            'has_refiner': config_status['has_refiner'],
+            'message': config_status['message']
+        })
+
     @action(detail=True, methods=['get'])
     def categories_tree(self, request, pk=None):
         """获取知识库分类树形结构"""
@@ -215,6 +299,13 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
         if not kb.enable_vectorization or not kb.collection_name:
             return Response(
                 {'error': '知识库未启用向量化或未完成向量化'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        is_valid, error_msg = check_knowledge_base_config(require_embedding=True)
+        if not is_valid:
+            return Response(
+                {'error': error_msg},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -277,6 +368,14 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                 {'error': '请输入搜索内容'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        if kb.enable_vectorization:
+            is_valid, error_msg = check_knowledge_base_config(require_embedding=True)
+            if not is_valid:
+                return Response(
+                    {'error': error_msg},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
         try:
             results = knowledge_base_service.hybrid_search(

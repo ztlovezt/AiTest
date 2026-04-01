@@ -5,11 +5,11 @@
       <div class="header-actions">
         <el-button type="info" @click="showImportRecords = true">
           <el-icon><List /></el-icon>
-          导入记录
+          {{ $t('testcase.importRecords') }}
         </el-button>
         <el-button type="warning" @click="showImportDialog = true">
           <el-icon><Upload /></el-icon>
-          导入用例
+          {{ $t('testcase.importCases') }}
         </el-button>
         <el-button
           v-if="selectedTestCases.length > 0"
@@ -147,17 +147,17 @@
     </div>
 
     <!-- 导入用例弹窗 -->
-    <el-dialog v-model="showImportDialog" title="导入用例" width="500px">
+    <el-dialog v-model="showImportDialog" :title="$t('testcase.importDialogTitle')" width="500px">
       <div style="margin-bottom: 20px;">
-        <el-alert title="请先下载模板，按模板格式填写后再上传导入" type="info" :closable="false" show-icon />
+        <el-alert :title="$t('testcase.importAlert')" type="info" :closable="false" show-icon />
       </div>
       <el-form label-width="100px">
-        <el-form-item label="所属项目" required>
+        <el-form-item :label="$t('testcase.importProject')" required>
           <el-select v-model="importForm.projectId" placeholder="请选择项目" style="width: 100%;">
             <el-option v-for="project in projects" :key="project.id" :label="project.name" :value="project.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="用例文件" required>
+        <el-form-item :label="$t('testcase.importFile')" required>
           <el-upload
             class="upload-demo"
             action="#"
@@ -168,53 +168,53 @@
             :file-list="importForm.fileList"
           >
             <template #trigger>
-              <el-button type="primary">选择文件</el-button>
+              <el-button type="primary">{{ $t('testcase.selectFile') }}</el-button>
             </template>
             <template #tip>
-              <div class="el-upload__tip">只能上传 excel 文件</div>
+              <div class="el-upload__tip">{{ $t('testcase.excelOnly') }}</div>
             </template>
           </el-upload>
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="downloadImportTemplate" type="success" plain style="float: left;">下载模板</el-button>
-          <el-button @click="showImportDialog = false">取消</el-button>
-          <el-button type="primary" @click="submitImport" :loading="importing">开始导入</el-button>
+          <el-button @click="downloadImportTemplate" type="success" plain style="float: left;">{{ $t('testcase.downloadTemplate') }}</el-button>
+          <el-button @click="showImportDialog = false">{{ $t('testcase.cancel') }}</el-button>
+          <el-button type="primary" @click="submitImport" :loading="importing">{{ $t('testcase.startImport') }}</el-button>
         </span>
       </template>
     </el-dialog>
 
     <!-- 导入记录弹窗 -->
-    <el-dialog v-model="showImportRecords" title="导入记录" width="900px" @open="fetchImportRecords">
+    <el-dialog v-model="showImportRecords" :title="$t('testcase.importRecordsTitle')" width="900px" @open="fetchImportRecords">
       <el-table :data="importRecords" v-loading="loadingRecords" style="width: 100%" max-height="400">
-        <el-table-column prop="file_name" label="文件名" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="project_name" label="所属项目" width="120" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="file_name" :label="$t('testcase.fileName')" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="project_name" :label="$t('testcase.importProject')" width="120" />
+        <el-table-column prop="status" :label="$t('testcase.importStatus')" width="100">
           <template #default="{ row }">
             <el-tag :type="getImportStatusType(row.status)">{{ getImportStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="进度" width="120">
+        <el-table-column :label="$t('testcase.importProgress')" width="120">
           <template #default="{ row }">
             <el-progress :percentage="row.progress" :status="row.status === 'success' ? 'success' : (row.status === 'failed' ? 'exception' : '')" />
           </template>
         </el-table-column>
-        <el-table-column label="结果统计" width="180">
+        <el-table-column :label="$t('testcase.importResultStats')" width="180">
           <template #default="{ row }">
-            <span style="color: var(--th-color-success)">成功: {{ row.success_count }}</span> | 
-            <span style="color: #F56C6C">失败: {{ row.failed_count }}</span> | 
-            <span style="color: #E6A23C">重复: {{ row.duplicate_count }}</span>
+            <span style="color: var(--th-color-success)">{{ $t('testcase.success') }}: {{ row.success_count }}</span> |
+            <span style="color: #F56C6C">{{ $t('testcase.failed') }}: {{ row.failed_count }}</span> |
+            <span style="color: #E6A23C">{{ $t('testcase.duplicate') }}: {{ row.duplicate_count }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="导入时间" width="160">
+        <el-table-column prop="created_at" :label="$t('testcase.importTime')" width="160">
           <template #default="{ row }">
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
+        <el-table-column :label="$t('testcase.importActions')" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.error_summary && row.error_summary.length > 0" type="primary" link @click="showErrorDetail(row)">查看明细</el-button>
+            <el-button v-if="row.error_summary && row.error_summary.length > 0" type="primary" link @click="showErrorDetail(row)">{{ $t('testcase.viewDetail') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -230,10 +230,10 @@
     </el-dialog>
 
     <!-- 错误明细弹窗 -->
-    <el-dialog v-model="showErrorDialog" title="导入错误明细" width="600px" append-to-body>
+    <el-dialog v-model="showErrorDialog" :title="$t('testcase.importErrorDetail')" width="600px" append-to-body>
       <el-table :data="currentErrorDetail" style="width: 100%" max-height="300">
-        <el-table-column prop="row" label="Excel行号" width="100" />
-        <el-table-column prop="error" label="错误原因" />
+        <el-table-column prop="row" :label="$t('testcase.excelRow')" width="100" />
+        <el-table-column prop="error" :label="$t('testcase.errorReason')" />
       </el-table>
     </el-dialog>
 

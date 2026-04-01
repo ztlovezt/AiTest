@@ -274,6 +274,7 @@ export default {
     networkError: '网络错误: 无法连接到服务器，请检查网络连接',
     error: '错误',
     pleaseEnterCategoryName: '请输入分类名称',
+    delete: '删除',
     deleteSuccess: '删除成功',
     deleteFailed: '删除失败',
     confirmDeleteCategoryMessage: '确定要删除分类',
@@ -940,5 +941,22 @@ export default {
     confirm: '确定',
     cancel: '取消',
     tip: '提示'
+  },
+
+  settings: {
+    title: 'APP 自动化配置',
+    adbPath: 'ADB 路径',
+    adbPathPlaceholder: '例如: adb 或 D:\\Android\\platform-tools\\adb.exe',
+    adbPathTip: 'Android Debug Bridge 工具路径。如果 ADB 在系统 PATH 中，填写 "adb" 即可',
+    saveConfig: '保存配置',
+    reset: '重置',
+    currentConfigInfo: '当前配置信息',
+    adbPathLabel: 'ADB 路径',
+    updateTime: '更新时间',
+    createTime: '创建时间',
+    adbPathRequired: '请输入 ADB 路径',
+    loadConfigFailed: '加载配置失败',
+    saveConfigSuccess: '配置保存成功',
+    saveConfigFailed: '配置保存失败'
   }
 }

@@ -857,11 +857,16 @@ export default {
       pauseSuccess: 'Task paused',
       pauseFailed: 'Failed to pause task',
       resumeSuccess: 'Task resumed',
-      resumeFailed: 'Failed to resume task'
+      resumeFailed: 'Failed to resume task',
+      nameRequired: 'Please enter task name',
+      scheduleTypeRequired: 'Please select schedule type',
+      testSuiteRequired: 'Please select test suite',
+      testCaseRequired: 'Please select test case',
+      cronRequired: 'Please enter Cron expression',
+      minutesRequired: 'Please enter interval minutes',
+      nextRunRequired: 'Please select execution time'
     }
   },
-
-  // Notifications
   notification: {
     title: 'Notification Management',
     logs: {
@@ -1295,6 +1300,21 @@ export default {
     targetElement: 'Target Element:',
     stepDesc: 'Step Description:',
     detailErrorInfo: 'Detailed Error Info:',
+    variableCategory: {
+      randomNumber: 'Random Number',
+      randomString: 'Random String'
+    },
+    variable: {
+      randomInt: {
+        desc: 'Generate random integer within specified range, params: min, max, count'
+      },
+      randomFloat: {
+        desc: 'Generate random float within specified range, params: min, max, precision, count'
+      },
+      randomString: {
+        desc: 'Generate random string, params: length, char_type(all/letter/number), count'
+      }
+    },
     variableCategories: {
       randomNumber: 'Random Number',
       randomString: 'Random String',

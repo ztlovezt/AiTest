@@ -24,6 +24,8 @@ export default {
       title: 'Dashboard',
       totalProjects: 'Total Projects',
       apiProjects: 'API Projects',
+      aiProjects: 'AI Case Gen Projects',
+      aiTestProjects: 'AI Smart Test Projects',
       uiProjects: 'UI Projects',
       appProjects: 'APP Projects',
       recentProjects: 'Recent Projects',
@@ -62,8 +64,6 @@ export default {
       deleteFailed: 'Failed to delete project',
       deleteConfirm: 'Are you sure to delete this project? This action cannot be undone.'
     },
-    aiProjects: 'AI Case Generation Projects',
-    aiTestProjects: 'AI Intelligent Testing Projects',
     configLabels: {
       baseUrl: 'Base URL',
       timeout: 'Timeout',
@@ -81,6 +81,13 @@ export default {
       members: 'Members',
       startDate: 'Start Date',
       projectType: 'Project Type'
+    },
+    moduleTypes: {
+      AI: 'AI Case Generation',
+      AI_TEST: 'AI Smart Testing',
+      API: 'API Testing',
+      UI: 'UI Automation',
+      APP: 'APP Automation'
     }
   },
   project: {

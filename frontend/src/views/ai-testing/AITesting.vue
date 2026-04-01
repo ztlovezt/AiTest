@@ -146,15 +146,7 @@ import { ElMessage } from 'element-plus'
 import { VideoPlay, DocumentAdd, CircleCheckFilled, CircleCheck, Loading, SwitchButton } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { getMetaProjects } from '@/api/unified-projects'
-import { createAICase, stopAIExecution, getAIExecutionRecord, getAiProjects } from '@/api/ai-testing'
-import request from '@/utils/api'
-
-// Adhoc 执行单独的接口
-const runAdhocAITask = (data) => request({
-  url: '/ai-testing/ai-cases/adhoc/',
-  method: 'post',
-  data
-})
+import { createAICase, stopAIExecution, getAIExecutionRecord, getAiProjects, runAdhocAICase } from '@/api/ai-testing'
 
 const { t } = useI18n()
 
@@ -214,7 +206,7 @@ const handleRun = async () => {
   plannedTasks.value = []
 
   try {
-    const response = await runAdhocAITask({
+    const response = await runAdhocAICase({
       project_id: projectId.value,
       task_description: taskForm.description,
       execution_mode: 'text',

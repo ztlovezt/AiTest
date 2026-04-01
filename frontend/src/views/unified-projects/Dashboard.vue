@@ -27,7 +27,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiProjects }}</div>
-            <div class="stat-label" :title="$t('unifiedProject.aiProjects')">{{ $t('unifiedProject.aiProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.aiProjects')">{{ $t('unifiedProject.dashboard.aiProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -38,7 +38,7 @@
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiTestProjects }}</div>
-            <div class="stat-label" :title="$t('unifiedProject.aiTestProjects')">{{ $t('unifiedProject.aiTestProjects') }}</div>
+            <div class="stat-label" :title="$t('unifiedProject.dashboard.aiTestProjects')">{{ $t('unifiedProject.dashboard.aiTestProjects') }}</div>
           </div>
         </div>
       </el-col>
@@ -313,8 +313,9 @@ const getStatusText = (status) => {
 }
 
 const getModuleLabel = (type) => {
-  const labelMap = { AI: t('modules.aiGeneration'), AI_TEST: t('modules.aiIntelligentMode'), API: 'API', UI: 'UI', APP: 'APP' }
-  return labelMap[type] || type
+  const keyMap = { AI: 'AI', AI_TEST: 'AI_TEST', API: 'API', UI: 'UI', APP: 'APP' }
+  const key = keyMap[type]
+  return key ? t(`unifiedProject.moduleTypes.${key}`) : type
 }
 
 const formatDate = (dateStr) => {

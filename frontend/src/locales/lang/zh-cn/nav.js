@@ -43,6 +43,7 @@ export default {
     requestHistory: '请求历史',
     environmentManagement: '环境管理',
     scheduledTasks: '定时任务',
+    parameterizedData: '参数化数据',
     notificationList: '通知列表',
 
     // UI自动化
@@ -78,6 +79,7 @@ export default {
     aiModelConfig: '用例模型配置',
     promptConfigCenter: '提示词配置',
     generationConfig: '生成行为配置',
+    knowledgeBaseConfig: '知识库配置',
     uiEnvConfig: 'UI环境配置',
     appEnvConfig: 'APP环境配置',
     aiModeConfig: 'AI智能模式配置',

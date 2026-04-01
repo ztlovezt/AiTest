@@ -20,7 +20,8 @@ class TestCaseImportTemplateView(APIView):
         ws = wb.active
         ws.title = "测试用例导入模板"
 
-        headers = ['用例标题', '用例描述', '前置条件', '操作步骤', '预期结果', '优先级', '状态', '测试类型']
+        # 去掉 '用例描述' 和 '状态'，增加 '关联版本'
+        headers = ['用例标题', '前置条件', '操作步骤', '预期结果', '优先级', '测试类型', '关联版本']
         ws.append(headers)
 
         # Style headers
@@ -33,7 +34,7 @@ class TestCaseImportTemplateView(APIView):
             ws.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = 20
 
         # Sample data
-        sample_data = ['登录成功验证', '测试正常账号登录', '账号已注册', '1.输入账号\n2.输入密码\n3.点击登录', '登录成功，跳转首页', '高', '草稿', '功能测试']
+        sample_data = ['登录成功验证', '账号已注册', '1.输入账号\n2.输入密码\n3.点击登录', '登录成功，跳转首页', '高', '功能测试', 'v1.0.0,v1.1.0']
         ws.append(sample_data)
 
         # Save to response

@@ -121,29 +121,41 @@
             class="panel-tab"
             :class="{ active: activePanel === 'manual' }"
             @click="activePanel = 'manual'">
-            <span class="panel-icon manual-icon">✏️</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</span>
+            <div class="panel-icon manual-icon">✏️</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.manualInputDesc') }}</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'upload' }"
             @click="activePanel = 'upload'">
-            <span class="panel-icon upload-icon">📄</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</span>
+            <div class="panel-icon upload-icon">📄</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.uploadDesc') }}</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'knowledge' }"
-            @click="activePanel = 'knowledge'">
-            <span class="panel-icon knowledge-icon">📚</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</span>
+            @click="handleKnowledgePanelClick">
+            <div class="panel-icon knowledge-icon">📚</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.knowledgeBaseDesc') }}</div>
+            </div>
           </div>
           <div
             class="panel-tab"
             :class="{ active: activePanel === 'axure' }"
-            @click="activePanel = 'axure'">
-            <span class="panel-icon axure-icon">🎨</span>
-            <span class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</span>
+            @click="handleAxurePanelClick">
+            <div class="panel-icon axure-icon">🎨</div>
+            <div class="panel-content-wrapper">
+              <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
+              <div class="panel-desc">{{ $t('requirementAnalysis.axureDesc') }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -372,7 +384,7 @@
               <div v-for="(result, index) in knowledgeSearchResults" :key="index" class="result-item">
                 <div class="result-header">
                   <span class="result-index">#{{ index + 1 }}</span>
-                  <span class="result-score">{{ $t('knowledgeBase.similarity') }}: {{ (result.score * 100).toFixed(1) }}%</span>
+                  <span class="result-score">{{ $t('knowledgeBase.similarity') }}: {{ ((result.similarity || 0) * 100).toFixed(1) }}%</span>
                 </div>
                 <div class="result-content">{{ result.content }}</div>
                 <div class="result-meta" v-if="result.document_title">
@@ -636,7 +648,7 @@ import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
 import * as XLSX from 'xlsx'
 import { useUserStore } from '@/stores/user'
-import { hybridSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
+import { hybridSearch, semanticSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
 import { marked } from 'marked'
 
 export default {
@@ -791,6 +803,62 @@ export default {
   },
 
   methods: {
+    async checkKbConfigAndSwitchPanel(panelName) {
+      try {
+        const response = await api.get('/knowledge-base/check_config/')
+        const config = response.data
+        
+        // 如果是 Axure 面板，主要依赖 Refiner 模型（如果有使用AI结构化）和配置情况
+        // 这里为了统一和严格，我们在进入这两个依赖大模型的面板时都做统一的完整性校验
+        if (config.has_embedding && config.has_vision && config.has_refiner) {
+          this.activePanel = panelName
+        } else {
+          const buildStatusHtml = (name, isConfigured) => {
+            const icon = isConfigured ? '<span style="color: #67c23a; margin-right: 8px;">✓</span>' : '<span style="color: #f56c6c; margin-right: 8px;">✗</span>'
+            const color = isConfigured ? '#606266' : '#f56c6c'
+            return `<div style="margin: 8px 0; display: flex; align-items: center; color: ${color}; font-size: 14px;">${icon} ${name}</div>`
+          }
+
+          const htmlContent = `
+            <div style="margin-bottom: 16px; font-size: 14px; color: #606266;">您的知识库 AI 模型配置尚未完善，缺少以下必要配置：</div>
+            <div style="background-color: #f8f9fa; padding: 12px 20px; border-radius: 4px; margin-bottom: 16px;">
+              ${buildStatusHtml('Embedding 模型 (用于向量化检索)', config.has_embedding)}
+              ${buildStatusHtml('Vision 模型 (用于图文解析)', config.has_vision)}
+              ${buildStatusHtml('Refiner 模型 (用于内容结构化总结)', config.has_refiner)}
+            </div>
+            <div style="font-size: 13px; color: #909399;">建议您先前往设置中心完成配置，否则部分功能将无法正常使用。</div>
+          `
+          
+          this.$confirm(
+            htmlContent,
+            '配置缺失提示',
+            {
+              confirmButtonText: '前往配置',
+              cancelButtonText: '取消',
+              type: 'warning',
+              dangerouslyUseHTMLString: true,
+              customClass: 'kb-config-warning-dialog'
+            }
+          ).then(() => {
+            this.$router.push('/configuration/knowledge-base')
+          }).catch(() => {
+            // 用户点击取消，不切换面板
+          })
+        }
+      } catch (error) {
+        console.error('检查知识库配置失败:', error)
+        this.activePanel = panelName // 接口失败时降级允许进入
+      }
+    },
+
+    async handleKnowledgePanelClick() {
+      await this.checkKbConfigAndSwitchPanel('knowledge')
+    },
+
+    async handleAxurePanelClick() {
+      await this.checkKbConfigAndSwitchPanel('axure')
+    },
+
     async loadProjects() {
       try {
         const response = await api.get('/projects/')
@@ -2435,60 +2503,127 @@ export default {
   color: #475569;
 }
 
-/* 面板选择器样式 */
+/* 面板选择器样式 - 现代化改进 */
 .panel-selector {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .panel-tabs {
-  display: flex;
-  gap: 16px;
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e1e8ed;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+  border: none;
 }
 
 .panel-tab {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 20px;
-  border-radius: 10px;
+  display: block;
+  padding: 24px;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  background: #f8f9fa;
-  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+  position: relative;
+  overflow: hidden;
+  height: 180px; /* 增加高度以容纳多行文本 */
+  box-sizing: border-box;
+}
+
+.panel-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: transparent;
+  transition: background 0.3s ease;
 }
 
 .panel-tab:hover {
-  background: #e9ecef;
-  transform: translateY(-2px);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-color: #cbd5e1;
 }
 
 .panel-tab.active {
   background: linear-gradient(135deg, var(--th-color-primary), var(--th-color-primary-strong));
   border-color: var(--th-color-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 30%, transparent);
 }
 
-.panel-tab.active .panel-label {
-  color: white;
-  font-weight: 600;
+.panel-tab.active::before {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
 }
 
 .panel-icon {
-  font-size: 2rem;
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 2.2rem;
+  line-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  text-align: center;
+  margin: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.panel-tab.active .panel-icon {
+  background: #eff6ff;
+  transform: scale(1.05);
+}
+
+.panel-content-wrapper {
+  position: absolute;
+  top: 92px; /* icon(24+56) + 12px 间距 */
+  left: 24px;
+  right: 24px;
+  display: block;
 }
 
 .panel-label {
-  font-size: 0.95rem;
-  color: #495057;
-  text-align: center;
+  font-size: 1.1rem;
+  color: #334155;
+  font-weight: 600;
+  text-align: left;
+  line-height: 24px;
+  height: 24px;
+  margin: 0 0 8px 0; /* 底部间距 */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.3s ease;
+}
+
+.panel-tab.active .panel-label {
+  color: #1d4ed8;
+}
+
+.panel-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.6;
+  height: 3.2em; /* 1.6 * 2行 = 3.2em，保证有足够空间渲染两行 */
+  text-align: left;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2; /* 限制2行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 面板内容样式 */

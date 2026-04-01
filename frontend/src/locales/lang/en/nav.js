@@ -37,21 +37,24 @@ export default {
     testReport: 'Report Management',
 
     // API Testing
-    apiDashboard: 'Dashboard',
+    dashboard: 'Dashboard',
     interfaceManagement: 'Interface Management',
     automationTesting: 'Automation Testing',
     requestHistory: 'Request History',
     environmentManagement: 'Environment Management',
+    scheduledTasks: 'Scheduled Tasks',
     apiScheduledTasks: 'Scheduled Tasks',
+    parameterizedData: 'Parameterized Data',
+    notificationList: 'Notification List',
     apiNotificationList: 'Notification List',
 
     // UI Automation
-    uiElementManagement: 'Element Management',
-    uiCaseManagement: 'Case Management',
+    elementManagement: 'Element Management',
+    caseManagement: 'Case Management',
     scriptGeneration: 'Script Generation',
     scriptList: 'Script List',
     suiteManagement: 'Suite Management',
-    uiExecutionRecords: 'Execution Records',
+    executionRecords: 'Execution Records',
 
     // APP Automation
     appDashboard: 'Dashboard',
@@ -74,13 +77,14 @@ export default {
     aiExecutionRecords: 'AI Test Reports',
 
     // Configuration Center
-    aiCaseGenerationConfig: 'AI Test Case Config',
+    aiCaseGenerationConfig: 'AI Case Generation Config',
     aiModelConfig: 'Model Config',
-    promptConfigCenter: 'Prompt Configuration',
-    generationConfig: 'Generation Behavior Config',
-    uiEnvConfig: 'UI Environment Configuration',
-    appEnvConfig: 'APP Environment Configuration',
-    aiModeConfig: 'AI Mode Configuration',
+    promptConfigCenter: 'Prompt Config',
+    generationConfig: 'Generation Config',
+    knowledgeBaseConfig: 'Knowledge Base Config',
+    uiEnvConfig: 'UI Environment',
+    appEnvConfig: 'APP Environment',
+    aiModeConfig: 'AI Intelligent Mode',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',
     themeConfig: 'Theme Configuration',

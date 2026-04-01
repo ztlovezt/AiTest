@@ -680,7 +680,7 @@ export function toggleSchedulerSchedule(id, is_active) {
 // 立即运行任务
 export function executeSchedulerSchedule(id) {
   return request({
-    url: `/scheduler/schedules/${id}/run_now/`,
+    url: `/scheduler/schedules/${id}/execute/`,
     method: 'post'
   })
 }

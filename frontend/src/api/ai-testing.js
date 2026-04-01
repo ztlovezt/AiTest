@@ -75,7 +75,16 @@ export function deleteAICase(id) {
 // 执行AI用例
 export function executeAICase(id, data) {
   return request({
-    url: `/ai-testing/ai-cases/${id}/execute/`,
+    url: `/ai-testing/ai-cases/${id}/run/`,
+    method: 'post',
+    data
+  })
+}
+
+// 执行临时AI任务
+export function runAdhocAICase(data) {
+  return request({
+    url: '/ai-testing/ai-execution-records/run_adhoc/',
     method: 'post',
     data
   })
@@ -135,18 +144,20 @@ export function batchDeleteAIExecutionRecords(ids) {
 
 // ================= 报告相关 =================
 // 获取执行报告
-export function getAIExecutionReport(id) {
+export function getAIExecutionReport(id, params = {}) {
   return request({
     url: `/ai-testing/ai-execution-records/${id}/report/`,
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 
 // 导出PDF报告
-export function exportAIExecutionReportPDF(id) {
+export function exportAIExecutionReportPDF(id, params = {}) {
   return request({
     url: `/ai-testing/ai-execution-records/${id}/export_pdf/`,
     method: 'get',
+    params,
     responseType: 'blob'
   })
 }

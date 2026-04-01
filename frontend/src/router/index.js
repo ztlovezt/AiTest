@@ -261,6 +261,11 @@ const routes = [
         component: ApiAIServiceConfig
       },
       {
+        path: 'parameterized-data',
+        name: 'ParameterizedData',
+        component: () => import('@/views/api-testing/ParameterizedData.vue')
+      },
+      {
         path: 'notification-logs',
         name: 'ApiNotificationLogs',
         component: NotificationLogs
@@ -432,6 +437,11 @@ const routes = [
             path: 'generation-config',
             name: 'ConfigGenerationConfig',
             component: () => import('@/views/requirement-analysis/GenerationConfigView.vue')
+          },
+          {
+            path: 'knowledge-base',
+            name: 'ConfigKnowledgeBase',
+            component: () => import('@/views/configuration/KnowledgeBaseConfig.vue')
           },
           {
             path: 'ui-env',
