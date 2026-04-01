@@ -311,24 +311,12 @@
               </el-dropdown>
 
               <!-- 主题切换 -->
-              <el-dropdown @command="handleThemeChange" class="theme-dropdown">
-                <span class="icon-button" :title="currentThemeLabel">
-                  <el-icon>
-                    <Sunny v-if="appStore.theme === 'hoppscotch-light'" />
-                    <Moon v-else />
-                  </el-icon>
-                </span>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item class="icon-only-item" command="hoppscotch-light" :disabled="appStore.theme === 'hoppscotch-light'" :title="$t('nav.themeLight')">
-                      <el-icon><Sunny /></el-icon>
-                    </el-dropdown-item>
-                    <el-dropdown-item class="icon-only-item" command="hoppscotch-dark" :disabled="appStore.theme === 'hoppscotch-dark'" :title="$t('nav.themeDark')">
-                      <el-icon><Moon /></el-icon>
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <span class="icon-button" :title="appStore.theme === 'hoppscotch-light' ? $t('nav.themeDark') : $t('nav.themeLight')" @click="toggleTheme">
+                <el-icon>
+                  <Moon v-if="appStore.theme === 'hoppscotch-light'" />
+                  <Sunny v-else />
+                </el-icon>
+              </span>
 
               <!-- 用户信息 -->
               <el-dropdown @command="handleCommand" class="user-dropdown">
@@ -366,7 +354,7 @@ import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {
   Monitor, Folder, Document, Flag, Check, Collection, VideoPlay,
   DataAnalysis, ChatDotRound, DocumentCopy, Link, MagicStick,
-  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush
+  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush, Moon, Sunny
 } from '@element-plus/icons-vue'
 import logoSvg from '@/assets/images/logo.svg'
 import logoHomePng from '@/assets/images/logo_home.png'
@@ -402,6 +390,10 @@ const userAvatarUrl = computed(() => {
 const handleLanguageChange = (lang) => {
   appStore.setLanguage(lang)
   ElMessage.success(t('nav.languageSwitched'))
+}
+
+const toggleTheme = () => {
+  appStore.setTheme(appStore.theme === 'hoppscotch-light' ? 'hoppscotch-dark' : 'hoppscotch-light')
 }
 
 const currentModule = computed(() => {
@@ -740,30 +732,6 @@ const handleCommand = (command) => {
         font-size: 18px;
         margin-right: 5px;
         line-height: 1;
-      }
-
-      span {
-        margin: 0 4px;
-      }
-
-      &:hover {
-        color: var(--th-color-primary);
-      }
-    }
-  }
-
-  .theme-dropdown {
-    .theme-selector {
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      color: var(--th-color-text);
-      font-size: 14px;
-      outline: none;
-
-      .theme-icon {
-        font-size: 16px;
-        margin-right: 6px;
       }
 
       span {
