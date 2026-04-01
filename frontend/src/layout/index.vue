@@ -723,6 +723,10 @@ const handleCommand = (command) => {
     background: transparent;
   }
 
+  :global([data-theme="hoppscotch-dark"]) :deep(.icon-button .el-avatar img) {
+    filter: invert(1);
+  }
+
   .language-dropdown {
     .language-selector {
       display: flex;

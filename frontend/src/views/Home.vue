@@ -380,6 +380,10 @@ const handleNavigate = (type) => {
   background: transparent;
 }
 
+:global([data-theme="hoppscotch-dark"]) .icon-button .el-avatar :deep(img) {
+  filter: invert(1);
+}
+
 :deep(.icon-only-item) {
   display: flex;
   align-items: center;
