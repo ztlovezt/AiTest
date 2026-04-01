@@ -623,7 +623,7 @@ const loadProjects = async () => {
     const response = await getUiProjects({ page_size: 100 })
     projects.value = response.data.results || response.data
   } catch (error) {
-    ElMessage.error('获取项目列表失败')
+    ElMessage.error(t('uiAutomation.project.messages.loadFailed'))
     console.error('获取项目列表失败:', error)
   }
 }
@@ -844,8 +844,8 @@ const runTestCase = async (testCase) => {
     console.error('执行测试用例失败:', error)
 
     // 即使出错也要设置执行结果,显示错误信息
-    const errorMessage = error.response?.data?.message || error.message || '执行失败'
-    const errorLogs = error.response?.data?.logs || `测试用例执行出错\n\n错误信息: ${errorMessage}`
+    const errorMessage = error.response?.data?.message || error.message || t('uiAutomation.testCase.run.executionError')
+    const errorLogs = error.response?.data?.logs || `${t('uiAutomation.testCase.run.executionErrorLog')}\n\n${t('uiAutomation.testCase.run.errorMessage')}: ${errorMessage}`
 
     // 格式化错误信息为统一的对象格式
     const errors = error.response?.data?.errors || [{
@@ -915,7 +915,7 @@ const deleteTestCase = async (testCase) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除测试用例失败:', error)
-      ElMessage.error('删除失败')
+      ElMessage.error(t('uiAutomation.testCase.delete.failed'))
     }
   }
 }
@@ -947,7 +947,7 @@ const copyTestCase = async (testCase) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('复制测试用例失败:', error)
-      ElMessage.error('复制失败')
+      ElMessage.error(t('uiAutomation.testCase.copy.failed'))
     }
   }
 }
@@ -984,7 +984,7 @@ const loadVariableFunctions = async () => {
     if (Array.isArray(functionsData)) {
       // 如果是数组格式
       functionsData.forEach(func => {
-        const category = func.category || '未分类'
+        const category = func.category || t('uiAutomation.testCase.variableCategory.uncategorized')
         if (!grouped[category]) {
           grouped[category] = []
         }
@@ -1012,7 +1012,16 @@ const loadVariableFunctions = async () => {
     console.log('按分类组织后的函数:', grouped)
     
     // 定义固定的分类顺序
-    const categoryOrder = ['随机数', '测试数据', '字符串', '编码转换', '加密', '时间日期', 'Crontab', '未分类']
+    const categoryOrder = [
+      t('uiAutomation.testCase.variableCategory.randomNumber'),
+      t('uiAutomation.testCase.variableCategory.testData'),
+      t('uiAutomation.testCase.variableCategory.string'),
+      t('uiAutomation.testCase.variableCategory.encoding'),
+      t('uiAutomation.testCase.variableCategory.encryption'),
+      t('uiAutomation.testCase.variableCategory.dateTime'),
+      'Crontab',
+      t('uiAutomation.testCase.variableCategory.uncategorized')
+    ]
     
     // 按固定顺序构建分类列表
     const orderedCategories = []
@@ -1038,7 +1047,7 @@ const loadVariableFunctions = async () => {
     variableCategories.value = orderedCategories
   } catch (error) {
     console.error('加载变量函数失败:', error)
-    ElMessage.error('加载变量函数失败，使用本地数据')
+    ElMessage.error(t('uiAutomation.testCase.messages.loadVariableFailed'))
     useLocalVariableCategories()
   } finally {
     loading.value = false

@@ -195,7 +195,7 @@ import {
   getOperationLogs
 } from '@/api/api-testing'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // 统计数据
 const projectCount = ref(0)
@@ -285,7 +285,8 @@ const formatTime = (timeStr) => {
     return t('apiTesting.dashboard.timeFormat.daysAgo', { n: Math.floor(diff / 86400000) })
   }
   // 超过7天显示具体日期
-  return date.toLocaleString('zh-CN', {
+  const loc = locale.value === 'zh-cn' ? 'zh-CN' : 'en-US'
+  return date.toLocaleString(loc, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',

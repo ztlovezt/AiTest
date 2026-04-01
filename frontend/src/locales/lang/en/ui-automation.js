@@ -246,11 +246,14 @@ export default {
       container: 'Container'
     },
     // Context menu
+    unassignedPage: 'Unassigned Page',
     contextMenu: {
       addElement: 'Add Element',
       addSubPage: 'Add Sub Page',
       edit: 'Edit',
-      delete: 'Delete'
+      delete: 'Delete',
+      copyElement: 'Copy Element',
+      deleteElement: 'Delete Element'
     },
     locatorTip: {
       title: 'Tip: Enter locator value based on strategy',
@@ -302,7 +305,10 @@ export default {
       copySuccess: 'Copy successful',
       copyFailed: 'Copy failed',
       moveSuccess: 'Move successful',
-      moveFailed: 'Move failed'
+      moveFailed: 'Move failed',
+      unassignedCannotCreateSubPage: 'Cannot create sub pages under unassigned page node',
+      unassignedCannotEdit: 'Cannot edit unassigned page node',
+      unassignedCannotDelete: 'Cannot delete unassigned page node'
     }
   },
 
@@ -696,6 +702,10 @@ export default {
       yearly: 'Yearly'
     },
     triggerType: 'Trigger Type',
+    notConfigured: 'Not Configured',
+    notificationKeywords: {
+      email: 'Email'
+    },
     triggerTypes: {
       cron: 'Cron Expression',
       interval: 'Fixed Interval',
@@ -825,6 +835,13 @@ export default {
     },
     messages: {
       selectProject: 'Please select a project first',
+      nameRequired: 'Please enter task name',
+      scheduleTypeRequired: 'Please select schedule type',
+      testSuiteRequired: 'Please select a test suite',
+      testCaseRequired: 'Please select at least one test case',
+      cronRequired: 'Please enter Cron expression',
+      minutesRequired: 'Please enter interval minutes',
+      nextRunRequired: 'Please select execution time',
       loadFailed: 'Failed to load task list',
       loadSuitesFailed: 'Failed to load test suites',
       createSuccess: 'Task created successfully',
@@ -1180,7 +1197,10 @@ export default {
       start: 'Starting test case - {engine} engine / {browser} browser / {mode} mode',
       success: 'Test case executed successfully',
       failed: 'Test case execution failed',
-      failedWithMessage: 'Test case execution failed: {message}'
+      failedWithMessage: 'Test case execution failed: {message}',
+      executionError: 'Execution failed',
+      executionErrorLog: 'Test case execution error',
+      errorMessage: 'Error message'
     },
     runMode: {
       headless: 'Headless',
@@ -1282,6 +1302,16 @@ export default {
       dateTime: 'Date Time',
       other: 'Other'
     },
+    variableCategory: {
+      randomNumber: 'Random Number',
+      randomString: 'Random String',
+      testData: 'Test Data',
+      string: 'String',
+      encoding: 'Encoding',
+      encryption: 'Encryption',
+      dateTime: 'Date Time',
+      uncategorized: 'Uncategorized'
+    },
     variables: {
       randomInt: 'Generate random integer',
       randomIntDesc: 'Generate random integer in specified range, params: min, max, count',
@@ -1329,7 +1359,8 @@ export default {
       updateSuccess: 'Test case updated successfully',
       createFailed: 'Failed to save',
       variableInserted: 'Variable inserted',
-      dataFactorySelected: 'Data factory selected: {toolName}'
+      dataFactorySelected: 'Data factory selected: {toolName}',
+      loadVariableFailed: 'Failed to load variable functions, using local data'
     },
     // Action types (for displaying action type names)
     actionType: {
@@ -1377,13 +1408,15 @@ export default {
     delete: {
       confirm: 'Are you sure to delete test case "{name}"?',
       title: 'Confirm Delete',
-      success: 'Deleted successfully'
+      success: 'Deleted successfully',
+      failed: 'Failed to delete'
     },
     // Copy operation messages
     copy: {
       confirm: 'Are you sure to copy test case "{name}"?',
       title: 'Confirm Copy',
-      success: 'Copied successfully'
+      success: 'Copied successfully',
+      failed: 'Failed to copy'
     },
     // Create operation messages
     create: {
