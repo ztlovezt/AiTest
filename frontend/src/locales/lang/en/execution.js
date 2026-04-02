@@ -23,6 +23,7 @@ export default {
   projects: 'Projects',
   version: 'Version',
   creator: 'Creator',
+  priority: 'Priority',
   status: 'Status',
   createdAt: 'Created At',
   actions: 'Actions',
@@ -115,5 +116,29 @@ export default {
   planNameRequired: 'Please enter plan name',
   projectsRequired: 'Please select project',
   testcasesRequired: 'Please select at least one test case',
-  selectProjectBeforeTestcases: 'Please select project first'
+  selectProjectBeforeTestcases: 'Please select project first',
+
+  // New: Table selector
+  selectTestcasesDialog: 'Select Test Cases',
+  keyword: 'Keyword',
+  searchByTitleOrNumber: 'Search by title/number',
+  allPriorities: 'All Priorities',
+  allStatuses: 'All Statuses',
+  testType: 'Test Type',
+  allTypes: 'All Types',
+  caseId: 'ID',
+  caseTitle: 'Title',
+  caseNumber: 'Number',
+  moduleName: 'Module',
+  projectName: 'Project',
+  priorityCritical: 'Critical',
+  priorityHigh: 'High',
+  priorityMedium: 'Medium',
+  priorityLow: 'Low',
+  selectedCount: '{count} case(s) selected',
+  viewSelected: 'View Selected',
+  confirmSelect: 'Confirm',
+  modifySelection: 'Modify Selection',
+  noTestcaseSelected: 'No test cases selected',
+  selectedTestcases: 'Selected Test Cases'
 }
