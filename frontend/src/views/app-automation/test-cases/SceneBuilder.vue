@@ -367,6 +367,9 @@
                             <div v-if="activeStep && activeStep.type === 'image_exists_click_chain'" class="variable-hint hint-danger">
                                 {{ t('appAutomation.sceneBuilder.imageExistsClickChainLogic') }}
                             </div>
+                            <div v-if="activeStep && activeStep.type === 'key_event'" class="variable-hint hint-danger">
+                                {{ t('appAutomation.sceneBuilder.keyEventLogic') }}
+                            </div>
                             <div v-if="activeStep && activeStep.type === 'foreach_assert'" class="variable-hint hint-danger">
                                 {{ t('appAutomation.sceneBuilder.foreachAssertLogic') }}
                             </div>
@@ -922,6 +925,7 @@ import {
   getDeviceList,
   getAppProjects
 } from '@/api/app-automation'
+import { kebabCase } from 'lodash-es'
 
 // Route
 const route = useRoute()
@@ -2051,7 +2055,9 @@ const getFieldLabel = (field) => {
         min: "最小值",
         max: "最大值",
         retry_times: "重试次数",
-        retry_interval: "重试间隔(秒)"
+        retry_interval: "重试间隔(秒)",
+        key_event: "按键",
+        repeat: "重复次数"
     }
     const config = getActiveConfigForField()
     const currentStep = activeStep.value || editingActiveStep.value
@@ -2148,7 +2154,9 @@ const getFieldPlaceholder = (field) => {
                 branches: "JSON 数组，形如 [[...],[...]]",
                 try_steps: "JSON 数组，填入子步骤",
                 catch_steps: "JSON 数组，填入子步骤",
-                finally_steps: "JSON 数组，填入子步骤"
+                finally_steps: "JSON 数组，填入子步骤",
+                key_event: "按键,如 backspace,enter,delete,home,end,back",
+                repeat: "重复次数"
     }
     const currentStep = activeStep.value || editingActiveStep.value
     if (field === "value" && currentStep && currentStep.type === "set_variable") {
@@ -2305,7 +2313,14 @@ const getFieldOptions = (field) => {
                 merge_strategy: [
                     { label: "last", value: "last" },
                     { label: "first", value: "first" }
-                ]
+                ],
+                key_event: [
+                    { label: "backspace", value: "backspace" },
+                    { label: "enter", value: "enter" },
+                    { label: "delete", value: "delete" },
+                    { label: "home", value: "home" },
+                    { label: "back", value: "back" }
+            ]
     }
     if (field === "assert_type") {
         const currentStep = activeStep.value || editingActiveStep.value

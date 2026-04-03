@@ -435,6 +435,7 @@ export default {
     variableSupport: 'Support variables: {{local.xxx}} / {{global.xxx}} / {{outputs.last.xxx}} / {{steps.step_id.xxx}}',
     imageExistsClickLogic: 'Logic: First detect image A, click A if exists; click B if not exists.',
     imageExistsClickChainLogic: 'Logic: Click A then B if image A exists; directly click B if not exists.',
+    keyEventLogic: 'Logic: Simulate keyboard key event (delete/enter/back etc.)',
     foreachAssertLogic: 'Logic: Click first, then assert.',
     apiTemplate: 'API Templates',
     use: 'Use',

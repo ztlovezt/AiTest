@@ -435,6 +435,7 @@ export default {
     variableSupport: '支持变量：{{local.xxx}} / {{global.xxx}} / {{outputs.last.xxx}} / {{steps.step_id.xxx}}',
     imageExistsClickLogic: '逻辑：先检测图片A，存在则点击A；不存在则点击B。',
     imageExistsClickChainLogic: '逻辑：图片A存在则点击A，再点击B；不存在则直接点击B。',
+    keyEventLogic: '逻辑：模拟键盘按键（删除/回车/返回等）',
     foreachAssertLogic: '逻辑：先点击，后断言。',
     apiTemplate: 'API 示例模板',
     use: '使用',
