@@ -358,7 +358,7 @@
                             </el-form-item>
                             
                             
-                            <div class="variable-hint" v-pre>
+                            <div class="variable-hint">
                                 {{ t('appAutomation.sceneBuilder.variableSupport') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'image_exists_click'" class="variable-hint hint-danger">

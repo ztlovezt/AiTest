@@ -318,6 +318,19 @@ const loadDevices = async () => {
     } else {
       availableDevices.value = data.results || data || []
     }
+    // 默认选择第一个可用设备
+    if (availableDevices.value.length > 0) {
+      // 优先选择可用或在线的设备
+      const firstAvailableDevice = availableDevices.value.find(device => 
+        device.status === 'available' || device.status === 'online'
+      )
+      if (firstAvailableDevice) {
+        form.value.deviceId = firstAvailableDevice.id
+      } else {
+        // 如果没有可用设备，选择第一个设备
+        form.value.deviceId = availableDevices.value[0].id
+      }
+    }
   } catch (error) {
     console.error('加载设备失败:', error)
     availableDevices.value = []
@@ -334,6 +347,10 @@ const loadPackages = async () => {
       appPackages.value = data.data?.results || data.data || []
     } else {
       appPackages.value = data.results || data || []
+    }
+    // 默认选择第一个应用包
+    if (appPackages.value.length > 0) {
+      form.value.packageId = appPackages.value[0].id
     }
   } catch (error) {
     console.error('加载应用包名失败:', error)
