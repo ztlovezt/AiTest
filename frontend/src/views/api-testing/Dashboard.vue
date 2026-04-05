@@ -322,42 +322,30 @@ onMounted(() => {
 .stat-icon {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 20px;
   color: white;
-  font-size: 24px;
-}
-
-.stat-icon :deep(.el-icon) {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon :deep(.el-icon svg) {
-  width: 100%;
-  height: 60%;
+  font-size: 28px;
+  flex-shrink: 0;
 }
 
 .stat-icon.bg-blue {
-  background-color: var(--th-color-primary);
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
 }
 
 .stat-icon.bg-green {
-  background-color: var(--th-color-success);
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 
 .stat-icon.bg-purple {
-  background-color: var(--th-color-primary-strong);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .stat-icon.bg-orange {
-  background-color: var(--th-color-warning);
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 .stat-info {
@@ -418,7 +406,7 @@ onMounted(() => {
   margin: 0 auto 15px;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -426,41 +414,28 @@ onMounted(() => {
   font-size: 24px;
 }
 
-.action-icon :deep(.el-icon) {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-icon :deep(.el-icon svg) {
-  width: 60%;
-  height: 60%;
-}
-
 .action-icon.bg-blue {
-  background-color: var(--th-color-primary);
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
 }
 
 .action-icon.bg-green {
-  background-color: var(--th-color-success);
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 
 .action-icon.bg-cyan {
-  background-color: var(--th-color-info);
+  background: linear-gradient(135deg, #00bcd4 0%, #80deea 100%);
 }
 
 .action-icon.bg-purple {
-  background-color: var(--th-color-primary-strong);
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .action-icon.bg-orange {
-  background-color: var(--th-color-warning);
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 .action-icon.bg-indigo {
-  background-color: var(--th-color-primary);
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, #667eea 100%);
 }
 
 .action-label {

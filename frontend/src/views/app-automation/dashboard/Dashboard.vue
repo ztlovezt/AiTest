@@ -311,17 +311,18 @@ onUnmounted(() => {
     .stat-icon {
       width: 60px;
       height: 60px;
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 28px;
       color: white;
-      
-      &.bg-blue { background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%); }
-      &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      flex-shrink: 0;
+
+      &.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+      &.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
       &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-      &.bg-purple { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+      &.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
     }
     
     .stat-info {
@@ -487,17 +488,17 @@ onUnmounted(() => {
       .action-icon {
         width: 50px;
         height: 50px;
-        border-radius: 10px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
         color: white;
-        
-        &.bg-blue { background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%); }
-        &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+        &.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+        &.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
         &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        &.bg-purple { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+        &.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
       }
       
       .action-label {

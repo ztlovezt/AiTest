@@ -121,7 +121,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'manual' }"
             @click="activePanel = 'manual'">
-            <div class="panel-icon manual-icon">✏️</div>
+            <div class="panel-icon manual-icon"><el-icon><Edit /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.manualInputDesc') }}</div>
@@ -131,7 +131,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'upload' }"
             @click="activePanel = 'upload'">
-            <div class="panel-icon upload-icon">📄</div>
+            <div class="panel-icon upload-icon"><el-icon><Document /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.uploadDesc') }}</div>
@@ -141,7 +141,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'knowledge' }"
             @click="handleKnowledgePanelClick">
-            <div class="panel-icon knowledge-icon">📚</div>
+            <div class="panel-icon knowledge-icon"><el-icon><Collection /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.knowledgeBaseDesc') }}</div>
@@ -151,7 +151,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'axure' }"
             @click="handleAxurePanelClick">
-            <div class="panel-icon axure-icon">🎨</div>
+            <div class="panel-icon axure-icon"><el-icon><Brush /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.axureDesc') }}</div>
@@ -232,12 +232,12 @@
 
             <div v-else class="file-selected">
               <div class="file-info" v-for="(file, index) in selectedFiles" :key="index">
-                <i class="file-icon">📄</i>
+                <el-icon class="file-icon"><Document /></el-icon>
                 <div class="file-details">
                   <p class="file-name">{{ file.name }}</p>
                   <p class="file-size">{{ formatFileSize(file.size) }}</p>
                 </div>
-                <button class="remove-file" @click="removeFile(index)">❌</button>
+                <button class="remove-file" @click="removeFile(index)"><el-icon><Close /></el-icon></button>
               </div>
             </div>
           </div>
@@ -635,13 +635,13 @@
           <!-- 任务完成后的操作按钮 -->
           <div v-if="showResults" class="completion-actions">
             <button class="download-btn" @click="downloadTestCases">
-              <span>📥 {{ $t('requirementAnalysis.downloadExcel') }}</span>
+              <span><el-icon><Download /></el-icon> {{ $t('requirementAnalysis.downloadExcel') }}</span>
             </button>
             <button class="save-btn" @click="saveToTestCaseRecords">
-              <span>💾 {{ $t('requirementAnalysis.saveToRecords') }}</span>
+              <span><el-icon><FolderChecked /></el-icon> {{ $t('requirementAnalysis.saveToRecords') }}</span>
             </button>
             <button class="new-generation-btn" @click="resetGeneration">
-              <span>📝 {{ $t('requirementAnalysis.newGeneration') }}</span>
+              <span><el-icon><EditPen /></el-icon> {{ $t('requirementAnalysis.newGeneration') }}</span>
             </button>
           </div>
           <button v-else class="cancel-generation-btn" @click="cancelGeneration">
@@ -672,6 +672,7 @@
 <script>
 import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
+import { Edit, Document, Collection, Brush, Download, FolderChecked, EditPen, Close, Notebook } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { useUserStore } from '@/stores/user'
 import { hybridSearch, semanticSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
@@ -679,6 +680,17 @@ import { marked } from 'marked'
 
 export default {
   name: 'RequirementAnalysisView',
+  components: {
+    Edit,
+    Document,
+    Collection,
+    Brush,
+    Download,
+    FolderChecked,
+    EditPen,
+    Close,
+    Notebook,
+  },
   data() {
     return {
       // 面板选择
@@ -1623,7 +1635,7 @@ export default {
             console.log('🎯 Received final cases content:', data.content.length, 'characters', 'Total length:', this.finalTestCases.length + data.content.length)
             this.finalTestCases += data.content
             this.currentStep = 3
-            this.progressText = '🎯 ' + this.$t('requirementAnalysis.statusRevising')
+            this.progressText = this.$t('requirementAnalysis.statusRevising')
           } else if (data.type === 'status') {
             // Final status
             console.log('📊 Received status update:', data.status)
@@ -2772,7 +2784,7 @@ export default {
   position: absolute;
   top: 24px;
   left: 24px;
-  font-size: 2.2rem;
+  font-size: 1.6rem;
   line-height: 56px;
   display: flex;
   align-items: center;
@@ -2780,13 +2792,33 @@ export default {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--icon-bg, #f8fafc);
+  color: var(--icon-color, #64748b);
   transition: all 0.3s ease;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   text-align: center;
   margin: 0;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+.panel-icon.manual-icon {
+  --icon-bg: #ede9fe;
+  --icon-color: #7c3aed;
+}
+
+.panel-icon.upload-icon {
+  --icon-bg: #e0f2fe;
+  --icon-color: #0284c7;
+}
+
+.panel-icon.knowledge-icon {
+  --icon-bg: #fef3c7;
+  --icon-color: #d97706;
+}
+
+.panel-icon.axure-icon {
+  --icon-bg: #fce7f3;
+  --icon-color: #db2777;
 }
 
 .panel-tab.active .panel-icon {
@@ -3604,6 +3636,7 @@ export default {
 
 .file-icon {
   font-size: 2rem;
+  color: #0284c7;
 }
 
 .file-details {
@@ -3626,6 +3659,13 @@ export default {
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
+  color: #f56c6c;
+  display: flex;
+  align-items: center;
+}
+
+.remove-file:hover {
+  color: #f23c3c;
 }
 
 .generation-progress {
@@ -3778,7 +3818,7 @@ export default {
 }
 
 .stream-content.final-testcases::before {
-  content: '📋 最终版本';
+  content: '\2611  最终版本';
   display: block;
   font-weight: 600;
   color: #2196F3;
@@ -3893,6 +3933,12 @@ export default {
   gap: 12px;
   margin-top: 20px;
   flex-wrap: wrap;
+}
+
+.completion-actions button .el-icon {
+  margin-right: 6px;
+  font-size: 1.1em;
+  vertical-align: middle;
 }
 
 .completion-actions button {
