@@ -1,11 +1,15 @@
 <template>
   <div class="automation-testing">
-    <div class="header">
-      <h3>{{ $t('apiTesting.automation.title') }}</h3>
-      <el-button type="primary" @click="showCreateSuiteDialog = true">
-        <el-icon><Plus /></el-icon>
-        {{ $t('apiTesting.automation.createSuite') }}
-      </el-button>
+    <div class="page-header">
+      <div class="header-left">
+        <h3>{{ $t('apiTesting.automation.title') }}</h3>
+      </div>
+      <div class="header-right">
+        <el-button type="primary" @click="showCreateSuiteDialog = true">
+          <el-icon><Plus /></el-icon>
+          {{ $t('apiTesting.automation.createSuite') }}
+        </el-button>
+      </div>
     </div>
 
     <div class="content-layout">
@@ -16,7 +20,7 @@
             v-model="selectedProject"
             :placeholder="$t('apiTesting.common.selectProject')"
             @change="onProjectChange"
-            style="width: 100%;"
+            size="default"
           >
             <el-option
               v-for="project in httpProjects"
@@ -29,13 +33,13 @@
         
         <div class="suite-list">
           <div class="list-header">
-            <span>{{ $t('apiTesting.automation.testSuites') }}</span>
-            <el-button size="small" text @click="loadTestSuites">
+            <span class="list-title">{{ $t('apiTesting.automation.testSuites') }}</span>
+            <el-button size="small" text type="primary" @click="loadTestSuites">
               <el-icon><Refresh /></el-icon>
             </el-button>
           </div>
           
-          <el-scrollbar height="400px">
+          <el-scrollbar height="calc(100vh - 280px)">
             <div
               v-for="suite in testSuites"
               :key="suite.id"
@@ -46,22 +50,33 @@
               <div class="suite-info">
                 <div class="suite-name">{{ suite.name }}</div>
                 <div class="suite-meta">
-                  {{ $t('apiTesting.automation.requestCount', { n: suite.suite_requests?.length || 0 }) }}
+                  {{ suite.suite_requests?.length || 0 }} {{ $t('apiTesting.automation.requests') }}
                 </div>
               </div>
-              <el-dropdown @command="handleSuiteAction" trigger="click">
-                <el-button size="small" text>
+              <el-dropdown trigger="click" @command="(cmd) => handleSuiteAction(cmd, suite)">
+                <span class="more-actions">
                   <el-icon><MoreFilled /></el-icon>
-                </el-button>
+                </span>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item :command="{ action: 'run', suite }">{{ $t('apiTesting.automation.run') }}</el-dropdown-item>
-                    <el-dropdown-item :command="{ action: 'edit', suite }">{{ $t('apiTesting.common.edit') }}</el-dropdown-item>
-                    <el-dropdown-item :command="{ action: 'duplicate', suite }">{{ $t('apiTesting.common.copy') }}</el-dropdown-item>
-                    <el-dropdown-item :command="{ action: 'delete', suite }" divided>{{ $t('apiTesting.common.delete') }}</el-dropdown-item>
+                    <el-dropdown-item command="run">
+                      <el-icon><VideoPlay /></el-icon> {{ $t('apiTesting.automation.run') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="edit">
+                      <el-icon><Edit /></el-icon> {{ $t('apiTesting.common.edit') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="duplicate">
+                      <el-icon><DocumentCopy /></el-icon> {{ $t('apiTesting.common.copy') }}
+                    </el-dropdown-item>
+                    <el-dropdown-item command="delete" divided>
+                      <el-icon><Delete /></el-icon> {{ $t('apiTesting.common.delete') }}
+                    </el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
+            </div>
+            <div v-if="testSuites.length === 0" class="empty-suite">
+              <el-empty :description="$t('apiTesting.automation.noSuites')" :image-size="60" />
             </div>
           </el-scrollbar>
         </div>
@@ -76,67 +91,79 @@
         <div v-else class="suite-detail">
           <!-- 套件信息 -->
           <div class="suite-header">
-            <div class="suite-title">
-              <h4>{{ selectedSuite.name }}</h4>
-              <div class="suite-actions">
-                <el-button type="success" @click="runTestSuite(selectedSuite)" :loading="running">
+            <div class="suite-title-row">
+              <h4 class="suite-title-text">{{ selectedSuite.name }}</h4>
+              <div class="suite-action-buttons">
+                <el-button type="success" @click="runTestSuite(selectedSuite)" :loading="running" size="small">
                   <el-icon><VideoPlay /></el-icon>
-                  {{ $t('apiTesting.automation.runTest') }}
+                  {{ $t('apiTesting.automation.executeTest') }}
                 </el-button>
-                <el-button @click="editSuite(selectedSuite)">
-                  <el-icon><Edit /></el-icon>
+                <el-button @click="editSuite(selectedSuite)" size="small">
                   {{ $t('apiTesting.common.edit') }}
                 </el-button>
               </div>
             </div>
-            <div class="suite-description">
-              {{ selectedSuite.description || $t('apiTesting.automation.noDescription') }}
-            </div>
-            <div class="suite-meta">
-              <el-tag size="small">{{ getEnvironmentName(selectedSuite.environment) }}</el-tag>
-              <span class="meta-text">{{ $t('apiTesting.automation.creator') }}{{ selectedSuite.created_by?.username }}</span>
-              <span class="meta-text">{{ $t('apiTesting.automation.createTime') }}{{ formatDate(selectedSuite.created_at) }}</span>
+            <div v-if="selectedSuite.description" class="suite-description">
+              {{ selectedSuite.description }}
             </div>
           </div>
 
           <!-- 请求列表 -->
           <div class="requests-section">
             <div class="section-header">
-              <h5>{{ $t('apiTesting.automation.testRequests') }}</h5>
-              <el-button size="small" @click="showAddRequest">
+              <h5 class="section-title">{{ $t('apiTesting.automation.testRequests') }}</h5>
+              <el-button size="small" type="primary" plain @click="showAddRequest">
                 <el-icon><Plus /></el-icon>
                 {{ $t('apiTesting.automation.addRequest') }}
               </el-button>
             </div>
             
-            <el-table :data="selectedSuite.suite_requests" style="width: 100%">
-              <el-table-column type="index" width="50" />
-              <el-table-column prop="request.name" :label="$t('apiTesting.automation.requestName')" min-width="200" />
-              <el-table-column prop="request.method" :label="$t('apiTesting.automation.method')" width="80">
+            <el-table :data="selectedSuite.suite_requests" style="width: 100%" size="small" border>
+              <el-table-column type="index" width="45" align="center" />
+              <el-table-column prop="request.name" :label="$t('apiTesting.automation.requestName')" min-width="180" show-overflow-tooltip />
+              <el-table-column prop="request.method" :label="$t('apiTesting.automation.method')" width="70" align="center">
                 <template #default="scope">
                   <el-tag :type="getMethodType(scope.row.request.method)" size="small">
                     {{ scope.row.request.method }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="request.url" label="URL" min-width="300" show-overflow-tooltip />
-              <el-table-column prop="enabled" :label="$t('apiTesting.automation.enabled')" width="80">
+              <el-table-column prop="request.url" label="URL" min-width="220" show-overflow-tooltip>
+                <template #default="scope">
+                  <span class="url-text">{{ scope.row.request.url }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="enabled" :label="$t('apiTesting.automation.enabled')" width="65" align="center">
                 <template #default="scope">
                   <el-switch
                     v-model="scope.row.enabled"
+                    size="small"
                     @change="updateRequestEnabled(scope.row)"
                   />
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('apiTesting.automation.assertions')" width="100">
+              <el-table-column :label="$t('apiTesting.automation.skipCondition')" width="80" align="center">
                 <template #default="scope">
-                  {{ $t('apiTesting.automation.assertionCount', { n: scope.row.assertions?.length || 0 }) }}
+                  <el-tag v-if="scope.row.skip_condition" type="warning" size="small">
+                    {{ $t('apiTesting.automation.yes') }}
+                  </el-tag>
+                  <span v-else class="text-muted">-</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('apiTesting.common.operation')" width="150">
+              <el-table-column :label="$t('apiTesting.automation.variableExtractors')" width="80" align="center">
+                <template #default="scope">
+                  <span class="count-badge">{{ scope.row.extract_variables?.length || 0 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('apiTesting.automation.assertions')" width="70" align="center">
+                <template #default="scope">
+                  <span class="count-badge">{{ scope.row.assertions?.length || 0 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('apiTesting.common.operation')" width="110" align="center" fixed="right">
                 <template #default="scope">
                   <el-button link type="primary" @click="editAssertions(scope.row)" size="small">
-                    {{ $t('apiTesting.automation.editAssertions') }}
+                    {{ $t('apiTesting.automation.configure') }}
                   </el-button>
                   <el-button link type="danger" @click="removeRequest(scope.row)" size="small">
                     {{ $t('apiTesting.automation.remove') }}
@@ -149,44 +176,44 @@
           <!-- 执行历史 -->
           <div class="executions-section">
             <div class="section-header">
-              <h5>{{ $t('apiTesting.automation.executionHistory') }}</h5>
-              <el-button size="small" @click="loadExecutions">
-                <el-icon><Refresh /></el-icon>
+              <h5 class="section-title">{{ $t('apiTesting.automation.executionHistory') }}</h5>
+              <el-button size="small" text type="primary" @click="loadExecutions">
+                <el-icon><RefreshRight /></el-icon>
                 {{ $t('apiTesting.automation.refresh') }}
               </el-button>
             </div>
 
-            <el-table :data="executions" v-loading="executionsLoading">
-              <el-table-column prop="status" :label="$t('apiTesting.common.status')" width="100">
+            <el-table :data="executions" v-loading="executionsLoading" size="small" border stripe>
+              <el-table-column prop="status" :label="$t('apiTesting.common.status')" width="100" align="center">
                 <template #default="scope">
-                  <el-tag :type="getStatusType(scope.row.status)">
+                  <el-tag :type="getStatusType(scope.row.status)" size="small">
                     {{ getStatusText(scope.row.status) }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="total_requests" :label="$t('apiTesting.automation.totalRequests')" width="100" />
-              <el-table-column prop="passed_requests" :label="$t('apiTesting.automation.passedCount')" width="100">
+              <el-table-column prop="total_requests" :label="$t('apiTesting.automation.totalRequests')" min-width="90" align="center" />
+              <el-table-column prop="passed_requests" :label="$t('apiTesting.automation.passedCount')" min-width="80" align="center">
                 <template #default="scope">
-                  <span style="color: var(--th-color-success)">{{ scope.row.passed_requests }}</span>
+                  <span class="text-success">{{ scope.row.passed_requests }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="failed_requests" :label="$t('apiTesting.automation.failedCount')" width="100">
+              <el-table-column prop="failed_requests" :label="$t('apiTesting.automation.failedCount')" min-width="80" align="center">
                 <template #default="scope">
-                  <span style="color: #f56c6c">{{ scope.row.failed_requests }}</span>
+                  <span class="text-danger">{{ scope.row.failed_requests }}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('apiTesting.automation.averageTime')" width="120">
+              <el-table-column :label="$t('apiTesting.automation.averageTime')" min-width="100" align="center">
                 <template #default="scope">
                   {{ getAverageExecutionTime(scope.row) }}
                 </template>
               </el-table-column>
-              <el-table-column prop="executed_by.username" :label="$t('apiTesting.automation.executor')" width="120" />
-              <el-table-column prop="created_at" :label="$t('apiTesting.automation.executionTime')" width="160">
+              <el-table-column prop="executed_by.username" :label="$t('apiTesting.automation.executor')" min-width="100" align="center" />
+              <el-table-column prop="created_at" :label="$t('apiTesting.automation.executionTime')" min-width="160" align="center">
                 <template #default="scope">
                   {{ formatDate(scope.row.created_at) }}
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('apiTesting.common.operation')" width="120">
+              <el-table-column :label="$t('apiTesting.common.operation')" width="100" align="center">
                 <template #default="scope">
                   <el-button link type="primary" @click="viewExecutionDetail(scope.row)" size="small">
                     {{ $t('apiTesting.automation.viewDetails') }}
@@ -194,6 +221,20 @@
                 </template>
               </el-table-column>
             </el-table>
+
+            <!-- 执行历史分页 -->
+            <div class="execution-pagination" v-if="executionPagination.total > 0">
+              <el-pagination
+                v-model:current-page="executionPagination.page"
+                v-model:page-size="executionPagination.pageSize"
+                :page-sizes="[10, 15, 20, 50]"
+                :total="executionPagination.total"
+                layout="total, sizes, prev, pager, next, jumper"
+                size="small"
+                @size-change="handleExecutionSizeChange"
+                @current-change="handleExecutionPageChange"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -310,6 +351,21 @@
     >
       <div v-if="currentExecution" class="execution-detail">
         <div class="execution-summary">
+          <!-- RUNNING 状态进度提示 -->
+          <el-alert
+            v-if="currentExecution.status === 'RUNNING'"
+            :title="$t('apiTesting.automation.executing')"
+            type="info"
+            :closable="false"
+            style="margin-bottom: 20px;"
+          >
+            <template #default>
+              <div class="running-indicator">
+                <span>{{ $t('apiTesting.automation.executingMessage') }}</span>
+              </div>
+            </template>
+          </el-alert>
+
           <el-row :gutter="20">
             <el-col :span="6">
               <el-statistic :title="$t('apiTesting.automation.totalRequests')" :value="currentExecution.total_requests" />
@@ -328,7 +384,7 @@
 
         <div class="execution-results">
           <h4>{{ $t('apiTesting.automation.detailedResults') }}</h4>
-          <el-table :data="formatExecutionResults(currentExecution.results)">
+          <el-table :data="formatExecutionResults(currentExecution.results)" border>
             <el-table-column prop="name" :label="$t('apiTesting.automation.requestName')" min-width="200" />
             <el-table-column prop="method" :label="$t('apiTesting.automation.method')" width="80">
               <template #default="scope">
@@ -339,15 +395,15 @@
             </el-table-column>
             <el-table-column prop="status" :label="$t('apiTesting.automation.result')" width="100">
               <template #default="scope">
-                <el-tag :type="scope.row.passed ? 'success' : 'danger'" size="small">
-                  {{ scope.row.passed ? $t('apiTesting.automation.status.passed') : $t('apiTesting.automation.status.failed') }}
+                <el-tag :type="scope.row.passed !== false ? 'success' : 'danger'" size="small">
+                  {{ scope.row.passed !== false ? $t('apiTesting.automation.resultPassed') : $t('apiTesting.automation.resultFailed') }}
                 </el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="status_code" :label="$t('apiTesting.automation.statusCode')" width="100" />
             <el-table-column prop="response_time" :label="$t('apiTesting.automation.responseTime')" width="120">
               <template #default="scope">
-                {{ scope.row.response_time?.toFixed(0) }}ms
+                {{ scope.row.response_time != null ? `${scope.row.response_time.toFixed(0)}ms` : '-' }}
               </template>
             </el-table-column>
             <el-table-column prop="error" :label="$t('apiTesting.automation.errorMessage')" min-width="200" show-overflow-tooltip />
@@ -359,19 +415,134 @@
         <el-button @click="showExecutionDialog = false">{{ $t('apiTesting.common.close') }}</el-button>
       </template>
     </el-dialog>
+
+    <!-- 断言配置对话框 -->
+    <el-dialog
+      v-model="showAssertionDialog"
+      :title="$t('apiTesting.automation.configureRequest')"
+      width="720px"
+      :top="'8vh'"
+      class="request-config-dialog"
+    >
+      <el-tabs v-model="activeTab" type="border-card">
+        <!-- 跳过条件 Tab -->
+        <el-tab-pane :label="$t('apiTesting.automation.skipCondition')" name="skip">
+          <div class="skip-condition-editor">
+            <el-form label-width="100px" size="default">
+              <el-form-item :label="$t('apiTesting.automation.skipCondition')">
+                <el-input
+                  v-model="requestForm.skip_condition"
+                  type="textarea"
+                  :rows="4"
+                  :placeholder="$t('apiTesting.automation.skipConditionPlaceholder')"
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-alert type="info" :closable="false" show-icon>
+                  <template #title>
+                    {{ $t('apiTesting.automation.skipConditionHelp') }}
+                  </template>
+                </el-alert>
+              </el-form-item>
+            </el-form>
+          </div>
+        </el-tab-pane>
+
+        <!-- 变量提取 Tab -->
+        <el-tab-pane :label="$t('apiTesting.automation.extractVariables')" name="variables">
+          <VariableExtractor v-model="requestForm.extract_variables">
+            <template #actions>
+              <el-button type="success" @click="syncFromApiRequest" size="small">
+                <el-icon><Refresh /></el-icon>
+                {{ $t('apiTesting.automation.syncFromApi') }}
+              </el-button>
+            </template>
+          </VariableExtractor>
+        </el-tab-pane>
+
+        <!-- 断言配置 Tab -->
+        <el-tab-pane :label="$t('apiTesting.automation.assertionConfig')" name="assertions">
+          <div class="assertion-toolbar">
+            <el-button type="success" @click="syncFromApiRequest" size="small">
+              <el-icon><Refresh /></el-icon>
+              {{ $t('apiTesting.automation.syncFromApi') }}
+            </el-button>
+            <el-button type="danger" v-if="requestForm.assertions.length > 0" @click="clearAssertions" size="small">
+              {{ $t('apiTesting.automation.clearAssertions') }}
+            </el-button>
+          </div>
+          <div class="assertion-list">
+            <div v-for="(assertion, index) in requestForm.assertions" :key="index" class="assertion-item">
+              <div class="assertion-header-row">
+                <el-input v-model="assertion.name" :placeholder="$t('apiTesting.automation.assertionName')" style="width: 160px;" size="small" />
+                <el-select v-model="assertion.type" :placeholder="$t('apiTesting.automation.assertionType')" style="flex: 1; margin-left: 12px;" size="small" @change="onAssertionTypeChange(assertion)">
+                  <el-option
+                    v-for="opt in assertionTypeOptions"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-button type="danger" text @click="removeAssertionConfig(index)" size="small" style="margin-left: 8px;">
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
+              <div class="assertion-detail-row">
+                <!-- JSONPath 表达式（仅 json_path 类型显示） -->
+                <el-input
+                  v-if="assertion.type === 'json_path'"
+                  v-model="assertion.json_path"
+                  :placeholder="$t('apiTesting.automation.jsonPathPlaceholder')"
+                  style="width: 280px;"
+                  size="small"
+                />
+                <!-- Header 名称（仅 header 类型显示） -->
+                <el-input
+                  v-if="assertion.type === 'header'"
+                  v-model="assertion.header_name"
+                  :placeholder="$t('apiTesting.automation.headerName')"
+                  style="width: 180px;"
+                  size="small"
+                />
+                <!-- 期望值 -->
+                <el-input
+                  v-model="assertion.expected"
+                  :placeholder="getExpectedPlaceholder(assertion.type)"
+                  style="flex: 1;"
+                  size="small"
+                />
+              </div>
+            </div>
+            <el-empty v-if="requestForm.assertions.length === 0" :description="$t('apiTesting.automation.noAssertions')" :image-size="80" />
+          </div>
+          <el-button type="primary" class="add-assertion-btn" @click="addAssertionConfig" size="default">
+            <el-icon><Plus /></el-icon>
+            {{ $t('apiTesting.automation.addAssertion') }}
+          </el-button>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="showAssertionDialog = false">{{ $t('apiTesting.common.cancel') }}</el-button>
+          <el-button type="primary" @click="saveAssertionConfig">{{ $t('apiTesting.common.save') }}</el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
   Plus, Refresh, MoreFilled, VideoPlay, Edit,
-  Folder, Document
+  Folder, Document, Delete, DocumentCopy, RefreshRight
 } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import dayjs from 'dayjs'
+import VariableExtractor from './components/VariableExtractor.vue'
 
 const { t } = useI18n()
 
@@ -393,6 +564,36 @@ const addingRequests = ref(false)
 const currentExecution = ref(null)
 const suiteFormRef = ref()
 const requestTreeRef = ref()
+
+// 执行历史分页
+const executionPagination = reactive({
+  page: 1,
+  pageSize: 15,
+  total: 0
+})
+
+// 断言编辑相关
+const showAssertionDialog = ref(false)
+const editingSuiteRequest = ref(null)
+const activeTab = ref('assertions')
+let requestId = ref(null)
+const requestForm = reactive({
+  assertions: [],
+  extract_variables: [],
+  skip_condition: ''
+})
+
+// 断言类型选项
+const assertionTypeOptions = computed(() => [
+  { value: 'status_code', label: t('apiTesting.automation.assertionTypes.statusCode') },
+  { value: 'contains', label: t('apiTesting.automation.assertionTypes.contains') },
+  { value: 'response_time', label: t('apiTesting.automation.assertionTypes.responseTime') },
+  { value: 'json_path', label: t('apiTesting.automation.assertionTypes.jsonPath') },
+  { value: 'header', label: t('apiTesting.automation.assertionTypes.header') },
+  { value: 'equals', label: t('apiTesting.automation.assertionTypes.equals') },
+  { value: 'not_empty', label: t('apiTesting.automation.assertionTypes.notEmpty') },
+  { value: 'json_schema', label: t('apiTesting.automation.assertionTypes.jsonSchema') }
+])
 
 const suiteForm = reactive({
   name: '',
@@ -426,13 +627,28 @@ const getMethodType = (method) => {
   return typeMap[method] || 'info'
 }
 
+const getExpectedPlaceholder = (type) => {
+  const placeholderMap = {
+    'status_code': t('apiTesting.automation.expectedStatusCode'),
+    'response_time': t('apiTesting.automation.expectedResponseTime'),
+    'contains': t('apiTesting.automation.expectedContainsText'),
+    'json_path': t('apiTesting.automation.expectedValue'),
+    'header': t('apiTesting.automation.expectedHeaderValue'),
+    'equals': t('apiTesting.automation.expectedEqualsValue'),
+    'not_empty': '',
+    'json_schema': '{}'
+  }
+  return placeholderMap[type] || t('apiTesting.automation.expectedValue')
+}
+
 const getStatusType = (status) => {
   const typeMap = {
     'PENDING': 'info',
     'RUNNING': 'warning',
     'COMPLETED': 'success',
     'FAILED': 'danger',
-    'CANCELLED': 'info'
+    'CANCELLED': 'info',
+    'PARTIAL_FAILED': 'warning'
   }
   return typeMap[status] || 'info'
 }
@@ -443,9 +659,14 @@ const getStatusText = (status) => {
     'RUNNING': 'running',
     'COMPLETED': 'completed',
     'FAILED': 'failed',
-    'CANCELLED': 'cancelled'
+    'CANCELLED': 'cancelled',
+    'PARTIAL_FAILED': 'partialFailed'
   }[status]
-  return statusKey ? t(`apiTesting.automation.status.${statusKey}`) : status
+  
+  if (statusKey) {
+    return t(`apiTesting.report.status.${statusKey}`)
+  }
+  return status
 }
 
 const formatDate = (dateString) => {
@@ -599,15 +820,31 @@ const loadExecutions = async () => {
 
   executionsLoading.value = true
   try {
-    const response = await api.get('/api-testing/test-executions/', {
-      params: { test_suite: selectedSuite.value.id }
-    })
+    const params = {
+      page: executionPagination.page,
+      page_size: executionPagination.pageSize,
+      test_suite: selectedSuite.value.id
+    }
+    const response = await api.get('/api-testing/test-executions/', { params })
     executions.value = response.data.results || response.data
+    executionPagination.total = response.data.count || (response.data.results ? response.data.length : 0)
   } catch (error) {
     ElMessage.error(t('apiTesting.messages.error.loadExecutionHistory'))
   } finally {
     executionsLoading.value = false
   }
+}
+
+// 执行历史分页切换
+const handleExecutionPageChange = (page) => {
+  executionPagination.page = page
+  loadExecutions()
+}
+
+const handleExecutionSizeChange = (size) => {
+  executionPagination.pageSize = size
+  executionPagination.page = 1
+  loadExecutions()
 }
 
 const onProjectChange = async () => {
@@ -638,7 +875,7 @@ const selectSuite = (suite) => {
   loadExecutions()
 }
 
-const handleSuiteAction = async ({ action, suite }) => {
+const handleSuiteAction = async (action, suite) => {
   switch (action) {
     case 'run':
       await runTestSuite(suite)
@@ -655,15 +892,73 @@ const handleSuiteAction = async ({ action, suite }) => {
   }
 }
 
+// 轮询执行状态
+let pollingTimer = null
+const startPolling = async (executionId) => {
+  if (pollingTimer) clearInterval(pollingTimer)
+  
+  try {
+    const res = await api.get(`/api-testing/test-executions/${executionId}/`)
+    const execution = res.data
+    
+    if (execution.status === 'RUNNING') {
+      // 更新当前执行记录
+      currentExecution.value = execution
+      // 继续轮询
+      pollingTimer = setTimeout(() => startPolling(executionId), 2000)
+    } else {
+      // 执行完成，停止轮询，刷新列表
+      clearInterval(pollingTimer)
+      pollingTimer = null
+      await loadExecutions()
+      
+      // 如果详情弹窗打开着，更新数据
+      if (showExecutionDialog.value) {
+        currentExecution.value = execution
+        showResultDetail(execution)
+      }
+      
+      // 显示完成消息
+      if (execution.status === 'COMPLETED') {
+        ElMessage.success(t('apiTesting.messages.success.suiteExecuted'))
+      } else if (execution.status === 'FAILED' || execution.status === 'PARTIAL_FAILED') {
+        ElMessage.warning(t('apiTesting.messages.warning.executionCompleted'))
+      }
+    }
+  } catch (e) {
+    console.error('轮询失败:', e)
+    if (pollingTimer) {
+      clearInterval(pollingTimer)
+      pollingTimer = null
+    }
+  }
+}
+
 const runTestSuite = async (suite) => {
   running.value = true
   try {
-    const response = await api.post(`/api-testing/test-suites/${suite.id}/execute/`)
+    // 异步执行：发送请求后立即返回（后端返回202）
+    const response = await api.post(`/api-testing/test-suites/${suite.id}/execute/`, null, {
+      timeout: 300000  // 5分钟超时
+    })
+    
+    // 获取执行ID（从响应中获取）
+    const executionId = response.data.id || response.data.execution_id
+    
+    // 立即打开执行详情弹窗
     currentExecution.value = response.data
     showExecutionDialog.value = true
-    await loadExecutions()
-    ElMessage.success(t('apiTesting.messages.success.suiteExecuted'))
+    
+    ElMessage.info(t('apiTesting.automation.suiteSubmitted'))
+    
+    // 开始轮询执行状态
+    if (executionId) {
+      startPolling(executionId)
+    } else {
+      await loadExecutions()
+    }
   } catch (error) {
+    console.error('执行测试套件失败:', error)
     ElMessage.error(t('apiTesting.messages.error.executeSuite'))
   } finally {
     running.value = false
@@ -824,7 +1119,120 @@ const updateRequestEnabled = async (suiteRequest) => {
 }
 
 const editAssertions = (suiteRequest) => {
-  ElMessage.info(t('apiTesting.messages.info.featureInDevelopment'))
+  editingSuiteRequest.value = suiteRequest
+  requestId.value = suiteRequest.request.id
+  // 复制断言和变量提取数据到表单（避免直接修改原数据）
+  requestForm.assertions = JSON.parse(JSON.stringify(suiteRequest.assertions || []))
+  requestForm.extract_variables = JSON.parse(JSON.stringify(suiteRequest.extract_variables || []))
+  requestForm.skip_condition = suiteRequest.skip_condition || ''
+  showAssertionDialog.value = true
+}
+
+// 从接口同步断言和变量提取
+const syncFromApiRequest = async () => {
+  if (!requestId.value) return
+
+  try {
+    const response = await api.get(`/api-testing/requests/${requestId.value}/`)
+    const apiRequest = response.data
+
+    // 合并接口的断言到当前列表（不覆盖用户手动配置）
+    // 但这里我们直接用接口的断言完全替换，因为用户选择"同步"就是要最新数据
+    requestForm.assertions = JSON.parse(JSON.stringify(apiRequest.assertions || []))
+    requestForm.extract_variables = JSON.parse(JSON.stringify(apiRequest.extract_variables || []))
+
+    ElMessage.success(t('apiTesting.messages.success.syncSuccess'))
+  } catch (error) {
+    ElMessage.error(t('apiTesting.messages.error.syncFailed'))
+  }
+}
+
+// 清空所有断言
+const clearAssertions = () => {
+  requestForm.assertions = []
+  ElMessage.info(t('apiTesting.messages.info.assertionsCleared'))
+}
+
+// 添加新断言
+const addAssertionConfig = () => {
+  const newAssertion = {
+    name: `断言${requestForm.assertions.length + 1}`,
+    type: 'status_code',
+    expected: 200,
+    json_path: '',
+    header_name: ''
+  }
+  requestForm.assertions.push(newAssertion)
+}
+
+// 删除断言
+const removeAssertionConfig = (index) => {
+  requestForm.assertions.splice(index, 1)
+  // 重新命名剩余断言
+  requestForm.assertions.forEach((item, idx) => {
+    if (item.name.startsWith('断言')) {
+      item.name = `断言${idx + 1}`
+    }
+  })
+}
+
+// 断言类型变化时处理
+const onAssertionTypeChange = (item) => {
+  // 切换断言类型时设置合理的默认值
+  switch (item.type) {
+    case 'status_code':
+      item.expected = 200
+      item.json_path = ''
+      break
+    case 'response_time':
+      item.expected = 1000
+      item.json_path = ''
+      break
+    case 'json_path':
+      item.json_path = '$.'
+      item.expected = ''
+      break
+    case 'header':
+      item.header_name = ''
+      item.expected = ''
+      item.json_path = ''
+      break
+    case 'contains':
+      item.expected = ''
+      item.json_path = ''
+      break
+    case 'equals':
+      item.expected = ''
+      item.json_path = ''
+      break
+    case 'not_empty':
+      item.expected = ''
+      item.json_path = ''
+      break
+    case 'json_schema':
+      item.expected = '{}'
+      item.json_path = ''
+      break
+  }
+}
+
+// 保存断言配置
+const saveAssertionConfig = async () => {
+  if (!editingSuiteRequest.value) return
+
+  try {
+    await api.put(`/api-testing/test-suite-requests/${editingSuiteRequest.value.id}/`, {
+      assertions: requestForm.assertions,
+      extract_variables: requestForm.extract_variables,
+      skip_condition: requestForm.skip_condition
+    })
+    ElMessage.success(t('apiTesting.messages.success.saveSuccess'))
+    showAssertionDialog.value = false
+    // 重新加载当前套件
+    await reloadCurrentSuite()
+  } catch (error) {
+    ElMessage.error(t('apiTesting.messages.error.saveFailed'))
+  }
 }
 
 const removeRequest = async (suiteRequest) => {
@@ -870,114 +1278,192 @@ const reloadCurrentSuite = async () => {
 const viewExecutionDetail = (execution) => {
   currentExecution.value = execution
   showExecutionDialog.value = true
+
+  // 如果执行记录正在运行，开始轮询
+  if (execution.status === 'RUNNING') {
+    startPolling()
+  }
+}
+
+// 显示执行结果详情（轮询完成时调用）
+const showResultDetail = (execution) => {
+  currentExecution.value = execution
+  // 如果有报告URL，可以在这里处理
 }
 
 const formatExecutionResults = (results) => {
-  if (!results || !Array.isArray(results)) return []
-  return results
+  if (!results) return []
+  if (Array.isArray(results)) return results
+  if (typeof results === 'object' && Object.keys(results).length === 0) return []
+  return []
 }
+
+// 监听执行详情弹窗关闭，清理轮询
+watch(showExecutionDialog, (val) => {
+  if (!val && pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  }
+})
 
 onMounted(() => {
   loadProjects()
+})
+
+onUnmounted(() => {
+  // 清理轮询定时器
+  if (pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  }
 })
 </script>
 
 <style scoped>
 .automation-testing {
-  padding: 20px;
+  padding: 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #f5f7fa;
 }
 
-.header {
+/* 页面头部 */
+.page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
+  padding: 12px 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
-.header h3 {
+.header-left h3 {
   margin: 0;
+  font-size: 18px;
+  font-weight: 600;
   color: #303133;
 }
 
+.header-right {
+  display: flex;
+  gap: 10px;
+}
+
+/* 内容布局 */
 .content-layout {
   display: flex;
+  gap: 16px;
   flex: 1;
-  gap: 20px;
   overflow: hidden;
 }
 
+/* 侧边栏 */
 .sidebar {
-  width: 300px;
+  width: 280px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .project-selector {
   background: white;
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 .suite-list {
   background: white;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .list-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 15px;
-  background: var(--th-color-surface-muted);
-  border-bottom: 1px solid #e4e7ed;
-  font-weight: 500;
+  padding: 12px 14px;
+  border-bottom: 1px solid #ebeef5;
+  background: #fafafa;
+}
+
+.list-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
 }
 
 .suite-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 15px;
-  border-bottom: 1px solid var(--th-color-surface-muted);
+  padding: 12px 14px;
+  border-bottom: 1px solid #f2f3f5;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.2s;
 }
 
 .suite-item:hover {
-  background: var(--th-color-surface-muted);
+  background: #f5f7fa;
 }
 
 .suite-item.active {
-  background: #e1f3d8;
-  border-color: var(--th-color-success);
+  background: #ecf5ff;
+  border-left: 3px solid #409eff;
 }
 
 .suite-info {
   flex: 1;
+  min-width: 0;
 }
 
 .suite-name {
   font-weight: 500;
-  margin-bottom: 4px;
+  font-size: 13px;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .suite-meta {
   font-size: 12px;
   color: #909399;
+  margin-top: 4px;
 }
 
+.more-actions {
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  color: #909399;
+  transition: all 0.2s;
+}
+
+.more-actions:hover {
+  background: #e8e8e8;
+  color: #606266;
+}
+
+.empty-suite {
+  padding: 30px 20px;
+  text-align: center;
+}
+
+/* 主内容区 */
 .main-content {
   flex: 1;
   background: white;
-  border-radius: 6px;
-  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -994,63 +1480,109 @@ onMounted(() => {
   flex: 1;
   padding: 20px;
   overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
+/* 套件头部 */
 .suite-header {
-  margin-bottom: 30px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.suite-title {
+.suite-title-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-.suite-title h4 {
+.suite-title-text {
   margin: 0;
+  font-size: 16px;
+  font-weight: 600;
   color: #303133;
 }
 
-.suite-actions {
+.suite-action-buttons {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .suite-description {
   color: #606266;
-  margin-bottom: 10px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.suite-meta {
-  display: flex;
-  gap: 15px;
-  align-items: center;
-}
-
-.meta-text {
-  font-size: 12px;
-  color: #909399;
-}
-
+/* 区块通用样式 */
 .requests-section,
 .executions-section {
-  margin-bottom: 30px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
-.section-header h5 {
+.section-title {
   margin: 0;
+  font-size: 15px;
+  font-weight: 600;
   color: #303133;
-  font-size: 16px;
 }
 
+/* 表格样式优化 */
+.url-text {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 12px;
+  color: #606266;
+}
+
+.text-muted {
+  color: #c0c4cc;
+}
+
+.text-success {
+  color: #67c23a;
+  font-weight: 500;
+}
+
+.text-danger {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+.count-badge {
+  display: inline-block;
+  min-width: 22px;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  background: #f0f2f5;
+  border-radius: 11px;
+  font-size: 12px;
+  color: #606266;
+  padding: 0 8px;
+}
+
+/* 执行历史分页 */
+.execution-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+}
+
+/* 添加请求对话框 */
 .add-request-content {
   max-height: 400px;
   overflow-y: auto;
@@ -1078,20 +1610,115 @@ onMounted(() => {
 .method-tag.delete { background: #f56c6c; }
 .method-tag.patch { background: #909399; }
 
+/* 执行详情对话框 */
 .execution-detail {
   max-height: 70vh;
   overflow-y: auto;
 }
 
-.execution-summary {
-  margin-bottom: 30px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 6px;
+/* 断言配置对话框样式 */
+.request-config-dialog :deep(.el-tabs__header) {
+  margin-bottom: 0;
 }
 
-.execution-results h4 {
-  margin: 0 0 15px 0;
-  color: #303133;
+.tab-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.assertion-list {
+  max-height: 450px;
+  overflow-y: auto;
+  padding: 0 4px;
+}
+
+.assertion-item {
+  padding: 14px 16px;
+  background: #fafbfc;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.assertion-item:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.assertion-header-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.assertion-detail-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.assertion-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.add-assertion-btn {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.skip-condition-editor {
+  padding: 16px 0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.running-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.running-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #409eff;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 输入框 placeholder 样式 - 浅灰色显示 */
+.request-config-dialog :deep(.el-input__wrapper input::placeholder),
+.request-config-dialog :deep(.el-textarea__inner::placeholder) {
+  color: #a8abb2;
+  font-weight: normal;
+}
+
+.skip-condition-editor :deep(.el-textarea__inner::placeholder) {
+  color: #a8abb2;
+  font-weight: normal;
 }
 </style>

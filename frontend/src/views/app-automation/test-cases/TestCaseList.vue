@@ -421,7 +421,7 @@ const viewReport = (execution) => {
     ElMessage.info(t('appAutomation.messages.reportPathNotExist'))
     return
   }
-  const reportUrl = `/api/app-automation/executions/${execution.id}/report/`
+  const reportUrl = `/api/app-automation/executions/${execution.id}/report/index.html`
   window.open(reportUrl, '_blank')
 }
 

@@ -1,6 +1,14 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from .models import (
+    ApiProject, ApiCollection, ApiRequest, Environment,
+    RequestHistory, TestSuite, TestExecution, TestSuiteRequest,
+    NotificationLog, OperationLog, AIServiceConfig,
+    ParameterizedDataSet, ParameterizedExecution,
+)
+
+User = get_user_model()
 
 
 class NullableDateField(serializers.DateField):
@@ -11,14 +19,6 @@ class NullableDateField(serializers.DateField):
             return None
         # 否则使用父类的正常处理
         return super().to_internal_value(value)
-from .models import (
-    ApiProject, ApiCollection, ApiRequest, Environment,
-    RequestHistory, TestSuite, TestExecution, TestSuiteRequest,
-    NotificationLog, OperationLog, AIServiceConfig,
-    ParameterizedDataSet, ParameterizedExecution,
-)
-
-User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -146,7 +146,8 @@ class ApiRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'description', 'request_type', 'method', 'url',
             'headers', 'params', 'body', 'auth', 'pre_request_script',
-            'post_request_script', 'assertions', 'extractors', 'collection', 'order', 'created_by',
+            'post_request_script', 'assertions', 'extractors', 'extract_variables',
+            'collection', 'order', 'created_by',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
@@ -217,7 +218,8 @@ class TestSuiteRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TestSuiteRequest
-        fields = ['id', 'request', 'order', 'assertions', 'extractors', 'enabled']
+        fields = ['id', 'request', 'order', 'assertions', 'extractors', 'enabled',
+                  'extract_variables', 'skip_condition']
 
 
 class TestSuiteSerializer(serializers.ModelSerializer):
@@ -238,23 +240,25 @@ class TestSuiteSerializer(serializers.ModelSerializer):
 
 
 class TestExecutionSerializer(serializers.ModelSerializer):
-    test_suite = TestSuiteSerializer(read_only=True)
+    test_suite_name = serializers.CharField(source='test_suite.name', read_only=True)
     executed_by = UserSerializer(read_only=True)
 
     class Meta:
         model = TestExecution
         fields = [
-            'id', 'test_suite', 'status', 'start_time', 'end_time',
-            'total_requests', 'passed_requests', 'failed_requests',
-            'results', 'executed_by', 'created_at'
+            'id', 'test_suite', 'test_suite_name', 'status', 'start_time', 'end_time',
+            'total_requests', 'passed_requests', 'failed_requests', 'skipped_requests',
+            'results', 'error_message', 'executed_by', 'report_status', 'report_url', 'created_at'
         ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # 添加项目名称信息
-        if instance.test_suite and instance.test_suite.project:
-            data['project_name'] = instance.test_suite.project.name
+        if instance.test_suite:
+            if instance.test_suite.project:
+                data['project_name'] = instance.test_suite.project.name
             data['test_suite_name'] = instance.test_suite.name
+            if instance.test_suite.environment:
+                data['environment_name'] = instance.test_suite.environment.name
         return data
 
 

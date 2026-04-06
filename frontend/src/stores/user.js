@@ -205,7 +205,6 @@ export const useUserStore = defineStore('user', () => {
       isExpired: isTokenExpired.value
     })
 
-    // 从localStorage恢复用户信息
     if (!user.value) {
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
@@ -218,7 +217,6 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (accessToken.value) {
-      // 检查token是否过期
       if (isTokenExpired.value && refreshToken.value) {
         console.log('Token已过期，尝试刷新...')
         try {
@@ -226,11 +224,15 @@ export const useUserStore = defineStore('user', () => {
           console.log('Token刷新成功')
         } catch (error) {
           console.error('Token刷新失败:', error)
+          await logout()
           return
         }
+      } else if (isTokenExpired.value && !refreshToken.value) {
+        console.log('Token已过期且没有refresh token，跳转登录页')
+        await logout()
+        return
       }
 
-      // 获取用户信息
       if (!user.value) {
         try {
           console.log('获取用户信息...')
@@ -244,7 +246,6 @@ export const useUserStore = defineStore('user', () => {
         console.log('用户信息已存在，跳过获取')
       }
 
-      // 启动自动刷新定时器
       startAutoRefresh()
     } else {
       console.log('没有access token，跳过认证初始化')

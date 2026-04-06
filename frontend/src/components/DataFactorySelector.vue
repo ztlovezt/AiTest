@@ -54,8 +54,10 @@
             stripe
             border
             @row-click="handleRowClick"
+            @selection-change="handleSelectionChange"
             class="records-table"
             height="400"
+            ref="tableRef"
           >
             <el-table-column type="selection" width="55" />
             <el-table-column prop="tool_name_display" :label="t('apiTesting.dataFactory.select.toolName')" min-width="150" />
@@ -156,8 +158,10 @@
               stripe
               border
               @row-click="handleRowClick"
+              @selection-change="handleSelectionChange"
               class="records-table"
               height="400"
+              ref="tableRef"
             >
               <el-table-column type="selection" width="55" />
             <el-table-column prop="tool_name_display" :label="t('apiTesting.dataFactory.select.toolName')" min-width="150" />
@@ -209,7 +213,7 @@
 
     <template #footer>
       <el-button @click="handleClose">{{ t('apiTesting.dataFactory.select.cancel') }}</el-button>
-      <el-button type="primary" @click="handleConfirm" :disabled="!selectedRecord">
+      <el-button type="primary" @click="handleConfirm" :disabled="!selectedRecord && selectedRecords.length === 0">
         {{ t('apiTesting.dataFactory.select.confirmSelect') }}
       </el-button>
     </template>
@@ -285,6 +289,8 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 const loading = ref(false)
 const selectedRecord = ref(null)
+const selectedRecords = ref([])
+const tableRef = ref(null)
 const previewVisible = ref(false)
 const previewRecordData = ref(null)
 const availableTags = ref([])
@@ -408,6 +414,19 @@ const handlePageChange = (page) => {
 
 const handleRowClick = (row) => {
   selectedRecord.value = row
+  // 切换选中状态（如果点击的是行，则切换selection）
+  if (tableRef.value) {
+    tableRef.value.toggleRowSelection(row)
+  }
+}
+
+const handleSelectionChange = (selection) => {
+  selectedRecords.value = selection
+  if (selection.length > 0) {
+    selectedRecord.value = selection[selection.length - 1]
+  } else {
+    selectedRecord.value = null
+  }
 }
 
 const selectRecord = (record) => {
@@ -422,7 +441,11 @@ const previewRecord = (record) => {
 }
 
 const handleConfirm = () => {
-  if (selectedRecord.value) {
+  if (selectedRecords.value.length > 0) {
+    emit('select', selectedRecords.value)
+    visible.value = false
+  } else if (selectedRecord.value) {
+    // 兼容单选模式
     emit('select', selectedRecord.value)
     visible.value = false
   }
@@ -431,6 +454,7 @@ const handleConfirm = () => {
 const handleClose = () => {
   visible.value = false
   selectedRecord.value = null
+  selectedRecords.value = []
 }
 
 const formatDate = (dateString) => {

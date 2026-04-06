@@ -103,6 +103,7 @@ class ApiRequest(models.Model):
     pre_request_script = models.TextField(blank=True, verbose_name='请求前脚本')
     post_request_script = models.TextField(blank=True, verbose_name='请求后脚本')
     assertions = models.JSONField(default=list, verbose_name='断言规则')
+    extract_variables = models.JSONField(default=list, verbose_name='变量提取规则')
     extractors = models.JSONField(default=list, blank=True, verbose_name='变量提取器')
     order = models.IntegerField(default=0, verbose_name='排序')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='创建者')
@@ -201,6 +202,8 @@ class TestSuiteRequest(models.Model):
     assertions = models.JSONField(default=list, verbose_name='断言规则')
     extractors = models.JSONField(default=list, blank=True, verbose_name='变量提取器')
     enabled = models.BooleanField(default=True, verbose_name='是否启用')
+    extract_variables = models.JSONField(default=list, verbose_name='变量提取规则', blank=True)
+    skip_condition = models.TextField(blank=True, default='', verbose_name='跳过条件')
 
     class Meta:
         db_table = 'api_test_suite_requests'
@@ -221,6 +224,7 @@ class TestExecution(models.Model):
         ('COMPLETED', '已完成'),
         ('FAILED', '执行失败'),
         ('CANCELLED', '已取消'),
+        ('PARTIAL_FAILED', '部分失败'),
     ]
 
     test_suite = models.ForeignKey(TestSuite, on_delete=models.CASCADE, related_name='executions',
@@ -232,8 +236,15 @@ class TestExecution(models.Model):
     total_requests = models.IntegerField(default=0, verbose_name='总请求数')
     passed_requests = models.IntegerField(default=0, verbose_name='通过请求数')
     failed_requests = models.IntegerField(default=0, verbose_name='失败请求数')
-    results = models.JSONField(default=dict, verbose_name='执行结果')
+    skipped_requests = models.IntegerField(default=0, verbose_name='跳过请求数')
+    results = models.JSONField(default=list, verbose_name='执行结果')
+    error_message = models.TextField(blank=True, default='', verbose_name='错误信息')
     executed_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='执行者')
+    report_status = models.CharField(max_length=20, default='PENDING',
+                                     choices=[('PENDING', '待生成'), ('GENERATING', '生成中'),
+                                              ('SUCCESS', '成功'), ('FAILED', '失败'), ('SKIPPED', '跳过')],
+                                     verbose_name='报告状态')
+    report_url = models.CharField(max_length=500, blank=True, default='', verbose_name='报告URL')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 
     class Meta:

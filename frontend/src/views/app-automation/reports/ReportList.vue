@@ -88,7 +88,8 @@
             <template #default="{ row }">
               <el-button type="primary" link size="small" @click="viewSuiteDetail(row)">{{ t('appAutomation.report.detail') }}</el-button>
               <el-button type="success" link size="small" @click="viewSuiteExecutions(row)">{{ t('appAutomation.report.executions') }}</el-button>
-              <el-button type="success" link size="small" @click="viewSuiteAllureReport(row)">{{ t('appAutomation.report.allureReport') }}</el-button>
+              <el-button type="success" link size="small" @click="viewSuiteOnlineReport(row)">{{ t('appAutomation.report.onlineReport') }}</el-button>
+              <el-button type="warning" link size="small" @click="downloadSuiteOfflineReport(row)">{{ t('appAutomation.report.downloadOfflineReport') }}</el-button>
               <el-button type="danger" link size="small" @click="deleteSuiteReport(row)">{{ t('appAutomation.common.delete') }}</el-button>
             </template>
           </el-table-column>
@@ -195,7 +196,8 @@
           <el-table-column :label="t('appAutomation.common.operation')" min-width="150">
             <template #default="{ row }">
               <el-button type="primary" link size="small" @click="viewCaseDetail(row)">{{ t('appAutomation.report.detail') }}</el-button>
-              <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">{{ t('appAutomation.report.allureReport') }}</el-button>
+              <el-button v-if="row.report_path" type="success" link size="small" @click="viewOnlineReport(row)">{{ t('appAutomation.report.onlineReport') }}</el-button>
+              <el-button v-if="row.report_path" type="warning" link size="small" @click="downloadOfflineReport(row)">{{ t('appAutomation.report.downloadOfflineReport') }}</el-button>
               <el-button type="danger" link size="small" @click="deleteCaseReport(row)">{{ t('appAutomation.common.delete') }}</el-button>
             </template>
           </el-table-column>
@@ -301,9 +303,10 @@
         <el-table-column :label="t('appAutomation.messages.executionTimeLabel')" width="170">
           <template #default="{ row }">{{ formatDateTime(row.started_at) }}</template>
         </el-table-column>
-        <el-table-column :label="t('appAutomation.messages.operationLabel')" width="120" fixed="right">
+        <el-table-column :label="t('appAutomation.messages.operationLabel')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="row.report_path" type="success" link size="small" @click="viewAllureReport(row)">{{ t('appAutomation.messages.allureReportButton') }}</el-button>
+            <el-button v-if="row.report_path" type="success" link size="small" @click="viewOnlineReport(row)">{{ t('appAutomation.report.onlineReport') }}</el-button>
+            <el-button v-if="row.report_path" type="warning" link size="small" @click="downloadOfflineReport(row)">{{ t('appAutomation.report.downloadOfflineReport') }}</el-button>
             <el-button v-if="row.error_message" type="danger" link size="small" @click="viewCaseDetail(row)">{{ t('appAutomation.messages.errorButton') }}</el-button>
           </template>
         </el-table-column>
@@ -365,9 +368,13 @@
         </div>
 
         <div v-if="selectedCase.report_path" class="detail-section" style="text-align:center">
-          <el-button type="primary" @click="viewAllureReport(selectedCase)">
+          <el-button type="primary" @click="viewOnlineReport(selectedCase)">
             <el-icon><DataAnalysis /></el-icon>
-            {{ t('appAutomation.messages.viewFullAllureReport') }}
+            {{ t('appAutomation.report.onlineReport') }}
+          </el-button>
+          <el-button type="warning" @click="downloadOfflineReport(selectedCase)">
+            <el-icon><Download /></el-icon>
+            {{ t('appAutomation.report.downloadOfflineReport') }}
           </el-button>
         </div>
       </div>
@@ -382,7 +389,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, DataAnalysis } from '@element-plus/icons-vue'
+import { Search, DataAnalysis, Download } from '@element-plus/icons-vue'
 import {
   getExecutionList, deleteExecution,
   getTestSuiteList, getTestSuiteExecutions,
@@ -428,7 +435,7 @@ const suiteStatsCards = computed(() => {
     ? Math.round(executed.reduce((sum, s) => sum + getSuitePassRate(s), 0) / executed.length)
     : 0
   return [
-    { label: t('appAutomation.report.totalSuites'), value: suitePagination.total, color: 'var(--th-color-primary)' },
+    { label: t('appAutomation.suites.totalSuites'), value: suitePagination.total, color: 'var(--th-color-primary)' },
     { label: t('appAutomation.report.executed'), value: executed.length, color: 'var(--th-color-success)' },
     { label: t('appAutomation.report.recentFailed'), value: failed.length, color: '#f56c6c' },
     { label: t('appAutomation.report.avgPassRate'), value: avgRate + '%', color: '#e6a23c' },
@@ -469,18 +476,38 @@ async function viewSuiteExecutions(suite) {
   finally { suiteExecLoading.value = false }
 }
 
-async function viewSuiteAllureReport(suite) {
+async function viewSuiteOnlineReport(suite) {
   // 获取该套件最近的执行记录，找到有 Allure 报告的
   try {
     const res = await getTestSuiteExecutions(suite.id)
     const records = res.data.data || res.data.results || res.data || []
     const withReport = records.find(r => r.report_path)
     if (withReport) {
-      window.open(`/api/app-automation/executions/${withReport.id}/report/`, '_blank')
+      window.open(`/api/app-automation/executions/${withReport.id}/report/index.html`, '_blank')
     } else {
       ElMessage.warning(t('appAutomation.messages.noAllureReport'))
     }
   } catch { ElMessage.error(t('appAutomation.messages.getReportFailed')) }
+}
+
+async function downloadSuiteOfflineReport(suite) {
+  try {
+    const res = await getTestSuiteExecutions(suite.id)
+    const records = res.data.data || res.data.results || res.data || []
+    const withReport = records.find(r => r.report_path)
+    if (!withReport) {
+      ElMessage.warning(t('appAutomation.messages.noAllureReport'))
+      return
+    }
+    // 使用 single-file 报告 URL
+    const url = `/api/app-automation-single-file-reports/execution_${withReport.id}/index.html`
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `app-suite-report-${suite.id}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch { ElMessage.error(t('appAutomation.report.downloadFailed')) }
 }
 
 async function deleteSuiteReport(suite) {
@@ -507,6 +534,7 @@ function getSuiteDisplayStatus(row) {
   if (status === 'error') return { type: 'danger', text: t('appAutomation.messages.executionError') }
   if (result === 'passed') return { type: 'success', text: t('appAutomation.messages.passed') }
   if (result === 'failed') return { type: 'danger', text: t('appAutomation.messages.failed') }
+  if (result === 'partial_failed') return { type: 'warning', text: t('appAutomation.report.statusPartialFailed') }
   if (result === 'skipped') return { type: 'warning', text: t('appAutomation.messages.skipped') }
   // 向后兼容
   if (status === 'success') return { type: 'success', text: t('appAutomation.messages.passed') }
@@ -568,9 +596,21 @@ function viewCaseDetail(row) {
   caseDetailVisible.value = true
 }
 
-function viewAllureReport(row) {
+function viewOnlineReport(row) {
   if (!row.report_path) return ElMessage.warning(t('appAutomation.messages.noAllureReportForRecord'))
-  window.open(`/api/app-automation/executions/${row.id}/report/`, '_blank')
+  window.open(`/api/app-automation/executions/${row.id}/report/index.html`, '_blank')
+}
+
+function downloadOfflineReport(row) {
+  if (!row.report_path) return ElMessage.warning(t('appAutomation.messages.noAllureReportForRecord'))
+  // 使用 single-file 报告 URL
+  const url = `/api/app-automation-single-file-reports/execution_${row.id}/index.html`
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `app-test-report-${row.id}.html`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
 }
 
 async function deleteCaseReport(row) {

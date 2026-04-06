@@ -20,26 +20,77 @@
       <!-- Body Tab -->
       <el-tab-pane :label="$t('apiTesting.response.body')" name="body">
         <div class="body-toolbar">
-          <el-radio-group v-model="bodyViewMode" size="small">
-            <el-radio-button value="tree" v-if="isJson">
-              <el-icon><DataBoard /></el-icon> {{ $t('apiTesting.response.treeView') }}
-            </el-radio-button>
-            <el-radio-button value="table" v-if="isJsonArray">
-              <el-icon><Grid /></el-icon> {{ $t('apiTesting.response.tableView') }}
-            </el-radio-button>
-            <el-radio-button value="raw">
-              <el-icon><Document /></el-icon> {{ $t('apiTesting.response.rawView') }}
-            </el-radio-button>
-            <el-radio-button value="preview" v-if="isHtml || isImage">
-              <el-icon><View /></el-icon> {{ $t('apiTesting.response.preview') }}
-            </el-radio-button>
-          </el-radio-group>
-          <div class="body-actions">
+          <div class="toolbar-left">
+            <el-radio-group v-model="bodyViewMode" size="small">
+              <el-radio-button value="tree" v-if="isJson">
+                <el-icon><DataBoard /></el-icon> {{ $t('apiTesting.response.treeView') }}
+              </el-radio-button>
+              <el-radio-button value="table" v-if="isJsonArray">
+                <el-icon><Grid /></el-icon> {{ $t('apiTesting.response.tableView') }}
+              </el-radio-button>
+              <el-radio-button value="raw">
+                <el-icon><Document /></el-icon> {{ $t('apiTesting.response.rawView') }}
+              </el-radio-button>
+              <el-radio-button value="preview" v-if="isHtml || isImage">
+                <el-icon><View /></el-icon> {{ $t('apiTesting.response.preview') }}
+              </el-radio-button>
+            </el-radio-group>
+            <div v-if="isJson" class="jsonpath-search">
+              <el-input
+                v-model="jsonPathQuery"
+                :placeholder="$t('apiTesting.response.jsonPathPlaceholder')"
+                size="small"
+                clearable
+                @keyup.enter="evaluateJsonPath"
+                style="width: 260px;"
+              />
+              <el-button size="small" type="primary" @click="evaluateJsonPath">
+                {{ $t('apiTesting.response.query') || '查询' }}
+              </el-button>
+              <el-tooltip :content="$t('apiTesting.response.jsonPathHelp') || '查看JSONPath语法文档'" placement="top">
+                <el-link 
+                  href="https://goessner.net/articles/JsonPath/" 
+                  target="_blank" 
+                  underline="never"
+                  class="jsonpath-help-link"
+                >
+                  <el-icon><QuestionFilled /></el-icon>
+                </el-link>
+              </el-tooltip>
+            </div>
+          </div>
+          <div class="toolbar-right">
             <el-button size="small" @click="copyBody">
               <el-icon><CopyDocument /></el-icon> {{ $t('apiTesting.response.copy') }}
             </el-button>
           </div>
         </div>
+
+        <!-- JSONPath 查询结果 -->
+        <el-collapse v-if="isJson && jsonPathQuery && jsonPathResult !== null" class="jsonpath-result-collapse" v-model="jsonPathCollapseActive">
+          <el-collapse-item name="result">
+            <template #title>
+              <div class="result-header">
+                <span class="result-label">{{ $t('apiTesting.response.jsonPathResult') }}</span>
+                <el-tag size="small" type="success">{{ getJsonPathResultType() }}</el-tag>
+              </div>
+            </template>
+            <div class="result-body">
+              <pre class="result-content">{{ JSON.stringify(jsonPathResult, null, 2) }}</pre>
+              <el-button size="small" @click="copyJsonPathResult" class="copy-result-btn">
+                <el-icon><CopyDocument /></el-icon> {{ $t('apiTesting.response.copy') }}
+              </el-button>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+        <el-alert 
+          v-else-if="isJson && jsonPathQuery && jsonPathResult === null" 
+          type="warning" 
+          :title="$t('apiTesting.response.jsonPathError')" 
+          :closable="false"
+          show-icon
+          class="jsonpath-error-alert"
+        />
 
         <!-- 树形视图 -->
         <div v-if="bodyViewMode === 'tree' && isJson" class="body-content">
@@ -146,7 +197,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { CopyDocument, DataBoard, Grid, Document, View } from '@element-plus/icons-vue'
+import { CopyDocument, DataBoard, Grid, Document, View, QuestionFilled } from '@element-plus/icons-vue'
 import JsonTreeView from './JsonTreeView.vue'
 
 const { t } = useI18n()
@@ -163,6 +214,9 @@ const emit = defineEmits(['select-path'])
 const activeTab = ref('body')
 const bodyViewMode = ref('tree')
 const headerSearch = ref('')
+const jsonPathQuery = ref('')
+const jsonPathResult = ref(null)
+const jsonPathCollapseActive = ref(['result'])
 
 // 状态码颜色
 const statusType = computed(() => {
@@ -320,6 +374,228 @@ function formatAssertionValue(value) {
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
+
+// JSONPath 查询
+const evaluateJsonPath = () => {
+  if (!jsonPathQuery.value || !jsonData.value) {
+    jsonPathResult.value = null
+    return
+  }
+
+  try {
+    // 简单的 JSONPath 实现
+    // 支持: $ (根), $.key, $.key.subkey, $[index], $[index].key
+    const result = simpleJsonPath(jsonData.value, jsonPathQuery.value)
+    jsonPathResult.value = result
+  } catch (error) {
+    console.error('JSONPath 查询失败:', error)
+    jsonPathResult.value = null
+  }
+}
+
+function simpleJsonPath(obj, path) {
+  if (!path || path === '$') return obj
+
+  const tokens = tokenize(path)
+  if (tokens.length === 0) return obj
+
+  let results = [obj]
+
+  for (const token of tokens) {
+    const newResults = []
+    
+    for (const current of results) {
+      if (current === null || current === undefined) continue
+      
+      if (token.type === 'child') {
+        if (current !== null && typeof current === 'object') {
+          if (token.value === '*') {
+            if (Array.isArray(current)) {
+              newResults.push(...current)
+            } else {
+              newResults.push(...Object.values(current))
+            }
+          } else if (token.value in current) {
+            newResults.push(current[token.value])
+          }
+        }
+      } else if (token.type === 'index') {
+        if (Array.isArray(current) && token.value >= 0 && token.value < current.length) {
+          newResults.push(current[token.value])
+        }
+      } else if (token.type === 'slice') {
+        if (Array.isArray(current)) {
+          const start = token.start ?? 0
+          const end = token.end ?? current.length
+          const step = token.step ?? 1
+          for (let i = start; i < end; i += step) {
+            if (i >= 0 && i < current.length) {
+              newResults.push(current[i])
+            }
+          }
+        }
+      } else if (token.type === 'wildcard') {
+        if (Array.isArray(current)) {
+          newResults.push(...current)
+        } else if (current !== null && typeof current === 'object') {
+          newResults.push(...Object.values(current))
+        }
+      } else if (token.type === 'recursive') {
+        const key = token.value
+        collectRecursive(current, key, newResults)
+      }
+    }
+    
+    results = newResults
+  }
+
+  if (results.length === 0) return null
+  if (results.length === 1) return results[0]
+  return results
+}
+
+function tokenize(path) {
+  const tokens = []
+  let i = 0
+  
+  if (path[i] === '$') i++
+  
+  while (i < path.length) {
+    if (path[i] === '.' && path[i + 1] === '.') {
+      i += 2
+      let key = ''
+      while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+        key += path[i]
+        i++
+      }
+      if (key === '*') {
+        tokens.push({ type: 'recursiveWildcard' })
+      } else {
+        tokens.push({ type: 'recursive', value: key })
+      }
+    } else if (path[i] === '.') {
+      i++
+      let key = ''
+      while (i < path.length && path[i] !== '.' && path[i] !== '[') {
+        key += path[i]
+        i++
+      }
+      if (key === '*') {
+        tokens.push({ type: 'wildcard' })
+      } else {
+        tokens.push({ type: 'child', value: key })
+      }
+    } else if (path[i] === '[') {
+      i++
+      if (path[i] === "'") {
+        i++
+        let key = ''
+        while (i < path.length && path[i] !== "'") {
+          key += path[i]
+          i++
+        }
+        i++
+        if (path[i] === ']') i++
+        tokens.push({ type: 'child', value: key })
+      } else if (path[i] === '"') {
+        i++
+        let key = ''
+        while (i < path.length && path[i] !== '"') {
+          key += path[i]
+          i++
+        }
+        i++
+        if (path[i] === ']') i++
+        tokens.push({ type: 'child', value: key })
+      } else if (path[i] === '*') {
+        i++
+        if (path[i] === ']') i++
+        tokens.push({ type: 'wildcard' })
+      } else if (path[i] === ':') {
+        i++
+        let end = ''
+        while (i < path.length && path[i] !== ']') {
+          end += path[i]
+          i++
+        }
+        i++
+        tokens.push({ type: 'slice', start: 0, end: end ? parseInt(end) : undefined, step: 1 })
+      } else {
+        let content = ''
+        while (i < path.length && path[i] !== ']' && path[i] !== ':') {
+          content += path[i]
+          i++
+        }
+        if (path[i] === ':') {
+          i++
+          const start = content ? parseInt(content) : undefined
+          let end = ''
+          while (i < path.length && path[i] !== ']' && path[i] !== ':') {
+            end += path[i]
+            i++
+          }
+          let step = 1
+          if (path[i] === ':') {
+            i++
+            let stepStr = ''
+            while (i < path.length && path[i] !== ']') {
+              stepStr += path[i]
+              i++
+            }
+            step = stepStr ? parseInt(stepStr) : 1
+          }
+          i++
+          tokens.push({ type: 'slice', start, end: end ? parseInt(end) : undefined, step })
+        } else {
+          i++
+          const indices = content.split(',').map(s => s.trim())
+          for (const idx of indices) {
+            if (idx.includes("'") || idx.includes('"')) {
+              tokens.push({ type: 'child', value: idx.replace(/['"]/g, '') })
+            } else {
+              tokens.push({ type: 'index', value: parseInt(idx) })
+            }
+          }
+        }
+      }
+    } else {
+      i++
+    }
+  }
+  
+  return tokens
+}
+
+function collectRecursive(obj, key, results) {
+  if (obj === null || obj === undefined) return
+  
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      collectRecursive(item, key, results)
+    }
+  } else if (typeof obj === 'object') {
+    if (key in obj) {
+      results.push(obj[key])
+    }
+    for (const value of Object.values(obj)) {
+      collectRecursive(value, key, results)
+    }
+  }
+}
+
+function getJsonPathResultType() {
+  if (jsonPathResult.value === null) return 'null'
+  if (Array.isArray(jsonPathResult.value)) return `Array[${jsonPathResult.value.length}]`
+  if (typeof jsonPathResult.value === 'object') return 'Object'
+  return typeof jsonPathResult.value
+}
+
+function copyJsonPathResult() {
+  if (jsonPathResult.value !== null) {
+    navigator.clipboard.writeText(JSON.stringify(jsonPathResult.value, null, 2))
+    ElMessage.success(t('apiTesting.response.copied'))
+  }
+}
 </script>
 
 <style scoped>
@@ -374,11 +650,52 @@ function formatAssertionValue(value) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jsonpath-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jsonpath-help-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  color: #909399;
+  transition: all 0.2s;
+}
+
+.jsonpath-help-link:hover {
+  background: #e6e8eb;
+  color: #409eff;
 }
 
 .body-content {
   min-height: 100px;
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  background: #fff;
 }
 
 .raw-body {
@@ -516,5 +833,64 @@ function formatAssertionValue(value) {
 
 .error-value {
   color: #f56c6c;
+}
+
+/* JSONPath 查询结果 */
+.jsonpath-result-collapse {
+  margin-bottom: 12px;
+  border: 1px solid #e6f7ff;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.jsonpath-result-collapse :deep(.el-collapse-item__header) {
+  background: #e6f7ff;
+  padding: 0 12px;
+  height: 40px;
+}
+
+.jsonpath-result-collapse :deep(.el-collapse-item__wrap) {
+  border-bottom: none;
+}
+
+.jsonpath-result-collapse :deep(.el-collapse-item__content) {
+  padding: 0;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.result-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #303133;
+}
+
+.result-body {
+  padding: 12px;
+  background: #fafafa;
+}
+
+.result-content {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 0 0 10px 0;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 13px;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.copy-result-btn {
+  float: right;
+}
+
+.jsonpath-error-alert {
+  margin-bottom: 12px;
 }
 </style>

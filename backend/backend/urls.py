@@ -57,16 +57,44 @@ urlpatterns += [
          {'document_root': os.path.join(settings.BASE_DIR, 'apps', 'app_automation', 'Template')}),
 ]
 
+# API测试 Allure 报告访问 - 使用配置项
+urlpatterns += [
+    path('api/api-testing-reports/<path:path>',
+         serve,
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_REPORTS_DIR)}),
+]
+
+# API测试 Allure 离线报告访问
+urlpatterns += [
+    path('api/api-testing-single-file-reports/<path:path>',
+         serve,
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_SINGLE_FILE_DIR)}),
+]
+
+# UI自动化 Allure 报告访问 - 使用配置项
+urlpatterns += [
+    path('api/ui-testing-reports/<path:path>',
+         serve,
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_UI_AUTOMATION, settings.ALLURE_REPORTS_DIR)}),
+]
+
+# UI自动化 Allure 离线报告访问
+urlpatterns += [
+    path('api/ui-testing-single-file-reports/<path:path>',
+         serve,
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_UI_AUTOMATION, settings.ALLURE_SINGLE_FILE_DIR)}),
+]
+
 # APP自动化 Allure 报告访问 - 使用配置项
 urlpatterns += [
-    path('app-automation-reports/<path:path>',
+    path('api/app-automation-reports/<path:path>',
          serve,
          {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_REPORTS_DIR)}),
 ]
 
-# API测试 Allure 报告访问 - 使用配置项
+# APP自动化 Allure 离线报告访问
 urlpatterns += [
-    path('api-testing-reports/<path:path>',
+    path('api/app-automation-single-file-reports/<path:path>',
          serve,
-         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_REPORTS_DIR)}),
+         {'document_root': os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_SINGLE_FILE_DIR)}),
 ]

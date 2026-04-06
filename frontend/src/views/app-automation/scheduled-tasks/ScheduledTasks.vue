@@ -766,6 +766,7 @@ const editTask = (task) => {
   
   Object.assign(form, {
     name: task.name, description: config.description || '',
+    project: config.project_id || null,
     task_type: config.task_type || 'APP_TEST_SUITE', schedule_type: task.schedule_type || 'C',
     cron: task.cron || '0 0 * * *',
     minutes: task.minutes || 60,

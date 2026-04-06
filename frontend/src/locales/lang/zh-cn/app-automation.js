@@ -447,7 +447,36 @@ export default {
     exportIncludeDisabled: '导出含禁用',
     exportYAML: '导出YAML',
     exportJSON: '导出JSON',
-    close: '关闭'
+    close: '关闭',
+    referenceDataFactory: '引用数据工厂',
+    insertVariable: '插入变量',
+    variableHelper: '变量助手',
+    functionName: '函数名',
+    syntax: '语法',
+    example: '示例',
+    operation: '操作',
+    insert: '插入',
+    variableCategory: {
+      randomNumber: '随机数',
+      testData: '测试数据',
+      string: '字符串',
+      encoding: '编码',
+      encryption: '加密',
+      dateTime: '日期时间',
+      randomString: '随机字符串',
+      uncategorized: '未分类'
+    },
+    variable: {
+      randomInt: {
+        desc: '生成指定范围内的随机整数'
+      },
+      randomFloat: {
+        desc: '生成指定范围内的随机浮点数'
+      },
+      randomString: {
+        desc: '生成指定长度和字符类型的随机字符串'
+      }
+    }
   },
 
   // 执行记录
@@ -468,6 +497,7 @@ export default {
       running: '执行中',
       success: '成功',
       failed: '失败',
+      partial_failed: '部分失败',
       skipped: '跳过',
       completed: '已完成',
       error: '执行异常',
@@ -504,6 +534,56 @@ export default {
     exportReport: '导出报告',
     suiteReport: '套件报告',
     caseReport: '用例报告',
+    onlineReport: '在线报告',
+    noOnlineReport: '该执行记录暂无在线报告',
+    statusPartialFailed: '部分失败',
+    // 报告列表共用
+    allProjects: '全部项目',
+    searchSuite: '搜索套件名称',
+    executionStatus: '执行状态',
+    all: '全部',
+    completed: '已完成',
+    executionError: '执行异常',
+    running: '执行中',
+    stopped: '已停止',
+    query: '查询',
+    reset: '重置',
+    suiteName: '套件名称',
+    description: '描述',
+    casePassRate: '用例通过率',
+    noCases: '无用例',
+    caseStats: '用例统计',
+    passed: '通过',
+    failed: '失败',
+    total: '总计',
+    creator: '创建人',
+    lastRun: '最后执行',
+    detail: '详情',
+    executions: '执行记录',
+    downloadOfflineReport: '下载离线报告',
+    reportGenerating: '报告正在生成中，请稍后再试',
+    reportNotGenerated: '该执行记录未生成报告',
+    downloadFailed: '下载报告失败',
+    searchCaseDevice: '搜索用例名称、设备',
+    testCase: '测试用例',
+    device: '设备',
+    status: '状态',
+    stepPassRate: '步骤通过率',
+    stepStats: '步骤统计',
+    duration: '耗时',
+    executor: '执行人',
+    suiteDetail: '套件报告详情',
+    executed: '已执行',
+    totalReports: '总报告数',
+    pagePassed: '本页通过',
+    recentFailed: '最近失败',
+    avgPassRate: '平均通过率',
+    pageFailed: '本页失败',
+    pageAvgPassRate: '本页平均通过率',
+  },
+
+  // 测试套件
+  suites: {
     allProjects: '全部项目',
     searchSuite: '搜索套件名称',
     suiteNamePlaceholder: '请输入套件名称',
@@ -531,7 +611,11 @@ export default {
     lastRun: '最后执行',
     detail: '详情',
     executions: '执行记录',
-    allureReport: 'Allure报告',
+    onlineReport: '在线报告',
+    downloadOfflineReport: '下载离线报告',
+    reportGenerating: '报告正在生成中，请稍后再试',
+    reportNotGenerated: '该执行记录未生成报告',
+    downloadFailed: '下载报告失败',
     searchCaseDevice: '搜索用例名称、设备',
     testCase: '测试用例',
     device: '设备',
@@ -544,7 +628,7 @@ export default {
     recentFailed: '最近失败',
     avgPassRate: '平均通过率',
     pageFailed: '本页失败',
-    pageAvgPassRate: '本页平均通过率'
+    pageAvgPassRate: '本页平均通过率',
   },
 
   // 通知列表
@@ -885,6 +969,8 @@ export default {
     selectStepForElement: '请先选择一个步骤',
     noValidFieldGroup: '未指定有效的字段组',
     elementLinkCleared: '已清除 {target} 关联',
+    dataFactorySelected: '已引用数据工厂：{toolName}',
+    variableInserted: '已插入变量：{name}',
 
     // 测试用例
     reportPathNotExist: '报告路径不存在',

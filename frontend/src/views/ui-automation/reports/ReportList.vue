@@ -65,11 +65,19 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column :label="$t('uiAutomation.common.operation')" width="200" fixed="right">
+        <el-table-column :label="$t('uiAutomation.common.operation')" width="320" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="viewReportDetail(row)">
               <el-icon><Document /></el-icon>
               {{ $t('uiAutomation.report.viewDetail') }}
+            </el-button>
+            <el-button link type="success" size="small" @click="viewOnlineReport(row)">
+              <el-icon><Link /></el-icon>
+              {{ $t('uiAutomation.report.onlineReport') }}
+            </el-button>
+            <el-button link type="warning" size="small" @click="downloadOfflineReport(row)">
+              <el-icon><Download /></el-icon>
+              {{ $t('uiAutomation.report.downloadOfflineReport') }}
             </el-button>
             <el-button link type="danger" size="small" @click="deleteReport(row)">
               <el-icon><Delete /></el-icon>
@@ -294,11 +302,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Document, Delete, WarningFilled } from '@element-plus/icons-vue'
+import { Refresh, Document, Delete, WarningFilled, Link, Download } from '@element-plus/icons-vue'
 import {
   getUiProjects,
   getTestExecutions,
-  deleteTestExecution
+  deleteTestExecution,
+  getTestExecutionDetail
 } from '@/api/ui_automation'
 
 const { t } = useI18n()
@@ -386,9 +395,15 @@ const handleCurrentChange = async () => {
 }
 
 // 查看报告详情
-const viewReportDetail = (report) => {
-  currentReport.value = report
-  showDetailDialog.value = true
+const viewReportDetail = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    currentReport.value = res.data
+    showDetailDialog.value = true
+  } catch (error) {
+    console.error('Failed to load report detail:', error)
+    ElMessage.error(t('uiAutomation.report.messages.loadFailed'))
+  }
 }
 
 // 获取用例执行列表
@@ -422,6 +437,60 @@ const getActionText = (actionType) => {
   return actionMap[actionType] || actionType
 }
 
+// 查看在线报告
+const viewOnlineReport = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    const latest = res.data
+
+    if (!latest.report_url) {
+      ElMessage.warning(t('uiAutomation.report.reportNotGenerated'))
+      return
+    }
+
+    if (latest.report_status === 'GENERATING') {
+      ElMessage.warning(t('uiAutomation.report.reportGenerating'))
+      return
+    }
+
+    window.open(`${window.location.origin}${latest.report_url}`, '_blank')
+  } catch (error) {
+    console.error('Failed to view online report:', error)
+    ElMessage.error(t('uiAutomation.report.messages.loadFailed'))
+  }
+}
+
+// 下载离线报告
+const downloadOfflineReport = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    const latest = res.data
+
+    if (!latest.report_url) {
+      ElMessage.warning(t('uiAutomation.report.reportNotGenerated'))
+      return
+    }
+
+    if (latest.report_status === 'GENERATING') {
+      ElMessage.warning(t('uiAutomation.report.reportGenerating'))
+      return
+    }
+
+    // 使用 single-file 报告 URL
+    const singleFileUrl = latest.report_url.replace('/api/ui-testing-reports/', '/api/ui-testing-single-file-reports/')
+    
+    const a = document.createElement('a')
+    a.href = `${window.location.origin}${singleFileUrl}`
+    a.download = `ui-test-report-${report.id}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('Failed to download offline report:', error)
+    ElMessage.error(t('uiAutomation.report.downloadFailed'))
+  }
+}
+
 // 删除报告
 const deleteReport = async (report) => {
   try {
@@ -453,6 +522,7 @@ const getStatusType = (status) => {
     'RUNNING': 'warning',
     'SUCCESS': 'success',
     'FAILED': 'danger',
+    'PARTIAL_FAILED': 'warning',
     'ABORTED': 'info'
   }
   return typeMap[status] || 'info'
@@ -464,6 +534,7 @@ const getStatusText = (status) => {
     'RUNNING': t('uiAutomation.report.statusRunning'),
     'SUCCESS': t('uiAutomation.report.statusSuccess'),
     'FAILED': t('uiAutomation.report.statusFailed'),
+    'PARTIAL_FAILED': t('uiAutomation.report.statusPartialFailed'),
     'ABORTED': t('uiAutomation.report.statusAborted')
   }
   return textMap[status] || status

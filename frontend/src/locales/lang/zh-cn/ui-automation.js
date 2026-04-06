@@ -449,6 +449,11 @@ export default {
     step: '步骤',
     screenshot: '截图',
     viewDetail: '查看详情',
+    onlineReport: '在线报告',
+    downloadOfflineReport: '下载离线报告',
+    reportGenerating: '报告正在生成中，请稍后再试',
+    reportNotGenerated: '该执行记录未生成报告',
+    downloadFailed: '下载报告失败',
     seconds: '秒',
     minutes: '分',
     // 执行状态
@@ -456,6 +461,7 @@ export default {
     statusRunning: '执行中',
     statusSuccess: '成功',
     statusFailed: '失败',
+    statusPartialFailed: '部分失败',
     statusAborted: '中止',
     // 用例执行状态
     casePassed: '成功',

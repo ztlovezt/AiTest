@@ -447,7 +447,36 @@ export default {
     exportIncludeDisabled: 'Include Disabled',
     exportYAML: 'Export YAML',
     exportJSON: 'Export JSON',
-    close: 'Close'
+    close: 'Close',
+    referenceDataFactory: 'Reference Data Factory',
+    insertVariable: 'Insert Variable',
+    variableHelper: 'Variable Helper',
+    functionName: 'Function Name',
+    syntax: 'Syntax',
+    example: 'Example',
+    operation: 'Operation',
+    insert: 'Insert',
+    variableCategory: {
+      randomNumber: 'Random Number',
+      testData: 'Test Data',
+      string: 'String',
+      encoding: 'Encoding',
+      encryption: 'Encryption',
+      dateTime: 'Date Time',
+      randomString: 'Random String',
+      uncategorized: 'Uncategorized'
+    },
+    variable: {
+      randomInt: {
+        desc: 'Generate random integer within specified range'
+      },
+      randomFloat: {
+        desc: 'Generate random float within specified range'
+      },
+      randomString: {
+        desc: 'Generate random string with specified length and character type'
+      }
+    }
   },
 
   // Execution Records
@@ -468,6 +497,7 @@ export default {
       running: 'Running',
       success: 'Success',
       failed: 'Failed',
+      partial_failed: 'Partial Failed',
       skipped: 'Skipped',
       completed: 'Completed',
       error: 'Error',
@@ -504,6 +534,56 @@ export default {
     exportReport: 'Export Report',
     suiteReport: 'Suite Reports',
     caseReport: 'Case Reports',
+    onlineReport: 'Online Report',
+    noOnlineReport: 'No online report available for this execution',
+    statusPartialFailed: 'Partial Failed',
+    // Report list shared
+    allProjects: 'All Projects',
+    searchSuite: 'Search suite name',
+    executionStatus: 'Execution Status',
+    all: 'All',
+    completed: 'Completed',
+    executionError: 'Error',
+    running: 'Running',
+    stopped: 'Stopped',
+    query: 'Query',
+    reset: 'Reset',
+    suiteName: 'Suite Name',
+    description: 'Description',
+    casePassRate: 'Case Pass Rate',
+    noCases: 'No Cases',
+    caseStats: 'Case Statistics',
+    passed: 'Passed',
+    failed: 'Failed',
+    total: 'Total',
+    creator: 'Creator',
+    lastRun: 'Last Run',
+    detail: 'Detail',
+    executions: 'Executions',
+    downloadOfflineReport: 'Download Offline Report',
+    reportGenerating: 'Report is generating, please try again later',
+    reportNotGenerated: 'No report generated for this execution',
+    downloadFailed: 'Failed to download report',
+    searchCaseDevice: 'Search case name/device',
+    testCase: 'Test Case',
+    device: 'Device',
+    status: 'Status',
+    stepPassRate: 'Step Pass Rate',
+    stepStats: 'Step Statistics',
+    duration: 'Duration',
+    executor: 'Executor',
+    suiteDetail: 'Suite Report Detail',
+    executed: 'Executed',
+    totalReports: 'Total Reports',
+    pagePassed: 'Page Passed',
+    recentFailed: 'Recent Failed',
+    avgPassRate: 'Average Pass Rate',
+    pageFailed: 'Page Failed',
+    pageAvgPassRate: 'Page Average Pass Rate',
+  },
+
+  // Test Suites
+  suites: {
     allProjects: 'All Projects',
     searchSuite: 'Search suite name',
     suiteNamePlaceholder: 'Please enter suite name',
@@ -531,7 +611,11 @@ export default {
     lastRun: 'Last Run',
     detail: 'Detail',
     executions: 'Executions',
-    allureReport: 'Allure Report',
+    onlineReport: 'Online Report',
+    downloadOfflineReport: 'Download Offline Report',
+    reportGenerating: 'Report is generating, please try again later',
+    reportNotGenerated: 'No report generated for this execution',
+    downloadFailed: 'Failed to download report',
     searchCaseDevice: 'Search case name/device',
     testCase: 'Test Case',
     device: 'Device',
@@ -544,7 +628,7 @@ export default {
     recentFailed: 'Recent Failed',
     avgPassRate: 'Average Pass Rate',
     pageFailed: 'Page Failed',
-    pageAvgPassRate: 'Page Average Pass Rate'
+    pageAvgPassRate: 'Page Average Pass Rate',
   },
 
   // Notification List
@@ -885,6 +969,8 @@ export default {
     selectStepForElement: 'Please select a step first',
     noValidFieldGroup: 'No valid field group specified',
     elementLinkCleared: 'Cleared {target} link',
+    dataFactorySelected: 'Referenced data factory: {toolName}',
+    variableInserted: 'Variable inserted: {name}',
 
     // Test cases
     reportPathNotExist: 'Report path does not exist',

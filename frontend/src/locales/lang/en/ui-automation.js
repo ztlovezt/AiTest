@@ -449,6 +449,11 @@ export default {
     step: 'Step',
     screenshot: 'Screenshot',
     viewDetail: 'View Details',
+    onlineReport: 'Online Report',
+    downloadOfflineReport: 'Download Offline Report',
+    reportGenerating: 'Report is generating, please try again later',
+    reportNotGenerated: 'No report generated for this execution',
+    downloadFailed: 'Failed to download report',
     seconds: 's',
     minutes: 'm',
     // Execution status
@@ -456,6 +461,7 @@ export default {
     statusRunning: 'Running',
     statusSuccess: 'Success',
     statusFailed: 'Failed',
+    statusPartialFailed: 'Partial Failed',
     statusAborted: 'Aborted',
     // Case execution status
     casePassed: 'Passed',

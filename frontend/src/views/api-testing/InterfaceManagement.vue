@@ -332,6 +332,7 @@
               <el-tab-pane :label="$t('apiTesting.interface.tabPreScript')" name="pre-script">
                 <div class="script-editor-container">
                   <el-input
+                    ref="preScriptInputRef"
                     v-model="selectedRequest.pre_request_script"
                     type="textarea"
                     :rows="10"
@@ -363,6 +364,7 @@
               <el-tab-pane :label="$t('apiTesting.interface.tabTests')" name="tests">
                 <div class="script-editor-container">
                   <el-input
+                    ref="postScriptInputRef"
                     v-model="selectedRequest.post_request_script"
                     type="textarea"
                     :rows="10"
@@ -436,6 +438,8 @@
                           <el-option :label="$t('apiTesting.interface.assertionTypes.jsonPath')" value="json_path" />
                           <el-option :label="$t('apiTesting.interface.assertionTypes.header')" value="header" />
                           <el-option :label="$t('apiTesting.interface.assertionTypes.equals')" value="equals" />
+                          <el-option :label="$t('apiTesting.interface.assertionTypes.notEmpty')" value="not_empty" />
+                          <el-option :label="$t('apiTesting.interface.assertionTypes.jsonSchema')" value="json_schema" />
                         </el-select>
 
                         <div class="assertion-params" v-if="assertion.type">
@@ -938,6 +942,8 @@ const editingNodeId = ref(null)
 const editingNodeName = ref('')
 const editInputRef = ref(null)
 const rawBodyInputRef = ref(null)
+const preScriptInputRef = ref(null)
+const postScriptInputRef = ref(null)
 const currentHeaders = ref({})
 
 const searchKeyword = ref('')
@@ -2386,26 +2392,49 @@ const insertVariable = (variable) => {
         // 在光标位置插入变量
         insertTextAtCursor(rawBodyInputRef, example)
       } else if (currentEditingField.value === 'pre_request_script') {
-        // 对于脚本字段，暂时保持追加到末尾的行为
-        // （如果需要光标插入，需要为脚本编辑器添加ref并实现类似逻辑）
-        const currentValue = selectedRequest.value.pre_request_script || ''
-        selectedRequest.value.pre_request_script = currentValue + example
+        // 在光标位置插入变量
+        insertTextAtCursor(preScriptInputRef, example)
       } else if (currentEditingField.value === 'post_request_script') {
-        const currentValue = selectedRequest.value.post_request_script || ''
-        selectedRequest.value.post_request_script = currentValue + example
+        // 在光标位置插入变量
+        insertTextAtCursor(postScriptInputRef, example)
       }
 
       ElMessage.success(`已插入变量: ${variable.name}`)
       showVariableHelper.value = false
     } else if (currentAssertion.value && currentAssertionField.value) {
+      // 断言字段：在光标位置插入变量
       const example = variable.example
       const field = currentAssertionField.value
-
-      const currentValue = currentAssertion.value[field] || ''
-      if (!currentValue) {
-        currentAssertion.value[field] = example
+      
+      // 获取断言输入框的DOM元素
+      const assertionInput = document.querySelector(`.assertion-item:nth-child(${currentAssertionIndex.value + 1}) .assertion-params input.el-input__inner`)
+      
+      if (assertionInput) {
+        // 确保输入框有焦点
+        assertionInput.focus()
+        
+        // 获取光标位置
+        const cursorPosition = assertionInput.selectionStart || assertionInput.selectionEnd || 0
+        const currentValue = currentAssertion.value[field] || ''
+        
+        // 在光标位置插入变量
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        currentAssertion.value[field] = newValue
+        
+        // 更新光标位置
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+          assertionInput.focus()
+          assertionInput.setSelectionRange(newCursorPosition, newCursorPosition)
+        }, 10)
       } else {
-        currentAssertion.value[field] = currentValue + example
+        // 回退到追加到末尾
+        const currentValue = currentAssertion.value[field] || ''
+        if (!currentValue) {
+          currentAssertion.value[field] = example
+        } else {
+          currentAssertion.value[field] = currentValue + example
+        }
       }
 
       ElMessage.success(`已插入变量: ${variable.name}`)
@@ -2451,7 +2480,32 @@ const handleDataFactorySelect = (record) => {
 
   // 如果是断言字段
   if (currentAssertion.value) {
-    currentAssertion.value[currentAssertionField.value] = valueToSet
+    // 获取断言输入框的DOM元素
+    const assertionInput = document.querySelector(`.assertion-item:nth-child(${currentAssertionIndex.value + 1}) .assertion-params input.el-input__inner`)
+    
+    if (assertionInput) {
+      // 确保输入框有焦点
+      assertionInput.focus()
+      
+      // 获取光标位置
+      const cursorPosition = assertionInput.selectionStart || assertionInput.selectionEnd || 0
+      const currentValue = currentAssertion.value[currentAssertionField.value] || ''
+      
+      // 在光标位置插入数据
+      const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+      currentAssertion.value[currentAssertionField.value] = newValue
+      
+      // 更新光标位置
+      const newCursorPosition = cursorPosition + valueToSet.length
+      setTimeout(() => {
+        assertionInput.focus()
+        assertionInput.setSelectionRange(newCursorPosition, newCursorPosition)
+      }, 10)
+    } else {
+      // 回退到替换整个值
+      currentAssertion.value[currentAssertionField.value] = valueToSet
+    }
+    
     ElMessage.success(`${t('apiTesting.interface.referencedToAssertion')}: ${record.tool_name}`)
   }
   // 如果是Body字段
@@ -2464,10 +2518,16 @@ const handleDataFactorySelect = (record) => {
   }
   // 如果是脚本字段
   else if (currentScriptField.value && selectedRequest.value) {
-    // 将值插入到脚本中
-    const insertText = `\n// 来自数据工厂: ${record.tool_name}\nconst ${record.tool_name.replace(/\s+/g, '_')} = ${JSON.stringify(valueToSet)}\n`
-    const currentValue = selectedRequest.value[currentScriptField.value] || ''
-    selectedRequest.value[currentScriptField.value] = currentValue + insertText
+    // 在光标位置插入数据
+    if (currentScriptField.value === 'pre_request_script') {
+      insertTextAtCursor(preScriptInputRef, valueToSet)
+    } else if (currentScriptField.value === 'post_request_script') {
+      insertTextAtCursor(postScriptInputRef, valueToSet)
+    } else {
+      // 其他脚本字段，追加到末尾
+      const currentValue = selectedRequest.value[currentScriptField.value] || ''
+      selectedRequest.value[currentScriptField.value] = currentValue + valueToSet
+    }
     ElMessage.success(`已引用数据工厂数据到脚本: ${record.tool_name}`)
   }
 
@@ -3202,6 +3262,7 @@ const useLocalVariableCategories = () => {
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s ease;
+  padding: 16px;
 }
 
 .response-section:hover {
@@ -3209,12 +3270,14 @@ const useLocalVariableCategories = () => {
 }
 
 .response-header {
-  padding: 20px 24px;
+  padding: 16px 20px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
+  border-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 }
 
 .response-header h3 {
@@ -4290,6 +4353,14 @@ const useLocalVariableCategories = () => {
 .method-select :deep(.el-select .el-select__placeholder) {
   background-color: transparent !important;
   color: white !important;
+}
+
+.request-tabs {
+  overflow: hidden;
+}
+
+.request-tabs :deep(.el-tabs__header) {
+  flex-shrink: 0;
 }
 
 </style>

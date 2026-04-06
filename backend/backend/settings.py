@@ -190,9 +190,11 @@ ALLURE_BIN_PATH = allure_config.get('bin_path', 'expand/allure/bin')
 ALLURE_STATIC_DIR = allure_config.get('static_dir', 'static')
 ALLURE_REPORTS_DIR = allure_config.get('reports_dir', 'allure-reports')
 ALLURE_RESULTS_DIR = allure_config.get('results_dir', 'allure-results')
+ALLURE_SINGLE_FILE_DIR = allure_config.get('single_file_dir', 'allure-single-file')
 ALLURE_AI_RECORDING = allure_config.get('ai_recording', 'ai_recording')
 ALLURE_API_TESTING = allure_config.get('api_testing', 'api_testing')
 ALLURE_APP_AUTOMATION = allure_config.get('app_automation', 'app_automation')
+ALLURE_UI_AUTOMATION = allure_config.get('ui_automation', 'ui_automation')
 
 # 路径配置
 paths_config = config_loader.get_paths_config()

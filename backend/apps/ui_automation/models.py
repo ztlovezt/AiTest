@@ -459,6 +459,9 @@ class TestSuiteTestCase(models.Model):
     test_suite = models.ForeignKey(TestSuite, on_delete=models.CASCADE, related_name='suite_test_cases', verbose_name='测试套件')
     test_case = models.ForeignKey('TestCase', on_delete=models.CASCADE, verbose_name='测试用例')
     order = models.IntegerField(default=0, verbose_name='执行顺序')
+    enabled = models.BooleanField(default=True, verbose_name='是否启用')
+    extract_variables = models.JSONField(default=list, blank=True, verbose_name='变量提取规则')
+    skip_condition = models.TextField(blank=True, default='', verbose_name='跳过条件')
 
     class Meta:
         db_table = 'ui_test_suite_test_cases'
@@ -479,6 +482,7 @@ class TestExecution(models.Model):
         ('SUCCESS', '成功'),
         ('FAILED', '失败'),
         ('ABORTED', '中止'),
+        ('PARTIAL_FAILED', '部分失败'),
     ]
 
     ENVIRONMENT_CHOICES = [
@@ -516,6 +520,9 @@ class TestExecution(models.Model):
     result_data = models.JSONField(blank=True, null=True, verbose_name='执行结果数据')
     error_message = models.TextField(blank=True, verbose_name='错误信息')
     report_url = models.CharField(max_length=500, blank=True, verbose_name='报告URL')
+    report_status = models.CharField(max_length=20, default='PENDING',
+        choices=[('PENDING','待生成'),('GENERATING','生成中'),('SUCCESS','成功'),('FAILED','失败'),('SKIPPED','跳过')],
+        verbose_name='报告状态')
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
 

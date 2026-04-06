@@ -2,12 +2,27 @@
 """
 pytest 配置文件
 """
-import pytest
+import sys
 import os
+import pytest
+
+_backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..'))
+_project_root = os.path.dirname(_backend_dir)
+
+while _project_root in sys.path:
+    sys.path.remove(_project_root)
+
+if _backend_dir not in sys.path:
+    sys.path.insert(0, _backend_dir)
+
+if 'DJANGO_SETTINGS_MODULE' not in os.environ:
+    os.environ['DJANGO_SETTINGS_MODULE'] = 'backend.settings'
+
+if 'backend' in sys.modules:
+    del sys.modules['backend']
+
 import django
 
-# 配置 Django 设置
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
 django.setup()
 
 
@@ -43,5 +58,5 @@ def execution_id():
 
 @pytest.fixture(scope="session")
 def username():
-    """执行用户名 fixture"""
+    """用户名 fixture"""
     return os.environ.get('APP_USERNAME', 'unknown')

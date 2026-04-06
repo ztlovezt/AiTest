@@ -68,6 +68,61 @@
         </div>
       </div>
     </div>
+    
+    <!-- 使用说明 -->
+    <div class="extractor-help">
+      <el-collapse>
+        <el-collapse-item name="help">
+          <template #title>
+            <span class="help-title">{{ $t('apiTesting.interface.extractVariablesConfig.help') || '使用说明' }}</span>
+          </template>
+          <div class="help-content">
+            <h4>{{ $t('apiTesting.interface.extractVariablesConfig.helpJsonPathTitle') }}</h4>
+            <p>{{ $t('apiTesting.interface.extractVariablesConfig.helpJsonPathDesc') }}</p>
+            <ul>
+              <li><code>$.data.token</code> - {{ $t('apiTesting.interface.extractVariablesConfig.helpJsonPathExample1') }}</li>
+              <li><code>$.items[0].id</code> - {{ $t('apiTesting.interface.extractVariablesConfig.helpJsonPathExample2') }}</li>
+              <li><code>$.users[*].name</code> - {{ $t('apiTesting.interface.extractVariablesConfig.helpJsonPathExample3') }}</li>
+            </ul>
+            
+            <h4>{{ $t('apiTesting.interface.extractVariablesConfig.helpRegexTitle') }}</h4>
+            <p>{{ $t('apiTesting.interface.extractVariablesConfig.helpRegexDesc') }}</p>
+            <ul>
+              <li><code>"token":"([^"]+)"</code> - {{ $t('apiTesting.interface.extractVariablesConfig.helpRegexExample1') }}</li>
+              <li><code>userId=(\d+)</code> - {{ $t('apiTesting.interface.extractVariablesConfig.helpRegexExample2') }}</li>
+            </ul>
+            
+            <h4>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageTitle') }}</h4>
+            <p>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageDesc') }}</p>
+            <ul>
+              <li><strong>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleUrl') }}:</strong> <code>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleUrlContent') }}</code></li>
+              <li><strong>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleHeader') }}:</strong> <code>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleHeaderContent') }}</code></li>
+              <li><strong>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleBody') }}:</strong> <code>{{ $t('apiTesting.interface.extractVariablesConfig.helpUsageExampleBodyContent') }}</code></li>
+            </ul>
+
+            <div class="help-workflow-example">
+              <h4>{{ $t('apiTesting.interface.extractVariablesConfig.helpWorkflowTitle') }}</h4>
+              <p>{{ $t('apiTesting.interface.extractVariablesConfig.helpWorkflowDesc') }}</p>
+              <ol class="workflow-steps">
+                <li>{{ $t('apiTesting.interface.extractVariablesConfig.helpWorkflowStep1') }}</li>
+                <li>{{ $t('apiTesting.interface.extractVariablesConfig.helpWorkflowStep2') }}</li>
+                <li>{{ $t('apiTesting.interface.extractVariablesConfig.helpWorkflowStep3') }}</li>
+              </ol>
+            </div>
+
+            <div class="help-note">
+              <p><strong>{{ $t('apiTesting.interface.extractVariablesConfig.helpNoteImportant') }}:</strong> {{ $t('apiTesting.interface.extractVariablesConfig.helpNoteContent') }}</p>
+            </div>
+
+            <div class="help-dynamic-func">
+              <h4>{{ $t('apiTesting.interface.extractVariablesConfig.helpDynamicFuncTitle') }}</h4>
+              <p>{{ $t('apiTesting.interface.extractVariablesConfig.helpDynamicFuncDesc') }}</p>
+              <code class="dynamic-func-example">{{ $t('apiTesting.interface.extractVariablesConfig.helpDynamicFuncExample') }}</code>
+            </div>
+          </div>
+        </el-collapse-item>
+      </el-collapse>
+    </div>
   </div>
 </template>
 
@@ -192,5 +247,88 @@ function getExpressionPlaceholder(ext) {
 
 .extractor-empty {
   padding: 10px 0;
+}
+
+.extractor-help {
+  margin-top: 15px;
+}
+
+.help-title {
+  color: #409eff;
+  font-weight: 500;
+}
+
+.help-content {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 12px 16px;
+}
+
+.help-content h4 {
+  margin: 10px 0 5px;
+  color: #303133;
+}
+
+.help-content ul {
+  padding-left: 20px;
+  margin: 5px 0;
+}
+
+.help-content li {
+  margin: 3px 0;
+}
+
+.help-content code {
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #409eff;
+}
+
+.help-workflow-example {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0f9eb;
+  border-radius: 6px;
+}
+
+.workflow-steps {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.workflow-steps li {
+  margin: 4px 0;
+  color: #67c23a;
+}
+
+.help-note {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fdf6ec;
+  border-left: 3px solid #e6a23c;
+  border-radius: 4px;
+}
+
+.help-note p {
+  margin: 0;
+  color: #8a6d3b;
+}
+
+.help-dynamic-func {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #ecf5ff;
+  border-radius: 6px;
+}
+
+.dynamic-func-example {
+  display: block;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 4px;
+  color: #409eff;
+  font-size: 12px;
 }
 </style>

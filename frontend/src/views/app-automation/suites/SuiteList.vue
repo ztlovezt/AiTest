@@ -624,7 +624,7 @@ const viewReport = (execution) => {
     ElMessage.info(t('appAutomation.messages.reportPathNotExist'))
     return
   }
-  window.open(`/api/app-automation/executions/${execution.id}/report/`, '_blank')
+  window.open(`/api/app-automation/executions/${execution.id}/report/index.html`, '_blank')
 }
 
 // ===== 工具方法 =====

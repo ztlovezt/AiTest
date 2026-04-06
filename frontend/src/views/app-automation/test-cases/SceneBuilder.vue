@@ -358,7 +358,7 @@
                             </el-form-item>
                             
                             
-                            <div class="variable-hint" v-pre>
+                            <div class="variable-hint">
                                 {{ t('appAutomation.sceneBuilder.variableSupport') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'image_exists_click'" class="variable-hint hint-danger">
@@ -430,8 +430,47 @@
                                         :label="getFieldLabel(field)"
                                         :required="schemaRequired.includes(field)"
                                     >
+                                        <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                            <el-input
+                                                v-if="field === 'expected_list'"
+                                                type="textarea"
+                                                :rows="4"
+                                                :model-value="getExpectedListValue(activeStep && activeStep.config)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @update:model-value="updateExpectedList(activeStep.config, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else-if="isJsonField(field)"
+                                                type="textarea"
+                                                :rows="getJsonFieldRows(field)"
+                                                :value="getJsonFieldValue(activeStep && activeStep.config, field)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @input="updateJsonField(activeStep.config, field, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else
+                                                v-model.trim="activeStep.config[field]"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                <el-button size="small" @click="openDataFactorySelector(activeStep, field)" class="data-factory-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                <el-button size="small" @click="openVariableHelper(activeStep, field)" class="variable-helper-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                        </div>
                                         <el-input
-                                            v-if="field === 'expected_list'"
+                                            v-else-if="field === 'expected_list'"
                                             type="textarea"
                                             :rows="4"
                                             :model-value="getExpectedListValue(activeStep && activeStep.config)"
@@ -641,8 +680,8 @@
                                     <el-form-item label="步骤名称">
                                         <el-input v-model.trim="editingActiveStep.name" />
                                     </el-form-item>
-                                    <div class="variable-hint" v-pre>
-                                        支持变量：{{local.xxx}} / {{global.xxx}}
+                                    <div class="variable-hint">
+                                        {{ t('appAutomation.sceneBuilder.variableSupport') }}
                                     </div>
                                     <div v-if="editingActiveStep && editingActiveStep.type === 'api_request'" class="api-template-block">
                                         <div class="tool-hint">API 示例模板</div>
@@ -699,8 +738,47 @@
                                                 :label="getFieldLabel(field)"
                                                 :required="editingSchemaRequired.includes(field)"
                                             >
+                                                <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                                    <el-input
+                                                        v-if="field === 'expected_list'"
+                                                        type="textarea"
+                                                        :rows="4"
+                                                        :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @update:model-value="updateExpectedList(editingActiveStep.config, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else-if="isJsonField(field)"
+                                                        type="textarea"
+                                                        :rows="getJsonFieldRows(field)"
+                                                        :value="getJsonFieldValue(editingActiveStep && editingActiveStep.config, field)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @input="updateJsonField(editingActiveStep.config, field, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else
+                                                        v-model.trim="editingActiveStep.config[field]"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                        <el-button size="small" @click="openDataFactorySelector(editingActiveStep, field, true)" class="data-factory-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                        <el-button size="small" @click="openVariableHelper(editingActiveStep, field, true)" class="variable-helper-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                </div>
                                                 <el-input
-                                                    v-if="field === 'expected_list'"
+                                                    v-else-if="field === 'expected_list'"
                                                     type="textarea"
                                                     :rows="4"
                                                     :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
@@ -895,6 +973,49 @@
                 <el-button @click="elementSelectorVisible = false">关闭</el-button>
             </template>
         </el-dialog>
+
+        <!-- 数据工厂选择器对话框 -->
+        <DataFactorySelector
+            v-model="showDataFactorySelector"
+            @select="handleDataFactorySelect"
+        />
+
+        <!-- 变量助手对话框 -->
+        <el-dialog
+            :close-on-press-escape="false"
+            :modal="true"
+            :destroy-on-close="false"
+            v-model="showVariableHelper"
+            :title="t('appAutomation.sceneBuilder.variableHelper')"
+            :close-on-click-modal="false"
+            width="900px"
+        >
+            <el-tabs tab-position="left" style="height: 450px">
+                <el-tab-pane
+                    v-for="(category, index) in variableCategories"
+                    :key="index"
+                    :label="category.label"
+                >
+                    <div style="height: 450px; overflow-y: auto; padding: 10px;">
+                        <el-table :data="category.variables" style="width: 100%" @row-click="insertVariable" highlight-current-row>
+                            <el-table-column prop="name" :label="t('appAutomation.sceneBuilder.functionName')" width="150" show-overflow-tooltip>
+                                <template #default="{ row }">
+                                    <el-tag size="small">{{ row.name }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="desc" :label="t('appAutomation.sceneBuilder.description')" min-width="150" />
+                            <el-table-column prop="syntax" :label="t('appAutomation.sceneBuilder.syntax')" min-width="200" show-overflow-tooltip />
+                            <el-table-column prop="example" :label="t('appAutomation.sceneBuilder.example')" min-width="200" show-overflow-tooltip />
+                            <el-table-column :label="t('appAutomation.sceneBuilder.operation')" width="80" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small">{{ t('appAutomation.sceneBuilder.insert') }}</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </el-dialog>
     </div>
 </template>
 
@@ -903,9 +1024,10 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera } from '@element-plus/icons-vue'
+import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera, MagicStick } from '@element-plus/icons-vue'
 import draggable from "vuedraggable"
 import CaptureElementDialog from '../elements/components/CaptureElementDialog.vue'
+import DataFactorySelector from '@/components/DataFactorySelector.vue'
 import {
   getComponents,
   getCustomComponents,
@@ -922,6 +1044,7 @@ import {
   getDeviceList,
   getAppProjects
 } from '@/api/app-automation'
+import { getVariableFunctions } from '@/api/data-factory'
 
 // Route
 const route = useRoute()
@@ -1028,6 +1151,14 @@ const linkedElements = ref({
 
 // Refs
 const customFormRef = ref(null)
+
+// 数据工厂选择器和变量助手相关状态
+const showDataFactorySelector = ref(false)
+const showVariableHelper = ref(false)
+const currentFocusedInput = ref(null)
+const currentDataFactoryTarget = ref(null)  // { step, field, isEditing }
+const variableCategories = ref([])
+const variableLoading = ref(false)
 
 // Computed properties
 const activeStep = computed(() => {
@@ -2885,6 +3016,247 @@ const getTypeTagColor = (type) => {
     return colorMap[type] || ''
 }
 
+// 判断字段是否需要显示数据工厂和变量助手按钮
+const needsHelperButtons = (field) => {
+    const helperFields = [
+        'value', 'expected', 'selector', 'fallback_selector',
+        'click_selector', 'ocr_selector', 'start_selector', 'end_selector', 'target_selector',
+        'url', 'json', 'data', 'headers', 'params', 'left', 'right',
+        'expected_list', 'items', 'then_steps', 'else_steps', 'steps',
+        'try_steps', 'catch_steps', 'finally_steps', 'branches', 'extracts'
+    ]
+    return helperFields.includes(field)
+}
+
+// 数据工厂选择器相关方法
+const openDataFactorySelector = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    showDataFactorySelector.value = true
+}
+
+const onInputFocus = (event) => {
+    let target = event.target
+    if (!target) return
+    
+    if (target.classList.contains('el-input') || target.classList.contains('el-textarea')) {
+        const innerInput = target.querySelector('.el-input__inner') || target.querySelector('textarea')
+        if (innerInput) {
+            currentFocusedInput.value = innerInput
+            return
+        }
+    }
+    
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'DIV') {
+        currentFocusedInput.value = target
+    }
+}
+
+const getInputElement = () => {
+    let element = currentFocusedInput.value
+    if (!element) return null
+    
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+        return element
+    }
+    
+    if (element.classList.contains('el-input') || element.classList.contains('el-textarea')) {
+        return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+    }
+    
+    return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+}
+
+const handleDataFactorySelect = (record) => {
+    if (!record || !record.output_data || !currentDataFactoryTarget.value) {
+        showDataFactorySelector.value = false
+        return
+    }
+    
+    const { step, field } = currentDataFactoryTarget.value
+    
+    let valueToSet = ''
+    if (typeof record.output_data === 'string') {
+        valueToSet = record.output_data
+    } else if (record.output_data.result) {
+        valueToSet = record.output_data.result
+    } else if (record.output_data.output_data) {
+        valueToSet = record.output_data.output_data
+    } else {
+        valueToSet = JSON.stringify(record.output_data)
+    }
+    
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + valueToSet.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = valueToSet
+        } else {
+            step.config[field] = currentValue + valueToSet
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.dataFactorySelected', { toolName: record.tool_name }))
+    showDataFactorySelector.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
+}
+
+// 变量助手相关方法
+const openVariableHelper = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    if (variableCategories.value.length === 0) {
+        loadVariableFunctions()
+    }
+    showVariableHelper.value = true
+}
+
+const loadVariableFunctions = async () => {
+    try {
+        variableLoading.value = true
+        const apiResponse = await getVariableFunctions()
+        
+        let functionsData = []
+        if (apiResponse && apiResponse.data) {
+            if (Array.isArray(apiResponse.data)) {
+                functionsData = apiResponse.data
+            } else if (apiResponse.data.functions) {
+                functionsData = apiResponse.data.functions
+            } else if (typeof apiResponse.data === 'object') {
+                functionsData = apiResponse.data
+            }
+        }
+        
+        const grouped = {}
+        
+        if (Array.isArray(functionsData)) {
+            functionsData.forEach(func => {
+                const category = func.category || t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+                if (!grouped[category]) {
+                    grouped[category] = []
+                }
+                grouped[category].push({
+                    name: func.name,
+                    syntax: func.syntax,
+                    desc: func.description || func.desc || '',
+                    example: func.example
+                })
+            })
+        } else if (typeof functionsData === 'object') {
+            for (const [category, funcs] of Object.entries(functionsData)) {
+                if (Array.isArray(funcs)) {
+                    grouped[category] = funcs.map(func => ({
+                        name: func.name,
+                        syntax: func.syntax,
+                        desc: func.description || func.desc || '',
+                        example: func.example
+                    }))
+                }
+            }
+        }
+        
+        const categoryOrder = [
+            t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            t('appAutomation.sceneBuilder.variableCategory.testData'),
+            t('appAutomation.sceneBuilder.variableCategory.string'),
+            t('appAutomation.sceneBuilder.variableCategory.encoding'),
+            t('appAutomation.sceneBuilder.variableCategory.encryption'),
+            t('appAutomation.sceneBuilder.variableCategory.dateTime'),
+            'Crontab',
+            t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+        ]
+        
+        const orderedCategories = []
+        categoryOrder.forEach(category => {
+            if (grouped[category]) {
+                orderedCategories.push({
+                    label: category,
+                    variables: grouped[category]
+                })
+                delete grouped[category]
+            }
+        })
+        
+        for (const [category, funcs] of Object.entries(grouped)) {
+            orderedCategories.push({
+                label: category,
+                variables: funcs
+            })
+        }
+        
+        variableCategories.value = orderedCategories
+    } catch (error) {
+        console.error('加载变量函数失败:', error)
+        useLocalVariableCategories()
+    } finally {
+        variableLoading.value = false
+    }
+}
+
+const useLocalVariableCategories = () => {
+    variableCategories.value = [
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            variables: [
+                { name: 'random_int', syntax: '${random_int(min, max, count)}', desc: t('appAutomation.sceneBuilder.variable.randomInt.desc'), example: '${random_int(100, 999, 1)}' },
+                { name: 'random_float', syntax: '${random_float(min, max, precision, count)}', desc: t('appAutomation.sceneBuilder.variable.randomFloat.desc'), example: '${random_float(0, 1, 2, 1)}' }
+            ]
+        },
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomString'),
+            variables: [
+                { name: 'random_string', syntax: '${random_string(length, char_type, count)}', desc: t('appAutomation.sceneBuilder.variable.randomString.desc'), example: '${random_string(8, "all", 1)}' }
+            ]
+        }
+    ]
+}
+
+const insertVariable = (variable) => {
+    if (!currentDataFactoryTarget.value) return
+    
+    const { step, field } = currentDataFactoryTarget.value
+    const example = variable.example
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = example
+        } else {
+            step.config[field] = currentValue + example
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.variableInserted', { name: variable.name }))
+    showVariableHelper.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
+}
+
 // Template refs assignment
 defineExpose({
     customForm: customFormRef
@@ -3288,8 +3660,49 @@ defineExpose({
     margin-bottom: 12px;
 }
 
+.field-group :deep(.el-form-item__label) {
+    width: 80px !important;
+    text-align: left;
+    padding-right: 4px;
+    justify-content: flex-start;
+}
+
+.field-group :deep(.el-form-item__content) {
+    flex: 1;
+    min-width: 0;
+}
+
+.field-group :deep(.el-form-item__content > .el-input),
+.field-group :deep(.el-form-item__content > .el-select),
+.field-group :deep(.el-form-item__content > div) {
+    width: 100%;
+    max-width: none;
+}
+
 .field-group:last-child {
     margin-bottom: 0;
+}
+
+.data-factory-btn {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+    color: white !important;
+}
+
+.data-factory-btn:hover {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+}
+
+.variable-helper-btn {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
+    color: white;
+}
+
+.variable-helper-btn:hover {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
 }
 </style>
 

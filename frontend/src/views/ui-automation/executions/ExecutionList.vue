@@ -369,7 +369,9 @@ const getStatusType = (status) => {
     'running': 'warning',
     'passed': 'success',
     'failed': 'danger',
-    'error': 'danger'
+    'error': 'danger',
+    'PARTial_failed': 'warning',
+    'aborted': 'danger'
   }
   return statusMap[status] || 'info'
 }
@@ -381,7 +383,9 @@ const getStatusText = (status) => {
     'running': t('uiAutomation.status.running'),
     'passed': t('uiAutomation.status.passed'),
     'failed': t('uiAutomation.status.failed'),
-    'error': t('uiAutomation.status.error')
+    'error': t('uiAutomation.status.error'),
+    'partial_failed': t('uiAutomation.report.statusPartialFailed'),
+    'aborted': t('uiAutomation.status.aborted')
   }
   return statusMap[status] || status
 }
