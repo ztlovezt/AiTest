@@ -215,7 +215,7 @@
                :class="{ 'drag-over': isDragOver }"
                @dragenter="isDragOver = true"
                @dragleave="isDragOver = false">
-            <div v-if="!selectedFile" class="upload-placeholder">
+            <div v-if="selectedFiles.length === 0" class="upload-placeholder">
               <i class="upload-icon">📁</i>
               <p>{{ $t('requirementAnalysis.dragDropText') }}</p>
               <p class="upload-hint">{{ $t('requirementAnalysis.supportedFormats') }}</p>
@@ -223,7 +223,7 @@
                 type="file"
                 ref="fileInput"
                 @change="handleFileSelect"
-                accept=".pdf,.doc,.docx,.txt,.md"
+                multiple
                 style="display: none;">
               <button class="select-file-btn" @click="$refs.fileInput.click()">
                 {{ $t('requirementAnalysis.selectFile') }}
@@ -231,18 +231,18 @@
             </div>
 
             <div v-else class="file-selected">
-              <div class="file-info">
+              <div class="file-info" v-for="(file, index) in selectedFiles" :key="index">
                 <i class="file-icon">📄</i>
                 <div class="file-details">
-                  <p class="file-name">{{ selectedFile.name }}</p>
-                  <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
+                  <p class="file-name">{{ file.name }}</p>
+                  <p class="file-size">{{ formatFileSize(file.size) }}</p>
                 </div>
-                <button class="remove-file" @click="removeFile">❌</button>
+                <button class="remove-file" @click="removeFile(index)">❌</button>
               </div>
             </div>
           </div>
 
-          <div v-if="selectedFile" class="document-info">
+          <div v-if="selectedFiles.length > 0" class="document-info">
             <div class="form-group">
               <label>{{ $t('requirementAnalysis.documentTitle') }}</label>
               <input
@@ -669,7 +669,7 @@ export default {
       },
 
       // 文件上传
-      selectedFile: null,
+      selectedFiles: [],
       documentTitle: '',
       selectedProject: '',
       projects: [],
@@ -712,6 +712,7 @@ export default {
       finalTestCases: '',  // 最终版用例
       hasShownCompletionMessage: false,  // 是否已经显示过完成消息
       showReviewStep: true,  // 是否显示评审步骤（根据生成配置决定）
+      sseDoneReceived: false,  // SSE是否已收到done信号
 
       // 生成结果
       showResults: false,
@@ -1223,30 +1224,20 @@ export default {
     },
 
     handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) {
-        const allowedTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/plain',
-          'text/markdown',
-          'text/x-markdown'
-        ]
-
-        if (allowedTypes.includes(file.type) ||
-            file.name.match(/\.(pdf|doc|docx|txt|md)$/i)) {
-          this.selectedFile = file
-          this.documentTitle = file.name.replace(/\.[^/.]+$/, "")
-        } else {
-          ElMessage.error(this.$t('requirementAnalysis.invalidFileFormatDetail'))
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        this.selectedFiles = [...this.selectedFiles, ...files]
+        if (!this.documentTitle && files.length === 1) {
+          this.documentTitle = files[0].name.replace(/\.[^/.]+$/, "")
         }
       }
     },
 
-    removeFile() {
-      this.selectedFile = null
-      this.documentTitle = ''
+    removeFile(index) {
+      this.selectedFiles.splice(index, 1)
+      if (this.selectedFiles.length === 0) {
+        this.documentTitle = ''
+      }
       this.$refs.fileInput.value = ''
     },
 
@@ -1275,43 +1266,50 @@ export default {
     },
 
     async generateFromDocument() {
-      if (!this.selectedFile || !this.documentTitle) {
+      if (this.selectedFiles.length === 0 || !this.documentTitle) {
         ElMessage.error(this.$t('requirementAnalysis.selectFileAndTitle'))
         return
       }
 
       try {
-        // 首先上传并提取文档内容
-        const formData = new FormData()
-        formData.append('title', this.documentTitle)
-        formData.append('file', this.selectedFile)
-        if (this.selectedProject) {
-          formData.append('project', this.selectedProject)
+        let allExtractedText = ''
+
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+          const file = this.selectedFiles[i]
+          const formData = new FormData()
+          formData.append('title', this.documentTitle + (this.selectedFiles.length > 1 ? ` (${i + 1})` : ''))
+          formData.append('file', file)
+          if (this.selectedProject) {
+            formData.append('project', this.selectedProject)
+          }
+
+          ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
+          const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+
+          const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
+          const extractedText = extractResponse.data.extracted_text
+
+          if (extractedText && extractedText.trim().length > 0) {
+            allExtractedText += `\n\n===== ${file.name} =====\n\n${extractedText}`
+          }
         }
 
-        ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
-        const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-
-        // 提取文档内容
-        const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
-        const extractedText = extractResponse.data.extracted_text
-
-        if (!extractedText || extractedText.trim().length === 0) {
+        if (!allExtractedText || allExtractedText.trim().length === 0) {
           ElMessage.error(this.$t('requirementAnalysis.extractionFailed'))
           return
         }
 
-        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${extractedText}`
+        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${allExtractedText}`
 
         await this.startGeneration(
           this.documentTitle,
           requirementText,
           this.selectedProject,
-          this.globalOutputMode  // 使用全局输出模式
+          this.globalOutputMode
         )
 
       } catch (error) {
@@ -1383,6 +1381,9 @@ export default {
     },
 
     startStreamingProgress() {
+      // 重置SSE状态标志
+      this.sseDoneReceived = false
+
       // 使用SSE进行流式进度获取
       // 注意：EventSource不使用axios代理，需要直接指向后端服务器
       // 完整的URL路径: /api/requirement-analysis/testcase-generation/{task_id}/stream_progress/
@@ -1400,11 +1401,26 @@ export default {
 
       // 监听连接打开事件
       this.eventSource.onopen = (event) => {
+        // 如果已收到done信号，立即关闭新连接
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，关闭新建立的SSE连接')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
         console.log('✅ SSE连接已打开', event)
       }
 
       this.eventSource.onmessage = (event) => {
         console.log('📨 收到SSE消息:', event.data)
+
+        // 如果已收到done信号，忽略后续所有消息
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，忽略后续消息')
+          return
+        }
 
         try {
           const data = JSON.parse(event.data)
@@ -1454,6 +1470,7 @@ export default {
           } else if (data.type === 'done') {
             // 流式结束，立即关闭EventSource，获取最终结果
             console.log('✅ 流式传输完成')
+            this.sseDoneReceived = true  // 先设置标志，防止重复处理
             if (this.eventSource) {
               console.log('🔒 关闭SSE连接')
               this.eventSource.close()
@@ -1468,6 +1485,16 @@ export default {
 
       this.eventSource.onerror = (error) => {
         console.log('⚠️ SSE连接事件:', error)
+
+        // 如果已收到done信号，不做任何处理
+        if (this.sseDoneReceived) {
+          console.log('ℹ️ 已收到done信号，忽略错误事件')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
 
         // 如果EventSource已经被关闭（在onmessage中关闭的），不做任何处理
         if (!this.eventSource) {

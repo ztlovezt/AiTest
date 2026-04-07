@@ -953,6 +953,7 @@ export default {
       update: 'Updated successfully',
       delete: 'Deleted successfully',
       save: 'Saved successfully',
+      saveSuccess: 'Saved successfully',
       copy: 'Copied successfully',
       execute: 'Executed successfully',
       activate: 'Activated successfully',

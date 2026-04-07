@@ -1,9 +1,12 @@
 from rest_framework import serializers
+from backend.log_config import get_logger
 from .models import (
     RequirementDocument, RequirementAnalysis, BusinessRequirement,
     GeneratedTestCase, AnalysisTask, AIModelConfig, PromptConfig, TestCaseGenerationTask,
     GenerationConfig
 )
+
+logger = get_logger(__name__)
 
 
 class RequirementDocumentSerializer(serializers.ModelSerializer):
@@ -101,21 +104,18 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             if not default_user:
                 default_user = User.objects.first()
             validated_data['uploaded_by'] = default_user
-        
-        # 根据文件扩展名设置文档类型
-        file = validated_data['file']
-        if file.name.lower().endswith('.pdf'):
-            validated_data['document_type'] = 'pdf'
-        elif file.name.lower().endswith(('.doc', '.docx')):
-            validated_data['document_type'] = 'docx'
-        elif file.name.lower().endswith('.txt'):
-            validated_data['document_type'] = 'txt'
-        elif file.name.lower().endswith('.md'):
-            validated_data['document_type'] = 'md'
-        
+
         # 设置文件大小
-        validated_data['file_size'] = file.size
-        
+        file = validated_data.get('file')
+        if file:
+            validated_data['file_size'] = file.size
+            logger.info(f"文档上传: title={validated_data.get('title')}, filename={file.name}, size={file.size}")
+
+        # 不再限制文档类型，由Tika自动识别
+        if 'document_type' not in validated_data:
+            validated_data['document_type'] = 'auto'
+            logger.info(f"文档类型设置为自动识别: document_type=auto")
+
         return super().create(validated_data)
 
 
@@ -266,8 +266,8 @@ class TestCaseGenerationTaskSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class TestCaseGenerationRequestSerializer(serializers.Serializer):
-    """新的测试用例生成请求序列化器"""
+class TestCaseGenerationFromTextSerializer(serializers.Serializer):
+    """从文本生成测试用例请求序列化器"""
     title = serializers.CharField(max_length=200, help_text="任务标题")
     requirement_text = serializers.CharField(help_text="需求描述")
     use_writer_model = serializers.BooleanField(default=True, help_text="是否使用编写模型")

@@ -29,9 +29,9 @@ export default {
 
     // Document Upload
     uploadTitle: 'Upload Document',
-    uploadDesc: 'Upload PRD requirement documents in Word, PDF and other formats',
+    uploadDesc: 'Upload PRD requirement documents in common formats',
     dragDropText: 'Drag file here or click to select',
-    supportedFormats: 'Supports PDF, Word, TXT, Markdown formats',
+    supportedFormats: 'Supports various file formats, auto-detects document content',
     selectFileBtn: 'Select File',
     selectFile: 'Select File',
     removeFile: '❌',

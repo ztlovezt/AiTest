@@ -964,6 +964,7 @@ export default {
       update: '更新成功',
       delete: '删除成功',
       save: '保存成功',
+      saveSuccess: '保存成功',
       copy: '复制成功',
       execute: '执行成功',
       activate: '激活成功',

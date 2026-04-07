@@ -159,7 +159,7 @@
               >
                 <template #prepend>
                   <el-select v-model="selectedEnvironment" :placeholder="$t('apiTesting.interface.environment')" class="env-select">
-                    <el-option :label="$t('apiTesting.common.noEnvironment')" :value="null" />
+                    <el-option :label="$t('apiTesting.common.noEnvironment')" :value="''" />
                     <el-option-group v-if="globalEnvironments.length" :label="$t('apiTesting.interface.globalEnv')">
                       <el-option
                         v-for="env in globalEnvironments"
@@ -1808,7 +1808,12 @@ const saveRequest = async () => {
     const requestData = {
       ...selectedRequest.value,
       params: Array.isArray(selectedRequest.value.params) ? convertKeyValueArrayToObject(selectedRequest.value.params || []) : selectedRequest.value.params,
-      headers: finalHeaders
+      headers: convertKeyValueArrayToObject(finalHeaders),
+      // 确保 JSON 字段不为 null
+      extractors: selectedRequest.value.extractors || [],
+      extract_variables: selectedRequest.value.extract_variables || [],
+      assertions: selectedRequest.value.assertions || [],
+      auth: selectedRequest.value.auth || {}
     }
     
     // 对于GET请求，不包含body字段

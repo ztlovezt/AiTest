@@ -140,6 +140,14 @@ class ApiRequestSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    # 显式声明 JSON 字段，允许空值
+    extractors = serializers.JSONField(required=False, allow_null=True, default=list)
+    extract_variables = serializers.JSONField(required=False, allow_null=True, default=list)
+    assertions = serializers.JSONField(required=False, allow_null=True, default=list)
+    auth = serializers.JSONField(required=False, allow_null=True, default=dict)
+    headers = serializers.JSONField(required=False, allow_null=True, default=dict)
+    params = serializers.JSONField(required=False, allow_null=True, default=dict)
+    body = serializers.JSONField(required=False, allow_null=True, default=dict)
 
     class Meta:
         model = ApiRequest
@@ -215,6 +223,10 @@ class RequestHistorySerializer(serializers.ModelSerializer):
 
 class TestSuiteRequestSerializer(serializers.ModelSerializer):
     request = ApiRequestSerializer(read_only=True)
+    # 显式声明 JSON 字段，允许空值
+    extractors = serializers.JSONField(required=False, allow_null=True, default=list)
+    extract_variables = serializers.JSONField(required=False, allow_null=True, default=list)
+    assertions = serializers.JSONField(required=False, allow_null=True, default=list)
 
     class Meta:
         model = TestSuiteRequest

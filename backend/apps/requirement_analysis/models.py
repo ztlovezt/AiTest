@@ -43,6 +43,7 @@ logger = get_logger(__name__)
 class RequirementDocument(models.Model):
     """需求文档模型"""
     DOCUMENT_TYPE_CHOICES = [
+        ('auto', '自动识别'),
         ('pdf', 'PDF文档'),
         ('docx', 'Word文档'),
         ('txt', '文本文档'),

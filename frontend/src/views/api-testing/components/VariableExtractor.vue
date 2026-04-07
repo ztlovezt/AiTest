@@ -11,22 +11,24 @@
       </div>
     </div>
     
-    <div class="extractor-list" v-if="modelValue && modelValue.length > 0">
+    <div class="extractor-list" v-if="localExtractors && localExtractors.length > 0">
       <div 
-        v-for="(extractor, index) in modelValue" 
+        v-for="(extractor, index) in localExtractors" 
         :key="index" 
         class="extractor-item"
       >
         <div class="extractor-row">
           <el-input
-            v-model="extractor.name"
+            :model-value="extractor.name"
+            @update:model-value="updateField(index, 'name', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.variableName') || '变量名'"
             size="small"
             class="var-name-input"
           />
           
           <el-select
-            v-model="extractor.source"
+            :model-value="extractor.source"
+            @update:model-value="updateField(index, 'source', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.source') || '来源'"
             size="small"
             class="source-select"
@@ -37,7 +39,8 @@
           </el-select>
           
           <el-select
-            v-model="extractor.type"
+            :model-value="extractor.type"
+            @update:model-value="updateField(index, 'type', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.type') || '类型'"
             size="small"
             class="type-select"
@@ -50,7 +53,8 @@
         
         <div class="extractor-row">
           <el-input
-            v-model="extractor.expression"
+            :model-value="extractor.expression"
+            @update:model-value="updateField(index, 'expression', $event)"
             :placeholder="getExpressionPlaceholder(extractor)"
             size="small"
             class="expression-input"
@@ -58,7 +62,8 @@
           />
           
           <el-input
-            v-model="extractor.default"
+            :model-value="extractor.default"
+            @update:model-value="updateField(index, 'default', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.defaultValue') || '默认值'"
             size="small"
             class="default-input"
@@ -145,6 +150,7 @@
 <script setup>
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { computed, ref, watch } from 'vue'
 
 const { t } = useI18n()
 
@@ -157,24 +163,31 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
+const localExtractors = ref([])
+
+watch(() => props.modelValue, (newVal) => {
+  localExtractors.value = JSON.parse(JSON.stringify(newVal || []))
+}, { immediate: true, deep: true })
+
+const updateField = (index, field, value) => {
+  localExtractors.value[index][field] = value
+  emit('update:modelValue', JSON.parse(JSON.stringify(localExtractors.value)))
+}
+
 const addExtractor = () => {
-  const newExtractors = [
-    ...props.modelValue,
-    {
-      name: '',
-      source: 'body',
-      type: 'json_path',
-      expression: '',
-      default: ''
-    }
-  ]
-  emit('update:modelValue', newExtractors)
+  localExtractors.value.push({
+    name: '',
+    source: 'body',
+    type: 'json_path',
+    expression: '',
+    default: ''
+  })
+  emit('update:modelValue', JSON.parse(JSON.stringify(localExtractors.value)))
 }
 
 const removeExtractor = (index) => {
-  const newExtractors = [...props.modelValue]
-  newExtractors.splice(index, 1)
-  emit('update:modelValue', newExtractors)
+  localExtractors.value.splice(index, 1)
+  emit('update:modelValue', JSON.parse(JSON.stringify(localExtractors.value)))
 }
 
 const getExpressionPlaceholder = (extractor) => {
