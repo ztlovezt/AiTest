@@ -568,6 +568,25 @@ python manage.py init_notification_templates
 
 **快速开始指南**：请查看 [数据工厂快速开始.md](backend/docs/docs/数据工厂快速开始.md) 快速上手数据工厂功能。
 
+### 文档解析服务部署（可选）
+
+如果需要使用 AI 需求分析功能（上传 PDF/Word 等文档进行需求分析），需要部署文档解析服务。
+
+**启动文档解析服务**：
+
+```bash
+# Windows
+cd backend
+start_doc.bat
+
+# Linux/macOS
+cd backend
+chmod +x start_doc.sh
+./start_doc.sh
+```
+
+**详细安装说明**：请查看 [文档解析服务安装指南.md](backend/docs/文档解析服务安装指南.md) 获取 Apache Tika Server 和 Tesseract OCR 的完整安装步骤。
+
 ### 前端部署
 
 1. **安装依赖**
