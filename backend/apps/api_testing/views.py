@@ -677,7 +677,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                         'order': TestSuiteRequest.objects.filter(test_suite=test_suite).count(),
                         'enabled': True,
                         'assertions': [],
-                        'extract_variables': list(getattr(api_request, 'extract_variables', []) or []),
+                        'extractors': list(getattr(api_request, 'extractors', []) or []),
                         'skip_condition': '',
                     }
                 )
@@ -706,21 +706,21 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 sr.assertions.append(new_assertion)
                 updated = True
         
-        # 同步变量提取：按variable_name/name去重
+        # 同步变量提取：按 variable_name 去重
         existing_vars_map = {}
-        for v in (sr.extract_variables or []):
-            var_name = v.get('variable_name') or v.get('name')
+        for v in (sr.extractors or []):
+            var_name = v.get('variable_name')
             if var_name:
                 existing_vars_map[var_name] = True
         
-        for new_var in (getattr(api_request, 'extract_variables', []) or []):
-            var_name = new_var.get('variable_name') or new_var.get('name')
+        for new_var in (getattr(api_request, 'extractors', []) or []):
+            var_name = new_var.get('variable_name')
             if var_name and var_name not in existing_vars_map:
-                sr.extract_variables.append(new_var)
+                sr.extractors.append(new_var)
                 updated = True
         
         if updated:
-            sr.save(update_fields=['assertions', 'extract_variables'])
+            sr.save(update_fields=['assertions', 'extractors'])
 
     def _replace_variables(self, text, variables):
         """替换文本中的变量"""

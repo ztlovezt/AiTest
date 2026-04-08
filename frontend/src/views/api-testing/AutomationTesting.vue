@@ -152,7 +152,7 @@
               </el-table-column>
               <el-table-column :label="$t('apiTesting.automation.variableExtractors')" width="80" align="center">
                 <template #default="scope">
-                  <span class="count-badge">{{ scope.row.extract_variables?.length || 0 }}</span>
+                  <span class="count-badge">{{ scope.row.extractors?.length || 0 }}</span>
                 </template>
               </el-table-column>
               <el-table-column :label="$t('apiTesting.automation.assertions')" width="70" align="center">
@@ -450,7 +450,7 @@
 
         <!-- 变量提取 Tab -->
         <el-tab-pane :label="$t('apiTesting.automation.extractVariables')" name="variables">
-          <VariableExtractor v-model="requestForm.extract_variables">
+          <VariableExtractor v-model="requestForm.extractors">
             <template #actions>
               <el-button type="success" @click="syncFromApiRequest" size="small">
                 <el-icon><Refresh /></el-icon>
@@ -579,7 +579,7 @@ const activeTab = ref('assertions')
 let requestId = ref(null)
 const requestForm = reactive({
   assertions: [],
-  extract_variables: [],
+  extractors: [],
   skip_condition: ''
 })
 
@@ -1123,7 +1123,7 @@ const editAssertions = (suiteRequest) => {
   requestId.value = suiteRequest.request.id
   // 复制断言和变量提取数据到表单（避免直接修改原数据）
   requestForm.assertions = JSON.parse(JSON.stringify(suiteRequest.assertions || []))
-  requestForm.extract_variables = JSON.parse(JSON.stringify(suiteRequest.extract_variables || []))
+  requestForm.extractors = JSON.parse(JSON.stringify(suiteRequest.extractors || []))
   requestForm.skip_condition = suiteRequest.skip_condition || ''
   showAssertionDialog.value = true
 }
@@ -1136,10 +1136,11 @@ const syncFromApiRequest = async () => {
     const response = await api.get(`/api-testing/requests/${requestId.value}/`)
     const apiRequest = response.data
 
-    // 合并接口的断言到当前列表（不覆盖用户手动配置）
-    // 但这里我们直接用接口的断言完全替换，因为用户选择"同步"就是要最新数据
+    // 同步断言
     requestForm.assertions = JSON.parse(JSON.stringify(apiRequest.assertions || []))
-    requestForm.extract_variables = JSON.parse(JSON.stringify(apiRequest.extract_variables || []))
+    
+    // 同步变量提取 - 直接使用 extractors 字段
+    requestForm.extractors = JSON.parse(JSON.stringify(apiRequest.extractors || []))
 
     ElMessage.success(t('apiTesting.messages.success.syncSuccess'))
   } catch (error) {
@@ -1223,7 +1224,7 @@ const saveAssertionConfig = async () => {
   try {
     await api.put(`/api-testing/test-suite-requests/${editingSuiteRequest.value.id}/`, {
       assertions: requestForm.assertions,
-      extract_variables: requestForm.extract_variables,
+      extractors: requestForm.extractors,
       skip_condition: requestForm.skip_condition
     })
     ElMessage.success(t('apiTesting.messages.success.saveSuccess'))

@@ -320,7 +320,7 @@ export default {
       helpWorkflowStep2: "Subsequent request uses token: Add Authorization: Bearer {'{{token}}'} in Header",
       helpWorkflowStep3: "Extract user ID for query: $.user.id → saved as {'{{user_id}}'}, use in URL /users/{'{{user_id}}'}",
       helpNoteImportant: 'Note',
-      helpNoteContent: 'Variable names must be unique. Duplicate names will be overwritten. Use meaningful names like user_id, access_token, etc.',
+      helpNoteContent: 'Variable names must be unique. Duplicate names will be overwritten. Use meaningful names like user_id, access_token, etc. Variable extraction only works in test suites and does not work in interface debugging.',
       helpDynamicFuncTitle: 'Dynamic Variable Functions',
       helpDynamicFuncDesc: 'Besides extracting variables from responses, you can also use data factory to generate dynamic data:',
       helpDynamicFuncExample: "{'${random_int(100, 999, 1)}  ${random_string(8, \"all\", 1)}  ${timestamp()}'}",

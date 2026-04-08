@@ -19,12 +19,19 @@
       >
         <div class="extractor-row">
           <el-input
-            :model-value="extractor.name"
-            @update:model-value="updateField(index, 'name', $event)"
+            :model-value="extractor.variable_name"
+            @update:model-value="updateField(index, 'variable_name', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.variableName') || '变量名'"
             size="small"
             class="var-name-input"
-          />
+          >
+            <template #prepend>
+              <span class="var-prefix" v-text="'{{'"></span>
+            </template>
+            <template #append>
+              <span class="var-suffix" v-text="'}}'"></span>
+            </template>
+          </el-input>
           
           <el-select
             :model-value="extractor.source"
@@ -39,8 +46,8 @@
           </el-select>
           
           <el-select
-            :model-value="extractor.type"
-            @update:model-value="updateField(index, 'type', $event)"
+            :model-value="extractor.extract_type"
+            @update:model-value="updateField(index, 'extract_type', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.type') || '类型'"
             size="small"
             class="type-select"
@@ -62,8 +69,8 @@
           />
           
           <el-input
-            :model-value="extractor.default"
-            @update:model-value="updateField(index, 'default', $event)"
+            :model-value="extractor.default_value"
+            @update:model-value="updateField(index, 'default_value', $event)"
             :placeholder="$t('apiTesting.interface.extractVariablesConfig.defaultValue') || '默认值'"
             size="small"
             class="default-input"
@@ -78,12 +85,12 @@
           />
         </div>
         
-        <div class="extractor-example" v-if="extractor.type === 'json_path'">
+        <div class="extractor-example" v-if="extractor.extract_type === 'json_path'">
           <span class="example-label">{{ $t('apiTesting.interface.extractVariablesConfig.example') }}:</span>
           <code>$.data.token</code>
           <code>$.items[0].id</code>
         </div>
-        <div class="extractor-example" v-else-if="extractor.type === 'regex'">
+        <div class="extractor-example" v-else-if="extractor.extract_type === 'regex'">
           <span class="example-label">{{ $t('apiTesting.interface.extractVariablesConfig.example') }}:</span>
           <code>"token":"([^"]+)"</code>
         </div>
@@ -150,7 +157,7 @@
 <script setup>
 import { Plus, Delete } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
-import { computed, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 
 const { t } = useI18n()
 
@@ -176,11 +183,11 @@ const updateField = (index, field, value) => {
 
 const addExtractor = () => {
   localExtractors.value.push({
-    name: '',
+    variable_name: '',
     source: 'body',
-    type: 'json_path',
+    extract_type: 'json_path',
     expression: '',
-    default: ''
+    default_value: ''
   })
   emit('update:modelValue', JSON.parse(JSON.stringify(localExtractors.value)))
 }
@@ -197,10 +204,10 @@ const getExpressionPlaceholder = (extractor) => {
   if (extractor.source === 'header') {
     return t('apiTesting.interface.extractVariablesConfig.placeholderHeaderName')
   }
-  if (extractor.type === 'json_path') {
+  if (extractor.extract_type === 'json_path') {
     return t('apiTesting.interface.extractVariablesConfig.placeholderJsonPath')
   }
-  if (extractor.type === 'regex') {
+  if (extractor.extract_type === 'regex') {
     return t('apiTesting.interface.extractVariablesConfig.placeholderRegex')
   }
   return ''
@@ -254,11 +261,11 @@ const getExpressionPlaceholder = (extractor) => {
 }
 
 .var-name-input {
-  width: 150px;
+  width: 180px;
 }
 
 .source-select {
-  width: 140px;
+  width: 120px;
 }
 .type-select {
   width: 120px;
@@ -297,7 +304,6 @@ const getExpressionPlaceholder = (extractor) => {
   margin-top: 15px;
 }
 
-/* 确保 el-collapse 内容区域可滚动，不被父容器截断 */
 .extractor-help :deep(.el-collapse-item__wrap) {
   overflow: visible;
 }
@@ -306,7 +312,6 @@ const getExpressionPlaceholder = (extractor) => {
   overflow: visible;
 }
 
-/* 兜底：如果父容器仍然限制高度，help-content 自身允许溢出可见 */
 .help-content {
   font-size: 13px;
   line-height: 1.6;
@@ -385,5 +390,10 @@ const getExpressionPlaceholder = (extractor) => {
   border-radius: 4px;
   word-break: break-all;
   font-size: 12px;
+}
+
+.var-prefix, .var-suffix {
+  color: #409eff;
+  font-weight: bold;
 }
 </style>

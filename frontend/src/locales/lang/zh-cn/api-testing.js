@@ -312,7 +312,7 @@ export default {
       helpWorkflowStep2: "后续请求使用 token：Header 中添加 Authorization: Bearer {'{{token}}'}",
       helpWorkflowStep3: "提取用户ID用于查询：$.user.id → 保存为 {'{{user_id}}'}，URL 中使用 /users/{'{{user_id}}'}",
       helpNoteImportant: '注意',
-      helpNoteContent: '变量名不能重复，相同的变量名会被覆盖。建议使用有意义的名称，如 user_id、access_token 等。',
+      helpNoteContent: '变量名不能重复，相同的变量名会被覆盖。建议使用有意义的名称，如 user_id、access_token 等。变量提取只在测试套件中生效，接口调试中不生效。',
       helpDynamicFuncTitle: '动态变量函数',
       helpDynamicFuncDesc: '除了从响应中提取变量，还可以使用数据工厂生成动态数据：',
       helpDynamicFuncExample: "{'${random_int(100, 999, 1)}  ${random_string(8, \"all\", 1)}  ${timestamp()}'}",

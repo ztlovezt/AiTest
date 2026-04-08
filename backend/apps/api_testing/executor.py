@@ -553,13 +553,12 @@ class ApiTestExecutor(BaseTestExecutor):
                 history.assertions_results = assertions_results
                 history.save(update_fields=['assertions_results'])
             
-            # 执行变量提取
+            # 执行变量提取 - 优先使用 extractors 字段
             extracted_variables = {}
-            if api_request.extract_variables:
-                from .tests.test_api_flow import VariableExtractor
-                extracted_variables = VariableExtractor.extract_from_response(
-                    response, api_request.extract_variables
-                )
+            extractors_config = api_request.extractors or api_request.extract_variables or []
+            if extractors_config:
+                from .extractor import extract_variables as do_extract
+                extracted_variables, _ = do_extract(response, extractors_config)
                 if extracted_variables:
                     logger.info(f"[ApiTestExecutor] 提取变量: {list(extracted_variables.keys())}")
             
