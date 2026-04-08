@@ -184,8 +184,8 @@
         <el-table-column prop="user_name" :label="t('appAutomation.testCase.tester')" width="120" />
         <el-table-column prop="status" :label="t('appAutomation.execution.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="getDisplayStatus(row.status, row.result).type" size="small">
-              {{ getDisplayStatus(row.status, row.result).text }}
+            <el-tag :type="getDisplayStatus(row.status, row.result, t).type" size="small">
+              {{ getDisplayStatus(row.status, row.result, t).text }}
             </el-tag>
           </template>
         </el-table-column>

@@ -62,6 +62,7 @@ expand/media/app_automation/screenshots/*
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**
 !apps/app_automation/Template/
+backend/apps/app_automation/Template/**
 
 # 忽略UI自动化运行时产生的截图文件，但保留.gitkeep文件
 !expand/media/ui_automation/screenshots/.gitkeep

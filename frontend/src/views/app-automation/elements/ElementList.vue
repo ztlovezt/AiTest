@@ -468,8 +468,9 @@ const getTypeName = (type) => {
 // formatDateTime 已从 app-automation-helpers 导入
 
 onMounted(() => {
-  getAppProjects({ page_size: 100 }).then(res => { projectList.value = res.data.results || res.data || [] }).catch(() => {})
+  getAppProjects({ page_size: 100 }).then(res => { projectList.value = res.data.results || res.data || [] }).catch(() => {console.error('加载项目失败')})
   loadElements()
+  console.log('项目列表:', projectList.value)
 })
 </script>
 
