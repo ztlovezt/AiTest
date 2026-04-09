@@ -335,12 +335,13 @@ const props = defineProps({
 
 const emit = defineEmits(['update:visible', 'success'])
 
+const primaryGradient = `linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%)`
 const moduleTypes = computed(() => [
   {
     value: 'AI',
     label: t('unifiedProject.moduleTypes.AI'),
     icon: Tickets,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: primaryGradient
   },
   {
     value: 'AI_TEST',
@@ -352,7 +353,7 @@ const moduleTypes = computed(() => [
     value: 'API',
     label: t('unifiedProject.moduleTypes.API'),
     icon: Tickets,
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: primaryGradient
   },
   {
     value: 'UI',
@@ -364,21 +365,21 @@ const moduleTypes = computed(() => [
     value: 'APP',
     label: t('unifiedProject.moduleTypes.APP'),
     icon: Iphone,
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    color: 'linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%)'
   }
 ])
 
 const moduleIcons = { AI: Link, AI_TEST: MagicStick, API: Tickets, UI: Monitor, APP: Iphone }
 const moduleColors = {
-  AI: '#667eea',
+  AI: 'var(--th-color-primary)',
   AI_TEST: '#f5576c',
-  API: '#667eea',
+  API: 'var(--th-color-primary)',
   UI: '#f5576c',
   APP: '#00f2fe'
 }
 
 const getModuleIcon = (type) => moduleIcons[type] || Link
-const getModuleColor = (type) => moduleColors[type] || '#409EFF'
+const getModuleColor = (type) => moduleColors[type] || 'var(--th-color-primary)'
 const getModuleLabel = (type) => {
   const keyMap = { AI: 'AI', AI_TEST: 'AI_TEST', API: 'API', UI: 'UI', APP: 'APP' }
   const key = keyMap[type]
@@ -698,7 +699,7 @@ onMounted(() => {
   padding: 20px;
   background: #fafbfc;
   border-radius: 8px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--th-color-surface-muted);
 }
 
 .section-header {
@@ -714,7 +715,7 @@ onMounted(() => {
 }
 
 .section-header .el-icon {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .section-hint {
@@ -725,11 +726,11 @@ onMounted(() => {
 }
 
 .basic-info {
-  background: linear-gradient(135deg, #fefefe 0%, #f5f7fa 100%);
+  background: linear-gradient(135deg, #fefefe 0%, var(--th-color-surface-muted) 100%);
 }
 
 .module-selection {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e8f4fd 100%);
+  background: linear-gradient(135deg, var(--th-color-info-soft) 0%, #e8f4fd 100%);
   text-align: center;
 }
 
@@ -749,7 +750,7 @@ onMounted(() => {
   justify-content: center;
   gap: 10px;
   padding: 16px 12px;
-  background: #ffffff;
+  background: var(--th-color-surface);
   border: 2px solid #ebeef5;
   border-radius: 12px;
   cursor: pointer;
@@ -765,8 +766,8 @@ onMounted(() => {
 }
 
 .module-card.selected {
-  border-color: #409eff;
-  background: linear-gradient(180deg, #ecf5ff 0%, #f0f9ff 100%);
+  border-color: var(--th-color-primary);
+  background: linear-gradient(180deg, var(--th-color-info-soft) 0%, var(--th-color-info-soft) 100%);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
 }
 
@@ -786,7 +787,7 @@ onMounted(() => {
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  color: #ffffff;
+  color: var(--th-color-surface);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
   transition: transform 0.3s ease;
 }
@@ -811,7 +812,7 @@ onMounted(() => {
 }
 
 .module-configs {
-  background: linear-gradient(135deg, #fff9f0 0%, #fff5e6 100%);
+  background: linear-gradient(135deg, var(--th-color-surface)9f0 0%, var(--th-color-surface)5e6 100%);
 }
 
 .configs-wrapper {
@@ -829,7 +830,7 @@ onMounted(() => {
 }
 
 .config-collapse-item :deep(.el-collapse-item__header) {
-  background: #ffffff;
+  background: var(--th-color-surface);
   border-radius: 8px;
   padding: 12px 16px;
   height: auto;
@@ -838,7 +839,7 @@ onMounted(() => {
 
 .config-collapse-item :deep(.el-collapse-item__wrap) {
   border: none;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
 }
 
 .config-collapse-item :deep(.el-collapse-item__content) {
@@ -874,7 +875,7 @@ onMounted(() => {
 }
 
 .status-dot.active {
-  background: #67c23a;
+  background: var(--th-color-success);
 }
 
 .status-dot.paused {
@@ -882,7 +883,7 @@ onMounted(() => {
 }
 
 .status-dot.completed {
-  background: #409eff;
+  background: var(--th-color-primary);
 }
 
 .status-dot.archived {
@@ -897,7 +898,7 @@ onMounted(() => {
 
 :deep(.el-dialog__header) {
   padding: 20px 24px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 :deep(.el-dialog__title) {
@@ -924,12 +925,12 @@ onMounted(() => {
 }
 
 :deep(.el-check-tag:hover) {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 :deep(.el-check-tag.is-checked) {
-  background-color: #409eff;
-  border-color: #409eff;
-  color: #ffffff;
+  background-color: var(--th-color-primary);
+  border-color: var(--th-color-primary);
+  color: var(--th-color-surface);
 }
 </style>

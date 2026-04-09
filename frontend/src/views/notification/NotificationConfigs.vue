@@ -427,12 +427,12 @@ export default {
 <style scoped>
 .notification-configs-container {
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   min-height: 100vh;
 }
 
 .page-header {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
   color: white;
   padding: 32px 24px;
   border-radius: 12px;
@@ -490,18 +490,18 @@ export default {
 }
 
 .notification-tabs :deep(.el-tabs__item:hover) {
-  color: #4facfe;
+  color: var(--th-color-info);
   background: rgba(79, 172, 254, 0.08);
 }
 
 .notification-tabs :deep(.el-tabs__item.is-active) {
-  color: #4facfe;
+  color: var(--th-color-info);
   background: white;
-  border-bottom: 2px solid #4facfe;
+  border-bottom: 2px solid var(--th-color-info);
 }
 
 .notification-tabs :deep(.el-tabs__active-bar) {
-  background-color: #4facfe;
+  background-color: var(--th-color-info);
   height: 2px;
 }
 

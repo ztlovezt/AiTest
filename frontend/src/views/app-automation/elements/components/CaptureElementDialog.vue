@@ -901,7 +901,7 @@ watch(() => props.modelValue, (val) => {
   border: 1px solid #dcdfe6;
   border-radius: 4px;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -925,7 +925,7 @@ watch(() => props.modelValue, (val) => {
 
 .selection-box {
   position: absolute;
-  border: 2px solid #409eff;
+  border: 2px solid var(--th-color-primary);
   background: rgba(64, 158, 255, 0.1);
   cursor: move;
   pointer-events: auto;
@@ -935,7 +935,7 @@ watch(() => props.modelValue, (val) => {
   position: absolute;
   top: -25px;
   left: 0;
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
   padding: 2px 8px;
   border-radius: 3px;
@@ -969,7 +969,7 @@ watch(() => props.modelValue, (val) => {
   position: absolute;
   width: 8px;
   height: 8px;
-  background: #409eff;
+  background: var(--th-color-primary);
   border: 1px solid white;
   border-radius: 50%;
   pointer-events: auto;

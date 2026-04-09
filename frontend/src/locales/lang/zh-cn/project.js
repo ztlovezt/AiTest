@@ -57,6 +57,24 @@ export default {
       deleteFailed: '项目删除失败',
       deleteConfirm: '确认删除该项目？此操作不可恢复。'
     },
+    configLabels: {
+      baseUrl: '基础URL',
+      timeout: '超时时间',
+      retryCount: '重试次数',
+      browser: '浏览器',
+      headless: '无头模式',
+      viewportWidth: '视口宽度',
+      viewportHeight: '视口高度',
+      platform: '平台',
+      deviceId: '设备ID',
+      appPackage: 'APP包名',
+      appActivity: '启动Activity',
+      owner: '负责人',
+      endDate: '结束日期',
+      members: '成员',
+      startDate: '开始日期',
+      projectType: '项目类型'
+    },
     moduleTypes: {
       AI: 'AI用例生成',
       AI_TEST: 'AI智能测试',

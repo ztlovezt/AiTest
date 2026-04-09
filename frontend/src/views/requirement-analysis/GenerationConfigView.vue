@@ -425,7 +425,7 @@ export default {
   align-items: flex-start;
   margin-bottom: 20px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--th-color-surface-muted);
 }
 
 .config-title h3 {
@@ -492,7 +492,7 @@ export default {
 }
 
 .edit-btn:hover {
-  background: #e67e22;
+  background: var(--th-color-warning);
 }
 
 .delete-btn {
@@ -590,7 +590,7 @@ export default {
 }
 
 .add-first-config-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 15px 30px;
@@ -602,7 +602,7 @@ export default {
 }
 
 .add-first-config-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .config-modal {
@@ -695,7 +695,7 @@ export default {
 
 .form-input:focus, .form-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -746,7 +746,7 @@ export default {
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: var(--th-color-text-muted);
 }
 
 .confirm-btn {

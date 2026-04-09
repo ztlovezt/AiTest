@@ -293,10 +293,10 @@ onUnmounted(() => {
       font-size: 24px;
       color: white;
       
-      &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+      &.bg-blue { background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%); }
       &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
       &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-      &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      &.bg-purple { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
     }
     
     .stat-info {
@@ -339,7 +339,7 @@ onUnmounted(() => {
       text-align: center;
       padding: 15px;
       border-radius: 8px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       
       .stat-label {
         font-size: 14px;
@@ -351,8 +351,8 @@ onUnmounted(() => {
         font-size: 24px;
         font-weight: bold;
         
-        &.large { font-size: 32px; color: #409eff; }
-        &.success { color: #67c23a; }
+        &.large { font-size: 32px; color: var(--th-color-primary); }
+        &.success { color: var(--th-color-success); }
         &.warning { color: #e6a23c; }
         &.danger { color: #f56c6c; }
       }
@@ -374,7 +374,7 @@ onUnmounted(() => {
       }
       
       &:hover {
-        background: #f5f7fa;
+        background: var(--th-color-surface-muted);
       }
       
       .execution-info {
@@ -420,10 +420,10 @@ onUnmounted(() => {
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.3s;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       
       &:hover {
-        background: #ecf5ff;
+        background: var(--th-color-info-soft);
         transform: translateY(-3px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
@@ -438,10 +438,10 @@ onUnmounted(() => {
         font-size: 24px;
         color: white;
         
-        &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        &.bg-blue { background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%); }
         &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
         &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        &.bg-purple { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
       }
       
       .action-label {

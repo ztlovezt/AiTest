@@ -54,16 +54,6 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
-        '^/api-testing-reports/': {
-          target: env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-          changeOrigin: true,
-          secure: false,
-        },
-        '^/app-automation-reports/': {
-          target: env.VITE_API_BASE_URL || 'http://127.0.0.1:8000',
-          changeOrigin: true,
-          secure: false,
-        },
         '^/ws/': {
           target: env.VITE_API_BASE_URL ? env.VITE_API_BASE_URL.replace('http', 'ws') : 'ws://127.0.0.1:8000',
           ws: true,

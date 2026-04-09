@@ -40,9 +40,9 @@ from .serializers import (
     AnalysisTaskSerializer, DocumentUploadSerializer,
     TestCaseGenerationRequestSerializer, TestCaseReviewRequestSerializer,
     AIModelConfigSerializer, PromptConfigSerializer, TestCaseGenerationTaskSerializer,
-    GenerationConfigSerializer
+    GenerationConfigSerializer, TestCaseGenerationFromTextSerializer
 )
-from .services import DocumentProcessor
+from .services import document_processor
 from backend.log_config import get_logger
 
 logger = get_logger(__name__)
@@ -87,7 +87,7 @@ class RequirementDocumentViewSet(viewsets.ModelViewSet):
                     # 简化版同步分析
                     # 提取文档文本
                     if not document.extracted_text:
-                        document.extracted_text = DocumentProcessor.extract_text(document)
+                        document.extracted_text = document_processor([document.file.path])
                         document.save()
 
                     # 创建模拟分析结果
@@ -167,7 +167,7 @@ class RequirementDocumentViewSet(viewsets.ModelViewSet):
 
         try:
             if not document.extracted_text:
-                text = DocumentProcessor.extract_text(document)
+                text = document_processor([document.file.path])
                 document.extracted_text = text
                 document.save()
 
@@ -597,7 +597,7 @@ def upload_and_analyze(request):
                 # 简化版同步分析
                 # 提取文档文本
                 if not document.extracted_text:
-                    document.extracted_text = DocumentProcessor.extract_text(document)
+                    document.extracted_text = document_processor([document.file.path])
                     document.save()
 
                 # 创建模拟分析结果
@@ -1114,7 +1114,7 @@ class PromptConfigViewSet(viewsets.ModelViewSet):
 ```markdown
 | 用例ID | 测试目标 | 前置条件 | 操作步骤 | 预期结果 | 优先级 | 测试类型 | 关联需求 |
 |--------|--------|--------|--------|--------|--------|--------|--------|
-| LOGIN_001 | 验证手机号格式校验 | 在登录页 | 1. 输入10位手机号<br>2. 点击获取验证码 | 提示"手机号格式不正确"，发送按钮不可点 | P1 | 功能验证 | 登录模块 |
+| LOGIN_001 | 验证手机号格式校验 | 在登录页 | 1. 输入10位手机号<br>2. 点击获取验证码 | 提示"手机号格式不正确"，发送按钮不可点 | P1 | 功能测试 | 登录模块 |
 ```"""
 
             try:
@@ -1295,7 +1295,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
     def generate(self, request):
         """创建新的测试用例生成任务"""
         try:
-            serializer = TestCaseGenerationRequestSerializer(data=request.data)
+            serializer = TestCaseGenerationFromTextSerializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2072,8 +2072,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
                         logger.info(f"SSE流结束，总循环次数: {loop_count}")
 
-                        # 添加短暂延迟，确保done信号被发送
-                        time.sleep(0.1)
+                        # 跳出循环，关闭连接
                         break
 
                     # 如果是流式模式，发送新增的内容
@@ -2952,7 +2951,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 expected = expected.replace('\n', '<br>')
 
                 content_lines.append(
-                    f"| {case_id} | {scenario} | {precondition} | {steps} | {expected} | {priority} | 功能验证 | 需求1 |")
+                    f"| {case_id} | {scenario} | {precondition} | {steps} | {expected} | {priority} | 功能测试 | 需求1 |")
         else:
             # 原始格式（没有测试步骤列）
             content_lines.append("| 用例ID | 测试目标 | 前置条件 | 预期结果 | 优先级 | 测试类型 | 关联需求 |")
@@ -2970,7 +2969,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 expected = expected.replace('\n', '<br>')
 
                 content_lines.append(
-                    f"| {case_id} | {scenario} | {precondition} | {expected} | {priority} | 功能验证 | 需求1 |")
+                    f"| {case_id} | {scenario} | {precondition} | {expected} | {priority} | 功能测试 | 需求1 |")
 
         content_lines.append("```")
         return "\n".join(content_lines)

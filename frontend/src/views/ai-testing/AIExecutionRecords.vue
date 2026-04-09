@@ -376,7 +376,7 @@ onUnmounted(() => {
 }
 
 .card-container {
-  background-color: #fff;
+  background-color: var(--th-color-surface);
   border-radius: 4px;
   padding: 20px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -399,7 +399,7 @@ onUnmounted(() => {
 
   .log-container {
     background-color: #1e1e1e;
-    color: #fff;
+    color: var(--th-color-surface);
     padding: 15px;
     border-radius: 4px;
     max-height: 400px;
@@ -414,7 +414,7 @@ onUnmounted(() => {
   }
 
   .task-description-container {
-    background-color: #f5f7fa;
+    background-color: var(--th-color-surface-muted);
     border: 1px solid #e4e7ed;
     border-radius: 4px;
     padding: 12px 15px;

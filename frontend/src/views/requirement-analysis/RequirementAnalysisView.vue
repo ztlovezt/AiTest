@@ -215,7 +215,7 @@
                :class="{ 'drag-over': isDragOver }"
                @dragenter="isDragOver = true"
                @dragleave="isDragOver = false">
-            <div v-if="!selectedFile" class="upload-placeholder">
+            <div v-if="selectedFiles.length === 0" class="upload-placeholder">
               <i class="upload-icon">📁</i>
               <p>{{ $t('requirementAnalysis.dragDropText') }}</p>
               <p class="upload-hint">{{ $t('requirementAnalysis.supportedFormats') }}</p>
@@ -223,7 +223,7 @@
                 type="file"
                 ref="fileInput"
                 @change="handleFileSelect"
-                accept=".pdf,.doc,.docx,.txt,.md"
+                multiple
                 style="display: none;">
               <button class="select-file-btn" @click="$refs.fileInput.click()">
                 {{ $t('requirementAnalysis.selectFile') }}
@@ -231,18 +231,18 @@
             </div>
 
             <div v-else class="file-selected">
-              <div class="file-info">
+              <div class="file-info" v-for="(file, index) in selectedFiles" :key="index">
                 <i class="file-icon">📄</i>
                 <div class="file-details">
-                  <p class="file-name">{{ selectedFile.name }}</p>
-                  <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
+                  <p class="file-name">{{ file.name }}</p>
+                  <p class="file-size">{{ formatFileSize(file.size) }}</p>
                 </div>
-                <button class="remove-file" @click="removeFile">❌</button>
+                <button class="remove-file" @click="removeFile(index)">❌</button>
               </div>
             </div>
           </div>
 
-          <div v-if="selectedFile" class="document-info">
+          <div v-if="selectedFiles.length > 0" class="document-info">
             <div class="form-group">
               <label>{{ $t('requirementAnalysis.documentTitle') }}</label>
               <input
@@ -669,7 +669,7 @@ export default {
       },
 
       // 文件上传
-      selectedFile: null,
+      selectedFiles: [],
       documentTitle: '',
       selectedProject: '',
       projects: [],
@@ -712,6 +712,7 @@ export default {
       finalTestCases: '',  // 最终版用例
       hasShownCompletionMessage: false,  // 是否已经显示过完成消息
       showReviewStep: true,  // 是否显示评审步骤（根据生成配置决定）
+      sseDoneReceived: false,  // SSE是否已收到done信号
 
       // 生成结果
       showResults: false,
@@ -1223,30 +1224,20 @@ export default {
     },
 
     handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) {
-        const allowedTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/plain',
-          'text/markdown',
-          'text/x-markdown'
-        ]
-
-        if (allowedTypes.includes(file.type) ||
-            file.name.match(/\.(pdf|doc|docx|txt|md)$/i)) {
-          this.selectedFile = file
-          this.documentTitle = file.name.replace(/\.[^/.]+$/, "")
-        } else {
-          ElMessage.error(this.$t('requirementAnalysis.invalidFileFormatDetail'))
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        this.selectedFiles = [...this.selectedFiles, ...files]
+        if (!this.documentTitle && files.length === 1) {
+          this.documentTitle = files[0].name.replace(/\.[^/.]+$/, "")
         }
       }
     },
 
-    removeFile() {
-      this.selectedFile = null
-      this.documentTitle = ''
+    removeFile(index) {
+      this.selectedFiles.splice(index, 1)
+      if (this.selectedFiles.length === 0) {
+        this.documentTitle = ''
+      }
       this.$refs.fileInput.value = ''
     },
 
@@ -1275,43 +1266,50 @@ export default {
     },
 
     async generateFromDocument() {
-      if (!this.selectedFile || !this.documentTitle) {
+      if (this.selectedFiles.length === 0 || !this.documentTitle) {
         ElMessage.error(this.$t('requirementAnalysis.selectFileAndTitle'))
         return
       }
 
       try {
-        // 首先上传并提取文档内容
-        const formData = new FormData()
-        formData.append('title', this.documentTitle)
-        formData.append('file', this.selectedFile)
-        if (this.selectedProject) {
-          formData.append('project', this.selectedProject)
+        let allExtractedText = ''
+
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+          const file = this.selectedFiles[i]
+          const formData = new FormData()
+          formData.append('title', this.documentTitle + (this.selectedFiles.length > 1 ? ` (${i + 1})` : ''))
+          formData.append('file', file)
+          if (this.selectedProject) {
+            formData.append('project', this.selectedProject)
+          }
+
+          ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
+          const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+
+          const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
+          const extractedText = extractResponse.data.extracted_text
+
+          if (extractedText && extractedText.trim().length > 0) {
+            allExtractedText += `\n\n===== ${file.name} =====\n\n${extractedText}`
+          }
         }
 
-        ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
-        const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-
-        // 提取文档内容
-        const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
-        const extractedText = extractResponse.data.extracted_text
-
-        if (!extractedText || extractedText.trim().length === 0) {
+        if (!allExtractedText || allExtractedText.trim().length === 0) {
           ElMessage.error(this.$t('requirementAnalysis.extractionFailed'))
           return
         }
 
-        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${extractedText}`
+        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${allExtractedText}`
 
         await this.startGeneration(
           this.documentTitle,
           requirementText,
           this.selectedProject,
-          this.globalOutputMode  // 使用全局输出模式
+          this.globalOutputMode
         )
 
       } catch (error) {
@@ -1383,6 +1381,9 @@ export default {
     },
 
     startStreamingProgress() {
+      // 重置SSE状态标志
+      this.sseDoneReceived = false
+
       // 使用SSE进行流式进度获取
       // 注意：EventSource不使用axios代理，需要直接指向后端服务器
       // 完整的URL路径: /api/requirement-analysis/testcase-generation/{task_id}/stream_progress/
@@ -1400,11 +1401,26 @@ export default {
 
       // 监听连接打开事件
       this.eventSource.onopen = (event) => {
+        // 如果已收到done信号，立即关闭新连接
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，关闭新建立的SSE连接')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
         console.log('✅ SSE连接已打开', event)
       }
 
       this.eventSource.onmessage = (event) => {
         console.log('📨 收到SSE消息:', event.data)
+
+        // 如果已收到done信号，忽略后续所有消息
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，忽略后续消息')
+          return
+        }
 
         try {
           const data = JSON.parse(event.data)
@@ -1454,6 +1470,7 @@ export default {
           } else if (data.type === 'done') {
             // 流式结束，立即关闭EventSource，获取最终结果
             console.log('✅ 流式传输完成')
+            this.sseDoneReceived = true  // 先设置标志，防止重复处理
             if (this.eventSource) {
               console.log('🔒 关闭SSE连接')
               this.eventSource.close()
@@ -1468,6 +1485,16 @@ export default {
 
       this.eventSource.onerror = (error) => {
         console.log('⚠️ SSE连接事件:', error)
+
+        // 如果已收到done信号，不做任何处理
+        if (this.sseDoneReceived) {
+          console.log('ℹ️ 已收到done信号，忽略错误事件')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
 
         // 如果EventSource已经被关闭（在onmessage中关闭的），不做任何处理
         if (!this.eventSource) {
@@ -2136,7 +2163,7 @@ export default {
 }
 
 .output-mode-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -2186,7 +2213,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px;
@@ -2208,7 +2235,7 @@ export default {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(90deg, var(--th-color-info) 0%, #00f2fe 100%);
   border-radius: 24px 24px 0 0;
 }
 
@@ -2388,7 +2415,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
@@ -2470,14 +2497,16 @@ export default {
 }
 
 .mode-option:hover .mode-content {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 10%, transparent);
 }
 
 .mode-option.active .mode-content {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  border-color: var(--th-color-primary);
+  background: var(--th-color-primary-soft);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--th-color-primary) 20%, transparent);
 }
 
 .mode-title {
@@ -2494,7 +2523,7 @@ export default {
 }
 
 .mode-option.active .mode-title {
-  color: #2563eb;
+  color: var(--th-color-primary-strong);
 }
 
 .mode-option.active .mode-desc {
@@ -2550,9 +2579,9 @@ export default {
 }
 
 .panel-tab.active {
-  background: white;
-  border-color: #3b82f6;
-  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, var(--th-color-primary), var(--th-color-primary-strong));
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 30%, transparent);
 }
 
 .panel-tab.active::before {
@@ -2670,7 +2699,7 @@ export default {
 
 .search-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2681,7 +2710,7 @@ export default {
 }
 
 .search-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .search-btn:disabled {
@@ -2728,7 +2757,7 @@ export default {
 .param-value{
   min-width: 40px;
   font-size: 14px;
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 500;
 }
 
@@ -2754,7 +2783,7 @@ export default {
 .search-type-btn {
   padding: 8px 16px;
   border: 1px solid #dcdfe6;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   color: #606266;
   cursor: pointer;
   border-radius: 4px;
@@ -2763,14 +2792,14 @@ export default {
 }
 
 .search-type-btn:hover {
-  border-color: #409eff;
-  color: #409eff;
+  border-color: var(--th-color-primary);
+  color: var(--th-color-primary);
 }
 
 .search-type-btn.active {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .search-type-btn.active:hover {
@@ -2800,7 +2829,7 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 12px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .result-header {
@@ -2812,7 +2841,7 @@ export default {
 
 .result-index {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--th-color-primary);
 }
 
 .result-score {
@@ -2875,7 +2904,7 @@ export default {
 
 .parse-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2886,7 +2915,7 @@ export default {
 }
 
 .parse-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .parse-btn:disabled {
@@ -3003,7 +3032,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   color: #333;
   transition: all 0.2s;
 }
@@ -3014,12 +3043,12 @@ export default {
 
 .view-toggle-btn.active {
   background: #4CAF50;
-  color: #fff;
+  color: var(--th-color-surface);
   border-color: #4CAF50;
 }
 
 .markdown-preview {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 15px;
@@ -3089,13 +3118,13 @@ export default {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.6;
   resize: vertical;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   color: #333;
 }
 
 .edit-textarea:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3107,7 +3136,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3122,7 +3151,7 @@ export default {
   padding: 15px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  background: #fff;
+  background: var(--th-color-surface);
   cursor: text;
   transition: border-color 0.3s;
 }
@@ -3132,7 +3161,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3157,14 +3186,14 @@ export default {
 }
 
 .markdown-preview pre {
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   padding: 10px;
   border-radius: 4px;
   overflow-x: auto;
 }
 
 .markdown-preview code {
-  background: #f0f0f0;
+  background: var(--th-color-surface-muted);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
@@ -3276,7 +3305,7 @@ export default {
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -3351,7 +3380,7 @@ export default {
 }
 
 .upload-area.drag-over {
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   background: #f8f9fa;
 }
 
@@ -3372,7 +3401,7 @@ export default {
 }
 
 .select-file-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3444,7 +3473,7 @@ export default {
 
 .current-mode-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -3662,7 +3691,7 @@ export default {
 }
 
 .step.active .step-number {
-  background: #3498db;
+  background: var(--th-color-primary);
 }
 
 .step-text {
@@ -3771,7 +3800,7 @@ export default {
 }
 
 .new-generation-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3797,7 +3826,7 @@ export default {
   background: #f8f9fa;
   border-radius: 6px;
   padding: 20px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .testcase-content pre, .review-content pre {
@@ -3847,21 +3876,21 @@ export default {
 }
 
 .download-btn {
-  background-color: #1abc9c;
+  background-color: var(--th-color-success);
   color: white;
 }
 
 .download-btn:hover {
-  background-color: #16a085;
+  background-color: var(--th-color-success);
 }
 
 .save-btn {
-  background-color: #3498db;
+  background-color: var(--th-color-primary);
   color: white;
 }
 
 .save-btn:hover {
-  background-color: #2980b9;
+  background-color: var(--th-color-primary);
 }
 
 @media (max-width: 768px) {
@@ -3903,7 +3932,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px !important;
@@ -3949,7 +3978,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);

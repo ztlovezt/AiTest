@@ -60,7 +60,7 @@
         </el-table-column>
         <el-table-column prop="notification_type_display" :label="$t('uiAutomation.scheduledTask.notificationType')" width="120">
           <template #default="scope">
-            <el-tag v-if="scope.row.notification_type_display && scope.row.notification_type_display !== '未配置'" 
+            <el-tag v-if="scope.row.notification_type_display && scope.row.notification_type_display !== $t('uiAutomation.scheduledTask.notConfigured')"
                     :type="getNotificationTypeTag(scope.row.notification_type_display)"
                     size="small">
               {{ scope.row.notification_type_display }}
@@ -239,7 +239,7 @@
                   <div>{{ $t('uiAutomation.scheduledTask.cronHelp.everyMonth') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">{{ $t('uiAutomation.scheduledTask.cronHelpLink') }}</span>
+              <span style="cursor: pointer; color: var(--th-color-primary);">{{ $t('uiAutomation.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>
@@ -515,28 +515,28 @@ const taskForm = reactive({
 // 获取调度类型文本
 const getScheduleTypeText = (type) => {
   const typeMap = {
-    'O': '单次',
-    'I': '分钟间隔',
-    'H': '每小时',
-    'D': '每天',
-    'W': '每周',
-    'BW': '双周',
-    'M': '每月',
-    'BM': '双月',
-    'Q': '每季度',
-    'Y': '每年',
+    'O': t('uiAutomation.scheduledTask.scheduleTypes.once'),
+    'I': t('uiAutomation.scheduledTask.scheduleTypes.interval'),
+    'H': t('uiAutomation.scheduledTask.scheduleTypes.hourly'),
+    'D': t('uiAutomation.scheduledTask.scheduleTypes.daily'),
+    'W': t('uiAutomation.scheduledTask.scheduleTypes.weekly'),
+    'BW': t('uiAutomation.scheduledTask.scheduleTypes.biweekly'),
+    'M': t('uiAutomation.scheduledTask.scheduleTypes.monthly'),
+    'BM': t('uiAutomation.scheduledTask.scheduleTypes.bimonthly'),
+    'Q': t('uiAutomation.scheduledTask.scheduleTypes.quarterly'),
+    'Y': t('uiAutomation.scheduledTask.scheduleTypes.yearly'),
     'C': 'Cron'
   }
   return typeMap[type] || type
 }
 
 const getNotificationTypeTag = (notificationTypeDisplay) => {
-  if (!notificationTypeDisplay || notificationTypeDisplay === '未配置') {
+  if (!notificationTypeDisplay || notificationTypeDisplay === t('uiAutomation.scheduledTask.notConfigured')) {
     return 'info'
   }
   if (notificationTypeDisplay.includes('+')) {
     return 'warning'
-  } else if (notificationTypeDisplay.includes('邮箱') || notificationTypeDisplay.includes('邮件')) {
+  } else if (notificationTypeDisplay.includes(t('uiAutomation.scheduledTask.notificationKeywords.email')) || notificationTypeDisplay.includes('Email')) {
     return 'success'
   } else if (notificationTypeDisplay.includes('Webhook')) {
     return 'primary'
@@ -556,9 +556,9 @@ const getStatusText = (status) => {
 }
 
 const getStatusType = (status) => {
-  if (status === '激活' || status === 'ACTIVE') return 'success'
-  if (status === '暂停' || status === 'PAUSED') return 'warning'
-  if (status === '失败' || status === 'FAILED') return 'danger'
+  if (status === t('uiAutomation.scheduledTask.statusTypes.active') || status === 'ACTIVE') return 'success'
+  if (status === t('uiAutomation.scheduledTask.statusTypes.paused') || status === 'PAUSED') return 'warning'
+  if (status === t('uiAutomation.scheduledTask.statusTypes.failed') || status === 'FAILED') return 'danger'
   return 'info'
 }
 

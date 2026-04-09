@@ -190,20 +190,30 @@ ALLURE_BIN_PATH = allure_config.get('bin_path', 'expand/allure/bin')
 ALLURE_STATIC_DIR = allure_config.get('static_dir', 'static')
 ALLURE_REPORTS_DIR = allure_config.get('reports_dir', 'allure-reports')
 ALLURE_RESULTS_DIR = allure_config.get('results_dir', 'allure-results')
+ALLURE_SINGLE_FILE_DIR = allure_config.get('single_file_dir', 'allure-single-file')
 ALLURE_AI_RECORDING = allure_config.get('ai_recording', 'ai_recording')
 ALLURE_API_TESTING = allure_config.get('api_testing', 'api_testing')
 ALLURE_APP_AUTOMATION = allure_config.get('app_automation', 'app_automation')
+ALLURE_UI_AUTOMATION = allure_config.get('ui_automation', 'ui_automation')
 
 # 路径配置
 paths_config = config_loader.get_paths_config()
 # Media 文件根目录 - 使用配置文件中的路径
-MEDIA_ROOT = os.path.join(BASE_DIR.parent, paths_config.get('media_root', 'media'))
-PATHS_APP_AUTOMATION_TEMPLATE = paths_config.get('app_automation_template', 'apps/app_automation/Template')
-PATHS_UI_COMPONENT_PACK = paths_config.get('ui_component_pack', 'apps/core/management/commands/ui-component-pack.yaml')
-PATHS_DATA_FACTORY_STATIC_IMG = paths_config.get('data_factory_static_img', 'static_files/img')
-PATHS_APP_AUTOMATION_SCREENSHOTS = paths_config.get('app_automation_screenshots', 'app-automation/screenshots')
-PATHS_UI_AUTOMATION_SCREENSHOTS = paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots')
-PATHS_CHROMA_DB = paths_config.get('chroma_db', '../expand/chroma_db')
+MEDIA_ROOT = os.path.join(BASE_DIR.parent, paths_config.get('media_root', 'expand/media'))
+# APP 自动化模板目录（相对于backend目录）
+PATHS_APP_AUTOMATION_TEMPLATE = os.path.join(BASE_DIR, paths_config.get('app_automation_template', 'apps/app_automation/Template'))
+# UI 组件包配置文件（相对于backend目录）
+PATHS_UI_COMPONENT_PACK = os.path.join(BASE_DIR, paths_config.get('ui_component_pack', 'apps/core/management/commands/ui-component-pack.yaml'))
+# 数据工厂静态图片目录（相对于backend目录）
+PATHS_DATA_FACTORY_STATIC_IMG = os.path.join(BASE_DIR, paths_config.get('data_factory_static_img', 'static_files/img'))
+# APP 自动化截图目录（相对于项目根目录）
+PATHS_APP_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('app_automation_screenshots', 'app-automation/screenshots'))
+# UI 自动化截图目录（相对于项目根目录）
+PATHS_UI_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots'))
+# 向量数据库chroma（相对于项目根目录）
+PATHS_CHROMA_DB = os.path.join(BASE_DIR.parent, paths_config.get('chroma_db', 'expand/chroma_db'))
+# OCR纠错文件（相对于项目根目录）
+PATHS_OCR_CORRECTION = os.path.join(BASE_DIR.parent, paths_config.get('ocr_correction', 'expand/ocr_correct/ocr_corrections.json'))
 
 
 # 超时配置

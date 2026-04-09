@@ -3,7 +3,13 @@ export default {
     home: 'Home',
     logout: 'Logout',
     profile: 'Profile',
-    language: 'Language'
+    language: 'Language',
+    zhCN: '简体中文',
+    languageSwitched: 'Language switched',
+    logoutSuccess: 'Logged out successfully',
+    themeSwitch: 'Theme',
+    themeLight: 'Hoppscotch Light',
+    themeDark: 'Hoppscotch Dark'
   },
   modules: {
     aiGeneration: 'AI Test Case Generation',
@@ -37,7 +43,10 @@ export default {
     requestHistory: 'Request History',
     environmentManagement: 'Environment Management',
     scheduledTasks: 'Scheduled Tasks',
+    apiScheduledTasks: 'Scheduled Tasks',
+    parameterizedData: 'Parameterized Data',
     notificationList: 'Notification List',
+    apiNotificationList: 'Notification List',
 
     // UI Automation
     elementManagement: 'Element Management',
@@ -78,6 +87,15 @@ export default {
     aiModeConfig: 'AI Intelligent Mode',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',
+    themeConfig: 'Theme Configuration',
     projectManagementCenter: 'Project Management Center'
+  },
+  themeConfig: {
+    indigo: 'Indigo',
+    indigoDesc: 'Professional indigo tones, ideal for enterprise test management platforms',
+    semiOrange: 'Semi Orange',
+    semiOrangeDesc: 'Inspired by ByteDance Semi Design, a vibrant warm-toned scheme full of energy',
+    current: 'Current',
+    applied: 'Theme applied'
   }
 }

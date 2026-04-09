@@ -29,7 +29,7 @@
           @click="selectBot(bot)"
         >
           <div class="bot-icon" :style="{ background: getBotColor(bot.config_type) }">
-            <el-icon :size="24" color="#fff">
+            <el-icon :size="24" color="var(--th-color-surface)">
               <component :is="getBotIcon(bot.config_type)" />
             </el-icon>
           </div>
@@ -648,7 +648,7 @@ onMounted(() => {
 .notification-config-container {
   display: flex;
   height: calc(100vh - 120px);
-  background: #fff;
+  background: var(--th-color-surface);
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
@@ -696,17 +696,17 @@ onMounted(() => {
   align-items: center;
   padding: 12px 16px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--th-color-surface-muted);
   transition: background-color 0.2s;
 }
 
 .bot-item:hover {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
 }
 
 .bot-item.active {
-  background-color: #ecf5ff;
-  border-left: 3px solid #409eff;
+  background-color: var(--th-color-info-soft);
+  border-left: 3px solid var(--th-color-primary);
 }
 
 .bot-icon {

@@ -23,6 +23,7 @@ export default {
   projects: '项目',
   version: '版本',
   creator: '创建者',
+  priority: '优先级',
   status: '状态',
   createdAt: '创建时间',
   actions: '操作',
@@ -115,5 +116,29 @@ export default {
   planNameRequired: '请输入计划名称',
   projectsRequired: '请选择项目',
   testcasesRequired: '请选择至少一个测试用例',
-  selectProjectBeforeTestcases: '请先选择项目'
+  selectProjectBeforeTestcases: '请先选择项目',
+
+  // New: Table selector
+  selectTestcasesDialog: '选择测试用例',
+  keyword: '关键词',
+  searchByTitleOrNumber: '按标题/编号搜索',
+  allPriorities: '全部优先级',
+  allStatuses: '全部状态',
+  testType: '测试类型',
+  allTypes: '全部类型',
+  caseId: '编号',
+  caseTitle: '标题',
+  caseNumber: '编号',
+  moduleName: '所属模块',
+  projectName: '所属项目',
+  priorityCritical: '紧急',
+  priorityHigh: '高',
+  priorityMedium: '中',
+  priorityLow: '低',
+  selectedCount: '已选择 {count} 条用例',
+  viewSelected: '查看已选',
+  confirmSelect: '确认选择',
+  modifySelection: '修改选择',
+  noTestcaseSelected: '暂无已选用例',
+  selectedTestcases: '已选用例'
 }

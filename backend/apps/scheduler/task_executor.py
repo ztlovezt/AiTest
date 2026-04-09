@@ -289,15 +289,37 @@ def execute_api_test_suite(*args, **kwargs):
         logger.info(f"开始执行API测试套件: {test_suite.name}")
         
         from apps.api_testing.utils import execute_test_suite as execute_test_suite_util
-        result = execute_test_suite_util(test_suite, environment, config.created_by)
+        # 定时任务路径：同步生成报告（不需要异步，因为Django-Q本身已在后台）
+        result = execute_test_suite_util(test_suite, environment, config.created_by, async_report=False)
         
         logger.info(f"API测试套件执行完成: {test_suite.name}, 结果: {result}")
         
-        # 更新执行统计
-        _update_task_stats(schedule_id, success=result.get('success', False))
+        passed = result.get('passed_count', 0)
+        failed = result.get('failed_count', 0)
+        skipped = result.get('skipped_count', 0)
+        
+        # 状态判断逻辑
+        if (failed > 0 and passed > 0) or (failed > 0 and passed > 0 and skipped>0):
+            # 有失败数+通过数 或 有失败数+通过数+跳过数
+            status = '部分失败'
+            real_success = False
+        elif failed > 0 or (failed>0 and skipped>0):
+            # 只有失败数或 只有失败数+跳过数
+            status = '失败'
+            real_success = False
+        elif passed > 0 or (passed>0 and skipped>0):
+            # 只有通过数或 只有通过数+跳过数
+            status = '成功'
+            real_success = True
+        else:
+            # 只有跳过数或 无任何执行
+            status = '未执行'
+            real_success = False
+        
+        _update_task_stats(schedule_id, success=real_success)
         
         if config.notify_on_success or config.notify_on_failure:
-            send_notification(config, result.get('success', False), result, is_manual_execution, executed_by_id)
+            send_notification(config, real_success, result, is_manual_execution, executed_by_id, status=status)
         
         # 返回结果以便 Django-Q 记录到 Success 表
         return result
@@ -415,14 +437,15 @@ def execute_ui_test_suite(*args, **kwargs):
         logger.info(f"开始执行UI测试套件: {test_suite.name}")
         
         from apps.ui_automation.test_executor import TestExecutor
-        executor = TestExecutor(
+        executor = TestExecutor()
+        result = executor.execute_suite(
             test_suite=test_suite,
             engine=task_config.get('engine', 'playwright'),
             browser=task_config.get('browser', 'chrome'),
             headless=task_config.get('headless', True),
-            executed_by=config.created_by
+            user=config.created_by,
+            async_report=True
         )
-        result = executor.run()
         
         logger.info(f"UI测试套件执行完成: {test_suite.name}")
         
@@ -501,21 +524,22 @@ def execute_ui_test_cases(*args, **kwargs):
             temp_suite.test_cases.add(test_case)
             
             from apps.ui_automation.test_executor import TestExecutor
-            executor = TestExecutor(
+            executor = TestExecutor()
+            result = executor.execute_suite(
                 test_suite=temp_suite,
                 engine=task_config.get('engine', 'playwright'),
                 browser=task_config.get('browser', 'chrome'),
                 headless=task_config.get('headless', True),
-                executed_by=config.created_by
+                user=config.created_by,
+                async_report=True
             )
-            result = executor.run()
             all_results.append(result)
             
             # 汇总统计
             if result.get('success'):
-                total_passed += result.get('passed_cases', 0)
-                total_failed += result.get('failed_cases', 0)
-                total_skipped += result.get('skipped_cases', 0)
+                total_passed += result.get('passed_count', 0)
+                total_failed += result.get('failed_count', 0)
+                total_skipped += result.get('skipped_count', 0)
             else:
                 overall_success = False
         
@@ -586,12 +610,11 @@ def execute_app_test_suite(*args, **kwargs):
         
         from apps.app_automation.executors.test_executor import AppTestExecutor
         executor = AppTestExecutor()
-        result = executor.run_tests(
-            test_case_id=test_suite.id,
+        result = executor.execute_suite(
+            test_suite=test_suite,
             device_id=task_config.get('device_id'),
             package_name=task_config.get('app_package_name', ''),
-            execution_id=None,
-            username=config.created_by.username if config.created_by else None
+            user=config.created_by
         )
         
         logger.info(f"APP测试套件执行完成: {test_suite.name}")
@@ -654,16 +677,10 @@ def execute_app_test_cases(*args, **kwargs):
         overall_success = True
         
         for test_case in test_cases:
-            temp_suite = AppTestSuite.objects.create(
-                project=test_case.project,
-                name=f"[定时任务] {test_case.name}"
-            )
-            temp_suite.test_cases.add(test_case)
-            
             from apps.app_automation.executors.test_executor import AppTestExecutor
             executor = AppTestExecutor()
             result = executor.run_tests(
-                test_case_id=temp_suite.id,
+                test_case_id=test_case.id,
                 device_id=task_config.get('device_id'),
                 package_name=task_config.get('app_package_name', ''),
                 execution_id=None,
@@ -723,16 +740,21 @@ def _render_notification_template(template_content, context):
     return content
 
 
-def _build_notification_context(config, success, result, is_manual_execution=False, executed_by_id=None):
+def _build_notification_context(config, success, result, is_manual_execution=False, executed_by_id=None, status=None):
     """构建通知模板上下文变量
     :param config: ScheduleConfig 实例
     :param success: 是否成功
     :param result: 执行结果
     :param is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
     :param executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    :param status: 状态文本（成功/失败/部分失败/未执行），如果传入则使用传入的status
     :return: 上下文变量字典
     """
-    status_text = '成功' if success else '失败'
+    if status is None:
+        status_text = '成功' if success else '失败'
+    else:
+        status_text = status
+    
     now = timezone.now()
     local_now = timezone.localtime(now)
     
@@ -777,7 +799,8 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
         logger.info(f"开始处理执行结果: result类型={type(result)}, result={result}")
         logger.info(f"result 的所有键: {result.keys() if isinstance(result, dict) else 'N/A'}")
         if isinstance(result, dict):
-            total_cases = result.get('total_count', result.get('total_cases', 0))
+            # 增加 total_requests 回退（API测试套件用 total_requests 而非 total_count）
+            total_cases = result.get('total_count', result.get('total_requests', result.get('total_cases', 0)))
             passed_cases = result.get('passed_count', result.get('passed_cases', 0))
             failed_cases = result.get('failed_count', result.get('failed_cases', 0))
             error_cases = result.get('error_count', result.get('error_cases', 0))
@@ -800,6 +823,15 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             context['failed_cases'] = failed_cases
             context['error_cases'] = error_cases
             context['skipped_cases'] = skipped_cases
+            
+            # 部分失败检测：既有通过又有失败
+            if passed_cases > 0 and failed_cases > 0:
+                status_text = '部分失败'
+                context['is_partial_failed'] = True
+                context['status'] = status_text
+                context['status_text'] = status_text
+                context['status_class'] = 'partial_failed'
+                context['success'] = '是'  # 部分失败走成功通知路径
             
             # 从 result 中获取 start_time 和 end_time
             if 'start_time' in result:
@@ -828,9 +860,33 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             project = Project.objects.get(id=config.project_id)
             context['project_name'] = project.name
         except Exception:
-            context['project_name'] = ''
+            # 回退：从执行结果中获取
+            if 'project_name' in result:
+                context['project_name'] = result.get('project_name', '')
+            else:
+                context['project_name'] = ''
     else:
-        context['project_name'] = ''
+        # 无项目ID时，尝试从结果或关联模型获取
+        if not context.get('project_name'):
+            if 'project_name' in result:
+                context['project_name'] = result.get('project_name', '')
+            elif config.target_id and config.module == 'API_TEST_SUITE':
+                # 从套件模型获取
+                try:
+                    from apps.api_testing.models import TestSuite
+                    suite = TestSuite.objects.get(id=config.target_id)
+                    if suite.project_id:
+                        from apps.projects.models import Project
+                        project = Project.objects.get(id=suite.project_id)
+                        context['project_name'] = project.name
+                except Exception:
+                    pass
+            elif config.target_id and config.module in ('UI_TEST_SUITE', 'APP_TEST_SUITE'):
+                pass  # UI/APP 类似处理
+            elif 'project_name' in result:
+                context['project_name'] = result.get('project_name', '')
+            else:
+                context['project_name'] = ''
     
     if config.environment_id:
         try:
@@ -866,11 +922,11 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
             
             if execution_id:
                 if task_type == 'api_test':
-                    context['report_url'] = f"{frontend_url}/api-testing-reports/execution_{execution_id}/index.html"
-                elif task_type == 'ui_test':
-                    context['report_url'] = f"{frontend_url}/ui-testing-reports/execution_{execution_id}/index.html"
-                elif task_type == 'app_test':
-                    context['report_url'] = f"{frontend_url}/app-testing-reports/execution_{execution_id}/index.html"
+                    context['report_url'] = f"{frontend_url}/api/api-testing-reports/execution_{execution_id}/index.html"
+                elif task_type in ('UI_TEST_SUITE', 'UI_TEST_CASE'):
+                    context['report_url'] = f"{frontend_url}/api/ui-testing-reports/execution_{execution_id}/index.html"
+                elif task_type in ('APP_TEST_SUITE', 'APP_TEST_CASE'):
+                    context['report_url'] = f"{frontend_url}/api/app-automation-reports/execution_{execution_id}/index.html"
                 else:
                     context['report_url'] = f"{frontend_url}/reports/schedule/{config.schedule.id}"
             else:
@@ -881,7 +937,7 @@ def _build_notification_context(config, success, result, is_manual_execution=Fal
     return context
 
 
-def send_notification(config, success, result, is_manual_execution=False, executed_by_id=None):
+def send_notification(config, success, result, is_manual_execution=False, executed_by_id=None, status=None):
     """
     发送任务通知
     :param config: ScheduleConfig 实例
@@ -889,6 +945,7 @@ def send_notification(config, success, result, is_manual_execution=False, execut
     :param result: 执行结果
     :param is_manual_execution: 是否立即执行（默认为False，表示定时任务触发）
     :param executed_by_id: 执行用户ID（可选，用于记录实际执行者）
+    :param status: 状态文本（成功/失败/部分失败/未执行），如果传入则使用传入的status
     :return:
     """
     if success and not config.notify_on_success:
@@ -896,8 +953,8 @@ def send_notification(config, success, result, is_manual_execution=False, execut
     if not success and not config.notify_on_failure:
         return
     
-    status_text = '成功' if success else '失败'
-    context = _build_notification_context(config, success, result, is_manual_execution, executed_by_id)
+    context = _build_notification_context(config, success, result, is_manual_execution, executed_by_id, status)
+    status_text = context.get('status_text', '成功' if success else '失败')
     
     logger.info(f"=== 开始发送任务通知 ===")
     logger.info(f"send_notification: is_manual_execution={is_manual_execution}, executed_by_id={executed_by_id}")
@@ -1201,92 +1258,143 @@ def send_notification(config, success, result, is_manual_execution=False, execut
         attachments = None
         if email_attach_report:
             try:
-                from utils.html_report import html_report_generator
-                
-                # 构建测试用例列表
-                test_cases = []
-                
-                # 从result中提取测试用例详情
+                execution_id = None
                 if isinstance(result, dict):
-                    # 优先从result_data中提取
-                    if 'result_data' in result and isinstance(result['result_data'], dict):
-                        result_data = result['result_data']
-                        if 'test_cases' in result_data:
-                            for test_result in result_data['test_cases']:
+                    execution_id = result.get('execution_id') or result.get('history_id')
+                
+                allure_single_file_path = None
+                if execution_id:
+                    try:
+                        from django.conf import settings
+                        import os
+                        
+                        module = config.module
+                        if module == 'API':
+                            single_file_base = os.path.join(
+                                settings.MEDIA_ROOT, 
+                                settings.ALLURE_API_TESTING, 
+                                settings.ALLURE_SINGLE_FILE_DIR
+                            )
+                        elif module == 'UI':
+                            single_file_base = os.path.join(
+                                settings.MEDIA_ROOT, 
+                                getattr(settings, 'ALLURE_UI_AUTOMATION', 'ui_automation/allure'),
+                                settings.ALLURE_SINGLE_FILE_DIR
+                            )
+                        elif module == 'APP':
+                            single_file_base = os.path.join(
+                                settings.MEDIA_ROOT, 
+                                getattr(settings, 'ALLURE_APP_AUTOMATION', 'app_automation/allure'),
+                                settings.ALLURE_SINGLE_FILE_DIR
+                            )
+                        else:
+                            single_file_base = None
+                        
+                        if single_file_base:
+                            potential_paths = [
+                                os.path.join(single_file_base, f'execution_{execution_id}', 'index.html'),
+                            ]
+                            
+                            for path in potential_paths:
+                                if os.path.exists(path) and os.path.getsize(path) > 0:
+                                    allure_single_file_path = path
+                                    logger.info(f"找到 Allure 离线报告: {path}")
+                                    break
+                    except Exception as e:
+                        logger.warning(f"查找 Allure 离线报告失败: {e}")
+                
+                if allure_single_file_path:
+                    try:
+                        with open(allure_single_file_path, 'r', encoding='utf-8') as f:
+                            allure_content = f.read()
+                        
+                        attachments = [{'filename': f'{subject}.html', 'content': allure_content}]
+                        logger.info(f"已使用 Allure 离线报告作为附件: {allure_single_file_path}")
+                    except Exception as e:
+                        logger.error(f"读取 Allure 离线报告失败: {e}")
+                        allure_single_file_path = None
+                
+                if not allure_single_file_path:
+                    logger.info("Allure 离线报告不存在或读取失败，生成简易 HTML 报告")
+                    
+                    from utils.html_report import html_report_generator
+                    
+                    test_cases = []
+                    
+                    if isinstance(result, dict):
+                        if 'result_data' in result and isinstance(result['result_data'], dict):
+                            result_data = result['result_data']
+                            if 'test_cases' in result_data:
+                                for test_result in result_data['test_cases']:
+                                    test_cases.append({
+                                        'name': test_result.get('name', '未知用例'),
+                                        'status': test_result.get('status', 'unknown'),
+                                        'duration': test_result.get('duration', 0),
+                                        'error_message': test_result.get('error_message', '')
+                                    })
+                        
+                        elif 'test_results' in result:
+                            for test_result in result['test_results']:
                                 test_cases.append({
                                     'name': test_result.get('name', '未知用例'),
                                     'status': test_result.get('status', 'unknown'),
                                     'duration': test_result.get('duration', 0),
                                     'error_message': test_result.get('error_message', '')
                                 })
+                        
+                        elif 'results' in result:
+                            for test_result in result['results']:
+                                test_cases.append({
+                                    'name': test_result.get('name', '未知用例'),
+                                    'status': 'passed' if test_result.get('passed') else 'failed',
+                                    'duration': test_result.get('response_time', 0) / 1000 if test_result.get('response_time') else 0,
+                                    'error_message': test_result.get('error', '')
+                                })
                     
-                    # 其次从test_results中提取
-                    elif 'test_results' in result:
-                        for test_result in result['test_results']:
+                    if not test_cases:
+                        if context.get('failed_cases', 0) > 0:
                             test_cases.append({
-                                'name': test_result.get('name', '未知用例'),
-                                'status': test_result.get('status', 'unknown'),
-                                'duration': test_result.get('duration', 0),
-                                'error_message': test_result.get('error_message', '')
+                                'name': '测试执行',
+                                'status': 'failed',
+                                'duration': 0,
+                                'error_message': '存在失败的测试用例'
+                            })
+                        else:
+                            test_cases.append({
+                                'name': '测试执行',
+                                'status': 'passed',
+                                'duration': 0,
+                                'error_message': ''
                             })
                     
-                    # 再次从results中提取（API测试套件）
-                    elif 'results' in result:
-                        for test_result in result['results']:
-                            test_cases.append({
-                                'name': test_result.get('name', '未知用例'),
-                                'status': 'passed' if test_result.get('passed') else 'failed',
-                                'duration': test_result.get('response_time', 0) / 1000 if test_result.get('response_time') else 0,
-                                'error_message': test_result.get('error', '')
-                            })
-                
-                # 如果没有测试用例详情，创建一个汇总用例
-                if not test_cases:
-                    if context.get('failed_cases', 0) > 0:
-                        test_cases.append({
-                            'name': '测试执行',
-                            'status': 'failed',
-                            'duration': 0,
-                            'error_message': '存在失败的测试用例'
-                        })
-                    else:
-                        test_cases.append({
-                            'name': '测试执行',
-                            'status': 'passed',
-                            'duration': 0,
-                            'error_message': ''
-                        })
-                
-                # 构建环境信息
-                environment = {
-                    '项目': context.get('project_name', 'N/A'),
-                    '测试人员': context.get('tester', 'N/A'),
-                    '执行时间': context.get('execution_time', 'N/A'),
-                    '执行时长': context.get('duration', 'N/A')
-                }
-                
-                # 生成HTML报告
-                summary = {
-                    'total': context.get('total_cases', 0),
-                    'passed': context.get('passed_cases', 0),
-                    'failed': context.get('failed_cases', 0),
-                    'skipped': context.get('skipped_cases', 0),
-                    'error': context.get('error_cases', 0),
-                    'duration': result.get('duration', 0) if isinstance(result, dict) else 0
-                }
-                
-                html_report = html_report_generator.generate_report(
-                    title=subject,
-                    test_type=task_type,
-                    summary=summary,
-                    test_cases=test_cases,
-                    environment=environment,
-                    report_url=context.get('report_url', None),
-                    execution_time=context.get('execution_time', None)
-                )
-                
-                attachments = [{'filename': f'{subject}.html', 'content': html_report}]
-                logger.info(f"已生成报告附件: {subject}.html")
+                    environment = {
+                        '项目': context.get('project_name', 'N/A'),
+                        '测试人员': context.get('tester', 'N/A'),
+                        '执行时间': context.get('execution_time', 'N/A'),
+                        '执行时长': context.get('duration', 'N/A')
+                    }
+                    
+                    summary = {
+                        'total': context.get('total_cases', 0),
+                        'passed': context.get('passed_cases', 0),
+                        'failed': context.get('failed_cases', 0),
+                        'skipped': context.get('skipped_cases', 0),
+                        'error': context.get('error_cases', 0),
+                        'duration': result.get('duration', 0) if isinstance(result, dict) else 0
+                    }
+                    
+                    html_report = html_report_generator.generate_report(
+                        title=subject,
+                        test_type=task_type,
+                        summary=summary,
+                        test_cases=test_cases,
+                        environment=environment,
+                        report_url=context.get('report_url', None),
+                        execution_time=context.get('execution_time', None)
+                    )
+                    
+                    attachments = [{'filename': f'{subject}.html', 'content': html_report}]
+                    logger.info(f"已生成简易报告附件: {subject}.html")
             except Exception as e:
                 logger.error(f"生成报告附件失败: {e}")
         

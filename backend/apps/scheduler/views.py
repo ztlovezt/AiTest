@@ -100,6 +100,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 config.task_type = data['task_type']
             if 'target_id' in data:
                 config.target_id = data['target_id']
+            if 'project_id' in data:
+                config.project_id = data['project_id']
             if 'environment_id' in data:
                 config.environment_id = data['environment_id']
             if 'description' in data:
@@ -132,8 +134,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                     )
             
             # 处理通知配置
-            if 'notification_config_ids' in data:
+            # 由于序列化器中 source='notification_configs'，数据在 notification_configs 键下
+            if 'notification_configs' in data:
+                config.notification_configs.set(data['notification_configs'])
+                logger.info(f"更新通知配置: {[c.id for c in data['notification_configs']]}")
+            elif 'notification_config_ids' in data:
                 config.notification_configs.set(data['notification_config_ids'])
+                logger.info(f"更新通知配置 (ids): {data['notification_config_ids']}")
             
             config.save()
             
@@ -175,11 +182,15 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             
             # 处理通知配置
             notification_config_ids = []
-            if 'notification_config_ids' in data and data['notification_config_ids']:
+            # 由于序列化器中 source='notification_configs'，数据在 notification_configs 键下
+            if 'notification_configs' in data and data['notification_configs']:
+                notification_config_ids = [config.id for config in data['notification_configs']]
+                logger.info(f"从 validated_data 获取 notification_configs: {notification_config_ids}")
+            elif 'notification_config_ids' in data and data['notification_config_ids']:
                 notification_config_ids = data['notification_config_ids']
                 logger.info(f"从 validated_data 获取 notification_config_ids: {notification_config_ids}")
             else:
-                logger.info(f"validated_data 中没有 notification_config_ids, data keys: {data.keys()}")
+                logger.info(f"validated_data 中没有通知配置, data keys: {data.keys()}")
             
             schedule, config = create_scheduled_task(
                 name=data['name'],
@@ -206,7 +217,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             # 设置通知配置
             if notification_config_ids:
                 try:
-                    from core.models import UnifiedNotificationConfig
+                    from apps.core.models import UnifiedNotificationConfig
                     configs = UnifiedNotificationConfig.objects.filter(id__in=notification_config_ids)
                     logger.info(f"找到 {configs.count()} 个通知配置")
                     config.notification_configs.set(configs)

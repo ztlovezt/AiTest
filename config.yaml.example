@@ -14,6 +14,10 @@ server:
   backend_host: "127.0.0.1"
   # 前端服务URL（用于生成报告链接等）
   frontend_url: "http://localhost:3000"
+  # 文档解析服务URL
+  doc_parser_url: "http://localhost:9998"
+  # 文档解析语言（简体中文：chi_sim、英文：eng、繁体中文：chi_tra）
+  doc_language: "chi_sim"
   # 是否启用后端debug
   debug: false
   # 后端SECRET_KEY，可使用backend/docs/key.py生成
@@ -174,18 +178,20 @@ allure:
 paths:
   # Media 文件根目录（相对于项目根目录）
   media_root: "expand/media"
-  # APP 自动化模板目录
+  # APP 自动化模板目录（相对于backend目录）
   app_automation_template: "apps/app_automation/Template"
-  # UI 组件包配置文件
+  # UI 组件包配置文件（相对于backend目录）
   ui_component_pack: "apps/core/management/commands/ui-component-pack.yaml"
-  # 数据工厂静态图片目录
+  # 数据工厂静态图片目录（相对于backend目录）
   data_factory_static_img: "static_files/img"
-  # APP 自动化截图目录
+  # APP 自动化截图目录（相对于项目根目录）
   app_automation_screenshots: "app-automation/screenshots"
-  # UI 自动化截图目录
+  # UI 自动化截图目录（相对于项目根目录）
   ui_automation_screenshots: "ui_automation/screenshots"
-  # Chroma 向量数据库目录
+  # 向量数据库chroma（相对于项目根目录）
   chroma_db: "expand/chroma_db"
+  # OCR纠错文件（相对于项目根目录）
+  ocr_correction: "expand/ocr_correct/ocr_corrections.json"
 
 # ================================
 # 超时配置

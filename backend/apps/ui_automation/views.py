@@ -867,6 +867,28 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
         except TestSuiteTestCase.DoesNotExist:
             return Response({'error': '测试用例不存在于该测试套件中'}, status=status.HTTP_404_NOT_FOUND)
 
+    @action(detail=False, methods=['put'], url_path='update-case')
+    def update_test_case(self, request):
+        """更新套件用例配置"""
+        suite_id = request.data.get('test_suite_id')
+        case_id = request.data.get('test_case_id')
+        
+        try:
+            from .models import TestSuiteTestCase
+            sr = TestSuiteTestCase.objects.get(
+                test_suite_id=suite_id, test_case_id=case_id
+            )
+            if 'enabled' in request.data:
+                sr.enabled = request.data['enabled']
+            if 'extract_variables' in request.data:
+                sr.extract_variables = request.data['extract_variables']
+            if 'skip_condition' in request.data:
+                sr.skip_condition = request.data.get('skip_condition', '')
+            sr.save()
+            return Response({'success': True})
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
     @action(detail=True, methods=['post'])
     def update_test_case_order(self, request, pk=None):
         """更新测试套件中测试用例的顺序"""
@@ -919,16 +941,17 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 print(f"[测试套件] 开始执行: {test_suite.name} (ID: {test_suite.id})")
                 print(f"[测试套件] 配置: engine={engine}, browser={browser}, headless={headless}")
 
-                executor = TestExecutor(
+                executor = TestExecutor()
+                result = executor.execute_suite(
                     test_suite=test_suite,
                     engine=engine,
                     browser=browser,
                     headless=headless,
-                    executed_by=request.user
+                    user=request.user,
+                    async_report=True
                 )
-                executor.run()
 
-                print(f"[测试套件] 执行完成: {test_suite.name}")
+                print(f"[测试套件] 执行完成: {test_suite.name}, 结果: {result}")
             except Exception as e:
                 print(f"[测试套件] 执行异常: {test_suite.name}")
                 print(f"[测试套件] 错误: {str(e)}")

@@ -72,27 +72,27 @@ const { t } = useI18n()
 }
 
 .stat-icon.bg-blue {
-  background-color: #1890ff;
+  background-color: var(--th-color-primary);
 }
 
 .stat-icon.bg-green {
-  background-color: #52c41a;
+  background-color: var(--th-color-success);
 }
 
 .stat-icon.bg-purple {
-  background-color: #722ed1;
+  background-color: var(--th-color-primary-strong);
 }
 
 .stat-icon.bg-orange {
-  background-color: #fa8c16;
+  background-color: var(--th-color-warning);
 }
 
 .stat-icon.bg-red {
-  background-color: #f5222d;
+  background-color: var(--th-color-danger);
 }
 
 .stat-icon.bg-cyan {
-  background-color: #13c2c2;
+  background-color: var(--th-color-info);
 }
 
 .stat-info {
@@ -127,7 +127,7 @@ const { t } = useI18n()
 .activity-item {
   display: flex;
   padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .activity-item:last-child {
@@ -138,7 +138,7 @@ const { t } = useI18n()
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -175,13 +175,13 @@ const { t } = useI18n()
   text-align: center;
   padding: 20px;
   border-radius: 8px;
-  background-color: #f9f9f9;
+  background-color: var(--th-color-surface-muted);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .action-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -217,13 +217,13 @@ const { t } = useI18n()
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
   font-size: 36px;
-  color: #1890ff;
+  color: var(--th-color-primary);
 }
 
 .feature-title {

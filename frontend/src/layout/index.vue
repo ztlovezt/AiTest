@@ -9,9 +9,9 @@
         <el-menu
           :default-active="$route.path"
           router
-          background-color="#001529"
-          text-color="#fff"
-          active-text-color="#1890ff"
+          background-color="var(--th-sidebar-bg)"
+          text-color="var(--th-sidebar-text)"
+          active-text-color="var(--th-sidebar-text-active)"
         >
           <!-- AI用例生成模块菜单 -->
           <template v-if="currentModule === 'ai-generation'">
@@ -269,6 +269,10 @@
               <el-icon><ChatDotRound /></el-icon>
               <span>{{ $t('menu.difyConfig') }}</span>
             </el-menu-item>
+            <el-menu-item index="/configuration/theme">
+              <el-icon><Brush /></el-icon>
+              <span>{{ $t('menu.themeConfig') }}</span>
+            </el-menu-item>
           </template>
         </el-menu>
       </el-aside>
@@ -289,15 +293,15 @@
             <div class="header-right">
               <!-- 语言切换 -->
               <el-dropdown @command="handleLanguageChange" class="language-dropdown">
-                <span class="language-selector">
-                  <span class="language-flag">{{ appStore.language === 'zh-cn' ? '🇨🇳' : '🇺🇸' }}</span>
-                  <span>{{ currentLanguage }}</span>
-                  <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                <span class="icon-button icon-button--lang" :title="currentLanguage">
+                  <el-icon><Compass /></el-icon>
+                  <span class="lang-code">{{ appStore.language === 'zh-cn' ? 'ZH' : 'EN' }}</span>
+                  <el-icon class="caret"><ArrowDown /></el-icon>
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="zh-cn" :disabled="appStore.language === 'zh-cn'">
-                      <span class="dropdown-flag">🇨🇳</span> 简体中文
+                      <span class="dropdown-flag">🇨🇳</span> {{ $t('nav.zhCN') }}
                     </el-dropdown-item>
                     <el-dropdown-item command="en" :disabled="appStore.language === 'en'">
                       <span class="dropdown-flag">🇺🇸</span> English
@@ -306,12 +310,18 @@
                 </template>
               </el-dropdown>
 
+              <!-- 主题切换 -->
+              <span class="icon-button" :title="appStore.theme === 'hoppscotch-light' ? $t('nav.themeDark') : $t('nav.themeLight')" @click="toggleTheme">
+                <el-icon>
+                  <Moon v-if="appStore.theme === 'hoppscotch-light'" />
+                  <Sunny v-else />
+                </el-icon>
+              </span>
+
               <!-- 用户信息 -->
               <el-dropdown @command="handleCommand" class="user-dropdown">
-                <span class="user-info">
-                  <el-avatar :size="32" :src="userStore.user?.avatar" />
-                  <span class="username">{{ userStore.user?.username }}</span>
-                  <el-icon><ArrowDown /></el-icon>
+                <span class="icon-button" :title="userStore.user?.username">
+                  <el-avatar :size="20" :src="defaultAvatar" />
                 </span>
                 <template #dropdown>
                   <el-dropdown-menu>
@@ -340,10 +350,11 @@ import { useUserStore } from '@/stores/user'
 import { useAppStore } from '@/stores/app'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
+import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {
   Monitor, Folder, Document, Flag, Check, Collection, VideoPlay,
   DataAnalysis, ChatDotRound, DocumentCopy, Link, MagicStick,
-  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened
+  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush, Moon, Sunny
 } from '@element-plus/icons-vue'
 import logoSvg from '@/assets/images/logo.svg'
 import logoHomePng from '@/assets/images/logo_home.png'
@@ -361,13 +372,28 @@ const logoImage = computed(() => {
 
 // 当前语言显示
 const currentLanguage = computed(() => {
-  return appStore.language === 'zh-cn' ? '简体中文' : 'English'
+  return appStore.language === 'zh-cn' ? t('nav.zhCN') : 'English'
+})
+
+const userAvatarUrl = computed(() => {
+  const avatar = userStore.user?.avatar
+  if (avatar) {
+    if (avatar.startsWith('http://') || avatar.startsWith('https://') || avatar.startsWith('/')) {
+      return avatar
+    }
+    return `/media/${avatar}`
+  }
+  return defaultAvatar
 })
 
 // 切换语言（无需刷新页面）
 const handleLanguageChange = (lang) => {
   appStore.setLanguage(lang)
-  ElMessage.success(lang === 'zh-cn' ? '语言已切换为中文' : 'Language switched to English')
+  ElMessage.success(t('nav.languageSwitched'))
+}
+
+const toggleTheme = () => {
+  appStore.setTheme(appStore.theme === 'hoppscotch-light' ? 'hoppscotch-dark' : 'hoppscotch-light')
 }
 
 const currentModule = computed(() => {
@@ -418,6 +444,7 @@ const breadcrumbTitle = computed(() => {
     '/api-testing/environments': t('menu.environmentManagement'),
     '/api-testing/reports': t('menu.testReport'),
     '/api-testing/scheduled-tasks': t('menu.scheduledTasks'),
+    '/api-testing/parameterized-data': t('menu.parameterizedData'),
     '/api-testing/notification-logs': t('menu.notificationList'),
 
     // UI自动化测试
@@ -467,6 +494,7 @@ const breadcrumbTitle = computed(() => {
     '/configuration/ai-mode': t('menu.aiModeConfig'),
     '/configuration/scheduled-task': t('menu.scheduledTaskConfig'),
     '/configuration/dify': t('menu.difyConfig'),
+    '/configuration/theme': t('menu.themeConfig'),
 
     '/profile': t('nav.profile')
   }
@@ -489,7 +517,7 @@ const showProjectManagement = computed(() => {
 const handleCommand = (command) => {
   if (command === 'logout') {
     userStore.logout()
-    ElMessage.success('退出登录成功')
+    ElMessage.success(t('nav.logoutSuccess'))
     router.push('/login')
   } else if (command === 'profile') {
     router.push('/ai-generation/profile')
@@ -514,9 +542,9 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #001529;
-  color: white;
-  border-bottom: 1px solid #1f1f1f;
+  background-color: var(--th-sidebar-bg);
+  color: var(--th-sidebar-text);
+  border-bottom: 1px solid var(--th-sidebar-border);
   flex-shrink: 0;
 
 		.logo-img {
@@ -527,7 +555,8 @@ const handleCommand = (command) => {
 	}
 
 .el-aside {
-  background-color: #001529;
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -554,6 +583,14 @@ const handleCommand = (command) => {
   }
 }
 
+/* 侧边栏菜单文字溢出截断 */
+:deep(.el-menu-item span),
+:deep(.el-sub-menu__title span) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .el-menu--collapse {
   width: 64px !important;
   
@@ -576,8 +613,11 @@ const handleCommand = (command) => {
 }
 
 .el-header {
-  background-color: white;
-  border-bottom: 1px solid #e8e8e8;
+  background: var(--th-header-bg);
+  border-bottom: 1px solid var(--th-header-border);
+  box-shadow: var(--th-header-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   padding: 0;
   flex-shrink: 0;
   height: 60px !important;
@@ -614,7 +654,7 @@ const handleCommand = (command) => {
 
     .username {
       margin: 0 8px;
-      color: #303133;
+      color: var(--th-color-text);
       font-size: 14px;
     }
   }
@@ -623,7 +663,56 @@ const handleCommand = (command) => {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
+  }
+
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    color: var(--th-color-text);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .icon-button:hover {
+    color: var(--th-color-primary);
+    background: transparent;
+  }
+
+  .icon-button--lang {
+    width: auto;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+  }
+
+  .icon-button--lang .lang-code {
+    line-height: 1;
+  }
+
+  .icon-button--lang .caret {
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  :deep(.icon-only-item) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+  }
+
+  :deep(.icon-button .el-avatar) {
+    width: 16px;
+    height: 16px;
+    background: transparent;
   }
 
   .language-dropdown {
@@ -631,7 +720,7 @@ const handleCommand = (command) => {
       display: flex;
       align-items: center;
       cursor: pointer;
-      color: #303133;
+      color: var(--th-color-text);
       font-size: 14px;
       outline: none;
 
@@ -650,7 +739,7 @@ const handleCommand = (command) => {
       }
 
       &:hover {
-        color: #1890ff;
+        color: var(--th-color-primary);
       }
     }
   }
@@ -669,13 +758,43 @@ const handleCommand = (command) => {
 
       .username {
         margin: 0 8px;
-        color: #303133;
+        color: var(--th-color-text);
       }
     }
   }
 
+
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
 .el-main {
-  background-color: #f5f5f5;
+  background-color: var(--th-color-bg);
   padding: 20px;
   flex: 1;
   overflow-y: auto;
@@ -684,20 +803,84 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1920px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 220px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 18px;
   }
 }
 
 @media screen and (max-width: 1600px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 200px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 16px;
   }
 
@@ -711,10 +894,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1440px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 180px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 14px;
   }
 
@@ -728,10 +943,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1366px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 180px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 12px;
   }
 
@@ -749,10 +996,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1280px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 160px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 12px;
   }
 
@@ -775,10 +1054,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 1024px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 140px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 10px;
   }
 
@@ -805,6 +1116,8 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 768px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     position: fixed;
     left: 0;
     top: 0;
@@ -818,7 +1131,37 @@ const handleCommand = (command) => {
     }
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 8px;
   }
 
@@ -841,10 +1184,42 @@ const handleCommand = (command) => {
 
 @media screen and (max-width: 480px) {
   .el-aside {
+  background: var(--th-sidebar-bg);
+  border-right: 1px solid var(--th-sidebar-border);
     width: 220px !important;
   }
   
-  .el-main {
+  
+
+:deep(.el-menu) {
+  background: transparent !important;
+  border-right: none;
+}
+
+:deep(.el-menu-item),
+:deep(.el-sub-menu__title) {
+  color: var(--th-sidebar-text) !important;
+  border-radius: 10px;
+  margin: 4px 10px;
+  height: 40px;
+  line-height: 40px;
+  font-family: var(--th-font-display);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+:deep(.el-menu-item:hover),
+:deep(.el-sub-menu__title:hover) {
+  color: var(--th-sidebar-text-hover) !important;
+  background: var(--th-sidebar-item-bg-hover) !important;
+}
+
+:deep(.el-menu-item.is-active) {
+  color: var(--th-sidebar-text-active) !important;
+  background: var(--th-sidebar-item-bg-active) !important;
+}
+
+.el-main {
     padding: 6px;
   }
 

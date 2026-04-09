@@ -64,6 +64,24 @@ export default {
       deleteFailed: 'Failed to delete project',
       deleteConfirm: 'Are you sure to delete this project? This action cannot be undone.'
     },
+    configLabels: {
+      baseUrl: 'Base URL',
+      timeout: 'Timeout',
+      retryCount: 'Retry Count',
+      browser: 'Browser',
+      headless: 'Headless Mode',
+      viewportWidth: 'Viewport Width',
+      viewportHeight: 'Viewport Height',
+      platform: 'Platform',
+      deviceId: 'Device ID',
+      appPackage: 'APP Package',
+      appActivity: 'Launch Activity',
+      owner: 'Owner',
+      endDate: 'End Date',
+      members: 'Members',
+      startDate: 'Start Date',
+      projectType: 'Project Type'
+    },
     moduleTypes: {
       AI: 'AI Case Generation',
       AI_TEST: 'AI Smart Testing',

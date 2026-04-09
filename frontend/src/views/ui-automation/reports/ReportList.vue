@@ -37,7 +37,7 @@
         <el-table-column prop="total_cases" :label="$t('uiAutomation.report.totalCases')" width="100" />
         <el-table-column prop="passed_cases" :label="$t('uiAutomation.report.passedCases')" width="100">
           <template #default="{ row }">
-            <span style="color: #67c23a; font-weight: bold;">{{ row.passed_cases }}</span>
+            <span style="color: var(--th-color-success); font-weight: bold;">{{ row.passed_cases }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="failed_cases" :label="$t('uiAutomation.report.failedCases')" width="100">
@@ -65,11 +65,19 @@
             {{ formatDate(row.created_at) }}
           </template>
         </el-table-column>
-        <el-table-column :label="$t('uiAutomation.common.operation')" width="200" fixed="right">
+        <el-table-column :label="$t('uiAutomation.common.operation')" width="320" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="viewReportDetail(row)">
               <el-icon><Document /></el-icon>
               {{ $t('uiAutomation.report.viewDetail') }}
+            </el-button>
+            <el-button link type="success" size="small" @click="viewOnlineReport(row)">
+              <el-icon><Link /></el-icon>
+              {{ $t('uiAutomation.report.onlineReport') }}
+            </el-button>
+            <el-button link type="warning" size="small" @click="downloadOfflineReport(row)">
+              <el-icon><Download /></el-icon>
+              {{ $t('uiAutomation.report.downloadOfflineReport') }}
             </el-button>
             <el-button link type="danger" size="small" @click="deleteReport(row)">
               <el-icon><Delete /></el-icon>
@@ -294,11 +302,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Document, Delete, WarningFilled } from '@element-plus/icons-vue'
+import { Refresh, Document, Delete, WarningFilled, Link, Download } from '@element-plus/icons-vue'
 import {
   getUiProjects,
   getTestExecutions,
-  deleteTestExecution
+  deleteTestExecution,
+  getTestExecutionDetail
 } from '@/api/ui_automation'
 
 const { t } = useI18n()
@@ -386,9 +395,15 @@ const handleCurrentChange = async () => {
 }
 
 // 查看报告详情
-const viewReportDetail = (report) => {
-  currentReport.value = report
-  showDetailDialog.value = true
+const viewReportDetail = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    currentReport.value = res.data
+    showDetailDialog.value = true
+  } catch (error) {
+    console.error('Failed to load report detail:', error)
+    ElMessage.error(t('uiAutomation.report.messages.loadFailed'))
+  }
 }
 
 // 获取用例执行列表
@@ -422,6 +437,60 @@ const getActionText = (actionType) => {
   return actionMap[actionType] || actionType
 }
 
+// 查看在线报告
+const viewOnlineReport = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    const latest = res.data
+
+    if (!latest.report_url) {
+      ElMessage.warning(t('uiAutomation.report.reportNotGenerated'))
+      return
+    }
+
+    if (latest.report_status === 'GENERATING') {
+      ElMessage.warning(t('uiAutomation.report.reportGenerating'))
+      return
+    }
+
+    window.open(`${window.location.origin}${latest.report_url}`, '_blank')
+  } catch (error) {
+    console.error('Failed to view online report:', error)
+    ElMessage.error(t('uiAutomation.report.messages.loadFailed'))
+  }
+}
+
+// 下载离线报告
+const downloadOfflineReport = async (report) => {
+  try {
+    const res = await getTestExecutionDetail(report.id)
+    const latest = res.data
+
+    if (!latest.report_url) {
+      ElMessage.warning(t('uiAutomation.report.reportNotGenerated'))
+      return
+    }
+
+    if (latest.report_status === 'GENERATING') {
+      ElMessage.warning(t('uiAutomation.report.reportGenerating'))
+      return
+    }
+
+    // 使用 single-file 报告 URL
+    const singleFileUrl = latest.report_url.replace('/api/ui-testing-reports/', '/api/ui-testing-single-file-reports/')
+    
+    const a = document.createElement('a')
+    a.href = `${window.location.origin}${singleFileUrl}`
+    a.download = `ui-test-report-${report.id}.html`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+  } catch (error) {
+    console.error('Failed to download offline report:', error)
+    ElMessage.error(t('uiAutomation.report.downloadFailed'))
+  }
+}
+
 // 删除报告
 const deleteReport = async (report) => {
   try {
@@ -453,6 +522,7 @@ const getStatusType = (status) => {
     'RUNNING': 'warning',
     'SUCCESS': 'success',
     'FAILED': 'danger',
+    'PARTIAL_FAILED': 'warning',
     'ABORTED': 'info'
   }
   return typeMap[status] || 'info'
@@ -464,6 +534,7 @@ const getStatusText = (status) => {
     'RUNNING': t('uiAutomation.report.statusRunning'),
     'SUCCESS': t('uiAutomation.report.statusSuccess'),
     'FAILED': t('uiAutomation.report.statusFailed'),
+    'PARTIAL_FAILED': t('uiAutomation.report.statusPartialFailed'),
     'ABORTED': t('uiAutomation.report.statusAborted')
   }
   return textMap[status] || status
@@ -488,7 +559,7 @@ const getBrowserText = (browser) => {
 }
 
 const getProgressColor = (percentage) => {
-  if (percentage >= 80) return '#67c23a'
+  if (percentage >= 80) return 'var(--th-color-success)'
   if (percentage >= 60) return '#e6a23c'
   return '#f56c6c'
 }
@@ -521,7 +592,7 @@ onMounted(async () => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
 }
 
 .header {
@@ -570,23 +641,23 @@ onMounted(async () => {
     }
 
     .stat-card {
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       padding: 20px;
       border-radius: 4px;
       text-align: center;
 
       &.success {
-        background: #f0f9ff;
+        background: var(--th-color-info-soft);
         border: 1px solid #b3e5fc;
       }
 
       &.danger {
-        background: #fef0f0;
+        background: var(--th-color-danger-soft);
         border: 1px solid #fde2e2;
       }
 
       &.warning {
-        background: #fdf6ec;
+        background: var(--th-color-warning-soft);
         border: 1px solid #faecd8;
       }
 
@@ -623,7 +694,7 @@ onMounted(async () => {
     }
 
     .result-data {
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       padding: 15px;
       border-radius: 4px;
       max-height: 400px;
@@ -652,7 +723,7 @@ onMounted(async () => {
 }
 
 .error-item {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 2px solid #f56c6c;
   border-radius: 8px;
   padding: 20px;
@@ -688,7 +759,7 @@ onMounted(async () => {
   justify-content: space-between;
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .error-header .el-tag {
@@ -708,7 +779,7 @@ onMounted(async () => {
   .log-container {
     max-height: 500px;
     overflow-y: auto;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     padding: 15px;
     border-radius: 4px;
 
@@ -717,7 +788,7 @@ onMounted(async () => {
       padding: 12px;
       background: white;
       border-radius: 4px;
-      border-left: 3px solid #409eff;
+      border-left: 3px solid var(--th-color-primary);
 
       &:last-child {
         margin-bottom: 0;
@@ -745,7 +816,7 @@ onMounted(async () => {
         align-items: center;
         gap: 8px;
         color: #f56c6c;
-        background: #fef0f0;
+        background: var(--th-color-danger-soft);
         padding: 8px 12px;
         border-radius: 4px;
         margin-top: 8px;

@@ -515,8 +515,8 @@
                             <el-form-item label="步骤名称">
                                 <el-input v-model.trim="activeStep.name" />
                             </el-form-item>
-
-
+                            
+                            
                             <div class="variable-hint">
                                 {{ t('appAutomation.sceneBuilder.variableSupport') }}
                             </div>
@@ -576,13 +576,62 @@
                                     </el-alert>
 
                                     <!-- 字段列表 -->
-                                    <el-form-item v-for="field in group.fields" :key="field"
-                                        :label="getFieldLabel(field)" :required="schemaRequired.includes(field)">
-                                        <el-input v-if="field === 'expected_list'" type="textarea" :rows="4"
+                                    <el-form-item
+                                        v-for="field in group.fields"
+                                        :key="field"
+                                        :label="getFieldLabel(field)"
+                                        :required="schemaRequired.includes(field)"
+                                    >
+                                        <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                            <el-input
+                                                v-if="field === 'expected_list'"
+                                                type="textarea"
+                                                :rows="4"
+                                                :model-value="getExpectedListValue(activeStep && activeStep.config)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @update:model-value="updateExpectedList(activeStep.config, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else-if="isJsonField(field)"
+                                                type="textarea"
+                                                :rows="getJsonFieldRows(field)"
+                                                :value="getJsonFieldValue(activeStep && activeStep.config, field)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @input="updateJsonField(activeStep.config, field, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else
+                                                v-model.trim="activeStep.config[field]"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                <el-button size="small" @click="openDataFactorySelector(activeStep, field)" class="data-factory-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                <el-button size="small" @click="openVariableHelper(activeStep, field)" class="variable-helper-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                        </div>
+                                        <el-input
+                                            v-else-if="field === 'expected_list'"
+                                            type="textarea"
+                                            :rows="4"
                                             :model-value="getExpectedListValue(activeStep && activeStep.config)"
                                             :placeholder="getFieldPlaceholder(field)"
-                                            @update:model-value="updateExpectedList(activeStep.config, $event)" />
-                                        <el-input v-else-if="isJsonField(field)" type="textarea"
+                                            @update:model-value="updateExpectedList(activeStep.config, $event)"
+                                        />
+                                        <el-input
+                                            v-else-if="isJsonField(field)"
+                                            type="textarea"
                                             :rows="getJsonFieldRows(field)"
                                             :value="getJsonFieldValue(activeStep && activeStep.config, field)"
                                             :placeholder="getFieldPlaceholder(field)"
@@ -688,125 +737,217 @@
             <div v-if="customDialogMode === 'edit'" class="custom-steps-section">
                 <div class="custom-steps-label">组件步骤</div>
                 <div class="custom-edit-steps">
-                    <div class="custom-step-list">
-                        <div class="custom-step-toolbar">
-                            <el-select v-model="editStepType" placeholder="选择基础组件" size="small">
-                                <el-option v-for="item in componentPalette" :key="item.type" :label="item.name"
-                                    :value="item.type" />
-                            </el-select>
-                            <el-button size="small" @click="addEditStep">添加</el-button>
-                        </div>
-                        <draggable v-model="editingCustomSteps" class="custom-step-items"
-                            :group="{ name: 'ui-custom-edit', pull: false, put: false }" :animation="200" item-key="id">
-                            <template #item="{ element, index }">
-                                <div class="custom-step-item scene-item"
-                                    :class="{ active: editingSelectedIndex === index }" @click="selectEditStep(index)">
-                                    <div class="scene-item-main">
-                                        <span class="scene-index">{{ index + 1 }}</span>
-                                        <span class="scene-name">{{ element.name }}</span>
-                                        <span class="scene-type">{{ element.type }}</span>
-                                    </div>
-                                    <div class="scene-item-actions">
-                                        <el-button link size="small" @click.stop="duplicateEditStep(index)">
-                                            复制
-                                        </el-button>
-                                        <el-button link size="small" @click.stop="removeEditStep(index)">
-                                            删除
-                                        </el-button>
-                                    </div>
-                                </div>
-                            </template>
-                        </draggable>
-                    </div>
-                    <div class="custom-step-config">
-                        <div v-if="!editingActiveStep" class="config-empty">
-                            请选择步骤进行配置
-                        </div>
-                        <div v-else class="config-form">
-                            <el-form :model="editingActiveStep" label-width="110px" size="small">
-                                <el-form-item label="步骤名称">
-                                    <el-input v-model.trim="editingActiveStep.name" />
-                                </el-form-item>
-                                <div class="variable-hint" v-pre>
-                                    支持变量：{{local.xxx}} / {{global.xxx}}
-                                </div>
-                                <div v-if="editingActiveStep && editingActiveStep.type === 'api_request'"
-                                    class="api-template-block">
-                                    <div class="tool-hint">API 示例模板</div>
-                                    <div class="template-list">
-                                        <div v-for="item in apiRequestTemplates" :key="item.name" class="template-item">
-                                            <span class="template-name">{{ item.name }}</span>
-                                            <div class="template-actions">
-                                                <el-button link size="small"
-                                                    @click="applyApiRequestTemplate(item, editingActiveStep)">
-                                                    使用
-                                                </el-button>
-                                            </div>
+                        <div class="custom-step-list">
+                            <div class="custom-step-toolbar">
+                                <el-select v-model="editStepType" placeholder="选择基础组件" size="small">
+                                    <el-option
+                                        v-for="item in componentPalette"
+                                        :key="item.type"
+                                        :label="item.name"
+                                        :value="item.type"
+                                    />
+                                </el-select>
+                                <el-button size="small" @click="addEditStep">添加</el-button>
+                            </div>
+                            <draggable
+                                v-model="editingCustomSteps"
+                                class="custom-step-items"
+                                :group="{ name: 'ui-custom-edit', pull: false, put: false }"
+                                :animation="200"
+                                item-key="id"
+                            >
+                                <template #item="{ element, index }">
+                                    <div
+                                        class="custom-step-item scene-item"
+                                        :class="{ active: editingSelectedIndex === index }"
+                                        @click="selectEditStep(index)"
+                                    >
+                                        <div class="scene-item-main">
+                                            <span class="scene-index">{{ index + 1 }}</span>
+                                            <span class="scene-name">{{ element.name }}</span>
+                                            <span class="scene-type">{{ element.type }}</span>
                                         </div>
-                                        <div v-if="apiRequestTemplates.length === 0" class="tool-hint">暂无模板</div>
-                                    </div>
-                                </div>
-                                <!-- 分组显示（与场景步骤配置面板一致） -->
-                                <template v-if="editingSchemaFields.length > 0">
-                                    <div v-for="group in getEditingFieldGroups()" :key="group.key" class="field-group">
-                                        <div class="group-header">
-                                            <span class="group-title">{{ group.title }}</span>
-                                            <el-button v-if="group.key !== 'other'" type="primary" size="small"
-                                                @click="openElementSelector(group.key)">
-                                                <el-icon>
-                                                    <Link />
-                                                </el-icon>
-                                                {{ linkedElements[group.key] ? '更换元素' : '选择元素' }}
+                                        <div class="scene-item-actions">
+                                            <el-button
+                                                link
+                                                size="small"
+                                                @click.stop="duplicateEditStep(index)"
+                                            >
+                                                复制
+                                            </el-button>
+                                            <el-button
+                                                link
+                                                size="small"
+                                                @click.stop="removeEditStep(index)"
+                                            >
+                                                删除
                                             </el-button>
                                         </div>
-                                        <el-alert v-if="linkedElements[group.key]" type="success" :closable="false"
-                                            class="element-linked-alert">
-                                            已关联: {{ linkedElements[group.key].name }} ({{ linkedElements[group.key].type
-                                            }})
-                                            <el-button link type="danger" @click="clearLinkedElement(group.key)"
-                                                style="margin-left: 10px;">
-                                                清除
-                                            </el-button>
-                                        </el-alert>
-                                        <el-form-item v-for="field in group.fields" :key="field"
-                                            :label="getFieldLabel(field)"
-                                            :required="editingSchemaRequired.includes(field)">
-                                            <el-input v-if="field === 'expected_list'" type="textarea" :rows="4"
-                                                :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
-                                                :placeholder="getFieldPlaceholder(field)"
-                                                @update:model-value="updateExpectedList(editingActiveStep.config, $event)" />
-                                            <el-input v-else-if="isJsonField(field)" type="textarea"
-                                                :rows="getJsonFieldRows(field)"
-                                                :value="getJsonFieldValue(editingActiveStep && editingActiveStep.config, field)"
-                                                :placeholder="getFieldPlaceholder(field)"
-                                                @input="updateJsonField(editingActiveStep.config, field, $event)" />
-                                            <el-select v-else-if="getFieldOptions(field).length"
-                                                v-model="editingActiveStep.config[field]" placeholder="请选择"
-                                                :filterable="isImageScopeField(field)">
-                                                <el-option v-for="option in getFieldOptions(field)" :key="option.value"
-                                                    :label="option.label" :value="option.value" />
-                                            </el-select>
-                                            <el-switch
-                                                v-else-if="getFieldTypeForDef(editingActiveDef, field) === 'boolean'"
-                                                v-model="editingActiveStep.config[field]" />
-                                            <el-input-number
-                                                v-else-if="getFieldTypeForDef(editingActiveDef, field) === 'number'"
-                                                v-model="editingActiveStep.config[field]"
-                                                :min="getFieldNumberRuleForDef(editingActiveDef, field).min"
-                                                :max="getFieldNumberRuleForDef(editingActiveDef, field).max"
-                                                :step="getFieldNumberRuleForDef(editingActiveDef, field).step"
-                                                controls-position="right" />
-                                            <el-input v-else v-model.trim="editingActiveStep.config[field]"
-                                                :placeholder="getFieldPlaceholder(field)" />
-                                        </el-form-item>
                                     </div>
                                 </template>
-                                <div v-else class="config-empty">该组件未配置 schema</div>
-                            </el-form>
+                            </draggable>
+                        </div>
+                        <div class="custom-step-config">
+                            <div v-if="!editingActiveStep" class="config-empty">
+                                请选择步骤进行配置
+                            </div>
+                            <div v-else class="config-form">
+                                <el-form :model="editingActiveStep" label-width="110px" size="small">
+                                    <el-form-item label="步骤名称">
+                                        <el-input v-model.trim="editingActiveStep.name" />
+                                    </el-form-item>
+                                    <div class="variable-hint">
+                                        {{ t('appAutomation.sceneBuilder.variableSupport') }}
+                                    </div>
+                                    <div v-if="editingActiveStep && editingActiveStep.type === 'api_request'" class="api-template-block">
+                                        <div class="tool-hint">API 示例模板</div>
+                                        <div class="template-list">
+                                            <div v-for="item in apiRequestTemplates" :key="item.name" class="template-item">
+                                                <span class="template-name">{{ item.name }}</span>
+                                                <div class="template-actions">
+                                                    <el-button link size="small" @click="applyApiRequestTemplate(item, editingActiveStep)">
+                                                        使用
+                                                    </el-button>
+                                                </div>
+                                            </div>
+                                            <div v-if="apiRequestTemplates.length === 0" class="tool-hint">暂无模板</div>
+                                        </div>
+                                    </div>
+                                    <!-- 分组显示（与场景步骤配置面板一致） -->
+                                    <template v-if="editingSchemaFields.length > 0">
+                                        <div
+                                            v-for="group in getEditingFieldGroups()"
+                                            :key="group.key"
+                                            class="field-group"
+                                        >
+                                            <div class="group-header">
+                                                <span class="group-title">{{ group.title }}</span>
+                                                <el-button
+                                                    v-if="group.key !== 'other'"
+                                                    type="primary"
+                                                    size="small"
+                                                    @click="openElementSelector(group.key)"
+                                                >
+                                                    <el-icon><Link /></el-icon>
+                                                    {{ linkedElements[group.key] ? '更换元素' : '选择元素' }}
+                                                </el-button>
+                                            </div>
+                                            <el-alert
+                                                v-if="linkedElements[group.key]"
+                                                type="success"
+                                                :closable="false"
+                                                class="element-linked-alert"
+                                            >
+                                                已关联: {{ linkedElements[group.key].name }} ({{ linkedElements[group.key].type }})
+                                                <el-button
+                                                    link
+                                                    type="danger"
+                                                    @click="clearLinkedElement(group.key)"
+                                                    style="margin-left: 10px;"
+                                                >
+                                                    清除
+                                                </el-button>
+                                            </el-alert>
+                                            <el-form-item
+                                                v-for="field in group.fields"
+                                                :key="field"
+                                                :label="getFieldLabel(field)"
+                                                :required="editingSchemaRequired.includes(field)"
+                                            >
+                                                <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                                    <el-input
+                                                        v-if="field === 'expected_list'"
+                                                        type="textarea"
+                                                        :rows="4"
+                                                        :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @update:model-value="updateExpectedList(editingActiveStep.config, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else-if="isJsonField(field)"
+                                                        type="textarea"
+                                                        :rows="getJsonFieldRows(field)"
+                                                        :value="getJsonFieldValue(editingActiveStep && editingActiveStep.config, field)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @input="updateJsonField(editingActiveStep.config, field, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else
+                                                        v-model.trim="editingActiveStep.config[field]"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                        <el-button size="small" @click="openDataFactorySelector(editingActiveStep, field, true)" class="data-factory-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                        <el-button size="small" @click="openVariableHelper(editingActiveStep, field, true)" class="variable-helper-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                </div>
+                                                <el-input
+                                                    v-else-if="field === 'expected_list'"
+                                                    type="textarea"
+                                                    :rows="4"
+                                                    :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
+                                                    :placeholder="getFieldPlaceholder(field)"
+                                                    @update:model-value="updateExpectedList(editingActiveStep.config, $event)"
+                                                />
+                                                <el-input
+                                                    v-else-if="isJsonField(field)"
+                                                    type="textarea"
+                                                    :rows="getJsonFieldRows(field)"
+                                                    :value="getJsonFieldValue(editingActiveStep && editingActiveStep.config, field)"
+                                                    :placeholder="getFieldPlaceholder(field)"
+                                                    @input="updateJsonField(editingActiveStep.config, field, $event)"
+                                                />
+                                                <el-select
+                                                    v-else-if="getFieldOptions(field).length"
+                                                    v-model="editingActiveStep.config[field]"
+                                                    placeholder="请选择"
+                                                    :filterable="isImageScopeField(field)"
+                                                >
+                                                    <el-option
+                                                        v-for="option in getFieldOptions(field)"
+                                                        :key="option.value"
+                                                        :label="option.label"
+                                                        :value="option.value"
+                                                    />
+                                                </el-select>
+                                                <el-switch
+                                                    v-else-if="getFieldTypeForDef(editingActiveDef, field) === 'boolean'"
+                                                    v-model="editingActiveStep.config[field]"
+                                                />
+                                                <el-input-number
+                                                    v-else-if="getFieldTypeForDef(editingActiveDef, field) === 'number'"
+                                                    v-model="editingActiveStep.config[field]"
+                                                    :min="getFieldNumberRuleForDef(editingActiveDef, field).min"
+                                                    :max="getFieldNumberRuleForDef(editingActiveDef, field).max"
+                                                    :step="getFieldNumberRuleForDef(editingActiveDef, field).step"
+                                                    controls-position="right"
+                                                />
+                                                <el-input
+                                                    v-else
+                                                    v-model.trim="editingActiveStep.config[field]"
+                                                    :placeholder="getFieldPlaceholder(field)"
+                                                />
+                                            </el-form-item>
+                                        </div>
+                                    </template>
+                                    <div v-else class="config-empty">该组件未配置 schema</div>
+                                </el-form>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
             <template #footer>
                 <div class="dialog-footer">
                     <el-button @click="customDialogVisible = false">取消</el-button>
@@ -920,6 +1061,49 @@
                 <el-button @click="elementSelectorVisible = false">关闭</el-button>
             </template>
         </el-dialog>
+
+        <!-- 数据工厂选择器对话框 -->
+        <DataFactorySelector
+            v-model="showDataFactorySelector"
+            @select="handleDataFactorySelect"
+        />
+
+        <!-- 变量助手对话框 -->
+        <el-dialog
+            :close-on-press-escape="false"
+            :modal="true"
+            :destroy-on-close="false"
+            v-model="showVariableHelper"
+            :title="t('appAutomation.sceneBuilder.variableHelper')"
+            :close-on-click-modal="false"
+            width="900px"
+        >
+            <el-tabs tab-position="left" style="height: 450px">
+                <el-tab-pane
+                    v-for="(category, index) in variableCategories"
+                    :key="index"
+                    :label="category.label"
+                >
+                    <div style="height: 450px; overflow-y: auto; padding: 10px;">
+                        <el-table :data="category.variables" style="width: 100%" @row-click="insertVariable" highlight-current-row>
+                            <el-table-column prop="name" :label="t('appAutomation.sceneBuilder.functionName')" width="150" show-overflow-tooltip>
+                                <template #default="{ row }">
+                                    <el-tag size="small">{{ row.name }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="desc" :label="t('appAutomation.sceneBuilder.description')" min-width="150" />
+                            <el-table-column prop="syntax" :label="t('appAutomation.sceneBuilder.syntax')" min-width="200" show-overflow-tooltip />
+                            <el-table-column prop="example" :label="t('appAutomation.sceneBuilder.example')" min-width="200" show-overflow-tooltip />
+                            <el-table-column :label="t('appAutomation.sceneBuilder.operation')" width="80" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small">{{ t('appAutomation.sceneBuilder.insert') }}</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </el-dialog>
     </div>
 </template>
 
@@ -928,9 +1112,10 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera } from '@element-plus/icons-vue'
+import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera, MagicStick } from '@element-plus/icons-vue'
 import draggable from "vuedraggable"
 import CaptureElementDialog from '../elements/components/CaptureElementDialog.vue'
+import DataFactorySelector from '@/components/DataFactorySelector.vue'
 import {
     getComponents,
     getCustomComponents,
@@ -947,7 +1132,7 @@ import {
     getDeviceList,
     getAppProjects
 } from '@/api/app-automation'
-import { kebabCase } from 'lodash-es'
+import { getVariableFunctions } from '@/api/data-factory'
 
 // Route
 const route = useRoute()
@@ -1057,6 +1242,14 @@ const linkedElements = ref({
 
 // Refs
 const customFormRef = ref(null)
+
+// 数据工厂选择器和变量助手相关状态
+const showDataFactorySelector = ref(false)
+const showVariableHelper = ref(false)
+const currentFocusedInput = ref(null)
+const currentDataFactoryTarget = ref(null)  // { step, field, isEditing }
+const variableCategories = ref([])
+const variableLoading = ref(false)
 
 // Computed properties
 const activeStep = computed(() => {
@@ -1833,12 +2026,12 @@ const resetScene = () => {
 
 const openCustomComponentDialog = () => {
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请先选择要保存的步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepsFirst'))
         return
     }
     const hasCustomStep = scenarioSteps.value.some(step => step.kind === "custom")
     if (hasCustomStep) {
-        ElMessage.warning("自定义组件中不支持嵌套自定义组件")
+        ElMessage.warning(t('appAutomation.messages.noNestedCustomComponent'))
         return
     }
     customDialogVisible.value = true
@@ -1892,12 +2085,12 @@ const selectEditStep = (index) => {
 
 const addEditStep = () => {
     if (!editStepType.value) {
-        ElMessage.warning("请选择基础组件")
+        ElMessage.warning(t('appAutomation.messages.selectBaseComponent'))
         return
     }
     const item = componentPalette.value.find(component => component.type === editStepType.value)
     if (!item) {
-        ElMessage.warning("基础组件不存在")
+        ElMessage.warning(t('appAutomation.messages.baseComponentNotExist'))
         return
     }
     const step = {
@@ -1936,9 +2129,9 @@ const duplicateEditStep = (index) => {
 
 const deleteCustomComponent = async (item) => {
     try {
-        await ElMessageBox.confirm(`确定删除自定义组件 ${item.name} 吗？`, "提示", {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
+        await ElMessageBox.confirm(t('appAutomation.messages.deleteCustomComponentConfirm', { name: item.name }), t('appAutomation.messages.tip'), {
+            confirmButtonText: t('appAutomation.messages.confirm'),
+            cancelButtonText: t('appAutomation.messages.cancel'),
             type: "warning"
         })
     } catch (error) {
@@ -1946,7 +2139,7 @@ const deleteCustomComponent = async (item) => {
     }
     try {
         await apiDeleteCustomComponent(item.id)
-        ElMessage.success("删除成功")
+        ElMessage.success(t('appAutomation.messages.deleteSuccess'))
         customComponentPalette.value = customComponentPalette.value.filter(
             component => component.id !== item.id
         )
@@ -1954,7 +2147,7 @@ const deleteCustomComponent = async (item) => {
         paletteTab.value = "custom"
     } catch (error) {
         console.error("删除自定义组件失败:", error)
-        ElMessage.error("删除失败")
+        ElMessage.error(t('appAutomation.messages.deleteFailed'))
     }
 }
 
@@ -1964,11 +2157,11 @@ const saveCustomComponent = () => {
             return
         }
         if (customDialogMode.value === "create" && scenarioSteps.value.length === 0) {
-            ElMessage.warning("请先添加场景步骤")
+            ElMessage.warning(t('appAutomation.messages.addSceneStepsFirst'))
             return
         }
         if (customDialogMode.value === "edit" && editingCustomSteps.value.length === 0) {
-            ElMessage.warning("请先添加组件步骤")
+            ElMessage.warning(t('appAutomation.messages.addComponentStepsFirst'))
             return
         }
         customSaving.value = true
@@ -2001,17 +2194,17 @@ const saveCustomComponent = () => {
                 : await apiCreateCustomComponent(payload)
             const data = response?.data || response
             if (data && (data.success || data.id)) {
-                ElMessage.success(customDialogMode.value === "edit" ? "自定义组件已更新" : "自定义组件已保存")
+                ElMessage.success(customDialogMode.value === "edit" ? t('appAutomation.messages.customComponentUpdated') : t('appAutomation.messages.customComponentSaved'))
                 customDialogVisible.value = false
                 await loadCustomComponentPalette()
                 paletteTab.value = "custom"
             } else {
-                ElMessage.error(response.data?.message || "保存失败")
+                ElMessage.error(response.data?.message || t('appAutomation.messages.saveFailed'))
             }
         } catch (error) {
             console.error("保存自定义组件失败:", error)
             const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-            ElMessage.error(`保存失败: ${errorMsg}`)
+            ElMessage.error(`${t('appAutomation.messages.saveFailed')}: ${errorMsg}`)
         } finally {
             customSaving.value = false
         }
@@ -2049,11 +2242,11 @@ const loadComponentPalette = async () => {
         } else {
             componentPalette.value = []
             componentDefinitions.value = {}
-            ElMessage.warning('暂无组件定义，请先初始化组件库（后端运行：python manage.py init_components）')
+            ElMessage.warning(t('appAutomation.messages.initComponentsHint'))
         }
     } catch (error) {
         console.error("加载组件库失败:", error)
-        ElMessage.error('加载组件库失败: ' + (error.message || '未知错误'))
+        ElMessage.error(t('appAutomation.messages.loadComponentsFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
         componentPalette.value = []
         componentDefinitions.value = {}
     }
@@ -2140,7 +2333,7 @@ const loadCaseDetail = async (caseId) => {
         }
     } catch (error) {
         console.error("加载用例失败:", error)
-        ElMessage.error("加载用例失败")
+        ElMessage.error(t('appAutomation.messages.loadCaseFailed'))
     }
 }
 
@@ -2450,7 +2643,7 @@ const getFieldPlaceholder = (field) => {
 const applyApiRequestTemplate = (template, targetStep) => {
     const step = targetStep || activeStep.value || editingActiveStep.value
     if (!step || !step.config) {
-        ElMessage.warning("请先选择步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepFirst'))
         return
     }
     const config = template && template.config
@@ -2459,7 +2652,7 @@ const applyApiRequestTemplate = (template, targetStep) => {
     Object.keys(config).forEach(key => {
         step.config[key] = config[key]
     })
-    ElMessage.success(`已应用模板：${template.name}`)
+    ElMessage.success(t('appAutomation.messages.templateApplied', { name: template.name }))
 }
 
 // 判断是否是图片分类相关字段
@@ -2775,7 +2968,7 @@ const openCaptureElementDialog = () => {
 }
 
 const handleElementCreated = () => {
-    ElMessage.success('元素创建成功')
+    ElMessage.success(t('appAutomation.messages.elementCreateSuccess'))
     // 如果元素选择器对话框打开，可以刷新元素列表
     if (elementSelectorVisible.value) {
         loadElementsForSelector()
@@ -2807,16 +3000,16 @@ const handlePackageUpload = async (option) => {
         const response = await importComponentPackage(formData)
         const data = response.data || response
         if (data.success || data.data) {
-            ElMessage.success("组件包已导入")
+            ElMessage.success(t('appAutomation.messages.componentPackageImported'))
             await loadComponentPalette()
             await loadPackageList()
         } else {
-            ElMessage.error(data.message || "导入失败")
+            ElMessage.error(data.message || t('appAutomation.messages.importFailed'))
         }
     } catch (error) {
         console.error("导入组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导入失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.importFailed'))
     } finally {
         packageUploading.value = false
     }
@@ -2832,12 +3025,12 @@ const exportPackage = async (format) => {
         const filename = getDownloadFilename(response.headers["content-disposition"])
             || `ui-component-pack.${format === "json" ? "json" : "yaml"}`
         downloadBlob(blob, filename)
-        ElMessage.success("组件包已导出")
+        ElMessage.success(t('appAutomation.messages.componentPackageExported'))
         exportDialogVisible.value = false
     } catch (error) {
         console.error("导出组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导出失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.exportFailed'))
     }
 }
 
@@ -2865,11 +3058,11 @@ const downloadBlob = (blob, filename) => {
 
 const saveScene = async () => {
     if (!sceneForm.value.name) {
-        ElMessage.warning("请输入场景名称")
+        ElMessage.warning(t('appAutomation.messages.enterSceneName'))
         return
     }
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请至少添加一个场景步骤")
+        ElMessage.warning(t('appAutomation.messages.addAtLeastOneStep'))
         return
     }
 
@@ -2898,17 +3091,17 @@ const saveScene = async () => {
 
         const responseData = caseResponse.data || caseResponse
         if (responseData && (responseData.id || responseData.success)) {
-            ElMessage.success(editingCaseId.value ? "场景更新成功" : "场景保存成功")
+            ElMessage.success(editingCaseId.value ? t('appAutomation.messages.sceneUpdateSuccess') : t('appAutomation.messages.sceneSaveSuccess'))
             if (responseData.id && !editingCaseId.value) {
                 editingCaseId.value = responseData.id
             }
         } else {
-            ElMessage.success("场景已提交保存")
+            ElMessage.success(t('appAutomation.messages.sceneSubmitted'))
         }
     } catch (error) {
         console.error("保存场景失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(`保存场景失败: ${errorMsg}`)
+        ElMessage.error(`${t('appAutomation.messages.saveSceneFailed')}: ${errorMsg}`)
     } finally {
         saving.value = false
     }
@@ -2937,7 +3130,7 @@ const loadElementsForSelector = async () => {
         elementTotal.value = data?.count || selectorElements.value.length
     } catch (error) {
         console.error('加载元素列表失败:', error)
-        ElMessage.error('加载元素列表失败')
+        ElMessage.error(t('appAutomation.messages.loadElementsFailed'))
     } finally {
         elementSelectorLoading.value = false
     }
@@ -3023,10 +3216,10 @@ const fillFieldsByTarget = (element, config, target) => {
                     config[scopeField] = element.config.image_category
                 }
             }
-
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (图片)`)
+            
+            ElMessage.success(t('appAutomation.messages.elementLinkedImage', { target: getTargetTitle(target), name: element.name }))
         } else {
-            ElMessage.warning('该图片元素缺少文件路径')
+            ElMessage.warning(t('appAutomation.messages.imageElementNoPath'))
         }
     } else if (element.element_type === 'pos') {
         if (element.config && element.config.x !== undefined && element.config.y !== undefined) {
@@ -3034,8 +3227,8 @@ const fillFieldsByTarget = (element, config, target) => {
 
             config[typeField] = 'pos'
             config[valueField] = posValue
-
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (坐标)`)
+            
+            ElMessage.success(t('appAutomation.messages.elementLinkedPos', { target: getTargetTitle(target), name: element.name }))
         }
     } else if (element.element_type === 'region') {
         if (element.config &&
@@ -3047,11 +3240,11 @@ const fillFieldsByTarget = (element, config, target) => {
 
             config[typeField] = 'region'
             config[valueField] = regionValue
-
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (区域)`)
+            
+            ElMessage.success(t('appAutomation.messages.elementLinkedRegion', { target: getTargetTitle(target), name: element.name }))
         }
     } else {
-        ElMessage.warning(`元素类型 ${element.element_type} 不适用于 ${getTargetTitle(target)}`)
+        ElMessage.warning(t('appAutomation.messages.elementTypeNotApplicable', { type: element.element_type, target: getTargetTitle(target) }))
     }
 }
 
@@ -3077,7 +3270,7 @@ const applyElement = (element) => {
         : activeStep.value
 
     if (!targetStep) {
-        ElMessage.warning('请先选择一个步骤')
+        ElMessage.warning(t('appAutomation.messages.selectStepForElement'))
         return
     }
 
@@ -3102,7 +3295,7 @@ const applyElement = (element) => {
         // 填充对应的字段
         fillFieldsByTarget(element, config, target)
     } else {
-        ElMessage.warning('未指定有效的字段组')
+        ElMessage.warning(t('appAutomation.messages.noValidFieldGroup'))
     }
 
     console.log('config after:', JSON.stringify(config))
@@ -3161,8 +3354,8 @@ const clearLinkedElement = (target) => {
             }
         }
     }
-
-    ElMessage.info(`已清除 ${getTargetTitle(target)} 关联`)
+    
+    ElMessage.info(t('appAutomation.messages.elementLinkCleared', { target: getTargetTitle(target) }))
 }
 
 const getTypeTagColor = (type) => {
@@ -3172,6 +3365,247 @@ const getTypeTagColor = (type) => {
         'region': 'warning'
     }
     return colorMap[type] || ''
+}
+
+// 判断字段是否需要显示数据工厂和变量助手按钮
+const needsHelperButtons = (field) => {
+    const helperFields = [
+        'value', 'expected', 'selector', 'fallback_selector',
+        'click_selector', 'ocr_selector', 'start_selector', 'end_selector', 'target_selector',
+        'url', 'json', 'data', 'headers', 'params', 'left', 'right',
+        'expected_list', 'items', 'then_steps', 'else_steps', 'steps',
+        'try_steps', 'catch_steps', 'finally_steps', 'branches', 'extracts'
+    ]
+    return helperFields.includes(field)
+}
+
+// 数据工厂选择器相关方法
+const openDataFactorySelector = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    showDataFactorySelector.value = true
+}
+
+const onInputFocus = (event) => {
+    let target = event.target
+    if (!target) return
+    
+    if (target.classList.contains('el-input') || target.classList.contains('el-textarea')) {
+        const innerInput = target.querySelector('.el-input__inner') || target.querySelector('textarea')
+        if (innerInput) {
+            currentFocusedInput.value = innerInput
+            return
+        }
+    }
+    
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'DIV') {
+        currentFocusedInput.value = target
+    }
+}
+
+const getInputElement = () => {
+    let element = currentFocusedInput.value
+    if (!element) return null
+    
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+        return element
+    }
+    
+    if (element.classList.contains('el-input') || element.classList.contains('el-textarea')) {
+        return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+    }
+    
+    return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+}
+
+const handleDataFactorySelect = (record) => {
+    if (!record || !record.output_data || !currentDataFactoryTarget.value) {
+        showDataFactorySelector.value = false
+        return
+    }
+    
+    const { step, field } = currentDataFactoryTarget.value
+    
+    let valueToSet = ''
+    if (typeof record.output_data === 'string') {
+        valueToSet = record.output_data
+    } else if (record.output_data.result) {
+        valueToSet = record.output_data.result
+    } else if (record.output_data.output_data) {
+        valueToSet = record.output_data.output_data
+    } else {
+        valueToSet = JSON.stringify(record.output_data)
+    }
+    
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + valueToSet.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = valueToSet
+        } else {
+            step.config[field] = currentValue + valueToSet
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.dataFactorySelected', { toolName: record.tool_name }))
+    showDataFactorySelector.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
+}
+
+// 变量助手相关方法
+const openVariableHelper = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    if (variableCategories.value.length === 0) {
+        loadVariableFunctions()
+    }
+    showVariableHelper.value = true
+}
+
+const loadVariableFunctions = async () => {
+    try {
+        variableLoading.value = true
+        const apiResponse = await getVariableFunctions()
+        
+        let functionsData = []
+        if (apiResponse && apiResponse.data) {
+            if (Array.isArray(apiResponse.data)) {
+                functionsData = apiResponse.data
+            } else if (apiResponse.data.functions) {
+                functionsData = apiResponse.data.functions
+            } else if (typeof apiResponse.data === 'object') {
+                functionsData = apiResponse.data
+            }
+        }
+        
+        const grouped = {}
+        
+        if (Array.isArray(functionsData)) {
+            functionsData.forEach(func => {
+                const category = func.category || t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+                if (!grouped[category]) {
+                    grouped[category] = []
+                }
+                grouped[category].push({
+                    name: func.name,
+                    syntax: func.syntax,
+                    desc: func.description || func.desc || '',
+                    example: func.example
+                })
+            })
+        } else if (typeof functionsData === 'object') {
+            for (const [category, funcs] of Object.entries(functionsData)) {
+                if (Array.isArray(funcs)) {
+                    grouped[category] = funcs.map(func => ({
+                        name: func.name,
+                        syntax: func.syntax,
+                        desc: func.description || func.desc || '',
+                        example: func.example
+                    }))
+                }
+            }
+        }
+        
+        const categoryOrder = [
+            t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            t('appAutomation.sceneBuilder.variableCategory.testData'),
+            t('appAutomation.sceneBuilder.variableCategory.string'),
+            t('appAutomation.sceneBuilder.variableCategory.encoding'),
+            t('appAutomation.sceneBuilder.variableCategory.encryption'),
+            t('appAutomation.sceneBuilder.variableCategory.dateTime'),
+            'Crontab',
+            t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+        ]
+        
+        const orderedCategories = []
+        categoryOrder.forEach(category => {
+            if (grouped[category]) {
+                orderedCategories.push({
+                    label: category,
+                    variables: grouped[category]
+                })
+                delete grouped[category]
+            }
+        })
+        
+        for (const [category, funcs] of Object.entries(grouped)) {
+            orderedCategories.push({
+                label: category,
+                variables: funcs
+            })
+        }
+        
+        variableCategories.value = orderedCategories
+    } catch (error) {
+        console.error('加载变量函数失败:', error)
+        useLocalVariableCategories()
+    } finally {
+        variableLoading.value = false
+    }
+}
+
+const useLocalVariableCategories = () => {
+    variableCategories.value = [
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            variables: [
+                { name: 'random_int', syntax: '${random_int(min, max, count)}', desc: t('appAutomation.sceneBuilder.variable.randomInt.desc'), example: '${random_int(100, 999, 1)}' },
+                { name: 'random_float', syntax: '${random_float(min, max, precision, count)}', desc: t('appAutomation.sceneBuilder.variable.randomFloat.desc'), example: '${random_float(0, 1, 2, 1)}' }
+            ]
+        },
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomString'),
+            variables: [
+                { name: 'random_string', syntax: '${random_string(length, char_type, count)}', desc: t('appAutomation.sceneBuilder.variable.randomString.desc'), example: '${random_string(8, "all", 1)}' }
+            ]
+        }
+    ]
+}
+
+const insertVariable = (variable) => {
+    if (!currentDataFactoryTarget.value) return
+    
+    const { step, field } = currentDataFactoryTarget.value
+    const example = variable.example
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = example
+        } else {
+            step.config[field] = currentValue + example
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.variableInserted', { name: variable.name }))
+    showVariableHelper.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
 }
 
 // Template refs assignment
@@ -3252,7 +3686,7 @@ defineExpose({
     border-radius: 4px;
     margin-bottom: 8px;
     cursor: grab;
-    background: #fafafa;
+    background: var(--th-color-surface-muted);
 }
 
 .palette-left {
@@ -3384,12 +3818,12 @@ defineExpose({
     border: 1px solid #ebeef5;
     border-radius: 6px;
     cursor: pointer;
-    background: #fff;
+    background: var(--th-color-surface);
 }
 
 .scene-item.active {
-    border-color: #409eff;
-    background: #ecf5ff;
+    border-color: var(--th-color-primary);
+    background: var(--th-color-info-soft);
 }
 
 .scene-item-main {
@@ -3399,8 +3833,8 @@ defineExpose({
 }
 
 .scene-index {
-    background: #409eff;
-    color: #fff;
+    background: var(--th-color-primary);
+    color: var(--th-color-surface);
     font-size: 12px;
     padding: 2px 6px;
     border-radius: 10px;
@@ -3434,7 +3868,7 @@ defineExpose({
     border: 1px solid #e6a23c;
     border-top: none;
     border-radius: 0 0 6px 6px;
-    background: #fdf6ec;
+    background: var(--th-color-warning-soft);
     padding: 6px 6px 4px 6px;
 }
 
@@ -3505,7 +3939,7 @@ defineExpose({
     padding: 7px 10px !important;
     margin-left: 16px !important;
     border-color: #dcdfe6 !important;
-    background: #fff !important;
+    background: var(--th-color-surface) !important;
     font-size: 13px;
 }
 
@@ -3592,7 +4026,7 @@ defineExpose({
 
 .element-selector-filter {
     padding: 10px;
-    background-color: #f5f7fa;
+    background-color: var(--th-color-surface-muted);
     border-radius: 4px;
 }
 
@@ -3611,7 +4045,7 @@ defineExpose({
 .field-group {
     margin-bottom: 20px;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     border-radius: 4px;
     border: 1px solid #e4e7ed;
 }
@@ -3639,7 +4073,48 @@ defineExpose({
     margin-bottom: 12px;
 }
 
+.field-group :deep(.el-form-item__label) {
+    width: 80px !important;
+    text-align: left;
+    padding-right: 4px;
+    justify-content: flex-start;
+}
+
+.field-group :deep(.el-form-item__content) {
+    flex: 1;
+    min-width: 0;
+}
+
+.field-group :deep(.el-form-item__content > .el-input),
+.field-group :deep(.el-form-item__content > .el-select),
+.field-group :deep(.el-form-item__content > div) {
+    width: 100%;
+    max-width: none;
+}
+
 .field-group:last-child {
     margin-bottom: 0;
+}
+
+.data-factory-btn {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+    color: white !important;
+}
+
+.data-factory-btn:hover {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+}
+
+.variable-helper-btn {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
+    color: white;
+}
+
+.variable-helper-btn:hover {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
 }
 </style>

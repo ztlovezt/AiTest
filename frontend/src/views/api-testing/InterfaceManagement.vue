@@ -32,6 +32,21 @@
             <el-button type="success" size="small" @click="createEmptyRequest" :title="$t('apiTesting.interface.addInterface')">
               <el-icon><Plus /></el-icon>
             </el-button>
+            <el-dropdown size="small" trigger="click" @command="handleImportExport">
+              <el-button size="small" :title="$t('apiTesting.importExport.title')">
+                <el-icon><More /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="import">
+                    <el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}
+                  </el-dropdown-item>
+                  <el-dropdown-item command="export" :disabled="!selectedProject">
+                    <el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
         </div>
 
@@ -144,7 +159,7 @@
               >
                 <template #prepend>
                   <el-select v-model="selectedEnvironment" :placeholder="$t('apiTesting.interface.environment')" class="env-select">
-                    <el-option :label="$t('apiTesting.common.noEnvironment')" :value="null" />
+                    <el-option :label="$t('apiTesting.common.noEnvironment')" :value="''" />
                     <el-option-group v-if="globalEnvironments.length" :label="$t('apiTesting.interface.globalEnv')">
                       <el-option
                         v-for="env in globalEnvironments"
@@ -227,7 +242,7 @@
 
           <!-- 请求配置 -->
           <el-tabs v-model="activeTab" class="request-tabs">
-            <el-tab-pane label="Params" name="params">
+            <el-tab-pane :label="$t('apiTesting.interface.tabParams')" name="params">
               <KeyValueEditor
                 v-model="selectedRequest.params"
                 :placeholder-key="$t('apiTesting.interface.paramName')"
@@ -235,7 +250,7 @@
               />
             </el-tab-pane>
 
-            <el-tab-pane label="Headers" name="headers">
+            <el-tab-pane :label="$t('apiTesting.interface.tabHeaders')" name="headers">
               <KeyValueEditor
                 ref="headersEditorRef"
                 v-model="selectedRequest.headers"
@@ -314,9 +329,10 @@
 
             <!-- HTTP接口专用标签页 -->
             <template v-if="!selectedRequest || selectedRequest.request_type !== 'WEBSOCKET'">
-              <el-tab-pane label="Pre-request Script" name="pre-script">
+              <el-tab-pane :label="$t('apiTesting.interface.tabPreScript')" name="pre-script">
                 <div class="script-editor-container">
                   <el-input
+                    ref="preScriptInputRef"
                     v-model="selectedRequest.pre_request_script"
                     type="textarea"
                     :rows="10"
@@ -345,9 +361,10 @@
                 </div>
               </el-tab-pane>
 
-              <el-tab-pane label="Tests" name="tests">
+              <el-tab-pane :label="$t('apiTesting.interface.tabTests')" name="tests">
                 <div class="script-editor-container">
                   <el-input
+                    ref="postScriptInputRef"
                     v-model="selectedRequest.post_request_script"
                     type="textarea"
                     :rows="10"
@@ -421,6 +438,8 @@
                           <el-option :label="$t('apiTesting.interface.assertionTypes.jsonPath')" value="json_path" />
                           <el-option :label="$t('apiTesting.interface.assertionTypes.header')" value="header" />
                           <el-option :label="$t('apiTesting.interface.assertionTypes.equals')" value="equals" />
+                          <el-option :label="$t('apiTesting.interface.assertionTypes.notEmpty')" value="not_empty" />
+                          <el-option :label="$t('apiTesting.interface.assertionTypes.jsonSchema')" value="json_schema" />
                         </el-select>
 
                         <div class="assertion-params" v-if="assertion.type">
@@ -578,6 +597,10 @@
                   </div>
                 </div>
               </el-tab-pane>
+
+              <el-tab-pane :label="$t('apiTesting.extractor.tabTitle')" name="extractors">
+                <ExtractorEditor v-model="selectedRequest.extractors" />
+              </el-tab-pane>
             </template>
 
             <!-- WebSocket接口专用标签页 -->
@@ -683,6 +706,14 @@
         </div>
       </div>
     </div>
+
+    <!-- 导入对话框 -->
+    <ImportDialog
+      v-model="showImportDialog"
+      :projects="projects"
+      :current-project-id="selectedProject"
+      @imported="onImported"
+    />
 
     <!-- 创建集合对话框 -->
     <el-dialog v-model="showCreateCollectionDialog" :title="$t('apiTesting.interface.createCollection')" :close-on-click-modal="false" :close-on-press-escape="false" :modal="true" :destroy-on-close="false" width="500px">
@@ -868,11 +899,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Document, MagicStick, Search, Close } from '@element-plus/icons-vue'
+import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
 import ResponseViewer from './components/ResponseViewer.vue'
+import ImportDialog from './components/ImportDialog.vue'
+import ExtractorEditor from './components/ExtractorEditor.vue'
 import { RequestModelParser } from '@/utils/requestModel'
 import { getVariableFunctions } from '@/api/data-factory'
 import { CodeGenerator } from '@/utils/codeGenerator'
@@ -899,6 +932,7 @@ const activeTab = ref('params')
 const responseActiveTab = ref('body')
 const showCreateCollectionDialog = ref(false)
 const showEditCollectionDialog = ref(false)
+const showImportDialog = ref(false)
 const showContextMenu = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
@@ -908,6 +942,8 @@ const editingNodeId = ref(null)
 const editingNodeName = ref('')
 const editInputRef = ref(null)
 const rawBodyInputRef = ref(null)
+const preScriptInputRef = ref(null)
+const postScriptInputRef = ref(null)
 const currentHeaders = ref({})
 
 const searchKeyword = ref('')
@@ -981,7 +1017,7 @@ const onSearch = async (value) => {
     // 后端可能返回分页格式 { results: [...] } 或直接返回数组
     filteredCollections.value = response.data.results || response.data || []
   } catch (error) {
-    ElMessage.error('搜索失败')
+    ElMessage.error(t('apiTesting.messages.error.searchFailed'))
     console.error('搜索失败:', error)
   }
 }
@@ -999,7 +1035,7 @@ const onProjectChange = async (projectId) => {
     await loadCollections(projectId)
     await loadEnvironments(projectId)
   } catch (error) {
-    ElMessage.error('切换项目失败')
+    ElMessage.error(t('apiTesting.messages.error.switchProjectFailed'))
     console.error('切换项目失败:', error)
   }
 }
@@ -1015,7 +1051,7 @@ const loadProjects = async () => {
       await loadEnvironments(selectedProject.value)
     }
   } catch (error) {
-    ElMessage.error('加载项目失败')
+    ElMessage.error(t('apiTesting.messages.error.loadProjects'))
     console.error('加载项目失败:', error)
   }
 }
@@ -1037,7 +1073,7 @@ const loadCollections = async (projectId) => {
     // 加载请求
     await loadRequests()
   } catch (error) {
-    ElMessage.error('加载集合失败')
+    ElMessage.error(t('apiTesting.messages.error.loadCollections'))
     console.error('加载集合失败:', error)
   }
 }
@@ -1053,7 +1089,7 @@ const loadEnvironments = async (projectId) => {
     const projectEnvs = projectRes.data.results || projectRes.data || []
     environments.value = [...globalEnvs, ...projectEnvs]
   } catch (error) {
-    ElMessage.error('加载环境失败')
+    ElMessage.error(t('apiTesting.messages.error.loadEnvironments'))
     console.error('加载环境失败:', error)
   }
 }
@@ -1139,7 +1175,7 @@ const loadRequests = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('加载请求失败')
+    ElMessage.error(t('apiTesting.messages.error.loadRequests'))
     console.error('加载请求失败:', error)
   }
 }
@@ -1230,7 +1266,7 @@ const onNodeClick = async (data) => {
       response.value = null
       selectedRequest.value = requestData
     } catch (error) {
-      ElMessage.error('加载请求失败')
+      ElMessage.error(t('apiTesting.messages.error.loadRequests'))
       console.error('加载请求失败:', error)
     }
   }
@@ -1254,7 +1290,7 @@ const onNodeCollapse = (node) => {
 
 const createEmptyRequest = () => {
   if (!selectedProject.value) {
-    ElMessage.warning('请先选择项目')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseSelectProject'))
     return
   }
 
@@ -1300,6 +1336,48 @@ const closeCodeGenerateDialog = () => {
   showCodeGenerateDialog.value = false
 }
 
+const handleImportExport = (command) => {
+  if (command === 'import') {
+    showImportDialog.value = true
+  } else if (command === 'export') {
+    handleExport()
+  }
+}
+
+const handleExport = async () => {
+  if (!selectedProject.value) {
+    ElMessage.warning(t('apiTesting.importExport.selectProjectFirst'))
+    return
+  }
+  try {
+    const format = await new Promise((resolve) => {
+      // 简单使用 openapi 作为默认导出格式
+      resolve('openapi')
+    })
+    const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
+      params: { format },
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `export_${format}.json`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(t('apiTesting.importExport.exportSuccess'))
+  } catch (error) {
+    ElMessage.error(t('apiTesting.importExport.exportFailed'))
+  }
+}
+
+const onImported = () => {
+  // 导入成功后刷新集合和请求列表
+  if (selectedProject.value) {
+    loadCollections(selectedProject.value)
+  }
+}
+
 const toggleJsonPathExtractor = () => {
   showJsonPathExtractor.value = !showJsonPathExtractor.value
 }
@@ -1314,7 +1392,7 @@ const addRequest = () => {
 
   const parentNode = rightClickedNode.value
   if (!parentNode || parentNode.type !== 'collection') {
-    ElMessage.warning('只能在集合下添加接口')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyAddUnderCollection'))
     return
   }
 
@@ -1341,7 +1419,7 @@ const addCollection = () => {
 
   const parentNode = rightClickedNode.value
   if (!parentNode || parentNode.type !== 'collection') {
-    ElMessage.warning('只能在集合下添加子集合')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyAddSubCollection'))
     return
   }
 
@@ -1355,7 +1433,7 @@ const editNode = () => {
 
   const node = rightClickedNode.value
   if (!node) {
-    ElMessage.warning('无法编辑此节点')
+    ElMessage.warning(t('apiTesting.messages.warning.cannotEditNode'))
     return
   }
 
@@ -1368,7 +1446,7 @@ const editNode = () => {
       editInputRef.value?.focus()
     })
   } else {
-    ElMessage.warning('只能编辑集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.onlyEditCollectionName'))
   }
 }
 
@@ -1377,18 +1455,18 @@ const deleteNode = () => {
 
   const node = rightClickedNode.value
   if (!node) {
-    ElMessage.warning('无法删除此节点')
+    ElMessage.warning(t('apiTesting.messages.warning.cannotDeleteNode'))
     return
   }
 
   const nodeName = node.name
 
   ElMessageBox.confirm(
-    `确定要删除${node.type === 'collection' ? '集合' : '接口'}「${nodeName}」吗？`,
-    '确认删除',
+    t('apiTesting.messages.confirm.deleteMessage', { type: node.type === 'collection' ? t('apiTesting.interface.collection') : t('apiTesting.interface.request'), name: nodeName }),
+    t('apiTesting.messages.confirm.deleteTitle'),
     {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+      confirmButtonText: t('apiTesting.common.confirm'),
+      cancelButtonText: t('apiTesting.common.cancel'),
       type: 'warning'
     }
   ).then(async () => {
@@ -1398,11 +1476,11 @@ const deleteNode = () => {
       } else {
         await api.delete(`/api-testing/requests/${node.id}/`)
       }
-      ElMessage.success('删除成功')
+      ElMessage.success(t('apiTesting.messages.success.delete'))
       await loadCollections(selectedProject.value)
       showContextMenu.value = false
     } catch (error) {
-      ElMessage.error('删除失败')
+      ElMessage.error(t('apiTesting.messages.error.deleteFailed'))
       console.error('删除失败:', error)
     }
   }).catch(() => {
@@ -1421,10 +1499,10 @@ const saveCollectionName = async () => {
     await api.put(`/api-testing/collections/${editingNodeId.value}/`, {
       name: editingNodeName.value.trim()
     })
-    ElMessage.success('保存成功')
+    ElMessage.success(t('apiTesting.messages.success.save'))
     await loadCollections(selectedProject.value)
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('apiTesting.messages.error.saveFailed'))
     console.error('保存失败:', error)
   } finally {
     cancelEdit()
@@ -1450,7 +1528,7 @@ const editCollectionForm = reactive({
 })
 
 const collectionRules = {
-  name: [{ required: true, message: '请输入集合名称', trigger: 'blur' }]
+  name: [{ required: true, message: t('apiTesting.messages.warning.pleaseInputCollectionName'), trigger: 'blur' }]
 }
 
 const methodClass = computed(() => {
@@ -1464,17 +1542,17 @@ const getMethodClass = (method) => {
 
 const getMethodColor = (method) => {
   const colors = {
-    'get': '#61affe',
-    'post': '#49cc90',
-    'put': '#fca130',
-    'delete': '#f93e3e',
-    'patch': '#50e3c2',
-    'head': '#9013fe',
-    'options': '#0ebeff',
-    'connect': '#7f8c8d',
-    'trace': '#e67e22'
+    'get': 'var(--th-color-primary)',
+    'post': 'var(--th-color-success)',
+    'put': 'var(--th-color-warning)',
+    'delete': 'var(--th-color-danger)',
+    'patch': 'var(--th-color-info)',
+    'head': 'var(--th-color-primary-strong)',
+    'options': 'var(--th-color-primary)',
+    'connect': 'var(--th-color-text-muted)',
+    'trace': 'var(--th-color-warning)'
   }
-  return colors[(method || 'GET').toLowerCase()] || '#61affe'
+  return colors[(method || 'GET').toLowerCase()] || 'var(--th-color-primary)'
 }
 
 const requestMethod = computed({
@@ -1641,9 +1719,9 @@ const sendRequest = async () => {
     const apiResponse = await api.post(`/api-testing/requests/${selectedRequest.value.id}/execute/`, requestData)
     response.value = apiResponse.data
 
-    ElMessage.success('请求成功')
+    ElMessage.success(t('apiTesting.messages.success.requestSent'))
   } catch (error) {
-    ElMessage.error('请求失败')
+    ElMessage.error(t('apiTesting.messages.error.requestFailed'))
     console.error('请求失败:', error)
   } finally {
     sending.value = false
@@ -1659,7 +1737,7 @@ const onHeadersUpdate = (headers) => {
 
 const saveRequest = async () => {
   if (!selectedRequest.value || !selectedRequest.value.url) {
-    ElMessage.warning('请填写请求URL')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputRequestUrl'))
     return
   }
 
@@ -1730,7 +1808,12 @@ const saveRequest = async () => {
     const requestData = {
       ...selectedRequest.value,
       params: Array.isArray(selectedRequest.value.params) ? convertKeyValueArrayToObject(selectedRequest.value.params || []) : selectedRequest.value.params,
-      headers: finalHeaders
+      headers: convertKeyValueArrayToObject(finalHeaders),
+      // 确保 JSON 字段不为 null
+      extractors: selectedRequest.value.extractors || [],
+      extract_variables: selectedRequest.value.extract_variables || [],
+      assertions: selectedRequest.value.assertions || [],
+      auth: selectedRequest.value.auth || {}
     }
     
     // 对于GET请求，不包含body字段
@@ -1747,9 +1830,9 @@ const saveRequest = async () => {
 
     selectedRequest.value = response.data
     await loadCollections(selectedProject.value)
-    ElMessage.success('保存成功')
+    ElMessage.success(t('apiTesting.messages.success.save'))
   } catch (error) {
-    ElMessage.error('保存失败')
+    ElMessage.error(t('apiTesting.messages.error.saveFailed'))
     console.error('保存失败:', error)
   } finally {
     saving.value = false
@@ -1848,16 +1931,16 @@ const formatResponse = () => {
     if (response.value.response_data.json) {
       response.value.response_data.json = JSON.parse(JSON.stringify(response.value.response_data.json))
     }
-    ElMessage.success('格式化成功')
+    ElMessage.success(t('apiTesting.messages.success.formatted'))
   } catch (e) {
-    ElMessage.error('格式化失败')
+    ElMessage.error(t('apiTesting.messages.error.formatFailed'))
   }
 }
 
 const copyResponse = () => {
   if (responseBody.value) {
     navigator.clipboard.writeText(responseBody.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
@@ -1897,7 +1980,7 @@ const evaluateJsonPath = () => {
 const copyJsonPathResult = () => {
   if (jsonPathResult.value) {
     navigator.clipboard.writeText(jsonPathResult.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
@@ -1910,7 +1993,7 @@ const formatAssertionValue = (value) => {
 
 const createCollection = async () => {
   if (!collectionForm.name.trim()) {
-    ElMessage.warning('请输入集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCollectionName'))
     return
   }
 
@@ -1919,31 +2002,31 @@ const createCollection = async () => {
       ...collectionForm,
       project: selectedProject.value
     })
-    ElMessage.success('创建成功')
+    ElMessage.success(t('apiTesting.messages.success.create'))
     await loadCollections(selectedProject.value)
     showCreateCollectionDialog.value = false
     collectionForm.name = ''
     collectionForm.description = ''
     collectionForm.parent = null
   } catch (error) {
-    ElMessage.error('创建失败')
+    ElMessage.error(t('apiTesting.messages.error.createFailed'))
     console.error('创建失败:', error)
   }
 }
 
 const updateCollection = async () => {
   if (!editCollectionForm.name.trim()) {
-    ElMessage.warning('请输入集合名称')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCollectionName'))
     return
   }
 
   try {
     await api.put(`/api-testing/collections/${editCollectionForm.id}/`, editCollectionForm)
-    ElMessage.success('更新成功')
+    ElMessage.success(t('apiTesting.messages.success.update'))
     await loadCollections(selectedProject.value)
     showEditCollectionDialog.value = false
   } catch (error) {
-    ElMessage.error('更新失败')
+    ElMessage.error(t('apiTesting.messages.error.updateFailed'))
     console.error('更新失败:', error)
   }
 }
@@ -1956,7 +2039,7 @@ const importCurl = () => {
 
 const parseAndImportCurl = async () => {
   if (!curlCommand.value.trim()) {
-    ElMessage.warning('请输入CURL命令')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputCurl'))
     return
   }
 
@@ -1993,9 +2076,9 @@ const parseAndImportCurl = async () => {
     }
 
     showCurlImportDialog.value = false
-    ElMessage.success('导入成功')
+    ElMessage.success(t('apiTesting.messages.success.import'))
   } catch (error) {
-    ElMessage.error('解析CURL命令失败')
+    ElMessage.error(t('apiTesting.messages.error.parseCurlFailed'))
     console.error('解析CURL命令失败:', error)
   }
 }
@@ -2049,9 +2132,9 @@ const exportRequest = () => {
 
     const curlCommand = RequestModelParser.toCurl(requestModel)
     navigator.clipboard.writeText(curlCommand)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   } catch (error) {
-    ElMessage.error('导出失败')
+    ElMessage.error(t('apiTesting.messages.error.exportFailed'))
     console.error('导出失败:', error)
   }
 }
@@ -2060,7 +2143,7 @@ const generateCode = async (language) => {
   if (!selectedRequest.value) return
 
   if (!selectedRequest.value.url) {
-    ElMessage.warning('请求URL不能为空')
+    ElMessage.warning(t('apiTesting.messages.warning.urlRequired'))
     return
   }
 
@@ -2114,7 +2197,7 @@ const generateCode = async (language) => {
     generatedCode.value = code
     showCodeGenerateDialog.value = true
   } catch (error) {
-    ElMessage.error('生成代码失败')
+    ElMessage.error(t('apiTesting.messages.error.generateCodeFailed'))
     console.error('生成代码失败:', error)
   }
 }
@@ -2122,13 +2205,13 @@ const generateCode = async (language) => {
 const copyGeneratedCode = () => {
   if (generatedCode.value) {
     navigator.clipboard.writeText(generatedCode.value)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('apiTesting.messages.success.copiedToClipboard'))
   }
 }
 
 const toggleWebSocketConnection = async () => {
   if (!selectedRequest.value || !selectedRequest.value.url) {
-    ElMessage.warning('请填写WebSocket URL')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseInputWebSocketUrl'))
     return
   }
 
@@ -2139,7 +2222,7 @@ const toggleWebSocketConnection = async () => {
       websocketConnection.value = null
     }
     websocketConnectionStatus.value = 'disconnected'
-    ElMessage.success('WebSocket连接已关闭')
+    ElMessage.success(t('apiTesting.messages.info.websocketClosed'))
   } else {
     // 建立连接
     try {
@@ -2150,10 +2233,10 @@ const toggleWebSocketConnection = async () => {
 
       websocketConnection.value.onopen = () => {
         websocketConnectionStatus.value = 'connected'
-        ElMessage.success('WebSocket连接成功')
+        ElMessage.success(t('apiTesting.messages.success.connect'))
         websocketMessages.value.push({
           type: 'connected',
-          content: 'WebSocket连接成功',
+          content: t('apiTesting.messages.success.connect'),
           timestamp: new Date().toLocaleString()
         })
       }
@@ -2171,7 +2254,7 @@ const toggleWebSocketConnection = async () => {
         websocketConnection.value = null
         websocketMessages.value.push({
           type: 'info',
-          content: 'WebSocket连接已关闭',
+          content: t('apiTesting.messages.info.websocketClosed'),
           timestamp: new Date().toLocaleString()
         })
       }
@@ -2179,16 +2262,16 @@ const toggleWebSocketConnection = async () => {
       websocketConnection.value.onerror = (error) => {
         websocketConnectionStatus.value = 'disconnected'
         websocketConnection.value = null
-        ElMessage.error('WebSocket连接失败')
+        ElMessage.error(t('apiTesting.messages.error.connectFailed'))
         websocketMessages.value.push({
           type: 'error',
-          content: `WebSocket连接失败: ${error.message}`,
+          content: `${t('apiTesting.messages.error.connectFailed')}: ${error.message}`,
           timestamp: new Date().toLocaleString()
         })
       }
     } catch (error) {
       websocketConnectionStatus.value = 'disconnected'
-      ElMessage.error('WebSocket连接失败')
+      ElMessage.error(t('apiTesting.messages.error.connectFailed'))
       console.error('WebSocket连接失败:', error)
     }
   }
@@ -2196,12 +2279,12 @@ const toggleWebSocketConnection = async () => {
 
 const sendWebSocketMessage = () => {
   if (!websocketConnection.value || websocketConnectionStatus.value !== 'connected') {
-    ElMessage.warning('请先建立WebSocket连接')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseConnect'))
     return
   }
 
   if (websocketMessageType.value === 'binary' && !websocketBinaryFile.value) {
-    ElMessage.warning('请选择要发送的二进制文件')
+    ElMessage.warning(t('apiTesting.messages.warning.pleaseSelectBinaryFile'))
     return
   }
 
@@ -2223,7 +2306,7 @@ const sendWebSocketMessage = () => {
       websocketMessageContent.value = ''
     }
   } catch (error) {
-    ElMessage.error('发送消息失败')
+    ElMessage.error(t('apiTesting.messages.error.sendMessageFailed'))
     console.error('发送消息失败:', error)
   }
 }
@@ -2314,26 +2397,49 @@ const insertVariable = (variable) => {
         // 在光标位置插入变量
         insertTextAtCursor(rawBodyInputRef, example)
       } else if (currentEditingField.value === 'pre_request_script') {
-        // 对于脚本字段，暂时保持追加到末尾的行为
-        // （如果需要光标插入，需要为脚本编辑器添加ref并实现类似逻辑）
-        const currentValue = selectedRequest.value.pre_request_script || ''
-        selectedRequest.value.pre_request_script = currentValue + example
+        // 在光标位置插入变量
+        insertTextAtCursor(preScriptInputRef, example)
       } else if (currentEditingField.value === 'post_request_script') {
-        const currentValue = selectedRequest.value.post_request_script || ''
-        selectedRequest.value.post_request_script = currentValue + example
+        // 在光标位置插入变量
+        insertTextAtCursor(postScriptInputRef, example)
       }
 
       ElMessage.success(`已插入变量: ${variable.name}`)
       showVariableHelper.value = false
     } else if (currentAssertion.value && currentAssertionField.value) {
+      // 断言字段：在光标位置插入变量
       const example = variable.example
       const field = currentAssertionField.value
-
-      const currentValue = currentAssertion.value[field] || ''
-      if (!currentValue) {
-        currentAssertion.value[field] = example
+      
+      // 获取断言输入框的DOM元素
+      const assertionInput = document.querySelector(`.assertion-item:nth-child(${currentAssertionIndex.value + 1}) .assertion-params input.el-input__inner`)
+      
+      if (assertionInput) {
+        // 确保输入框有焦点
+        assertionInput.focus()
+        
+        // 获取光标位置
+        const cursorPosition = assertionInput.selectionStart || assertionInput.selectionEnd || 0
+        const currentValue = currentAssertion.value[field] || ''
+        
+        // 在光标位置插入变量
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        currentAssertion.value[field] = newValue
+        
+        // 更新光标位置
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+          assertionInput.focus()
+          assertionInput.setSelectionRange(newCursorPosition, newCursorPosition)
+        }, 10)
       } else {
-        currentAssertion.value[field] = currentValue + example
+        // 回退到追加到末尾
+        const currentValue = currentAssertion.value[field] || ''
+        if (!currentValue) {
+          currentAssertion.value[field] = example
+        } else {
+          currentAssertion.value[field] = currentValue + example
+        }
       }
 
       ElMessage.success(`已插入变量: ${variable.name}`)
@@ -2379,7 +2485,32 @@ const handleDataFactorySelect = (record) => {
 
   // 如果是断言字段
   if (currentAssertion.value) {
-    currentAssertion.value[currentAssertionField.value] = valueToSet
+    // 获取断言输入框的DOM元素
+    const assertionInput = document.querySelector(`.assertion-item:nth-child(${currentAssertionIndex.value + 1}) .assertion-params input.el-input__inner`)
+    
+    if (assertionInput) {
+      // 确保输入框有焦点
+      assertionInput.focus()
+      
+      // 获取光标位置
+      const cursorPosition = assertionInput.selectionStart || assertionInput.selectionEnd || 0
+      const currentValue = currentAssertion.value[currentAssertionField.value] || ''
+      
+      // 在光标位置插入数据
+      const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+      currentAssertion.value[currentAssertionField.value] = newValue
+      
+      // 更新光标位置
+      const newCursorPosition = cursorPosition + valueToSet.length
+      setTimeout(() => {
+        assertionInput.focus()
+        assertionInput.setSelectionRange(newCursorPosition, newCursorPosition)
+      }, 10)
+    } else {
+      // 回退到替换整个值
+      currentAssertion.value[currentAssertionField.value] = valueToSet
+    }
+    
     ElMessage.success(`${t('apiTesting.interface.referencedToAssertion')}: ${record.tool_name}`)
   }
   // 如果是Body字段
@@ -2392,10 +2523,16 @@ const handleDataFactorySelect = (record) => {
   }
   // 如果是脚本字段
   else if (currentScriptField.value && selectedRequest.value) {
-    // 将值插入到脚本中
-    const insertText = `\n// 来自数据工厂: ${record.tool_name}\nconst ${record.tool_name.replace(/\s+/g, '_')} = ${JSON.stringify(valueToSet)}\n`
-    const currentValue = selectedRequest.value[currentScriptField.value] || ''
-    selectedRequest.value[currentScriptField.value] = currentValue + insertText
+    // 在光标位置插入数据
+    if (currentScriptField.value === 'pre_request_script') {
+      insertTextAtCursor(preScriptInputRef, valueToSet)
+    } else if (currentScriptField.value === 'post_request_script') {
+      insertTextAtCursor(postScriptInputRef, valueToSet)
+    } else {
+      // 其他脚本字段，追加到末尾
+      const currentValue = selectedRequest.value[currentScriptField.value] || ''
+      selectedRequest.value[currentScriptField.value] = currentValue + valueToSet
+    }
     ElMessage.success(`已引用数据工厂数据到脚本: ${record.tool_name}`)
   }
 
@@ -2542,7 +2679,7 @@ const loadVariableFunctions = async () => {
     }
   } catch (error) {
     console.error('加载变量函数失败:', error)
-    ElMessage.error('加载变量函数失败，使用本地数据')
+    ElMessage.error(t('apiTesting.messages.error.loadVariableFunctionsFailed'))
     // 加载失败时使用本地变量分类数据
     useLocalVariableCategories()
   } finally {
@@ -2609,7 +2746,7 @@ const useLocalVariableCategories = () => {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
@@ -2623,7 +2760,7 @@ const useLocalVariableCategories = () => {
 .sidebar {
   width: 300px;
   border-right: 1px solid #e4e7ed;
-  background: #ffffff;
+  background: var(--th-color-surface);
   overflow: visible;
   display: flex;
   flex-direction: column;
@@ -2691,7 +2828,7 @@ const useLocalVariableCategories = () => {
 }
 
 .tree-node:hover .node-label {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .node-edit {
@@ -2717,39 +2854,39 @@ const useLocalVariableCategories = () => {
 }
 
 .method-tag.get {
-  background-color: #61affe;
+  background-color: var(--th-color-primary);
 }
 
 .method-tag.post {
-  background-color: #49cc90;
+  background-color: var(--th-color-success);
 }
 
 .method-tag.put {
-  background-color: #fca130;
+  background-color: var(--th-color-warning);
 }
 
 .method-tag.delete {
-  background-color: #f93e3e;
+  background-color: var(--th-color-danger);
 }
 
 .method-tag.patch {
-  background-color: #50e3c2;
+  background-color: var(--th-color-info);
 }
 
 .method-tag.head {
-  background-color: #9013fe;
+  background-color: var(--th-color-primary-strong);
 }
 
 .method-tag.options {
-  background-color: #0ebeff;
+  background-color: var(--th-color-primary);
 }
 
 .method-tag.connect {
-  background-color: #7f8c8d;
+  background-color: var(--th-color-text-muted);
 }
 
 .method-tag.trace {
-  background-color: #e67e22;
+  background-color: var(--th-color-warning);
 }
 
 /* 搜索结果 */
@@ -2794,7 +2931,7 @@ const useLocalVariableCategories = () => {
 }
 
 .search-result-item:hover {
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
 }
 
 .search-result-content {
@@ -2833,7 +2970,7 @@ const useLocalVariableCategories = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
 }
 
 .request-detail {
@@ -2848,7 +2985,7 @@ const useLocalVariableCategories = () => {
 .request-header {
   margin-bottom: 0;
   padding: 24px;
-  background: #ffffff;
+  background: var(--th-color-surface);
   border-radius: 12px;
   border: 1px solid #e9ecef;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
@@ -2878,57 +3015,57 @@ const useLocalVariableCategories = () => {
 
 /* 为不同方法的选择器添加颜色 */
 .method-select.get :deep(.el-select .el-input__wrapper) {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #61affe !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.post :deep(.el-select .el-input__wrapper) {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
   color: white !important;
-  border-color: #49cc90 !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .method-select.put :deep(.el-select .el-input__wrapper) {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #fca130 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 .method-select.delete :deep(.el-select .el-input__wrapper) {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
   color: white !important;
-  border-color: #f93e3e !important;
+  border-color: var(--th-color-danger) !important;
 }
 
 .method-select.patch :deep(.el-select .el-input__wrapper) {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
   color: white !important;
-  border-color: #50e3c2 !important;
+  border-color: var(--th-color-info) !important;
 }
 
 .method-select.head :deep(.el-select .el-input__wrapper) {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
   color: white !important;
-  border-color: #9013fe !important;
+  border-color: var(--th-color-primary-strong) !important;
 }
 
 .method-select.options :deep(.el-select .el-input__wrapper) {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #0ebeff !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.connect :deep(.el-select .el-input__wrapper) {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
   color: white !important;
-  border-color: #7f8c8d !important;
+  border-color: var(--th-color-text-muted) !important;
 }
 
 .method-select.trace :deep(.el-select .el-input__wrapper) {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #e67e22 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 /* 方法选择器通用样式 */
@@ -2984,12 +3121,12 @@ const useLocalVariableCategories = () => {
 }
 
 .method-select :deep(.el-select-dropdown__item:hover) {
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
 }
 
 .method-select :deep(.el-select-dropdown__item.selected) {
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 /* 为不同方法的下拉选项添加颜色 */
@@ -3008,39 +3145,39 @@ const useLocalVariableCategories = () => {
 }
 
 .method-select :deep(.el-select-dropdown__item.method-get::before) {
-  background-color: #61affe;
+  background-color: var(--th-color-primary);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-post::before) {
-  background-color: #49cc90;
+  background-color: var(--th-color-success);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-put::before) {
-  background-color: #fca130;
+  background-color: var(--th-color-warning);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-delete::before) {
-  background-color: #f93e3e;
+  background-color: var(--th-color-danger);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-patch::before) {
-  background-color: #50e3c2;
+  background-color: var(--th-color-info);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-head::before) {
-  background-color: #9013fe;
+  background-color: var(--th-color-primary-strong);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-options::before) {
-  background-color: #0ebeff;
+  background-color: var(--th-color-primary);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-connect::before) {
-  background-color: #7f8c8d;
+  background-color: var(--th-color-text-muted);
 }
 
 .method-select :deep(.el-select-dropdown__item.method-trace::before) {
-  background-color: #e67e22;
+  background-color: var(--th-color-warning);
 }
 
 .url-input {
@@ -3130,6 +3267,7 @@ const useLocalVariableCategories = () => {
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transition: box-shadow 0.2s ease;
+  padding: 16px;
 }
 
 .response-section:hover {
@@ -3137,12 +3275,14 @@ const useLocalVariableCategories = () => {
 }
 
 .response-header {
-  padding: 20px 24px;
+  padding: 16px 20px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
+  border-radius: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
 }
 
 .response-header h3 {
@@ -3200,7 +3340,7 @@ const useLocalVariableCategories = () => {
 }
 
 .response-actions .el-button:hover {
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   color: #5046e5;
 }
 
@@ -3340,7 +3480,7 @@ const useLocalVariableCategories = () => {
 .script-buttons .el-button:hover {
   transform: none;
   box-shadow: none;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .script-factory-btn {
@@ -3389,29 +3529,29 @@ const useLocalVariableCategories = () => {
 .raw-options .el-button:hover {
   transform: none;
   box-shadow: none;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a !important;
-  border-color: #67c23a !important;
+  background-color: var(--th-color-success) !important;
+  border-color: var(--th-color-success) !important;
   color: white !important;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34 !important;
-  border-color: #5daf34 !important;
+  background-color: var(--th-color-success) !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .raw-body {
@@ -3529,15 +3669,15 @@ const useLocalVariableCategories = () => {
 }
 
 .tab-button.active {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
 }
 
 .tab-button:hover:not(.active) {
   border-color: #c6e2ff;
-  color: #409eff;
+  color: var(--th-color-primary);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -3680,7 +3820,7 @@ const useLocalVariableCategories = () => {
 }
 
 .variable-item:hover {
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
   border-color: #c6e2ff;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -3711,10 +3851,10 @@ const useLocalVariableCategories = () => {
 
 .variable-example {
   font-size: 12px;
-  color: #67c23a;
+  color: var(--th-color-success);
   font-family: 'Courier New', Courier, monospace;
   margin-top: 4px;
-  background: #f0f9eb;
+  background: var(--th-color-success-soft);
   padding: 4px 8px;
   border-radius: 4px;
   border: 1px solid #c2e7b0;
@@ -3764,23 +3904,23 @@ const useLocalVariableCategories = () => {
 }
 
 .status-badge.success {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: var(--th-color-success-soft);
+  color: var(--th-color-success);
 }
 
 .status-badge.warning {
-  background: #fdf6ec;
+  background: var(--th-color-warning-soft);
   color: #e6a23c;
 }
 
 .status-badge.danger {
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   color: #f56c6c;
 }
 
 .status-badge.info {
-  background: #ecf5ff;
-  color: #409eff;
+  background: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 /* 断言结果 */
@@ -3801,7 +3941,7 @@ const useLocalVariableCategories = () => {
 }
 
 .assertion-result-item.passed {
-  border-left: 4px solid #67c23a;
+  border-left: 4px solid var(--th-color-success);
 }
 
 .assertion-result-item.failed {
@@ -3915,28 +4055,28 @@ const useLocalVariableCategories = () => {
 }
 
 .websocket-message-item.sent {
-  border-left: 4px solid #409eff;
-  background: #ecf5ff;
+  border-left: 4px solid var(--th-color-primary);
+  background: var(--th-color-info-soft);
 }
 
 .websocket-message-item.received {
-  border-left: 4px solid #67c23a;
-  background: #f0f9eb;
+  border-left: 4px solid var(--th-color-success);
+  background: var(--th-color-success-soft);
 }
 
 .websocket-message-item.connected {
-  border-left: 4px solid #67c23a;
-  background: #f0f9eb;
+  border-left: 4px solid var(--th-color-success);
+  background: var(--th-color-success-soft);
 }
 
 .websocket-message-item.info {
   border-left: 4px solid #909399;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .websocket-message-item.error {
   border-left: 4px solid #f56c6c;
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
 }
 
 .message-header {
@@ -3955,17 +4095,17 @@ const useLocalVariableCategories = () => {
 
 .message-type.sent {
   background: #d9ecff;
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .message-type.received {
   background: #e8f5e8;
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .message-type.connected {
   background: #e8f5e8;
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .message-type.info {
@@ -4114,94 +4254,94 @@ const useLocalVariableCategories = () => {
 }
 
 .method-tag.get {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
 }
 
 .method-tag.post {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
 }
 
 .method-tag.put {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
 }
 
 .method-tag.delete {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
 }
 
 .method-tag.patch {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
 }
 
 .method-tag.head {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
 }
 
 .method-tag.options {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
 }
 
 .method-tag.connect {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
 }
 
 .method-tag.trace {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
 }
 
 /* 覆盖方法选择器样式 */
 .method-select.get :deep(.el-select .el-input__wrapper) {
-  background-color: #61affe !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #61affe !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.post :deep(.el-select .el-input__wrapper) {
-  background-color: #49cc90 !important;
+  background-color: var(--th-color-success) !important;
   color: white !important;
-  border-color: #49cc90 !important;
+  border-color: var(--th-color-success) !important;
 }
 
 .method-select.put :deep(.el-select .el-input__wrapper) {
-  background-color: #fca130 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #fca130 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 .method-select.delete :deep(.el-select .el-input__wrapper) {
-  background-color: #f93e3e !important;
+  background-color: var(--th-color-danger) !important;
   color: white !important;
-  border-color: #f93e3e !important;
+  border-color: var(--th-color-danger) !important;
 }
 
 .method-select.patch :deep(.el-select .el-input__wrapper) {
-  background-color: #50e3c2 !important;
+  background-color: var(--th-color-info) !important;
   color: white !important;
-  border-color: #50e3c2 !important;
+  border-color: var(--th-color-info) !important;
 }
 
 .method-select.head :deep(.el-select .el-input__wrapper) {
-  background-color: #9013fe !important;
+  background-color: var(--th-color-primary-strong) !important;
   color: white !important;
-  border-color: #9013fe !important;
+  border-color: var(--th-color-primary-strong) !important;
 }
 
 .method-select.options :deep(.el-select .el-input__wrapper) {
-  background-color: #0ebeff !important;
+  background-color: var(--th-color-primary) !important;
   color: white !important;
-  border-color: #0ebeff !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .method-select.connect :deep(.el-select .el-input__wrapper) {
-  background-color: #7f8c8d !important;
+  background-color: var(--th-color-text-muted) !important;
   color: white !important;
-  border-color: #7f8c8d !important;
+  border-color: var(--th-color-text-muted) !important;
 }
 
 .method-select.trace :deep(.el-select .el-input__wrapper) {
-  background-color: #e67e22 !important;
+  background-color: var(--th-color-warning) !important;
   color: white !important;
-  border-color: #e67e22 !important;
+  border-color: var(--th-color-warning) !important;
 }
 
 /* 覆盖方法选择器通用样式 */
@@ -4218,6 +4358,14 @@ const useLocalVariableCategories = () => {
 .method-select :deep(.el-select .el-select__placeholder) {
   background-color: transparent !important;
   color: white !important;
+}
+
+.request-tabs {
+  overflow: hidden;
+}
+
+.request-tabs :deep(.el-tabs__header) {
+  flex-shrink: 0;
 }
 
 </style>

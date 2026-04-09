@@ -30,6 +30,7 @@ export default {
   nav: navModule.nav,
   modules: navModule.modules,
   menu: navModule.menu,
+  themeConfig: navModule.themeConfig,
 
   // 项目模块
   project: projectModule.project,

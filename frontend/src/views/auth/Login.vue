@@ -207,7 +207,7 @@ const features = computed(() => [
     icon: Document,
     title: t('auth.aiCaseGeneration'),
     description: t('auth.aiCaseGenerationDesc'),
-    color: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    color: 'linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%)'
   },
   {
     icon: MagicStick,
@@ -219,7 +219,7 @@ const features = computed(() => [
     icon: Connection,
     title: t('auth.multiTypeTesting'),
     description: t('auth.multiTypeTestingDesc'),
-    color: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+    color: 'linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%)'
   },
   {
     icon: TrendCharts,
@@ -267,7 +267,7 @@ const handleLogin = async () => {
 .login-container {
   height: 100vh;
   display: flex;
-  background: #f5f7fa;
+  background: var(--th-color-bg);
   overflow: hidden;
 }
 
@@ -279,7 +279,7 @@ const handleLogin = async () => {
 /* 左侧展示区域 */
 .showcase-section {
   flex: 1;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
   position: relative;
   display: flex;
   align-items: center;
@@ -309,7 +309,7 @@ const handleLogin = async () => {
         width: 60px;
         height: 60px;
         background: rgba(255, 255, 255, 0.2);
-        border-radius: 12px;
+        border-radius: var(--th-radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -328,6 +328,7 @@ const handleLogin = async () => {
         margin: 0;
         color: white;
         letter-spacing: -1px;
+        font-family: var(--th-font-display);
       }
     }
 
@@ -349,12 +350,11 @@ const handleLogin = async () => {
     .feature-card {
       background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
-      border-radius: 16px;
+      border-radius: var(--th-radius-lg);
       padding: 24px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       transition: all 0.3s ease;
       animation: fadeInUp 0.8s ease-out;
-      animation-delay: calc(var(--index) * 0.1s);
 
       &:hover {
         transform: translateY(-5px);
@@ -365,7 +365,7 @@ const handleLogin = async () => {
       .feature-icon {
         width: 48px;
         height: 48px;
-        border-radius: 12px;
+        border-radius: var(--th-radius-md);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -449,9 +449,7 @@ const handleLogin = async () => {
           transition: all 0.3s ease;
           outline: none;
 
-          &:focus {
-            outline: none;
-          }
+          &:focus { outline: none; }
 
           .language-icon {
             font-size: 16px;
@@ -477,37 +475,10 @@ const handleLogin = async () => {
       background: rgba(255, 255, 255, 0.1);
       animation: float 20s infinite;
 
-      &.shape-1 {
-        width: 300px;
-        height: 300px;
-        top: -100px;
-        left: -100px;
-        animation-delay: 0s;
-      }
-
-      &.shape-2 {
-        width: 200px;
-        height: 200px;
-        bottom: -50px;
-        right: -50px;
-        animation-delay: 5s;
-      }
-
-      &.shape-3 {
-        width: 150px;
-        height: 150px;
-        top: 50%;
-        right: 20%;
-        animation-delay: 10s;
-      }
-
-      &.shape-4 {
-        width: 100px;
-        height: 100px;
-        bottom: 30%;
-        left: 30%;
-        animation-delay: 15s;
-      }
+      &.shape-1 { width: 300px; height: 300px; top: -100px; left: -100px; }
+      &.shape-2 { width: 200px; height: 200px; bottom: -50px; right: -50px; animation-delay: 5s; }
+      &.shape-3 { width: 150px; height: 150px; top: 50%; right: 20%; animation-delay: 10s; }
+      &.shape-4 { width: 100px; height: 100px; bottom: 30%; left: 30%; animation-delay: 15s; }
     }
   }
 }
@@ -518,7 +489,7 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
+  background: var(--th-color-surface);
   padding: 60px;
   position: relative;
 
@@ -535,13 +506,14 @@ const handleLogin = async () => {
     h2 {
       font-size: 28px;
       font-weight: 700;
-      color: #303133;
+      color: var(--th-color-text);
       margin: 0 0 12px 0;
+      font-family: var(--th-font-display);
     }
 
     p {
       font-size: 14px;
-      color: #909399;
+      color: var(--th-color-text-muted);
       margin: 0;
       line-height: 1.6;
     }
@@ -550,16 +522,21 @@ const handleLogin = async () => {
   .login-form {
     :deep(.el-input__wrapper) {
       padding: 8px 16px;
-      box-shadow: 0 0 0 1px #dcdfe6 inset;
+      background: var(--th-color-surface);
+      box-shadow: 0 0 0 1px var(--th-color-border) inset;
       transition: all 0.3s ease;
 
       &:hover {
-        box-shadow: 0 0 0 1px #c0c4cc inset;
+        box-shadow: 0 0 0 1px var(--th-color-text-muted) inset;
       }
 
       &.is-focus {
-        box-shadow: 0 0 0 1px #667eea inset;
+        box-shadow: 0 0 0 1px var(--th-color-primary) inset;
       }
+    }
+
+    :deep(.el-input__inner) {
+      color: var(--th-color-text);
     }
 
     :deep(.el-form-item) {
@@ -571,13 +548,14 @@ const handleLogin = async () => {
       height: 48px;
       font-size: 16px;
       font-weight: 600;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
       border: none;
+      border-radius: var(--th-radius-sm);
       transition: all 0.3s ease;
 
       &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
       }
 
       &:active {
@@ -591,18 +569,18 @@ const handleLogin = async () => {
     margin-top: 24px;
 
     .register-link {
-      color: #909399;
+      color: var(--th-color-text-muted);
       text-decoration: none;
       font-size: 14px;
       transition: all 0.3s ease;
 
       span {
-        color: #667eea;
+        color: var(--th-color-primary);
         font-weight: 600;
       }
 
       &:hover {
-        color: #667eea;
+        color: var(--th-color-primary);
       }
     }
   }
@@ -613,95 +591,55 @@ const handleLogin = async () => {
 
     p {
       font-size: 12px;
-      color: #c0c4cc;
+      color: var(--th-color-text-muted);
       margin: 0;
+      opacity: 0.6;
     }
   }
 }
 
 /* 动画 */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes fadeInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes float {
-  0%, 100% {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  25% {
-    transform: translate(30px, -30px) rotate(90deg);
-  }
-  50% {
-    transform: translate(-20px, 20px) rotate(180deg);
-  }
-  75% {
-    transform: translate(20px, 10px) rotate(270deg);
-  }
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(30px, -30px) rotate(90deg); }
+  50% { transform: translate(-20px, 20px) rotate(180deg); }
+  75% { transform: translate(20px, 10px) rotate(270deg); }
 }
 
-/* 响应式设计 */
+/* 响应式 */
 @media (max-width: 1200px) {
   .showcase-section {
     padding: 40px;
-
-    .features-grid {
-      grid-template-columns: 1fr;
-    }
+    .features-grid { grid-template-columns: 1fr; }
   }
 }
 
 @media (max-width: 768px) {
-  .login-container {
-    flex-direction: column;
-  }
-
+  .login-container { flex-direction: column; }
   .showcase-section {
     min-height: 50vh;
     padding: 30px;
-
     .brand-header {
       margin-bottom: 30px;
-
-      .logo-wrapper .brand-title {
-        font-size: 32px;
-      }
+      .logo-wrapper .brand-title { font-size: 32px; }
     }
-
-    .features-grid {
-      display: none;
-    }
+    .features-grid { display: none; }
   }
-
-  .login-section {
-    width: 100%;
-    padding: 30px;
-  }
+  .login-section { width: 100%; padding: 30px; }
 }
 </style>

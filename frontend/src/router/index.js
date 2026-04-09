@@ -261,6 +261,11 @@ const routes = [
         component: ApiAIServiceConfig
       },
       {
+        path: 'parameterized-data',
+        name: 'ParameterizedData',
+        component: () => import('@/views/api-testing/ParameterizedData.vue')
+      },
+      {
         path: 'notification-logs',
         name: 'ApiNotificationLogs',
         component: NotificationLogs
@@ -462,6 +467,11 @@ const routes = [
             path: 'dify',
             name: 'DifyConfig',
             component: () => import('@/views/configuration/DifyConfig.vue')
+          },
+          {
+            path: 'theme',
+            name: 'ConfigTheme',
+            component: () => import('@/views/configuration/ThemeConfig.vue')
           }
         ]
       }

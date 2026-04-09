@@ -246,11 +246,14 @@ export default {
       container: '容器'
     },
     // 右键菜单
+    unassignedPage: '未关联页面',
     contextMenu: {
       addElement: '新增元素',
       addSubPage: '新增子页面',
       edit: '编辑',
-      delete: '删除'
+      delete: '删除',
+      copyElement: '复制元素',
+      deleteElement: '删除元素'
     },
     locatorTip: {
       title: '提示：根据定位策略输入对应的定位值',
@@ -302,7 +305,10 @@ export default {
       copySuccess: '复制成功',
       copyFailed: '复制失败',
       moveSuccess: '移动成功',
-      moveFailed: '移动失败'
+      moveFailed: '移动失败',
+      unassignedCannotCreateSubPage: '未关联页面节点下不能创建子页面',
+      unassignedCannotEdit: '未关联页面节点不能编辑',
+      unassignedCannotDelete: '未关联页面节点不能删除'
     }
   },
 
@@ -443,6 +449,11 @@ export default {
     step: '步骤',
     screenshot: '截图',
     viewDetail: '查看详情',
+    onlineReport: '在线报告',
+    downloadOfflineReport: '下载离线报告',
+    reportGenerating: '报告正在生成中，请稍后再试',
+    reportNotGenerated: '该执行记录未生成报告',
+    downloadFailed: '下载报告失败',
     seconds: '秒',
     minutes: '分',
     // 执行状态
@@ -450,6 +461,7 @@ export default {
     statusRunning: '执行中',
     statusSuccess: '成功',
     statusFailed: '失败',
+    statusPartialFailed: '部分失败',
     statusAborted: '中止',
     // 用例执行状态
     casePassed: '成功',
@@ -697,6 +709,10 @@ export default {
     },
     triggerType: '触发器类型',
     notificationType: '通知类型',
+    notConfigured: '未配置',
+    notificationKeywords: {
+      email: '邮箱'
+    },
     status: '状态',
     cronExpression: 'Cron表达式',
     nextRunTime: '下次执行时间',
@@ -825,6 +841,13 @@ export default {
     },
     messages: {
       selectProject: '请先选择项目',
+      nameRequired: '请输入任务名称',
+      scheduleTypeRequired: '请选择调度类型',
+      testSuiteRequired: '请选择测试套件',
+      testCaseRequired: '请选择至少一个测试用例',
+      cronRequired: '请输入Cron表达式',
+      minutesRequired: '请输入间隔分钟数',
+      nextRunRequired: '请选择执行时间',
       loadFailed: '加载任务列表失败',
       loadSuitesFailed: '获取测试套件列表失败',
       createSuccess: '创建任务成功',
@@ -1187,7 +1210,10 @@ export default {
       start: '开始运行测试用例 - {engine}引擎 / {browser}浏览器 / {mode}模式',
       success: '测试用例运行成功',
       failed: '测试用例运行失败',
-      failedWithMessage: '测试用例运行失败: {message}'
+      failedWithMessage: '测试用例运行失败: {message}',
+      executionError: '执行失败',
+      executionErrorLog: '测试用例执行出错',
+      errorMessage: '错误信息'
     },
     runMode: {
       headless: '无头',
@@ -1304,6 +1330,16 @@ export default {
       dateTime: '时间日期',
       other: '其他'
     },
+    variableCategory: {
+      randomNumber: '随机数',
+      randomString: '随机字符串',
+      testData: '测试数据',
+      string: '字符串',
+      encoding: '编码转换',
+      encryption: '加密',
+      dateTime: '时间日期',
+      uncategorized: '未分类'
+    },
     variables: {
       randomInt: '生成随机整数',
       randomIntDesc: '生成指定范围内的随机整数，参数：最小值、最大值、数量',
@@ -1351,7 +1387,8 @@ export default {
       updateSuccess: '测试用例更新成功',
       createFailed: '保存失败',
       variableInserted: '已插入变量',
-      dataFactorySelected: '已选择数据工厂: {toolName}'
+      dataFactorySelected: '已选择数据工厂: {toolName}',
+      loadVariableFailed: '加载变量函数失败，使用本地数据'
     },
     // 操作类型（用于显示操作类型名称）
     actionType: {
@@ -1399,13 +1436,15 @@ export default {
     delete: {
       confirm: '确定要删除测试用例"{name}"吗？',
       title: '确认删除',
-      success: '删除成功'
+      success: '删除成功',
+      failed: '删除失败'
     },
     // 复制操作消息
     copy: {
       confirm: '确定要复制测试用例"{name}"吗？',
       title: '确认复制',
-      success: '复制成功'
+      success: '复制成功',
+      failed: '复制失败'
     },
     // 创建操作消息
     create: {

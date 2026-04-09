@@ -100,7 +100,7 @@
       <el-table-column :label="t('appAutomation.scheduledTask.executionStats')" width="140">
         <template #default="{ row }">
           <span>{{ t('appAutomation.scheduledTask.total') }} {{ row.total_runs || 0 }}  </span>
-          <span style="color:#67c23a">{{ t('appAutomation.scheduledTask.success') }} {{ row.successful_runs || 0 }}  </span>
+          <span style="color:var(--th-color-success)">{{ t('appAutomation.scheduledTask.success') }} {{ row.successful_runs || 0 }}  </span>
           <span style="color:#f56c6c">{{ t('appAutomation.scheduledTask.failed') }} {{ row.failed_runs || 0 }}</span>
         </template>
       </el-table-column>
@@ -216,7 +216,7 @@
                   <div>{{ t('appAutomation.scheduledTask.cronHelp.everyMonth') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">{{ t('appAutomation.scheduledTask.cronHelpLink') }}</span>
+              <span style="cursor: pointer; color: var(--th-color-primary);">{{ t('appAutomation.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>
@@ -438,7 +438,7 @@ const loadTasks = async () => {
     const res = await getSchedulerSchedules(params)
     tasks.value = (res.data.results || res.data || []).map(t => ({ ...t, _running: false }))
     pagination.total = res.data.count || tasks.value.length
-  } catch { ElMessage.error('加载失败') }
+  } catch { ElMessage.error(t('appAutomation.messages.loadFailed')) }
   finally { loading.value = false }
 }
 
@@ -544,8 +544,8 @@ const resetForm = () => Object.assign(form, { ...defaultForm })
 const resetFilters = () => { Object.assign(filters, { project: null, task_type: '', schedule_type: '', status: '' }); loadTasks() }
 
 const submitForm = async () => {
-  if (!form.name) return ElMessage.warning('请输入任务名称')
-  if (!form.device) return ElMessage.warning('请选择设备')
+  if (!form.name) return ElMessage.warning(t('appAutomation.messages.enterTaskName'))
+  if (!form.device) return ElMessage.warning(t('appAutomation.messages.selectDevice'))
 
   submitting.value = true
   try {
@@ -667,15 +667,15 @@ const submitForm = async () => {
 
     if (editingTask.value) {
       await updateSchedulerSchedule(editingTask.value.id, submitData)
-      ElMessage.success('更新成功')
+      ElMessage.success(t('appAutomation.messages.updateSuccess'))
     } else {
       await createSchedulerSchedule(submitData)
-      ElMessage.success('创建成功')
+      ElMessage.success(t('appAutomation.messages.createSuccess'))
     }
     showDialog.value = false
     loadTasks()
   } catch (e) {
-    ElMessage.error(e.response?.data?.detail || e.response?.data?.message || e.response?.data?.error || '操作失败')
+    ElMessage.error(e.response?.data?.detail || e.response?.data?.message || e.response?.data?.error || t('appAutomation.messages.operationFailed'))
   } finally { submitting.value = false }
 }
 
@@ -683,10 +683,10 @@ const runNow = async (task) => {
   task._running = true
   try {
     await executeSchedulerSchedule(task.id)
-    ElMessage.success('任务已开始执行')
+    ElMessage.success(t('appAutomation.messages.taskStarted'))
     setTimeout(loadTasks, 2000)
   } catch (e) {
-    ElMessage.error(e.response?.data?.message || e.response?.data?.error || '执行失败')
+    ElMessage.error(e.response?.data?.message || e.response?.data?.error || t('appAutomation.messages.executionFailed'))
   } finally { task._running = false }
 }
 
@@ -766,6 +766,7 @@ const editTask = (task) => {
   
   Object.assign(form, {
     name: task.name, description: config.description || '',
+    project: config.project_id || null,
     task_type: config.task_type || 'APP_TEST_SUITE', schedule_type: task.schedule_type || 'C',
     cron: task.cron || '0 0 * * *',
     minutes: task.minutes || 60,
@@ -838,20 +839,20 @@ watch([() => form.notify_on_email, () => form.notify_on_webhook], () => {
 })
 
 const pauseTask = async (task) => {
-  try { await toggleSchedulerSchedule(task.id, 'pause'); ElMessage.success('已暂停'); loadTasks() }
-  catch { ElMessage.error('暂停失败') }
+  try { await toggleSchedulerSchedule(task.id, 'pause'); ElMessage.success(t('appAutomation.messages.paused')); loadTasks() }
+  catch { ElMessage.error(t('appAutomation.messages.pauseFailed')) }
 }
 const resumeTask = async (task) => {
-  try { await toggleSchedulerSchedule(task.id, 'resume'); ElMessage.success('已恢复'); loadTasks() }
-  catch { ElMessage.error('恢复失败') }
+  try { await toggleSchedulerSchedule(task.id, 'resume'); ElMessage.success(t('appAutomation.messages.resumed')); loadTasks() }
+  catch { ElMessage.error(t('appAutomation.messages.resumeFailed')) }
 }
 const deleteTask = async (task) => {
   try {
-    await ElMessageBox.confirm(`确认删除任务「${task.name}」？`, '删除确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('appAutomation.messages.deleteTaskConfirm', { name: task.name }), t('appAutomation.messages.deleteConfirmTitle'), { type: 'warning' })
     await deleteSchedulerSchedule(task.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('appAutomation.messages.deleted'))
     loadTasks()
-  } catch (e) { if (e !== 'cancel') ElMessage.error('删除失败') }
+  } catch (e) { if (e !== 'cancel') ElMessage.error(t('appAutomation.messages.deleteFailed')) }
 }
 
 const formatDateTime = (s) => {

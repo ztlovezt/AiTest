@@ -73,7 +73,7 @@
                   v-if="data.type === 'element'"
                   class="copy-icon"
                   @click.stop="handleCopyElement(data)"
-                  title="复制元素"
+                  :title="$t('uiAutomation.element.contextMenu.copyElement')"
                 >
                   <CopyDocument />
                 </el-icon>
@@ -83,7 +83,7 @@
                   v-if="data.type === 'element'"
                   class="delete-icon"
                   @click.stop="handleDeleteElement(data)"
-                  title="删除元素"
+                  :title="$t('uiAutomation.element.contextMenu.deleteElement')"
                 >
                   <Delete />
                 </el-icon>
@@ -706,7 +706,7 @@ const loadElementTree = async () => {
     if (unassignedElements.length > 0) {
       const unassignedPage = {
         id: 'unassigned',
-        name: '未关联页面',
+        name: t('uiAutomation.element.unassignedPage'),
         type: 'page',
         children: unassignedElements.map(element => ({
           ...element,
@@ -1296,7 +1296,7 @@ const addSubPage = () => {
 
   // 禁止在"未关联页面"节点下创建子页面
   if (rightClickedNode.value && rightClickedNode.value.id === 'unassigned') {
-    ElMessage.warning('未关联页面节点下不能创建子页面')
+    ElMessage.warning(t('uiAutomation.element.messages.unassignedCannotCreateSubPage'))
     return
   }
 
@@ -1323,7 +1323,7 @@ const editNode = async () => {
 
   // 禁止编辑"未关联页面"节点
   if (rightClickedNode.value.id === 'unassigned') {
-    ElMessage.warning('未关联页面节点不能编辑')
+    ElMessage.warning(t('uiAutomation.element.messages.unassignedCannotEdit'))
     return
   }
 
@@ -1367,7 +1367,7 @@ const deleteNode = async () => {
 
   // 禁止删除"未关联页面"节点
   if (rightClickedNode.value.id === 'unassigned') {
-    ElMessage.warning('未关联页面节点不能删除')
+    ElMessage.warning(t('uiAutomation.element.messages.unassignedCannotDelete'))
     return
   }
 
@@ -1489,7 +1489,7 @@ const updatePage = async () => {
   border-right: 1px solid #e4e7ed;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
 }
 
 .sidebar-header {
@@ -1530,8 +1530,8 @@ const updatePage = async () => {
   font-size: 12px;
   padding: 2px 6px;
   border-radius: 4px;
-  background-color: #ecf5ff;
-  color: #409eff;
+  background-color: var(--th-color-info-soft);
+  color: var(--th-color-primary);
 }
 
 .copy-icon {
@@ -1544,7 +1544,7 @@ const updatePage = async () => {
 }
 
 .copy-icon:hover {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .delete-icon {
@@ -1616,7 +1616,7 @@ const updatePage = async () => {
 }
 
 .context-menu li:hover {
-  background-color: #f5f7fa;
-  color: #409eff;
+  background-color: var(--th-color-surface-muted);
+  color: var(--th-color-primary);
 }
 </style>

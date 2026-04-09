@@ -1,6 +1,14 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from .models import (
+    ApiProject, ApiCollection, ApiRequest, Environment,
+    RequestHistory, TestSuite, TestExecution, TestSuiteRequest,
+    NotificationLog, OperationLog, AIServiceConfig,
+    ParameterizedDataSet, ParameterizedExecution,
+)
+
+User = get_user_model()
 
 
 class NullableDateField(serializers.DateField):
@@ -11,13 +19,6 @@ class NullableDateField(serializers.DateField):
             return None
         # 否则使用父类的正常处理
         return super().to_internal_value(value)
-from .models import (
-    ApiProject, ApiCollection, ApiRequest, Environment,
-    RequestHistory, TestSuite, TestExecution, TestSuiteRequest,
-    NotificationLog, OperationLog, AIServiceConfig,
-)
-
-User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -139,13 +140,22 @@ class ApiRequestSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    # 显式声明 JSON 字段，允许空值
+    extractors = serializers.JSONField(required=False, allow_null=True, default=list)
+    extract_variables = serializers.JSONField(required=False, allow_null=True, default=list)
+    assertions = serializers.JSONField(required=False, allow_null=True, default=list)
+    auth = serializers.JSONField(required=False, allow_null=True, default=dict)
+    headers = serializers.JSONField(required=False, allow_null=True, default=dict)
+    params = serializers.JSONField(required=False, allow_null=True, default=dict)
+    body = serializers.JSONField(required=False, allow_null=True, default=dict)
 
     class Meta:
         model = ApiRequest
         fields = [
             'id', 'name', 'description', 'request_type', 'method', 'url',
             'headers', 'params', 'body', 'auth', 'pre_request_script',
-            'post_request_script', 'assertions', 'collection', 'order', 'created_by',
+            'post_request_script', 'assertions', 'extractors', 'extract_variables',
+            'collection', 'order', 'created_by',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['created_at', 'updated_at']
@@ -213,10 +223,15 @@ class RequestHistorySerializer(serializers.ModelSerializer):
 
 class TestSuiteRequestSerializer(serializers.ModelSerializer):
     request = ApiRequestSerializer(read_only=True)
+    # 显式声明 JSON 字段，允许空值
+    extractors = serializers.JSONField(required=False, allow_null=True, default=list)
+    extract_variables = serializers.JSONField(required=False, allow_null=True, default=list)
+    assertions = serializers.JSONField(required=False, allow_null=True, default=list)
 
     class Meta:
         model = TestSuiteRequest
-        fields = ['id', 'request', 'order', 'assertions', 'enabled']
+        fields = ['id', 'request', 'order', 'assertions', 'extractors', 'enabled',
+                  'extract_variables', 'skip_condition']
 
 
 class TestSuiteSerializer(serializers.ModelSerializer):
@@ -237,23 +252,25 @@ class TestSuiteSerializer(serializers.ModelSerializer):
 
 
 class TestExecutionSerializer(serializers.ModelSerializer):
-    test_suite = TestSuiteSerializer(read_only=True)
+    test_suite_name = serializers.CharField(source='test_suite.name', read_only=True)
     executed_by = UserSerializer(read_only=True)
 
     class Meta:
         model = TestExecution
         fields = [
-            'id', 'test_suite', 'status', 'start_time', 'end_time',
-            'total_requests', 'passed_requests', 'failed_requests',
-            'results', 'executed_by', 'created_at'
+            'id', 'test_suite', 'test_suite_name', 'status', 'start_time', 'end_time',
+            'total_requests', 'passed_requests', 'failed_requests', 'skipped_requests',
+            'results', 'error_message', 'executed_by', 'report_status', 'report_url', 'created_at'
         ]
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        # 添加项目名称信息
-        if instance.test_suite and instance.test_suite.project:
-            data['project_name'] = instance.test_suite.project.name
+        if instance.test_suite:
+            if instance.test_suite.project:
+                data['project_name'] = instance.test_suite.project.name
             data['test_suite_name'] = instance.test_suite.name
+            if instance.test_suite.environment:
+                data['environment_name'] = instance.test_suite.environment.name
         return data
 
 
@@ -499,3 +516,44 @@ class AIServiceConfigSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['created_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class ParameterizedDataSetSerializer(serializers.ModelSerializer):
+    """参数化数据集序列化器"""
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True, default='')
+    project_name = serializers.CharField(source='project.name', read_only=True)
+
+    class Meta:
+        model = ParameterizedDataSet
+        fields = [
+            'id', 'name', 'project', 'project_name', 'data_type', 'file',
+            'data', 'variables', 'row_count', 'created_by', 'created_by_name', 'created_at'
+        ]
+        read_only_fields = ['created_at', 'created_by', 'row_count', 'variables']
+
+    def create(self, validated_data):
+        validated_data['created_by'] = self.context['request'].user
+        data = validated_data.get('data', [])
+        if data:
+            validated_data['row_count'] = len(data)
+            if data and isinstance(data[0], dict):
+                validated_data['variables'] = list(data[0].keys())
+        return super().create(validated_data)
+
+
+class ParameterizedExecutionSerializer(serializers.ModelSerializer):
+    """参数化执行记录序列化器"""
+    request_name = serializers.CharField(source='request.name', read_only=True, default='')
+    suite_name = serializers.CharField(source='test_suite.name', read_only=True, default='')
+    dataset_name = serializers.CharField(source='dataset.name', read_only=True, default='')
+    executed_by_name = serializers.CharField(source='executed_by.username', read_only=True, default='')
+
+    class Meta:
+        model = ParameterizedExecution
+        fields = [
+            'id', 'request', 'request_name', 'test_suite', 'suite_name',
+            'dataset', 'dataset_name', 'environment', 'status',
+            'total_rows', 'passed_rows', 'failed_rows', 'results',
+            'start_time', 'end_time', 'executed_by', 'executed_by_name', 'created_at'
+        ]
+        read_only_fields = ['created_at']

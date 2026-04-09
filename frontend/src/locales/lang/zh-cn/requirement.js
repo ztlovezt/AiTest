@@ -29,9 +29,9 @@ export default {
 
     // Document Upload
     uploadTitle: '上传需求文档',
-    uploadDesc: '支持上传 Word、PDF 等格式的 PRD 需求文档文件',
+    uploadDesc: '支持上传常用格式的 PRD 需求文档文件',
     dragDropText: '拖拽文件到此处或点击选择文件',
-    supportedFormats: '支持 PDF、Word、TXT、Markdown 格式',
+    supportedFormats: '支持多种文件格式，自动识别文档内容',
     selectFileBtn: '选择文件',
     selectFile: '选择文件',
     removeFile: '❌',

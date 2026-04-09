@@ -5,9 +5,9 @@ APP UI Flow 测试
 import logging
 import pytest
 import allure
-from ....apps.app_automation.models import AppTestCase, AppTestExecution
-from ....apps.app_automation.utils.airtest_base import AirtestBase
-from ....apps.app_automation.runners.ui_flow_runner import UiFlowRunner
+from apps.app_automation.models import AppTestCase, AppTestExecution
+from apps.app_automation.utils.airtest_base import AirtestBase
+from apps.app_automation.runners.ui_flow_runner import UiFlowRunner
 
 logger = logging.getLogger(__name__)
 

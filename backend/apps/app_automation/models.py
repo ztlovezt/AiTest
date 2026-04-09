@@ -488,6 +488,9 @@ class AppTestSuiteCase(models.Model):
         verbose_name='测试用例'
     )
     order = models.IntegerField(default=0, verbose_name='执行顺序')
+    enabled = models.BooleanField(default=True, verbose_name='是否启用')
+    extract_variables = models.JSONField(default=list, blank=True, verbose_name='变量提取规则')
+    skip_condition = models.TextField(blank=True, default='', verbose_name='跳过条件')
 
     class Meta:
         db_table = 'app_test_suite_cases'
@@ -560,6 +563,7 @@ class AppTestExecution(models.Model):
         (ExecutionResult.PASSED, '通过'),
         (ExecutionResult.FAILED, '失败'),
         (ExecutionResult.SKIPPED, '跳过'),
+        (ExecutionResult.PARTIAL_FAILED, '部分失败'),
     ]
     
     test_case = models.ForeignKey(
@@ -620,12 +624,16 @@ class AppTestExecution(models.Model):
     finished_at = models.DateTimeField(null=True, blank=True, verbose_name='结束时间')
     duration = models.FloatField(default=0, verbose_name='执行时长(秒)')
     report_path = models.CharField(max_length=500, blank=True, default='', verbose_name='Allure报告路径')
+    report_url = models.CharField(max_length=500, blank=True, default='', verbose_name='报告URL')
+    report_status = models.CharField(max_length=20, blank=True, default='', verbose_name='报告生成状态')
     error_message = models.TextField(blank=True, default='', verbose_name='错误信息')
     
     # 执行结果统计
     total_steps = models.IntegerField(default=0, verbose_name='总步骤数')
     passed_steps = models.IntegerField(default=0, verbose_name='通过步骤数')
     failed_steps = models.IntegerField(default=0, verbose_name='失败步骤数')
+    skipped_steps = models.IntegerField(default=0, verbose_name='跳过步骤数')
+    result_data = models.JSONField(blank=True, null=True, verbose_name='执行结果数据')
     
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
@@ -661,9 +669,10 @@ class AppTestExecution(models.Model):
     @property
     def pass_rate(self):
         """通过率"""
-        if self.total_steps == 0:
+        total = self.total_steps or (self.passed_steps + self.failed_steps + self.skipped_steps)
+        if total == 0:
             return 0
-        return round((self.passed_steps / self.total_steps) * 100, 2)
+        return round((self.passed_steps / total) * 100, 2)
 
 
 class AppNotificationLog(models.Model):
