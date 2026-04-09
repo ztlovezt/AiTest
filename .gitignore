@@ -59,6 +59,9 @@ expand/media/app_automation/allure-reports/*
 !expand/media/app_automation/allure-reports/.gitkeep
 expand/media/app_automation/screenshots/*
 !expand/media/app_automation/screenshots/.gitkeep
+expand/media/app_automation/allure-single-file/*
+!expand/media/app_automation/allure-single-file/.gitkeep
+app-automation/
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**
 !apps/app_automation/Template/

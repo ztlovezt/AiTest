@@ -83,7 +83,9 @@ class TestAppFlow:
         
         # 设置环境
         if not airtest_base.setup_airtest():
-            pytest.fail("Airtest 环境设置失败")
+            # 包含详细的错误信息
+            error_msg = airtest_base.last_error or "未知错误"
+            pytest.fail(f"Airtest 环境设置失败\n\n错误信息:\n{error_msg}")
         
         yield airtest_base
         

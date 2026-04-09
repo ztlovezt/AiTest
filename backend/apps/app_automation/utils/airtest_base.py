@@ -41,6 +41,7 @@ class AirtestBase:
         """
         self.device_id = device_id
         self.is_connected = False
+        self.last_error = None  # 保存最后一次错误信息
         
         # 设置截图目录: 使用配置文件中的路径
         if screenshots_dir:
@@ -73,6 +74,9 @@ class AirtestBase:
         retry_interval = cfg['RETRY_INTERVAL']
         timeout = cfg['DEVICE_CONNECT_TIMEOUT']
         
+        # 清除之前的错误信息
+        self.last_error = None
+        
         for attempt in range(retry_count):
             try:
                 if self.device_id:
@@ -102,7 +106,11 @@ class AirtestBase:
                 return True
                 
             except Exception as e:
-                logger.error(f"设置Airtest环境时出错: {str(e)}", exc_info=True)
+                error_msg = str(e)
+                # 保存完整的错误信息
+                import traceback
+                self.last_error = f"{error_msg}\n\n完整堆栈信息:\n{traceback.format_exc()}"
+                logger.error(f"设置Airtest环境时出错: {error_msg}", exc_info=True)
                 
                 if attempt < retry_count - 1:
                     logger.info(f"{retry_interval}秒后重试连接...")

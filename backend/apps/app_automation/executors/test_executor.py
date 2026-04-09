@@ -304,17 +304,63 @@ class AppTestExecutor(BaseTestExecutor):
             allure_results_dir = self._get_allure_results_dir(execution_id)
             os.makedirs(allure_results_dir, exist_ok=True)
 
+            # 验证测试目录是否存在
+            test_dir = os.path.join(self.base_path, 'apps', 'app_automation', 'tests')
+            if not os.path.exists(test_dir):
+                logger.error(f"测试目录不存在: {test_dir}")
+                return {
+                    'success': False,
+                    'error': f'测试目录不存在: {test_dir}',
+                }
+
+            # 首先验证pytest能否收集测试
+            logger.info("验证pytest测试收集...")
+            collect_args = [
+                sys.executable, '-m', 'pytest',
+                'apps/app_automation/tests/',
+                '--collect-only',
+                '-q',
+            ]
+            
+            collect_result = subprocess.run(
+                collect_args,
+                cwd=self.base_path,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                env=env,
+                timeout=30
+            )
+            
+            logger.info(f"测试收集输出:\n{collect_result.stdout}")
+            if collect_result.stderr:
+                logger.warning(f"测试收集错误:\n{collect_result.stderr}")
+            
+            if collect_result.returncode != 0 and 'collected' not in collect_result.stdout:
+                logger.error(f"pytest 无法收集测试，退出码: {collect_result.returncode}")
+                logger.error(f"stdout: {collect_result.stdout}")
+                logger.error(f"stderr: {collect_result.stderr}")
+                return {
+                    'success': False,
+                    'error': f'pytest 无法收集测试。Stdout: {collect_result.stdout[:500]}, Stderr: {collect_result.stderr[:500]}',
+                }
+
             pytest_args = [
                 sys.executable, '-m', 'pytest',
                 'apps/app_automation/tests/',
                 '-s', '-v',
                 '--alluredir', allure_results_dir,
-                '--tb=short',
+                '--tb=long',
+                '--capture=no',
             ]
 
             logger.info(f"执行命令: {' '.join(pytest_args)}")
             logger.info(f"工作目录: {os.getcwd()}")
             logger.info(f"PYTHONPATH: {env['PYTHONPATH']}")
+            logger.info(f"测试目录: {test_dir}")
+            logger.info(f"环境变量 APP_TEST_CASE_ID: {env.get('APP_TEST_CASE_ID')}")
+            logger.info(f"环境变量 APP_DEVICE_ID: {env.get('APP_DEVICE_ID')}")
 
             process = subprocess.Popen(
                 pytest_args,
@@ -323,7 +369,7 @@ class AppTestExecutor(BaseTestExecutor):
                 stderr=subprocess.STDOUT,
                 text=True,
                 encoding='utf-8',
-                errors='ignore',
+                errors='replace',
                 bufsize=1,
                 env=env
             )
@@ -333,7 +379,7 @@ class AppTestExecutor(BaseTestExecutor):
             log_file_path = self._get_log_file_path(username or 'unknown')
 
             output_lines = []
-            important_patterns = ['PASSED', 'FAILED', 'ERROR', 'SKIPPED', 'collected', 'passed', 'failed']
+            important_patterns = ['PASSED', 'FAILED', 'ERROR', 'SKIPPED', 'collected', 'passed', 'failed', 'ImportError', 'ModuleNotFoundError']
 
             log_file = open(log_file_path, 'a', encoding='utf-8')
             try:
@@ -349,6 +395,7 @@ class AppTestExecutor(BaseTestExecutor):
                         if line:
                             output_lines.append(line)
                             log_file.write(line + '\n')
+                            logger.debug(f"[pytest] {line}")
                             if any(pattern in line for pattern in important_patterns):
                                 logger.info(f"[pytest] {line}")
 
@@ -362,6 +409,11 @@ class AppTestExecutor(BaseTestExecutor):
             self._current_process = None
 
             logger.info(f"pytest 执行完成，退出码: {exit_code}")
+            
+            # 如果退出码非零，记录完整输出以便调试
+            if exit_code != 0:
+                logger.error(f"pytest 执行失败，退出码: {exit_code}")
+                logger.error(f"完整输出:\n{'\n'.join(output_lines)}")
 
             test_results = self._parse_allure_results(allure_results_dir)
 
@@ -405,11 +457,21 @@ class AppTestExecutor(BaseTestExecutor):
                 'failed_count': test_results.get('failed', 0),
                 'skipped_count': test_results.get('skipped', 0),
                 'output': '\n'.join(output_lines[-50:]),
+                'full_output': '\n'.join(output_lines),
                 'start_time': start_time_str,
                 'end_time': end_time_str,
                 'report_url': self._get_report_url(execution_id) if execution_id else '',
             }
 
+        except subprocess.TimeoutExpired:
+            logger.error("pytest 执行超时")
+            if self._current_process:
+                self._current_process.kill()
+                self._current_process = None
+            return {
+                'success': False,
+                'error': 'pytest 执行超时',
+            }
         except Exception as e:
             logger.error(f"执行测试失败: {str(e)}", exc_info=True)
             return {
@@ -451,6 +513,7 @@ class AppTestExecutor(BaseTestExecutor):
             total = 0
             passed = 0
             failed = 0
+            broken = 0
             skipped = 0
             test_results = []
 
@@ -466,14 +529,26 @@ class AppTestExecutor(BaseTestExecutor):
                             passed += 1
                         elif status == 'failed':
                             failed += 1
+                        elif status == 'broken':
+                            broken += 1
                         elif status == 'skipped':
                             skipped += 1
+
+                        # 从statusDetails获取错误信息
+                        error_message = ''
+                        status_details = data.get('statusDetails', {})
+                        if status_details:
+                            error_message = status_details.get('message', '')
+                            if not error_message and status_details.get('trace'):
+                                # 如果没有消息，提取追溯信息的第一行
+                                trace = status_details.get('trace', '')
+                                error_message = trace.split('\n')[0] if trace else ''
 
                         test_results.append({
                             'name': data.get('name', 'Unknown'),
                             'status': status,
                             'duration': data.get('time', {}).get('duration', 0) / 1000 if data.get('time') else 0,
-                            'error_message': data.get('statusDetails', {}).get('message', ''),
+                            'error_message': error_message,
                             'start_time': data.get('time', {}).get('start', 0),
                             'end_time': data.get('time', {}).get('stop', 0),
                         })
@@ -481,12 +556,16 @@ class AppTestExecutor(BaseTestExecutor):
                 except Exception as e:
                     logger.warning(f"解析结果文件失败: {result_file}, 错误: {e}")
 
-            logger.info(f"测试结果统计: 总数={total}, 通过={passed}, 失败={failed}, 跳过={skipped}")
+            # 总失败数包括'failed'和'broken'
+            total_failed = failed + broken
+            
+            logger.info(f"测试结果统计: 总数={total}, 通过={passed}, 失败={failed}, 异常={broken}, 跳过={skipped}")
 
             return {
                 'total': total,
                 'passed': passed,
-                'failed': failed,
+                'failed': total_failed,  # 包括failed和broken
+                'broken': broken,
                 'skipped': skipped,
                 'test_results': test_results,
             }
@@ -497,6 +576,7 @@ class AppTestExecutor(BaseTestExecutor):
                 'total': 0,
                 'passed': 0,
                 'failed': 0,
+                'broken': 0,
                 'skipped': 0,
                 'test_results': [],
             }
