@@ -432,7 +432,7 @@ export default {
     subStepCount: 'Sub Steps',
     count: 'count',
     expandEditHint: 'Click "Expand" button on the left to view and edit sub-steps. Changes only affect current case.',
-    variableSupport: 'Support variables: {{local.xxx}} / {{global.xxx}} / {{outputs.last.xxx}} / {{steps.step_id.xxx}}',
+    variableSupport: 'Support variables: __OPEN__local.xxx__CLOSE__ / __OPEN__global.xxx__CLOSE__ / __OPEN__outputs.last.xxx__CLOSE__ / __OPEN__steps.step_id.xxx__CLOSE__',
     imageExistsClickLogic: 'Logic: First detect image A, click A if exists; click B if not exists.',
     imageExistsClickChainLogic: 'Logic: Click A then B if image A exists; directly click B if not exists.',
     keyEventLogic: 'Logic: Simulate keyboard key event (delete/enter/back etc.)',

@@ -432,7 +432,7 @@ export default {
     subStepCount: '子步骤数',
     count: '个',
     expandEditHint: '点击左侧"展开"按钮可查看和编辑子步骤，修改仅影响当前用例。',
-    variableSupport: '支持变量：{{local.xxx}} / {{global.xxx}} / {{outputs.last.xxx}} / {{steps.step_id.xxx}}',
+    variableSupport: '支持变量：__OPEN__local.xxx__CLOSE__ / __OPEN__global.xxx__CLOSE__ / __OPEN__outputs.last.xxx__CLOSE__ / __OPEN__steps.step_id.xxx__CLOSE__',
     imageExistsClickLogic: '逻辑：先检测图片A，存在则点击A；不存在则点击B。',
     imageExistsClickChainLogic: '逻辑：图片A存在则点击A，再点击B；不存在则直接点击B。',
     keyEventLogic: '逻辑：模拟键盘按键（删除/回车/返回等）',

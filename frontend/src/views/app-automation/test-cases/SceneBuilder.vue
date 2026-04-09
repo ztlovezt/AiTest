@@ -517,8 +517,7 @@
                             </el-form-item>
                             
                             
-                            <div class="variable-hint">
-                                {{ t('appAutomation.sceneBuilder.variableSupport') }}
+                            <div class="variable-hint" v-text="fixI18nBraces(t('appAutomation.sceneBuilder.variableSupport'))">
                             </div>
                             <div v-if="activeStep && activeStep.type === 'image_exists_click'"
                                 class="variable-hint hint-danger">
@@ -796,8 +795,7 @@
                                     <el-form-item label="步骤名称">
                                         <el-input v-model.trim="editingActiveStep.name" />
                                     </el-form-item>
-                                    <div class="variable-hint">
-                                        {{ t('appAutomation.sceneBuilder.variableSupport') }}
+                                    <div class="variable-hint" v-text="fixI18nBraces(t('appAutomation.sceneBuilder.variableSupport'))">
                                     </div>
                                     <div v-if="editingActiveStep && editingActiveStep.type === 'api_request'" class="api-template-block">
                                         <div class="tool-hint">API 示例模板</div>
@@ -1380,6 +1378,12 @@ const schemaRequired = computed(() => {
     }
     return activeComponentDef.value.schema.required || []
 })
+
+// 修复 i18n 翻译中的占位符（将 __OPEN__ 和 __CLOSE__ 替换为 {{ 和 }}）
+const fixI18nBraces = (text) => {
+    if (!text) return text
+    return text.replace(/__OPEN__/g, '{{').replace(/__CLOSE__/g, '}}')
+}
 
 watch(() => activeStep.value?.config?.assert_type, (value) => {
     if (!activeStep.value || !activeStep.value.config) {
