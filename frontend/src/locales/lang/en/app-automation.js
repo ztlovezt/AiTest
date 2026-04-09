@@ -496,7 +496,7 @@ export default {
     statusMap: {
       pending: 'Pending',
       running: 'Running',
-      success: 'Success',
+      passed: 'Success',
       failed: 'Failed',
       partial_failed: 'Partial Failed',
       skipped: 'Skipped',
