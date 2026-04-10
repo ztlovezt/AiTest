@@ -179,7 +179,8 @@
                         {{ t('appAutomation.sceneBuilder.dragHint') }}
                     </div>
                     <draggable v-model="scenarioSteps" class="scene-list"
-                        :group="{ name: 'ui-components', pull: true, put: true }" :animation="200" item-key="id">
+                        :group="{ name: 'ui-components', pull: true, put: true }" :animation="200" item-key="id"
+                        @add="handleMainStepAdd">
                         <template #item="{ element, index }">
                             <div class="scene-item-wrapper">
                                 <div class="scene-item" :class="{
@@ -214,32 +215,356 @@
                                             name: 'ui-components',
                                             pull: true,
                                             put: true
-                                        }" :animation="200" item-key="id">
+                                        }" :animation="200" item-key="id"
+                                        @add="handleSubStepAdd(index, $event)">
                                         <template #item="{ element: subStep, index: subIdx }">
-                                            <div class="scene-item sub-step-item"
-                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === null }"
-                                                @click.stop="selectSubStep(index, subIdx)">
-                                                <div class="scene-item-main">
-                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{
-                                                        Number(subIdx) + 1 }}</span>
-                                                    <span class="scene-name">{{ subStep.name || subStep.type }}</span>
-                                                    <span class="scene-type">{{ subStep.type }}</span>
+                                            <div class="scene-item-wrapper">
+                                                <div class="scene-item sub-step-item"
+                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === null }"
+                                                    @click.stop="selectSubStep(index, subIdx)">
+                                                    <div class="scene-item-main">
+                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{
+                                                            Number(subIdx) + 1 }}</span>
+                                                        <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                        <span class="scene-type">{{ subStep.type }}</span>
+                                                    </div>
+                                                    <div class="scene-item-actions">
+                                                        <el-button
+                                                            v-if="subStep.kind === 'custom' || subStep.type === 'loop' || subStep.type === 'if'"
+                                                            link size="small"
+                                                            @click.stop="toggleExpandSubStep(index, subIdx)">
+                                                            {{ subStep._expanded ? '收起' : '展开' }}
+                                                        </el-button>
+                                                        <el-button link size="small"
+                                                            @click.stop="duplicateSubStep(index, subIdx)">
+                                                            复制
+                                                        </el-button>
+                                                        <el-button link size="small"
+                                                            @click.stop="removeSubStep(index, subIdx)">
+                                                            删除
+                                                        </el-button>
+                                                    </div>
                                                 </div>
-                                                <div class="scene-item-actions">
-                                                    <el-button
-                                                        v-if="subStep.kind === 'custom' || subStep.type === 'loop'"
-                                                        link size="small"
-                                                        @click.stop="toggleExpandCustomStep(index)">
-                                                        {{ subStep._expanded ? '收起' : '展开' }}
-                                                    </el-button>
-                                                    <el-button link size="small"
-                                                        @click.stop="duplicateSubStep(index, subIdx)">
-                                                        复制
-                                                    </el-button>
-                                                    <el-button link size="small"
-                                                        @click.stop="removeSubStep(index, subIdx)">
-                                                        删除
-                                                    </el-button>
+                                                
+                                                <!-- 子步骤展开后的嵌套区域 -->
+                                                <div v-if="subStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                    <!-- 循环组件的嵌套子步骤 -->
+                                                    <draggable v-if="subStep.type === 'loop'" v-model="subStep.config.steps"
+                                                        class="sub-steps-list" :group="{
+                                                            name: 'ui-components',
+                                                            pull: true,
+                                                            put: true
+                                                        }" :animation="200" item-key="id"
+                                                        @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                        <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                            <div class="scene-item-wrapper">
+                                                                <div class="scene-item sub-step-item nested-step-item"
+                                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === null }"
+                                                                    @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                    <div class="scene-item-main">
+                                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}</span>
+                                                                        <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                        <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                    </div>
+                                                                    <div class="scene-item-actions">
+                                                                        <el-button
+                                                                            v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                            link size="small"
+                                                                            @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                            {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            复制
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            删除
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                    <!-- 循环组件的第三层子步骤 -->
+                                                                    <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                        class="sub-steps-list" :group="{
+                                                                            name: 'ui-components',
+                                                                            pull: true,
+                                                                            put: true
+                                                                        }" :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 自定义组件的第三层子步骤 -->
+                                                                    <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                        :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                    <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                        <el-button size="small" type="primary" link
+                                                                            @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                            + 添加子步骤（仅支持基础组件）
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </draggable>
+                                                    
+                                                    <!-- IF 组件的嵌套分支 -->
+                                                    <div v-else-if="subStep.type === 'if'" class="if-branches">
+                                                        <div class="if-branch-block">
+                                                            <div class="if-branch-header">
+                                                                <span>真分支（if）</span>
+                                                            </div>
+                                                            <draggable v-model="subStep.config.then_steps"
+                                                                class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                :animation="200" item-key="id"
+                                                                @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                                <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                                    <div class="scene-item-wrapper">
+                                                                        <div class="scene-item sub-step-item nested-step-item"
+                                                                            :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx }"
+                                                                            @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            <div class="scene-item-main">
+                                                                                <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}</span>
+                                                                                <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                                <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                            </div>
+                                                                            <div class="scene-item-actions">
+                                                                                <el-button
+                                                                                    v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                                    link size="small"
+                                                                                    @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                                    {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                                </el-button>
+                                                                                <el-button link size="small"
+                                                                                    @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                                    复制
+                                                                                </el-button>
+                                                                                <el-button link size="small"
+                                                                                    @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                                    删除
+                                                                                </el-button>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                        <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                            <!-- 循环组件的第三层子步骤 -->
+                                                                            <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                                class="sub-steps-list" :group="{
+                                                                                    name: 'ui-components',
+                                                                                    pull: true,
+                                                                                    put: true
+                                                                                }" :animation="200" item-key="id"
+                                                                                @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                                <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                                    <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                        @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        <div class="scene-item-main">
+                                                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                            <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                            <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                        </div>
+                                                                                        <div class="scene-item-actions">
+                                                                                            <el-button link size="small"
+                                                                                                @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                                删除
+                                                                                            </el-button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </draggable>
+                                                                            
+                                                                            <!-- 自定义组件的第三层子步骤 -->
+                                                                            <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                                class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                                :animation="200" item-key="id"
+                                                                                @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                                <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                                    <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                        @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        <div class="scene-item-main">
+                                                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                            <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                            <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                        </div>
+                                                                                        <div class="scene-item-actions">
+                                                                                            <el-button link size="small"
+                                                                                                @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                                删除
+                                                                                            </el-button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </draggable>
+                                                                            
+                                                                            <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                            <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                                <el-button size="small" type="primary" link
+                                                                                    @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                                    + 添加子步骤（仅支持基础组件）
+                                                                                </el-button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                            </draggable>
+                                                            <div class="sub-step-toolbar">
+                                                                <el-button size="small" type="primary" link
+                                                                    @click.stop="addNestedIfBranchStep(index, subIdx, 'then')">
+                                                                    + 添加子步骤
+                                                                </el-button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- 自定义组件的嵌套子步骤 -->
+                                                    <draggable v-else-if="subStep.kind === 'custom'" v-model="subStep.steps"
+                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                        :animation="200" item-key="id"
+                                                        @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                        <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                            <div class="scene-item-wrapper">
+                                                                <div class="scene-item sub-step-item nested-step-item"
+                                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === null }"
+                                                                    @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                    <div class="scene-item-main">
+                                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}</span>
+                                                                        <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                        <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                    </div>
+                                                                    <div class="scene-item-actions">
+                                                                        <el-button
+                                                                            v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                            link size="small"
+                                                                            @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                            {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            复制
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            删除
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                    <!-- 循环组件的第三层子步骤 -->
+                                                                    <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                        class="sub-steps-list" :group="{
+                                                                            name: 'ui-components',
+                                                                            pull: true,
+                                                                            put: true
+                                                                        }" :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 自定义组件的第三层子步骤 -->
+                                                                    <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                        :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                    <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                        <el-button size="small" type="primary" link
+                                                                            @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                            + 添加子步骤（仅支持基础组件）
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </draggable>
+                                                    
+                                                    <!-- 添加子步骤按钮 -->
+                                                    <div class="sub-step-toolbar" v-if="subStep.type === 'loop' || subStep.kind === 'custom'">
+                                                        <el-button size="small" type="primary" link
+                                                            @click.stop="addNestedSubStep(index, subIdx)">
+                                                            + 添加子步骤
+                                                        </el-button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </template>
@@ -440,7 +765,8 @@
                                     <!-- 自定义组件的子步骤 -->
                                     <draggable v-else v-model="element.steps" class="sub-steps-list"
                                         :group="{ name: 'ui-components', pull: true, put: true }" :animation="200"
-                                        item-key="id">
+                                        item-key="id"
+                                        @add="handleSubStepAdd(index, $event)">
                                         <template #item="{ element: subStep, index: subIdx }">
                                             <div class="scene-item sub-step-item"
                                                 :class="{ active: selectedIndex === index && selectedSubIndex === subIdx }"
@@ -1162,7 +1488,8 @@ const defaultCustomPalette = ref([])
 const scenarioSteps = ref([])
 const selectedIndex = ref(null)
 const selectedSubIndex = ref(null)    // 当前选中的子步骤索引（展开编辑用）
-const selectedNestedIndex = ref(null) // 当前选中的嵌套子步骤索引（子步骤的子步骤）
+const selectedNestedIndex = ref(null) // 当前选中的嵌套子步骤索引（子步骤的子步骤，第二层）
+const selectedThirdLevelIndex = ref(null) // 当前选中的第三层子步骤索引（第三层）
 const selectedIfBranchType = ref(null) // 'then' | 'elseif' | 'else'
 const selectedElseIfIndex = ref(null)  // else if 分支索引
 const componentDefinitions = ref({})
@@ -1257,20 +1584,88 @@ const activeStep = computed(() => {
     const parentStep = scenarioSteps.value[selectedIndex.value]
     if (!parentStep) return null
 
+    // 如果选中了第三层子步骤（最内层），返回第三层子步骤
+    if (selectedSubIndex.value !== null && selectedNestedIndex.value !== null && selectedThirdLevelIndex.value !== null) {
+        let subStep
+        if (parentStep.type === 'loop') {
+            subStep = parentStep.config?.steps?.[selectedSubIndex.value]
+        } else if (parentStep.kind === 'custom') {
+            subStep = parentStep.steps?.[selectedSubIndex.value]
+        } else if (parentStep.type === 'if') {
+            // IF 分支的情况
+            if (selectedIfBranchType.value === 'then') {
+                subStep = parentStep.config.then_steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value !== null) {
+                const branch = parentStep.config.elseif_branches?.[selectedElseIfIndex.value]
+                subStep = branch?.steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                subStep = parentStep.config.else_steps?.[selectedSubIndex.value]
+            }
+        }
+
+        if (!subStep) return null
+
+        let nestedStep
+        if (subStep.type === 'loop') {
+            nestedStep = subStep.config?.steps?.[selectedNestedIndex.value]
+        } else if (subStep.kind === 'custom') {
+            nestedStep = subStep.steps?.[selectedNestedIndex.value]
+        } else if (subStep.type === 'if') {
+            // 嵌套的 IF 分支
+            if (selectedIfBranchType.value === 'then') {
+                nestedStep = subStep.config.then_steps?.[selectedNestedIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                nestedStep = subStep.config.else_steps?.[selectedNestedIndex.value]
+            }
+        }
+
+        if (nestedStep) {
+            if (nestedStep.type === 'loop') {
+                return nestedStep.config?.steps?.[selectedThirdLevelIndex.value] || null
+            } else if (nestedStep.kind === 'custom') {
+                return nestedStep.steps?.[selectedThirdLevelIndex.value] || null
+            } else if (nestedStep.type === 'if') {
+                // 嵌套的 IF 分支的第三层
+                if (selectedIfBranchType.value === 'then') {
+                    return nestedStep.config.then_steps?.[selectedThirdLevelIndex.value] || null
+                } else if (selectedIfBranchType.value === 'else') {
+                    return nestedStep.config.else_steps?.[selectedThirdLevelIndex.value] || null
+                }
+            }
+        }
+    }
+
     // 如果选中了嵌套子步骤，返回嵌套子步骤
     if (selectedSubIndex.value !== null && selectedNestedIndex.value !== null) {
         let subStep
         if (parentStep.type === 'loop') {
             subStep = parentStep.config?.steps?.[selectedSubIndex.value]
-        } else {
+        } else if (parentStep.kind === 'custom') {
             subStep = parentStep.steps?.[selectedSubIndex.value]
+        } else if (parentStep.type === 'if') {
+            // IF 分支的情况
+            if (selectedIfBranchType.value === 'then') {
+                subStep = parentStep.config.then_steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value !== null) {
+                const branch = parentStep.config.elseif_branches?.[selectedElseIfIndex.value]
+                subStep = branch?.steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                subStep = parentStep.config.else_steps?.[selectedSubIndex.value]
+            }
         }
 
         if (subStep) {
             if (subStep.type === 'loop') {
                 return subStep.config?.steps?.[selectedNestedIndex.value] || null
-            } else if (subStep.steps) {
+            } else if (subStep.kind === 'custom') {
                 return subStep.steps?.[selectedNestedIndex.value] || null
+            } else if (subStep.type === 'if') {
+                // 嵌套的 IF 分支
+                if (selectedIfBranchType.value === 'then') {
+                    return subStep.config.then_steps?.[selectedNestedIndex.value] || null
+                } else if (selectedIfBranchType.value === 'else') {
+                    return subStep.config.else_steps?.[selectedNestedIndex.value] || null
+                }
             }
         }
     }
@@ -1706,6 +2101,8 @@ const cloneComponent = (item) => {
 const selectStep = (index) => {
     selectedIndex.value = index
     selectedSubIndex.value = null  // 切换主步骤时清除子步骤选中
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
     const step = scenarioSteps.value[index]
     if (step) {
         applyDefaultConfig(step)
@@ -1726,10 +2123,24 @@ const selectStep = (index) => {
 const selectSubStep = (parentIndex, subIndex) => {
     selectedIndex.value = parentIndex
     selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
     const parentStep = scenarioSteps.value[parentIndex]
-    if (parentStep && parentStep.steps && parentStep.steps[subIndex]) {
-        applyDefaultConfig(parentStep.steps[subIndex])
+    
+    let subStep = null
+    if (parentStep) {
+        // 根据步骤类型获取子步骤
+        if (parentStep.type === 'loop') {
+            subStep = parentStep.config?.steps?.[subIndex]
+        } else if (parentStep.kind === 'custom') {
+            subStep = parentStep.steps?.[subIndex]
+        }
+        
+        if (subStep) {
+            applyDefaultConfig(subStep)
+        }
     }
+    
     linkedElements.value = {
         selector: null, fallback: null, click: null, ocr: null,
         start: null, end: null, target: null, expected: null
@@ -1760,40 +2171,742 @@ const toggleExpandCustomStep = (index) => {
     }
 }
 
+// 切换子步骤的展开/收起状态（用于嵌套的控制组件）
+const toggleExpandSubStep = (parentIndex, subIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 根据父步骤类型获取子步骤
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    subStep._expanded = !subStep._expanded
+    
+    if (!subStep._expanded) {
+        // 收起时清除选中
+        if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex) {
+            selectedNestedIndex.value = null
+        }
+    } else {
+        // 展开时确保子步骤的 steps 数组存在
+        if (subStep.type === 'loop') {
+            if (!subStep.config) subStep.config = {}
+            if (!subStep.config.steps) subStep.config.steps = []
+        } else if (subStep.type === 'if') {
+            ensureIfConfig(subStep)
+        } else if (subStep.kind === 'custom' && !subStep.steps) {
+            subStep.steps = []
+        }
+    }
+}
+
+// 计算控制组件的嵌套层级
+const getControlNestingLevel = (step, currentLevel = 1) => {
+    if (!step) return currentLevel
+    
+    let maxLevel = currentLevel
+    
+    // 检查当前步骤是否是控制组件
+    const isControlComponent = step.type === 'loop' || step.type === 'if'
+    
+    if (isControlComponent) {
+        // 获取子步骤
+        let subSteps = []
+        if (step.type === 'loop') {
+            subSteps = step.config?.steps || []
+        } else if (step.type === 'if') {
+            subSteps = [
+                ...(step.config?.then_steps || []),
+                ...(step.config?.else_steps || []),
+                ...(step.config?.elseif_branches || []).flatMap(branch => branch.steps || [])
+            ]
+        }
+        
+        // 递归检查子步骤中的控制组件
+        for (const subStep of subSteps) {
+            if (subStep.type === 'loop' || subStep.type === 'if') {
+                const level = getControlNestingLevel(subStep, currentLevel + 1)
+                maxLevel = Math.max(maxLevel, level)
+            }
+        }
+    }
+    
+    return maxLevel
+}
+
+// 检查是否可以添加控制组件（不超过3层嵌套）
+const canAddControlComponent = (parentStep, newStepType) => {
+    if (newStepType !== 'loop' && newStepType !== 'if') {
+        return { allowed: true, message: '' }
+    }
+    
+    const currentLevel = getControlNestingLevel(parentStep, 1)
+    if (currentLevel >= 3) {
+        return { 
+            allowed: false, 
+            message: '控制组件（循环/条件）嵌套不能超过3层' 
+        }
+    }
+    
+    return { allowed: true, message: '' }
+}
+
 const addSubStep = (parentIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    // 弹出选择基础组件的提示，这里简化为添加一个 click 步骤
+    if (!parentStep) return
+    
+    // 根据步骤类型确定子步骤数组的位置
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        // loop 类型的子步骤在 config.steps 中
+        if (!parentStep.config) parentStep.config = {}
+        if (!parentStep.config.steps) parentStep.config.steps = []
+        stepsArray = parentStep.config.steps
+    } else if (parentStep.kind === 'custom') {
+        // 自定义组件的子步骤在 steps 中
+        if (!parentStep.steps) parentStep.steps = []
+        stepsArray = parentStep.steps
+    } else {
+        // 其他类型不支持添加子步骤
+        return
+    }
+    
+    // 创建新的点击步骤
     const newStep = {
         id: generateStepId(),
         type: 'click',
         name: '点击',
         config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
     }
-    parentStep.steps.push(newStep)
-    selectSubStep(parentIndex, parentStep.steps.length - 1)
+    
+    stepsArray.push(newStep)
+    
+    // 选中新添加的子步骤
+    if (parentStep.type === 'loop') {
+        selectSubStep(parentIndex, stepsArray.length - 1)
+    } else if (parentStep.kind === 'custom') {
+        selectSubStep(parentIndex, stepsArray.length - 1)
+    }
+}
+
+// 添加控制组件子步骤（带嵌套层级检查）
+const addControlSubStep = (parentIndex, stepType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 检查嵌套层级
+    const check = canAddControlComponent(parentStep, stepType)
+    if (!check.allowed) {
+        ElMessage.warning(check.message)
+        return
+    }
+    
+    // 根据步骤类型确定子步骤数组的位置
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        if (!parentStep.config) parentStep.config = {}
+        if (!parentStep.config.steps) parentStep.config.steps = []
+        stepsArray = parentStep.config.steps
+    } else if (parentStep.kind === 'custom') {
+        if (!parentStep.steps) parentStep.steps = []
+        stepsArray = parentStep.steps
+    } else {
+        return
+    }
+    
+    // 创建新的控制组件步骤
+    const componentDef = componentDefinitions.value[stepType]
+    const newStep = {
+        id: generateStepId(),
+        type: stepType,
+        name: componentDef?.name || stepType,
+        config: { ...(componentDef?.default_config || {}) },
+        _expanded: false
+    }
+    
+    // 初始化控制组件的配置
+    if (stepType === 'loop') {
+        if (!newStep.config.steps) newStep.config.steps = []
+    } else if (stepType === 'if') {
+        ensureIfConfig(newStep)
+    }
+    
+    stepsArray.push(newStep)
+    selectSubStep(parentIndex, stepsArray.length - 1)
+}
+
+// 处理拖拽添加子步骤事件（检查嵌套层级）
+const handleSubStepAdd = (parentIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 获取被拖入的元素
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 检查是否是控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        const check = canAddControlComponent(parentStep, addedStep.type)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            // 移除刚添加的步骤
+            stepsArray.splice(newIndex, 1)
+        }
+    }
+}
+
+// 处理拖拽添加主步骤事件（检查嵌套层级）
+const handleMainStepAdd = (evt) => {
+    const newIndex = evt.newIndex
+    if (!scenarioSteps.value[newIndex]) return
+    
+    const addedStep = scenarioSteps.value[newIndex]
+    
+    // 主步骤没有父级，所以嵌套层级始终为1，不需要检查
+    // 这里只是为了完整性保留
+}
+
+// 处理拖拽添加嵌套子步骤事件
+const handleNestedSubStepAdd = (parentIndex, subIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 检查是否是控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        const check = canAddControlComponent(subStep, addedStep.type)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            stepsArray.splice(newIndex, 1)
+        }
+    }
+}
+
+// 选择嵌套子步骤
+const selectNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    selectedIndex.value = parentIndex
+    selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = nestedIndex
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
+    
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (nestedStep) {
+        applyDefaultConfig(nestedStep)
+    }
+    
+    linkedElements.value = {
+        selector: null, fallback: null, click: null, ocr: null,
+        start: null, end: null, target: null, expected: null
+    }
+}
+
+// 选择第三层子步骤
+const selectThirdLevelStep = (parentIndex, subIndex, nestedIndex, thirdIndex) => {
+    // 先保存 IF 分支状态（用于导航）
+    const savedIfBranchType = selectedIfBranchType.value
+    const savedElseIfIndex = selectedElseIfIndex.value
+    
+    // 设置选择索引
+    selectedIndex.value = parentIndex
+    selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = nestedIndex
+    selectedThirdLevelIndex.value = thirdIndex
+    
+    // 清除 IF 分支状态（避免与主步骤 IF 分支混淆）
+    selectedIfBranchType.value = null
+    selectedElseIfIndex.value = null
+    
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    } else if (parentStep.type === 'if') {
+        // IF 分支的情况 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            subStep = parentStep.config.then_steps?.[subIndex]
+        } else if (savedIfBranchType === 'elseif' && savedElseIfIndex !== null) {
+            const branch = parentStep.config.elseif_branches?.[savedElseIfIndex]
+            subStep = branch?.steps?.[subIndex]
+        } else if (savedIfBranchType === 'else') {
+            subStep = parentStep.config.else_steps?.[subIndex]
+        }
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    } else if (subStep.type === 'if') {
+        // 嵌套的 IF 分支 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            nestedStep = subStep.config.then_steps?.[nestedIndex]
+        } else if (savedIfBranchType === 'else') {
+            nestedStep = subStep.config.else_steps?.[nestedIndex]
+        }
+    }
+    
+    if (!nestedStep) return
+    
+    // 获取第三层子步骤
+    let thirdStep = null
+    if (nestedStep.type === 'loop') {
+        thirdStep = nestedStep.config?.steps?.[thirdIndex]
+    } else if (nestedStep.kind === 'custom') {
+        thirdStep = nestedStep.steps?.[thirdIndex]
+    } else if (nestedStep.type === 'if') {
+        // 嵌套的 IF 分支 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            thirdStep = nestedStep.config.then_steps?.[thirdIndex]
+        } else if (savedIfBranchType === 'else') {
+            thirdStep = nestedStep.config.else_steps?.[thirdIndex]
+        }
+    }
+    
+    if (thirdStep) {
+        applyDefaultConfig(thirdStep)
+    }
+    
+    linkedElements.value = {
+        selector: null, fallback: null, click: null, ocr: null,
+        start: null, end: null, target: null, expected: null
+    }
+}
+
+// 添加嵌套子步骤
+const addNestedSubStep = (parentIndex, subIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        if (!subStep.config) subStep.config = {}
+        if (!subStep.config.steps) subStep.config.steps = []
+        stepsArray = subStep.config.steps
+    } else if (subStep.kind === 'custom') {
+        if (!subStep.steps) subStep.steps = []
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    const newStep = {
+        id: generateStepId(),
+        type: 'click',
+        name: '点击',
+        config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+    }
+    
+    stepsArray.push(newStep)
+    selectNestedSubStep(parentIndex, subIndex, stepsArray.length - 1)
+}
+
+// 删除嵌套子步骤
+const removeNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(nestedIndex, 1)
+    
+    if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value === nestedIndex) {
+        selectedNestedIndex.value = null
+    } else if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value > nestedIndex) {
+        selectedNestedIndex.value -= 1
+    }
+}
+
+// 添加嵌套 IF 分支步骤
+const addNestedIfBranchStep = (parentIndex, subIndex, branchType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep || subStep.type !== 'if') return
+    
+    // 复用现有的 addIfBranchStep 函数
+    // 需要临时将 subStep 放入一个虚拟数组中
+    const virtualSteps = [subStep]
+    scenarioSteps.value[parentIndex] = subStep  // 临时替换
+    
+    addIfBranchStep(0, branchType, null, null, 'click')
+    
+    scenarioSteps.value[parentIndex] = parentStep  // 恢复
+}
+
+// 切换第三层嵌套子步骤的展开/收起
+const toggleExpandNestedStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    nestedStep._expanded = !nestedStep._expanded
+    
+    if (!nestedStep._expanded) {
+        // 收起时清除选中
+        if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value === nestedIndex) {
+            // 保持选中状态，但清除更深层的选择（如果有）
+        }
+    } else {
+        // 展开时确保子步骤的 steps 数组存在
+        if (nestedStep.type === 'loop') {
+            if (!nestedStep.config) nestedStep.config = {}
+            if (!nestedStep.config.steps) nestedStep.config.steps = []
+        } else if (nestedStep.kind === 'custom' && !nestedStep.steps) {
+            nestedStep.steps = []
+        }
+    }
+}
+
+// 复制第三层嵌套子步骤
+const duplicateNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[nestedIndex]) return
+    
+    const originalStep = stepsArray[nestedIndex]
+    const duplicatedStep = JSON.parse(JSON.stringify(originalStep))
+    duplicatedStep.id = generateStepId()
+    duplicatedStep._expanded = false
+    
+    stepsArray.splice(nestedIndex + 1, 0, duplicatedStep)
+    selectNestedSubStep(parentIndex, subIndex, nestedIndex + 1)
+}
+
+// 处理第三层拖拽添加子步骤（只允许基础组件）
+const handleThirdLevelSubStepAdd = (parentIndex, subIndex, nestedIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (nestedStep.type === 'loop') {
+        stepsArray = nestedStep.config?.steps
+    } else if (nestedStep.kind === 'custom') {
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 第三层只允许基础组件，不允许控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        ElMessage.warning('第三层嵌套只支持添加基础组件，不支持控制组件')
+        stepsArray.splice(newIndex, 1)
+    }
+}
+
+// 添加第三层子步骤（只允许基础组件）
+const addThirdLevelSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    let stepsArray = null
+    if (nestedStep.type === 'loop') {
+        if (!nestedStep.config) nestedStep.config = {}
+        if (!nestedStep.config.steps) nestedStep.config.steps = []
+        stepsArray = nestedStep.config.steps
+    } else if (nestedStep.kind === 'custom') {
+        if (!nestedStep.steps) nestedStep.steps = []
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    const newStep = {
+        id: generateStepId(),
+        type: 'click',
+        name: '点击',
+        config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+    }
+    
+    stepsArray.push(newStep)
+    // Select the newly added third-level step
+    selectThirdLevelStep(parentIndex, subIndex, nestedIndex, stepsArray.length - 1)
+}
+
+// 删除第三层子步骤
+const removeThirdLevelSubStep = (parentIndex, subIndex, nestedIndex, thirdIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    let stepsArray = null
+    if (nestedStep.type === 'loop') {
+        stepsArray = nestedStep.config?.steps
+    } else if (nestedStep.kind === 'custom') {
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(thirdIndex, 1)
+}
+
+// 添加第三层 IF 分支步骤（只允许基础组件）
+const addThirdLevelIfBranchStep = (parentIndex, subIndex, nestedIndex, branchType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep || nestedStep.type !== 'if') return
+    
+    // 直接操作 nestedStep 的分支
+    if (branchType === 'then') {
+        if (!nestedStep.config) nestedStep.config = {}
+        if (!Array.isArray(nestedStep.config.then_steps)) nestedStep.config.then_steps = []
+        
+        const newStep = {
+            id: generateStepId(),
+            type: 'click',
+            name: '点击',
+            config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+        }
+        
+        nestedStep.config.then_steps.push(newStep)
+    }
 }
 
 const duplicateSubStep = (parentIndex, subIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    const source = parentStep.steps[subIndex]
-    if (!source) return
+    if (!parentStep) return
+    
+    // 根据步骤类型获取子步骤数组
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[subIndex]) return
+    
+    const source = stepsArray[subIndex]
     const copy = JSON.parse(JSON.stringify(source))
     copy.id = generateStepId()
     copy.name = `${source.name || source.type}-复制`
-    parentStep.steps.splice(subIndex + 1, 0, copy)
+    stepsArray.splice(subIndex + 1, 0, copy)
 }
 
 const removeSubStep = (parentIndex, subIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    parentStep.steps.splice(subIndex, 1)
+    if (!parentStep) return
+    
+    // 根据步骤类型获取子步骤数组
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(subIndex, 1)
+    
     // 调整选中状态
     if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex) {
         selectedSubIndex.value = null
+        selectedNestedIndex.value = null
     } else if (selectedIndex.value === parentIndex && selectedSubIndex.value > subIndex) {
-        selectedSubIndex.value--
+        selectedSubIndex.value -= 1
     }
 }
 
@@ -1879,15 +2992,33 @@ const disableElseBranch = (index) => {
     step.config.else_steps = null
 }
 
-const addIfBranchStep = (index, branchType, subIdx = null, branchIndex = null) => {
+const addIfBranchStep = (index, branchType, subIdx = null, branchIndex = null, stepType = 'click') => {
     const step = scenarioSteps.value[index]
     if (!step || step.type !== 'if') return
     
+    // 如果是控制组件，检查嵌套层级
+    if (stepType === 'loop' || stepType === 'if') {
+        const check = canAddControlComponent(step, stepType)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            return
+        }
+    }
+    
+    const componentDef = componentDefinitions.value[stepType]
     const newStep = {
         id: generateStepId(),
-        type: 'click',
-        name: '点击',
-        config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+        type: stepType,
+        name: componentDef?.name || stepType,
+        config: { ...(componentDef?.default_config || {}) },
+        _expanded: false
+    }
+    
+    // 初始化控制组件的配置
+    if (stepType === 'loop') {
+        if (!newStep.config.steps) newStep.config.steps = []
+    } else if (stepType === 'if') {
+        ensureIfConfig(newStep)
     }
     
     if (branchType === 'then') {
@@ -1968,6 +3099,8 @@ const selectIfBranchStep = (index, branchType, subIdx, branchIndex = null) => {
     selectedSubIndex.value = subIdx
     selectedIfBranchType.value = branchType
     selectedElseIfIndex.value = branchIndex
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
     
     const parentStep = scenarioSteps.value[index]
     if (!parentStep || parentStep.type !== 'if') return

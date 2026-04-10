@@ -240,6 +240,9 @@ class UiFlowRunner:
     
     def _execute_step(self, step: Dict[str, Any]):
         """执行单个步骤，支持基础组件和自定义组件"""
+        # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
+        step = copy.deepcopy(step)
+        
         # 使用 type 字段获取步骤类型
         action_type = step.get('type', '')
         action = action_type.lower() if action_type else ''
