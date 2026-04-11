@@ -119,6 +119,10 @@ class ConfigLoader:
         """获取超时配置"""
         return self.config.get('timeouts', {})
 
+    def get_ocr_config(self):
+        """获取 OCR 配置"""
+        return self.config.get('ocr', {})
+
 
 # 创建全局配置加载器实例
 config_loader = ConfigLoader()

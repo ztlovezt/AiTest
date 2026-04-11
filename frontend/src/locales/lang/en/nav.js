@@ -84,6 +84,7 @@ export default {
     knowledgeBaseConfig: 'Knowledge Base Config',
     uiEnvConfig: 'UI Environment',
     appEnvConfig: 'APP Environment',
+    ocrConfig: 'OCR Service Config',
     aiModeConfig: 'AI Intelligent Mode',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',

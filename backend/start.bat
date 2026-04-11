@@ -55,6 +55,16 @@ call "%VENV_PATH%\Scripts\activate.bat"
 
 echo [1/2] Starting Django development server...
 
+REM 禁用 OneDNN 和其他优化以避免 PaddlePaddle 3.x 兼容性问题
+set FLAGS_use_mkldnn=0
+set FLAGS_enable_mkldnn=0
+set FLAGS_enable_onednn=0
+set FLAGS_cinn_new_group_scheduler=0
+set FLAGS_enable_pir_api=0
+set FLAGS_check_cuda_version=0
+set FLAGS_skip_allocator_mem_check=1
+set PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+
 REM 从config.yaml读取端口配置
 REM 注意：脚本在后端目录中，需要从父目录读取config.yaml
 for /f "tokens=2 delims=: " %%a in ('type ..\config.yaml ^| findstr /i "backend_port"') do set BACKEND_PORT=%%a

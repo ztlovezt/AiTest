@@ -208,6 +208,21 @@ export default {
     currentPassword: '当前密码',
     newPassword: '新密码',
     confirmPassword: '确认密码',
-    changePasswordButton: '修改密码'
+    changePasswordButton: '修改密码',
+
+    // Validation
+    emailRequired: '请输入邮箱',
+    emailInvalid: '请输入有效的邮箱地址',
+    currentPasswordRequired: '请输入当前密码',
+    newPasswordRequired: '请输入新密码',
+    passwordMinLength: '密码长度不能少于6位',
+    confirmPasswordRequired: '请确认新密码',
+    passwordMismatch: '两次输入的密码不一致',
+
+    // Messages
+    saveSuccess: '保存成功',
+    saveFailed: '保存失败',
+    passwordChangeSuccess: '密码修改成功',
+    passwordChangeFailed: '密码修改失败'
   }
 }

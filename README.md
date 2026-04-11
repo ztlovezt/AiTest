@@ -101,6 +101,37 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **图片上传**: 支持元素图片拖拽上传和预览
 - **实时更新**: 执行记录自动刷新，实时进度展示
 
+### 🔍 OCR 服务 **新增** ✅
+
+- **统一 OCR 服务层**: 独立的 OCR 服务应用，提供统一的文字识别接口
+- **多引擎支持**:
+    - **Tesseract OCR**: 传统 OCR 引擎，轻量级，支持多语言
+    - **PP-OCRv5**: 离线深度学习模型，高精度中文识别，支持 GPU 加速
+    - **在线 OCR 大模型**: OpenAI GPT-4V、智谱 GLM-4V、百度 AI OCR、腾讯 OCR、阿里云 OCR
+- **GPU 加速支持**:
+    - 支持 NVIDIA GPU 加速，识别速度提升 5-10 倍
+    - 自动检测 GPU 环境（NVIDIA 驱动、CUDA、PaddlePaddle-GPU）
+    - GPU 不可用时自动降级到 CPU 模式
+    - 提供 GPU 状态检测 API，方便用户了解环境配置
+- **智能降级机制**:
+    - GPU 初始化失败 → 自动切换 CPU 模式
+    - PP-OCRv5 不可用 → 自动回退 Tika 解析
+    - 图片识别失败 → 自动回退 Tika 内置 OCR
+- **文件格式支持**:
+    - **图片格式**: PNG、JPG、JPEG、GIF、BMP、TIFF、WebP
+    - **文档格式**: 通过 Tika 支持 1000+ 种格式（PDF、DOC、DOCX、XLS、PPT、TXT 等）
+- **图片预处理优化**:
+    - 智能缩放大图片（最大 1920x1920），提升识别速度
+    - 自动增强对比度，提高识别准确率
+- **配置管理**: 统一的 OCR 配置管理，支持启用/禁用、设置默认配置
+- **批量处理**: 支持批量图片 OCR 识别，自动合并和清理文本
+- **AI 用例生成集成**: 上传图片需求文档时可选择 OCR 识别方式
+- **APP 自动化集成**: 
+    - APP 自动化测试支持多种 OCR 引擎选择（Tesseract/PP-OCRv5）
+    - 在设置中心/APP环境配置中配置 OCR 引擎和语言
+    - 执行测试时自动校验 OCR 配置，未配置时给出提示
+- **文本格式优化**: 自动清理 OCR 识别结果中的多余空格和格式问题
+
 ### 📊 测试执行与报告
 
 - **测试计划**: 创建测试计划，关联项目、版本和测试用例
@@ -163,6 +194,10 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **HTTP 客户端**: httpx 0.28.1 (异步 HTTP)
 - **WebSocket**: Channels 4.3.2 + Channels Redis 4.3.0
 - **定时任务**: Django-Q2 1.6.0+ (任务队列和定时任务)
+- **OCR 服务**:
+    - pytesseract 0.3.10+: Tesseract OCR Python 接口
+    - paddleocr 2.7.0+: PP-OCRv5 离线模型
+    - paddlepaddle 2.5.0+: PaddlePaddle 深度学习框架
 
 ### 前端技术栈
 
@@ -204,7 +239,9 @@ testhub_platform/
 │   ├── requirement_analysis/       # AI 需求分析
 │   ├── assistant/                  # 智能助手
 │   ├── api_testing/                # API 测试
-│   └── ui_automation/              # UI 自动化测试
+│   ├── ui_automation/              # UI 自动化测试
+│   ├── app_automation/             # APP 自动化测试
+│   └── ocr_service/                # OCR 服务
 ├── backend/                        # Django 项目配置
 │   ├── settings.py                 # 项目设置
 │   ├── urls.py                     # URL 路由
@@ -315,6 +352,9 @@ testhub_platform/
 - **httpx**: 0.28.1 (异步 HTTP 客户端)
 - **allure-pytest**: 2.15.3 (测试报告)
 - **pytest**: 9.0.2 (测试框架)
+- **pytesseract**: 0.3.10+ (Tesseract OCR)
+- **paddleocr**: 2.7.0+ (PP-OCRv5 离线模型)
+- **paddlepaddle**: 2.5.0+ (PaddlePaddle 深度学习框架)
 
 完整依赖列表请查看 [requirements.txt](./backend/requirements.txt)
 
@@ -393,6 +433,121 @@ jwt:
 
 详细配置说明请查看 [config.yaml](./config.yaml) 文件。
 
+### OCR 服务配置
+
+#### GPU 加速配置
+
+如需启用 GPU 加速，需要安装 GPU 版本的 PaddlePaddle：
+
+```bash
+# 卸载 CPU 版本
+pip uninstall paddlepaddle
+
+# 安装 GPU 版本（CUDA 11.8）
+python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
+
+# 或安装 GPU 版本（CUDA 12.3）
+python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
+```
+
+**GPU 环境要求**：
+
+| 组件 | 要求 |
+|-----|------|
+| NVIDIA 驱动 | 最新版本 |
+| CUDA | 11.8 或 12.3 |
+| cuDNN | 对应 CUDA 版本 |
+| PaddlePaddle-GPU | 与 CUDA 版本匹配 |
+
+**GPU 状态检测 API**：
+
+```bash
+# 检查 GPU 加速状态
+GET /api/ocr/gpu-status/
+
+# 返回示例
+{
+    "gpu_info": {
+        "nvidia_driver": {"available": true, "message": "NVIDIA 驱动已安装"},
+        "paddle_gpu": {"available": true, "message": "PaddlePaddle-GPU 已安装"},
+        "cuda": {"available": true, "message": "检测到 1 个 GPU: NVIDIA GeForce RTX 3080"},
+        "gpu_available": true,
+        "gpu_name": "NVIDIA GeForce RTX 3080",
+        "gpu_count": 1
+    },
+    "requirements": {
+        "can_use_gpu": true,
+        "issues": [],
+        "warnings": []
+    }
+}
+```
+
+#### 在线 OCR 大模型配置
+
+在设置中心配置在线 OCR 大模型（如 GLM-4V、GPT-4V）：
+
+| 配置项 | 说明 |
+|-------|------|
+| provider | 服务商（openai/zhipu/baidu/tencent/aliyun/custom） |
+| api_key | API 密钥 |
+| base_url | API 地址（可选，使用默认值） |
+| model_name | 模型名称（如 glm-4v、gpt-4o） |
+
+**支持的在线 OCR 服务**：
+
+| 服务商 | 模型 | 特点 |
+|-------|------|------|
+| OpenAI | GPT-4o | 多语言支持，复杂排版识别好 |
+| 智谱 | GLM-4V | 中文优化，表格识别好 |
+| 百度 | AI OCR | 高精度，支持表格/票据 |
+| 腾讯 | OCR | 高精度，支持多种场景 |
+| 阿里云 | OCR | 高精度，支持表格/证件 |
+
+#### OCR 配置优先级
+
+1. **设置中心 OCR 配置**（用户级配置）
+   - use_gpu: 是否启用 GPU 加速
+   - language: 识别语言
+   - min_confidence: 最小置信度
+   - provider: OCR 服务商
+
+2. **config.yaml 配置**（系统级配置）
+   - model_type: 模型类型（mobile/server）
+   - timeout: 超时时间
+   - max_concurrent_tasks: 最大并发数
+
+#### OCR 智能降级流程
+
+```
+用户请求 OCR 识别
+    ↓
+检查是否启用 GPU
+    ↓
+┌─ GPU 已启用 ─────────────────────┐
+│   ↓                              │
+│ 检测 GPU 环境                     │
+│   ↓                              │
+│ GPU 可用 → 使用 GPU 加速          │
+│ GPU 不可用 → 自动切换 CPU 模式    │
+└──────────────────────────────────┘
+    ↓
+执行 PP-OCRv5 识别
+    ↓
+┌─ 识别成功 ─→ 返回结果
+│
+└─ 识别失败 ─→ 回退 Tika 解析
+```
+
+#### 文件格式支持
+
+| 类型 | 格式 | 处理方式 |
+|-----|------|---------|
+| **图片** | PNG, JPG, JPEG, GIF, BMP, TIFF, WebP | PP-OCRv5 / 在线 OCR |
+| **文档** | PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX | Tika 解析 |
+| **文本** | TXT, MD, RTF, CSV, JSON, XML, HTML | Tika 解析 |
+| **其他** | 1000+ 种格式 | Tika 自动识别 |
+
 ### 后端部署
 
 1. **克隆项目**
@@ -447,7 +602,40 @@ python manage.py migrate
 
 # 创建超级用户（只需执行一次）
 python manage.py createsuperuser
+
+# 添加数据库表和字段中文注释（可选，便于数据库维护）
+python manage.py add_db_comments
 ```
+
+**`add_db_comments` 命令说明**：
+
+该命令用于为数据库中的所有表和字段添加中文注释，包括项目自身的表、Django 内置表和第三方库的表。
+
+```bash
+# 基本用法：添加所有表和字段的中文注释
+python manage.py add_db_comments
+
+# 仅更新指定应用的表注释
+python manage.py add_db_comments --app users
+python manage.py add_db_comments --app testcases --app projects
+
+# 仅更新指定表的注释
+python manage.py add_db_comments --table auth_user
+python manage.py add_db_comments --table testcases_testcase --table projects_project
+
+# 强制更新所有注释（包括已有的注释）
+python manage.py add_db_comments --force
+
+# 静默模式，不输出详细日志
+python manage.py add_db_comments --quiet
+```
+
+**参数说明**：
+
+- `--app`: 指定要更新的应用名称，可多次使用
+- `--table`: 指定要更新的表名，可多次使用
+- `--force`: 强制更新已有注释，默认跳过已有注释的表
+- `--quiet`: 静默模式，减少输出信息
 
 6. **初始化UI自动化测试定位策略**（只需执行一次）
 

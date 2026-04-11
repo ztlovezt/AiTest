@@ -17,7 +17,9 @@ from backend.log_config import get_logger
 logger = get_logger(__name__)
 
 get_server = config_loader.get_server_config()
-print(get_server)
+
+# Tika 服务器超时配置（秒），从 config.yaml 读取
+TIKA_TIMEOUT = get_server.get('tika_timeout', 180)  # 默认 3 分钟
 
 def extract_text_with_tika(file_path):
     """使用 Tika 提取文件文本"""
@@ -25,11 +27,18 @@ def extract_text_with_tika(file_path):
         'X-Tika-OCRLanguage': get_server['doc_language'],
         'X-Tika-PDFExtractInlineImages': 'true'  # 如果是PDF，尝试提取内嵌图片进行OCR
     }
+    
+    # 设置请求选项，增加超时时间
+    requestOptions = {
+        'timeout': TIKA_TIMEOUT  # 连接和读取超时时间
+    }
+    
     parsed = parser.from_file(
         file_path,
         serverEndpoint=get_server['doc_parser_url'],
         headers=headers,
-        service='text'
+        service='text',
+        requestOptions=requestOptions
     )
     # print(f"✅ 原始数据提取成功: {parsed}")
     content = parsed.get('content', '')
@@ -236,5 +245,5 @@ def document_processor(file_list: list):
     # 输出结果
     contents = '\n'.join(results.values())
     logger.info(f"文档处理完成，总字符数: {len(contents)}")
-    print(f"✅ 文档处理完成，总字符数: {len(contents)}")
+    print(f"✅ 清洗后的需求: {contents}")
     return contents

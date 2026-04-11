@@ -240,6 +240,33 @@ class ApiCollectionViewSet(viewsets.ModelViewSet):
             )
         ).distinct()
 
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        """搜索集合和接口"""
+        project_id = request.query_params.get('project')
+        keyword = request.query_params.get('keyword', '').strip()
+        
+        if not project_id:
+            return Response({'results': []})
+        
+        user = request.user
+        
+        queryset = ApiCollection.objects.filter(
+            project_id=project_id,
+            project__in=ApiProject.objects.filter(
+                models.Q(owner=user) | models.Q(members=user)
+            )
+        ).distinct()
+        
+        if keyword:
+            queryset = queryset.filter(
+                models.Q(name__icontains=keyword) |
+                models.Q(description__icontains=keyword)
+            )
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'results': serializer.data})
+
     def perform_create(self, serializer):
         """创建集合时记录日志"""
         instance = serializer.save()
@@ -585,19 +612,12 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                     test_suite, 
                     env, 
                     request.user, 
-                    execution_id=execution_id
+                    execution_id=execution_id,
+                    async_report=False
                 )
                 
                 from django.db import connection
                 connection.close()
-                
-                # 异步生成 Allure 报告
-                try:
-                    exe = TestExecution.objects.get(id=execution_id)
-                    from .utils import generate_allure_report_for_execution
-                    generate_allure_report_for_execution(exe)
-                except Exception as report_err:
-                    logger.error(f"生成报告失败 execution_{execution_id}: {report_err}")
                     
             except Exception as e:
                 logger.error(f"套件执行失败: {e}")

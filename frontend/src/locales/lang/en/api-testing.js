@@ -832,6 +832,9 @@ export default {
       variableInserted: 'Variable inserted: {name}',
       dataFactoryInserted: 'Data factory data inserted: {name}',
       fromDataFactory: 'From Data Factory: {name}',
+      type: 'Type',
+      text: 'Text',
+      file: 'File',
       // Variable categories
       categories: {
         randomNumber: 'Random Numbers',

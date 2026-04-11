@@ -262,13 +262,39 @@
               </select>
             </div>
 
+            <div v-if="!hasOnlyNonImageFiles" class="form-group">
+              <label>{{ $t('requirementAnalysis.ocrConfig') }}</label>
+              <select v-model="selectedOcrConfig" class="form-select">
+                <option value="">{{ $t('requirementAnalysis.defaultOcr') }}</option>
+                <option v-for="config in ocrConfigs" :key="config.id" :value="config.id">
+                  {{ config.name }} ({{ getOcrProviderLabel(config.provider) }})
+                </option>
+              </select>
+              <small class="form-hint">{{ $t('requirementAnalysis.ocrConfigHint') }}</small>
+            </div>
+
             <button
               class="generate-btn"
               @click="generateFromDocument"
-              :disabled="!documentTitle || isGenerating">
-              <span v-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
+              :disabled="!documentTitle || isGenerating || isExtracting">
+              <span v-if="isExtracting">
+                {{ $t('requirementAnalysis.extractingProgressPercent', { percent: Math.round(extractingProgress.fakeProgress) }) }}
+              </span>
+              <span v-else-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
               <span v-else>{{ $t('requirementAnalysis.generateButton') }}</span>
             </button>
+            
+            <!-- 提取进度提示 -->
+            <div v-if="isExtracting" class="extraction-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${extractingProgress.fakeProgress}%` }"></div>
+                <span class="progress-percent">{{ Math.round(extractingProgress.fakeProgress) }}%</span>
+              </div>
+              <p class="progress-text">
+                {{ $t('requirementAnalysis.extractingFileProgress', { current: extractingProgress.current, total: extractingProgress.total }) }}
+              </p>
+              <p class="progress-file">{{ extractingProgress.fileName }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -762,7 +788,22 @@ export default {
       },
       showConfigGuide: false,
       checkingConfig: true,
-      modalKey: 0  // 用于强制重新渲染弹窗
+      modalKey: 0,  // 用于强制重新渲染弹窗
+      
+      // OCR 配置相关
+      ocrConfigs: [],
+      selectedOcrConfig: '',
+      
+      // 文档提取进度
+      isExtracting: false,
+      extractingProgress: {
+        current: 0,
+        total: 0,
+        fileName: '',
+        fakeProgress: 0,
+        realProgress: 0
+      },
+      progressTimer: null
     }
   },
 
@@ -771,6 +812,20 @@ export default {
       return this.manualInput.title.trim() &&
              this.manualInput.description.trim() &&
              this.manualInput.description.length <= 2000
+    },
+    hasImageFiles() {
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']
+      return this.selectedFiles.some(file => {
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+        return imageExtensions.includes(ext)
+      })
+    },
+    hasOnlyNonImageFiles() {
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']
+      return this.selectedFiles.every(file => {
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+        return !imageExtensions.includes(ext)
+      })
     }
   },
 
@@ -778,6 +833,7 @@ export default {
     this.progressText = this.$t('requirementAnalysis.preparing')
     this.loadProjects()
     this.loadKnowledgeBases()
+    this.loadOcrConfigs()
     this.checkConfigStatus()
   },
 
@@ -797,6 +853,10 @@ export default {
   beforeUnmount() {
     if (this.pollInterval) {
       clearInterval(this.pollInterval)
+    }
+    // 停止进度条定时器
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer)
     }
     // 停止token自动刷新定时器
     const userStore = useUserStore()
@@ -876,6 +936,30 @@ export default {
       } catch (error) {
         console.error('Failed to load knowledge bases:', error)
       }
+    },
+
+    async loadOcrConfigs() {
+      try {
+        const response = await api.get('/ocr/configs/active/')
+        this.ocrConfigs = response.data.results || response.data || []
+      } catch (error) {
+        console.error('Failed to load OCR configs:', error)
+        this.ocrConfigs = []
+      }
+    },
+
+    getOcrProviderLabel(provider) {
+      const labels = {
+        tesseract: this.$t('configuration.ocr.providers.tesseract'),
+        ppocr: this.$t('configuration.ocr.providers.ppocr'),
+        openai: this.$t('configuration.ocr.providers.openai'),
+        zhipu: this.$t('configuration.ocr.providers.zhipu'),
+        baidu: this.$t('configuration.ocr.providers.baidu'),
+        tencent: this.$t('configuration.ocr.providers.tencent'),
+        aliyun: this.$t('configuration.ocr.providers.aliyun'),
+        custom: this.$t('configuration.ocr.providers.custom')
+      }
+      return labels[provider] || provider
     },
 
     async handleKnowledgeSearch() {
@@ -1271,11 +1355,51 @@ export default {
         return
       }
 
+      this.isExtracting = true
+      this.extractingProgress = {
+        current: 0,
+        total: this.selectedFiles.length,
+        fileName: '',
+        fakeProgress: 0,
+        realProgress: 0
+      }
+
+      const startFakeProgress = () => {
+        if (this.progressTimer) {
+          clearInterval(this.progressTimer)
+        }
+        
+        this.extractingProgress.fakeProgress = 0
+        
+        this.progressTimer = setInterval(() => {
+          if (this.extractingProgress.fakeProgress < 99) {
+            const increment = Math.random() * 3 + 1
+            this.extractingProgress.fakeProgress = Math.min(
+              99,
+              this.extractingProgress.fakeProgress + increment
+            )
+          }
+        }, 200)
+      }
+
+      const stopFakeProgress = () => {
+        if (this.progressTimer) {
+          clearInterval(this.progressTimer)
+          this.progressTimer = null
+        }
+      }
+
       try {
         let allExtractedText = ''
 
         for (let i = 0; i < this.selectedFiles.length; i++) {
           const file = this.selectedFiles[i]
+          
+          this.extractingProgress.current = i + 1
+          this.extractingProgress.fileName = file.name
+          
+          startFakeProgress()
+
           const formData = new FormData()
           formData.append('title', this.documentTitle + (this.selectedFiles.length > 1 ? ` (${i + 1})` : ''))
           formData.append('file', file)
@@ -1283,28 +1407,67 @@ export default {
             formData.append('project', this.selectedProject)
           }
 
-          ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
           const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           })
 
-          const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
+          if (!uploadResponse.data || !uploadResponse.data.id) {
+            console.error('文档上传失败: 响应数据无效', uploadResponse.data)
+            throw new Error('文档上传失败：响应数据无效')
+          }
+
+          const documentId = uploadResponse.data.id
+          console.log(`文档上传成功: ${file.name}, document_id=${documentId}`)
+          
+          const extractParams = new URLSearchParams()
+          if (this.selectedOcrConfig) {
+            extractParams.append('ocr_config_id', this.selectedOcrConfig)
+          }
+          
+          const extractResponse = await api.get(
+            `/requirement-analysis/documents/${documentId}/extract_text/?${extractParams.toString()}`,
+            { timeout: 300000 }
+          )
+          
+          if (!extractResponse.data || !extractResponse.data.extracted_text) {
+            console.error('文本提取失败:', extractResponse.data)
+            throw new Error(extractResponse.data?.error || '文本提取失败')
+          }
+          
           const extractedText = extractResponse.data.extracted_text
+          const warningMessage = extractResponse.data.warning
+          console.log(`文档 ${documentId} 文本提取完成, 长度: ${extractedText.length}`)
+
+          stopFakeProgress()
+          this.extractingProgress.fakeProgress = 100
+
+          if (warningMessage) {
+            ElMessage({
+              message: warningMessage,
+              type: 'warning',
+              duration: 5000
+            })
+          }
 
           if (extractedText && extractedText.trim().length > 0) {
             allExtractedText += `\n\n===== ${file.name} =====\n\n${extractedText}`
           }
+          
+          this.extractingProgress.realProgress = Math.round(((i + 1) / this.selectedFiles.length) * 100)
         }
 
         if (!allExtractedText || allExtractedText.trim().length === 0) {
           ElMessage.error(this.$t('requirementAnalysis.extractionFailed'))
+          this.isExtracting = false
           return
         }
 
         const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${allExtractedText}`
 
+        this.isExtracting = false
+        
         await this.startGeneration(
           this.documentTitle,
           requirementText,
@@ -1313,6 +1476,8 @@ export default {
         )
 
       } catch (error) {
+        stopFakeProgress()
+        this.isExtracting = false
         console.error(this.$t('requirementAnalysis.documentProcessingFailed'), error)
         ElMessage.error(this.$t('requirementAnalysis.documentProcessingFailed') + ': ' + (error.response?.data?.error || error.message))
       }
@@ -1593,7 +1758,7 @@ export default {
       }
     },
 
-    handleGenerationError() {
+    async handleGenerationError() {
       this.isGenerating = false
       if (this.eventSource) {
         this.eventSource.close()
@@ -1602,6 +1767,17 @@ export default {
       if (this.pollInterval) {
         clearInterval(this.pollInterval)
         this.pollInterval = null
+      }
+
+      // 获取错误消息并显示
+      try {
+        const response = await api.get(`/requirement-analysis/testcase-generation/${this.currentTaskId}/progress/`)
+        const task = response.data
+        const errorMessage = task.error_message || this.$t('requirementAnalysis.unknownError')
+        ElMessage.error(this.$t('requirementAnalysis.generateFailed') + ': ' + errorMessage)
+      } catch (error) {
+        console.error('获取错误信息失败:', error)
+        ElMessage.error(this.$t('requirementAnalysis.generateFailed'))
       }
     },
 
@@ -3904,6 +4080,58 @@ export default {
     max-width: 300px;
     justify-content: center;
   }
+}
+
+/* 提取进度样式 */
+.extraction-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 12px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-percent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  z-index: 1;
+}
+
+.progress-text {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.progress-file {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  word-break: break-all;
 }
 </style>
 

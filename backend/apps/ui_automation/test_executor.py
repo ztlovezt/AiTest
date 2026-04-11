@@ -193,6 +193,9 @@ class UITestExecutor(BaseTestExecutor):
 
                 end_time = datetime.now()
 
+                # 从测试套件直接获取项目名称
+                project_name = test_suite.project.name if test_suite.project else ''
+
                 return {
                     'success': exit_code == 0,
                     'exit_code': exit_code,
@@ -200,10 +203,12 @@ class UITestExecutor(BaseTestExecutor):
                     'total_count': passed + failed,
                     'passed_count': passed,
                     'failed_count': failed,
+                    'skipped_count': test_results.get('skipped', 0),
                     'duration': duration,
                     'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'report_url': self._get_report_url(execution_id),
+                    'project_name': project_name,
                 }
 
             finally:

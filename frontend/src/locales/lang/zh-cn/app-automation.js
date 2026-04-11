@@ -39,7 +39,9 @@ export default {
     executionRecords: '执行记录',
     loadStatsFailed: '加载统计数据失败',
     executionDetailPending: '执行详情页待开发',
-    device: '设备'
+    device: '设备',
+    invalidExecutionId: '执行记录ID无效',
+    noReportAvailable: '暂无测试报告'
   },
 
   // 通用
@@ -496,6 +498,7 @@ export default {
       pending: '等待中',
       running: '执行中',
       success: '成功',
+      passed: '通过',
       failed: '失败',
       partial_failed: '部分失败',
       skipped: '跳过',
@@ -1031,18 +1034,38 @@ export default {
 
   settings: {
     title: 'APP 自动化配置',
+    adbConfig: 'ADB 配置',
     adbPath: 'ADB 路径',
     adbPathPlaceholder: '例如: adb 或 D:\\Android\\platform-tools\\adb.exe',
     adbPathTip: 'Android Debug Bridge 工具路径。如果 ADB 在系统 PATH 中，填写 "adb" 即可',
+    ocrConfig: 'OCR 配置',
+    ocrEngine: 'OCR 引擎',
+    ocrEngineTip: '选择 APP 自动化测试使用的 OCR 引擎。Tesseract 轻量级，PP-OCRv5 精度更高',
+    ocrLanguage: '识别语言',
+    ocrLanguageTip: 'Tesseract 语言设置：中文、英文或中英文混合',
+    ocrUseGpu: '使用 GPU',
+    ocrUseCpu: '使用 CPU',
+    ocrUseGpuTip: 'PP-OCRv5 可使用 GPU 加速识别，需要安装 CUDA 环境',
+    ocrMinConfidence: '最小置信度',
+    ocrMinConfidenceTip: '低于此置信度的识别结果将被过滤，建议 0.3-0.5',
+    ocrLangChinese: '中文',
+    ocrLangEnglish: '英文',
+    ocrLangChineseEnglish: '中英文',
     saveConfig: '保存配置',
     reset: '重置',
     currentConfigInfo: '当前配置信息',
     adbPathLabel: 'ADB 路径',
+    ocrEngineLabel: 'OCR 引擎',
+    ocrLanguageLabel: '识别语言',
     updateTime: '更新时间',
     createTime: '创建时间',
     adbPathRequired: '请输入 ADB 路径',
+    ocrEngineRequired: '请选择 OCR 引擎',
+    ocrLanguageRequired: '请选择识别语言',
     loadConfigFailed: '加载配置失败',
     saveConfigSuccess: '配置保存成功',
-    saveConfigFailed: '配置保存失败'
+    saveConfigFailed: '配置保存失败',
+    ocrNotConfigured: '请前往设置中心/APP环境配置中配置 OCR 后再使用',
+    ocrConfigRequired: 'OCR 配置缺失'
   }
 }

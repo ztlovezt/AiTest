@@ -69,6 +69,8 @@ class RequirementDocument(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     file_size = models.PositiveIntegerField(verbose_name='文件大小(bytes)', null=True, blank=True)
     extracted_text = models.TextField(verbose_name='提取的文本内容', blank=True)
+    extraction_warning = models.TextField(verbose_name='提取警告信息', blank=True, default='')
+    extraction_error = models.TextField(verbose_name='提取错误信息', blank=True, default='')
 
     class Meta:
         db_table = 'requirement_documents'
@@ -236,21 +238,60 @@ class AIModelConfig(models.Model):
         ('other', '其他'),
     ]
 
+    OCR_PROVIDER_CHOICES = [
+        ('tesseract', 'Tesseract OCR'),
+        ('ppocr', 'PP-OCRv5'),
+        ('openai', 'OpenAI GPT-4V'),
+        ('zhipu', '智谱 GLM-4V'),
+        ('baidu', '百度 AI OCR'),
+        ('tencent', '腾讯 OCR'),
+        ('aliyun', '阿里云 OCR'),
+        ('custom', '自定义 OCR'),
+    ]
+
     ROLE_CHOICES = [
         ('writer', '测试用例编写专家'),
         ('reviewer', '测试评审专家'),
         ('browser_use_text', 'Browser Use - 文本模式'),
+        ('ocr', 'OCR 文字识别'),
+    ]
+
+    CONFIG_TYPE_CHOICES = [
+        ('llm', '大语言模型'),
+        ('ocr', 'OCR 识别'),
     ]
 
     name = models.CharField(max_length=100, verbose_name='配置名称')
-    model_type = models.CharField(max_length=20, choices=MODEL_CHOICES, verbose_name='模型类型')
+    config_type = models.CharField(
+        max_length=10,
+        choices=CONFIG_TYPE_CHOICES,
+        default='llm',
+        verbose_name='配置类型'
+    )
+    model_type = models.CharField(max_length=20, choices=MODEL_CHOICES, verbose_name='模型类型', blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, verbose_name='角色')
     api_key = models.CharField(max_length=200, verbose_name='API Key', blank=True, null=True)
-    base_url = models.URLField(verbose_name='API Base URL')
-    model_name = models.CharField(max_length=100, verbose_name='模型名称')
+    base_url = models.URLField(verbose_name='API Base URL', blank=True, null=True)
+    model_name = models.CharField(max_length=100, verbose_name='模型名称', blank=True, null=True)
     max_tokens = models.IntegerField(default=4096, verbose_name='最大Token数')
     temperature = models.FloatField(default=0.7, verbose_name='温度参数')
     top_p = models.FloatField(default=0.9, verbose_name='Top P参数')
+    
+    ocr_provider = models.CharField(
+        max_length=20,
+        choices=OCR_PROVIDER_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name='OCR 服务提供商'
+    )
+    ocr_language = models.CharField(
+        max_length=20,
+        default='chi_sim+eng',
+        verbose_name='OCR 识别语言',
+        help_text='Tesseract: chi_sim(中文), eng(英文), chi_sim+eng(中英文)'
+    )
+    ocr_use_gpu = models.BooleanField(default=False, verbose_name='OCR 使用 GPU')
+    
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='创建者')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
@@ -260,10 +301,10 @@ class AIModelConfig(models.Model):
         db_table = 'ai_model_config'
         verbose_name = 'AI模型配置'
         verbose_name_plural = 'AI模型配置'
-        # 移除 unique_together 约束，允许同一个 role 有多个配置
-        # 在应用层面通过代码控制：每个 role 只能有一个 is_active=True 的配置
 
     def __str__(self):
+        if self.config_type == 'ocr':
+            return f"{self.name} - {self.get_ocr_provider_display()}"
         return f"{self.get_model_type_display()} - {self.get_role_display()}"
 
     @classmethod
@@ -274,6 +315,29 @@ class AIModelConfig(models.Model):
             role=role,
             is_active=True
         ).first()
+
+    @classmethod
+    def get_active_ocr_configs(cls):
+        """获取所有活跃的 OCR 配置"""
+        return cls.objects.filter(
+            config_type='ocr',
+            is_active=True
+        ).order_by('name')
+
+    @classmethod
+    def get_default_ocr_config(cls):
+        """获取默认的 OCR 配置（Tesseract）"""
+        config = cls.objects.filter(
+            config_type='ocr',
+            ocr_provider='tesseract',
+            is_active=True
+        ).first()
+        if not config:
+            config = cls.objects.filter(
+                config_type='ocr',
+                is_active=True
+            ).first()
+        return config
 
 
 class PromptConfig(models.Model):

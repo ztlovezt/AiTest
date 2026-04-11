@@ -67,6 +67,70 @@ class AppTestExecutor(BaseTestExecutor):
     def _get_report_url(self, execution_id: int) -> str:
         return f'/api/app-automation-reports/execution_{execution_id}/index.html'
 
+    def _check_ocr_config(self) -> Dict[str, Any]:
+        """
+        检查 OCR 配置是否有效
+        
+        Returns:
+            包含 valid 和 message 的字典
+        """
+        try:
+            from apps.app_automation.models import AppTestConfig
+            
+            config = AppTestConfig.objects.first()
+            
+            if not config:
+                return {
+                    'valid': False,
+                    'message': '请前往设置中心/APP环境配置中配置 OCR 后再使用'
+                }
+            
+            if not config.ocr_engine:
+                return {
+                    'valid': False,
+                    'message': '请前往设置中心/APP环境配置中配置 OCR 后再使用'
+                }
+            
+            if config.ocr_engine == 'tesseract':
+                try:
+                    import pytesseract
+                    pytesseract.get_tesseract_version()
+                    logger.info(f"OCR 配置校验通过: Tesseract OCR")
+                    return {'valid': True, 'message': 'OK'}
+                except Exception as e:
+                    logger.warning(f"Tesseract OCR 不可用: {e}")
+                    return {
+                        'valid': False,
+                        'message': f'Tesseract OCR 未正确安装或配置，请检查安装。错误: {str(e)}'
+                    }
+            
+            elif config.ocr_engine == 'ppocr':
+                try:
+                    from apps.ocr_service.adapters.ppocr import PPOCRAdapter
+                    adapter = PPOCRAdapter()
+                    if not adapter.is_available():
+                        return {
+                            'valid': False,
+                            'message': 'PP-OCRv5 未正确安装，请安装 paddleocr 和 paddlepaddle'
+                        }
+                    logger.info(f"OCR 配置校验通过: PP-OCRv5")
+                    return {'valid': True, 'message': 'OK'}
+                except Exception as e:
+                    logger.warning(f"PP-OCRv5 不可用: {e}")
+                    return {
+                        'valid': False,
+                        'message': f'PP-OCRv5 未正确安装，请安装 paddleocr 和 paddlepaddle。错误: {str(e)}'
+                    }
+            
+            return {'valid': True, 'message': 'OK'}
+            
+        except Exception as e:
+            logger.error(f"检查 OCR 配置时发生错误: {e}")
+            return {
+                'valid': False,
+                'message': f'检查 OCR 配置时发生错误: {str(e)}'
+            }
+
     def _get_env_info(self) -> Dict[str, str]:
         return {
             'Module': 'APP Automation',
@@ -230,6 +294,9 @@ class AppTestExecutor(BaseTestExecutor):
 
             logger.info(f"[AppTestExecutor] 套件执行完成: {test_suite.name}")
 
+            # 从测试套件直接获取项目名称
+            project_name = test_suite.project.name if test_suite.project else ''
+
             return {
                 'success': total_failed == 0,
                 'execution_id': execution_id,
@@ -241,6 +308,7 @@ class AppTestExecutor(BaseTestExecutor):
                 'skipped_count': total_skipped,
                 'duration': duration,
                 'result_data': result_data,
+                'project_name': project_name,
             }
 
         except Exception as e:
@@ -279,6 +347,15 @@ class AppTestExecutor(BaseTestExecutor):
             执行结果字典
         """
         logger.info(f"开始执行APP测试: test_case_id={test_case_id}, device={device_id}")
+
+        ocr_check_result = self._check_ocr_config()
+        if not ocr_check_result['valid']:
+            logger.error(f"OCR 配置校验失败: {ocr_check_result['message']}")
+            return {
+                'success': False,
+                'error': ocr_check_result['message'],
+                'result_data': {}
+            }
 
         original_cwd = os.getcwd()
         start_time = datetime.now()

@@ -56,7 +56,7 @@
               <el-icon><MagicStick /></el-icon>
             </el-button>
           </el-tooltip>
-          <span v-if="row.file" class="file-name">{{ row.file.name }}</span>
+          <span v-if="row.filename" class="file-name">{{ row.filename }}</span>
         </div>
 
         <div class="column description-column">
@@ -73,11 +73,12 @@
             v-if="showFile"
             v-model="row.type"
             size="small"
-            style="width: 70px; margin-right: 5px;"
+            style="width: 80px; margin-right: 5px;"
             @change="updateValue"
+            :placeholder="$t('apiTesting.component.keyValueEditor.type')"
           >
-            <el-option label="Text" value="text" />
-            <el-option label="File" value="file" />
+            <el-option :label="$t('apiTesting.component.keyValueEditor.text')" value="text" />
+            <el-option :label="$t('apiTesting.component.keyValueEditor.file')" value="file" />
           </el-select>
           
           <el-button
@@ -379,21 +380,21 @@ const initializeRows = () => {
   console.log('KeyValueEditor initializeRows called with data:', data)
   const newRows = []
   
-  // 检查数据是否为数组格式
   if (Array.isArray(data)) {
     console.log('Data is array, processing...')
-    // 如果是数组，直接使用
     newRows.push(...data.map(item => ({
       enabled: item.enabled !== false,
       key: item.key || '',
       value: item.value || '',
       description: item.description || '',
       type: item.type || 'text',
-      file: item.file || null
+      file: item.file || null,
+      filename: item.filename || null,
+      fileData: item.fileData || null,
+      contentType: item.contentType || null
     })))
   } else {
     console.log('Data is object, converting...')
-    // 如果是对象，转换为行数据
     Object.keys(data).forEach(key => {
       if (key && data[key] !== undefined) {
         newRows.push({
@@ -402,13 +403,15 @@ const initializeRows = () => {
           value: data[key],
           description: '',
           type: 'text',
-          file: null
+          file: null,
+          filename: null,
+          fileData: null,
+          contentType: null
         })
       }
     })
   }
   
-  // 确保至少有一个空行
   if (newRows.length === 0) {
     newRows.push({
       enabled: true,
@@ -416,7 +419,10 @@ const initializeRows = () => {
       value: '',
       description: '',
       type: 'text',
-      file: null
+      file: null,
+      filename: null,
+      fileData: null,
+      contentType: null
     })
   }
   
@@ -425,19 +431,27 @@ const initializeRows = () => {
 }
 
 const updateValue = () => {
-  // 发送完整的行数据数组，而不是简化的key-value对象
-  const result = rows.value.filter(row => row.key || row.value || row.description).map(row => ({
-    key: row.key || '',
-    value: row.value || '',
-    description: row.description || '',
-    enabled: row.enabled !== false,
-    type: row.type || 'text'
-  }))
+  const result = rows.value.filter(row => row.key || row.value || row.description).map(row => {
+    const item = {
+      key: row.key || '',
+      value: row.value || '',
+      description: row.description || '',
+      enabled: row.enabled !== false,
+      type: row.type || 'text'
+    }
+    
+    if (row.type === 'file' && row.fileData) {
+      item.filename = row.filename || row.value
+      item.fileData = row.fileData
+      item.contentType = row.contentType || 'application/octet-stream'
+    }
+    
+    return item
+  })
   
   console.log('KeyValueEditor updateValue result (full format):', result)
   emit('update:modelValue', result)
   
-  // 如果最后一行有内容，自动添加新行
   const lastRow = rows.value[rows.value.length - 1]
   if (lastRow.key || lastRow.value) {
     addRow()
@@ -451,7 +465,10 @@ const addRow = () => {
     value: '',
     description: '',
     type: 'text',
-    file: null
+    file: null,
+    filename: null,
+    fileData: null,
+    contentType: null
   })
 }
 
@@ -462,10 +479,19 @@ const removeRow = (index) => {
   }
 }
 
-const handleFileChange = (index, file) => {
-  rows.value[index].file = file
+const handleFileChange = async (index, file) => {
+  rows.value[index].file = file.raw
+  rows.value[index].filename = file.name
   rows.value[index].value = file.name
-  updateValue()
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1]
+    rows.value[index].fileData = base64
+    rows.value[index].contentType = file.raw.type || 'application/octet-stream'
+    updateValue()
+  }
+  reader.readAsDataURL(file.raw)
 }
 
 const openDataFactorySelector = (index) => {
@@ -676,9 +702,9 @@ defineExpose({
 
 .action-column {
   width: 20%;
-  min-width: 100px;
+  min-width: 120px;
   justify-content: flex-end;
-  gap: 135px;
+  gap: 5px;
 }
 
 .data-factory-btn {

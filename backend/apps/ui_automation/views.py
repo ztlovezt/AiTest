@@ -948,7 +948,7 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                     browser=browser,
                     headless=headless,
                     user=request.user,
-                    async_report=True
+                    async_report=False
                 )
 
                 print(f"[测试套件] 执行完成: {test_suite.name}, 结果: {result}")

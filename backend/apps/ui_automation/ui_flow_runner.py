@@ -24,7 +24,8 @@ class UiFlowRunner:
         self.headless = headless
         self.current_page = None
         self.context = None
-        self.screenshots_dir = os.path.join(settings.MEDIA_ROOT, settings.PATHS_UI_AUTOMATION_SCREENSHOTS)
+        # 直接使用配置文件中的路径（已经是绝对路径）
+        self.screenshots_dir = settings.PATHS_UI_AUTOMATION_SCREENSHOTS
         os.makedirs(self.screenshots_dir, exist_ok=True)
 
     def run_test_case(self, case_data: Dict[str, Any], base_url: str = '') -> Dict[str, Any]:

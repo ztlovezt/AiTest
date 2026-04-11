@@ -16,7 +16,9 @@ djangorestframework-simplejwt
 django-filter==25.2
 drf_spectacular_sidecar==2026.1.1
 drf_spectacular==0.29.0
-easyocr==1.7.2
+pytesseract>=0.3.10
+paddleocr[all]>=2.7.0
+paddlepaddle>=2.5.0
 fakerx
 httpx
 jsonpath_ng==1.8.0

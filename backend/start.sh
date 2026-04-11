@@ -66,6 +66,16 @@ fi
 echo "[1/2] Starting Django development server..."
 echo "Starting backend server, port: $BACKEND_PORT"
 
+# 禁用 OneDNN 和其他优化以避免 PaddlePaddle 3.x 兼容性问题
+export FLAGS_use_mkldnn=0
+export FLAGS_enable_mkldnn=0
+export FLAGS_enable_onednn=0
+export FLAGS_cinn_new_group_scheduler=0
+export FLAGS_enable_pir_api=0
+export FLAGS_check_cuda_version=0
+export FLAGS_skip_allocator_mem_check=1
+export PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+
 # Start Django server
 "$PYTHON_CMD" manage.py runserver 0.0.0.0:"$BACKEND_PORT" &
 DJANGO_PID=$!

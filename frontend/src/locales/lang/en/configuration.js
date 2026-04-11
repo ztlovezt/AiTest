@@ -19,6 +19,8 @@ export default {
     status: 'Status',
     notSet: 'Not Set',
     unnamed: 'Unnamed Config',
+    yes: 'Yes',
+    no: 'No',
     locale: 'en-US'
   },
 
@@ -231,6 +233,76 @@ export default {
       conflictError: 'Configuration conflict: An active configuration with the same model type and role combination already exists. Please select a different model type or role, or disable the existing configuration first.',
       saveFailedDetail: 'Failed to save: {error}',
       deleteFailedDetail: 'Failed to delete: {error}'
+    }
+  },
+
+  // OCR Configuration
+  ocr: {
+    title: '🔍 OCR Service Configuration',
+    description: 'Configure OCR services for image text recognition, supporting offline models and online LLMs',
+    configList: 'OCR Configuration List',
+    addConfig: 'Add Config',
+    addFirstConfig: 'Add First Config',
+    editConfig: 'Edit OCR Config',
+    addConfigTitle: 'Add OCR Config',
+    emptyTitle: 'No OCR Configuration',
+    emptyDescription: 'Please add your OCR configuration to start using image text recognition',
+    configName: 'Config Name',
+    configNamePlaceholder: 'e.g., PP-OCRv5 Chinese Recognition',
+    provider: 'Provider',
+    selectProvider: 'Select Provider',
+    apiKey: 'API Key',
+    apiKeyPlaceholder: 'Enter your API Key',
+    baseUrl: 'API Base URL',
+    baseUrlPlaceholder: 'Auto-filled after selecting provider',
+    baseUrlHint: 'Online OCR services require API URL configuration',
+    modelName: 'Model Name',
+    modelNamePlaceholder: 'e.g., gpt-4o, glm-4v',
+    language: 'Recognition Language',
+    minConfidence: 'Min Confidence',
+    minConfidenceHint: 'Recognition results below this confidence will be filtered, range 0-1',
+    useGpu: 'Use GPU Acceleration',
+    enableConfig: 'Enable this config',
+    default: 'Default',
+    setDefault: 'Set as Default',
+    testConfig: 'Test Config',
+    saveConfig: 'Save Config',
+    saving: 'Saving...',
+    testResult: 'Test Result',
+    testSuccess: 'Test Successful',
+    testFailed: 'Test Failed',
+    recognizedText: 'Recognized Text',
+    providers: {
+      tesseract: 'Tesseract OCR (Offline)',
+      ppocr: 'PP-OCRv5 (Offline)',
+      openai: 'OpenAI GPT-4V',
+      zhipu: 'Zhipu GLM-4V',
+      baidu: 'Baidu AI OCR',
+      tencent: 'Tencent OCR',
+      aliyun: 'Aliyun OCR',
+      custom: 'Custom OCR'
+    },
+    languages: {
+      chineseEnglish: 'Chinese & English',
+      chinese: 'Chinese',
+      english: 'English',
+      japanese: 'Japanese',
+      korean: 'Korean'
+    },
+    messages: {
+      loadFailed: 'Failed to load configurations',
+      createSuccess: 'Configuration added successfully',
+      saveSuccess: 'Configuration added successfully',
+      updateSuccess: 'Configuration updated successfully',
+      saveFailed: 'Failed to save',
+      deleteFailed: 'Failed to delete',
+      deleteSuccess: 'Configuration deleted successfully',
+      deleteConfirm: 'Are you sure to delete this configuration?',
+      setDefaultSuccess: 'Set as default configuration',
+      setDefaultFailed: 'Failed to set default configuration',
+      testSuccess: 'Test successful',
+      testFailed: 'Test failed',
+      fillRequired: 'Please fill in required fields'
     }
   }
 }

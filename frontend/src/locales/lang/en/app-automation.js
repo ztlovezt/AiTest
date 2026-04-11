@@ -39,7 +39,9 @@ export default {
     executionRecords: 'Execution Records',
     loadStatsFailed: 'Failed to load statistics',
     executionDetailPending: 'Execution detail page pending',
-    device: 'Device'
+    device: 'Device',
+    invalidExecutionId: 'Invalid execution ID',
+    noReportAvailable: 'No test report available'
   },
 
   // Common
@@ -496,6 +498,7 @@ export default {
       pending: 'Pending',
       running: 'Running',
       success: 'Success',
+      passed: 'Passed',
       failed: 'Failed',
       partial_failed: 'Partial Failed',
       skipped: 'Skipped',
@@ -1031,18 +1034,38 @@ export default {
 
   settings: {
     title: 'APP Automation Settings',
+    adbConfig: 'ADB Configuration',
     adbPath: 'ADB Path',
     adbPathPlaceholder: 'e.g.: adb or D:\\Android\\platform-tools\\adb.exe',
     adbPathTip: 'Android Debug Bridge tool path. If ADB is in system PATH, just enter "adb"',
+    ocrConfig: 'OCR Configuration',
+    ocrEngine: 'OCR Engine',
+    ocrEngineTip: 'Select OCR engine for APP automation. Tesseract is lightweight, PP-OCRv5 has higher accuracy',
+    ocrLanguage: 'Recognition Language',
+    ocrLanguageTip: 'Tesseract language settings: Chinese, English or mixed',
+    ocrUseGpu: 'Use GPU',
+    ocrUseCpu: 'Use CPU',
+    ocrUseGpuTip: 'PP-OCRv5 can use GPU acceleration, requires CUDA environment',
+    ocrMinConfidence: 'Min Confidence',
+    ocrMinConfidenceTip: 'Results below this confidence will be filtered, recommended 0.3-0.5',
+    ocrLangChinese: 'Chinese',
+    ocrLangEnglish: 'English',
+    ocrLangChineseEnglish: 'Chinese & English',
     saveConfig: 'Save Config',
     reset: 'Reset',
     currentConfigInfo: 'Current Config Info',
     adbPathLabel: 'ADB Path',
+    ocrEngineLabel: 'OCR Engine',
+    ocrLanguageLabel: 'Recognition Language',
     updateTime: 'Updated At',
     createTime: 'Created At',
     adbPathRequired: 'Please enter ADB path',
+    ocrEngineRequired: 'Please select OCR engine',
+    ocrLanguageRequired: 'Please select recognition language',
     loadConfigFailed: 'Failed to load config',
     saveConfigSuccess: 'Config saved successfully',
-    saveConfigFailed: 'Failed to save config'
+    saveConfigFailed: 'Failed to save config',
+    ocrNotConfigured: 'Please configure OCR in Settings Center / APP Environment Config before using',
+    ocrConfigRequired: 'OCR Configuration Required'
   }
 }
