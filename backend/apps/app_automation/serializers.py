@@ -171,7 +171,7 @@ class AppTestConfigSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'adb_path',
             'ocr_engine', 'ocr_engine_display', 'ocr_language',
-            'ocr_use_gpu', 'ocr_min_confidence',
+            'ocr_min_confidence',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']

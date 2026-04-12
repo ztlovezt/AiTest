@@ -248,7 +248,7 @@ export default {
     emptyTitle: 'No OCR Configuration',
     emptyDescription: 'Please add your OCR configuration to start using image text recognition',
     configName: 'Config Name',
-    configNamePlaceholder: 'e.g., PP-OCRv5 Chinese Recognition',
+    configNamePlaceholder: 'e.g., Tesseract Chinese Recognition',
     provider: 'Provider',
     selectProvider: 'Select Provider',
     apiKey: 'API Key',
@@ -261,7 +261,6 @@ export default {
     language: 'Recognition Language',
     minConfidence: 'Min Confidence',
     minConfidenceHint: 'Recognition results below this confidence will be filtered, range 0-1',
-    useGpu: 'Use GPU Acceleration',
     enableConfig: 'Enable this config',
     default: 'Default',
     setDefault: 'Set as Default',
@@ -274,13 +273,43 @@ export default {
     recognizedText: 'Recognized Text',
     providers: {
       tesseract: 'Tesseract OCR (Offline)',
-      ppocr: 'PP-OCRv5 (Offline)',
       openai: 'OpenAI GPT-4V',
       zhipu: 'Zhipu GLM-4V',
       baidu: 'Baidu AI OCR',
       tencent: 'Tencent OCR',
       aliyun: 'Aliyun OCR',
       custom: 'Custom OCR'
+    },
+    baiduSecretKey: 'Baidu Secret Key',
+    baiduSecretKeyPlaceholder: 'Enter Baidu OCR Secret Key',
+    tencentSecretId: 'Tencent SecretId',
+    tencentSecretIdPlaceholder: 'Enter Tencent Cloud SecretId',
+    tencentSecretKey: 'Tencent SecretKey',
+    tencentSecretKeyPlaceholder: 'Enter Tencent Cloud SecretKey',
+    tencentRegion: 'Tencent Cloud Region',
+    aliyunAccessKeyId: 'Aliyun AccessKeyId',
+    aliyunAccessKeyIdPlaceholder: 'Enter Aliyun AccessKeyId',
+    aliyunAccessKeySecret: 'Aliyun AccessKeySecret',
+    aliyunAccessKeySecretPlaceholder: 'Enter Aliyun AccessKeySecret',
+    customRequestMethod: 'Request Method',
+    customRequestFormat: 'Request Format',
+    customRequestFormatHint: 'Select request body format, OpenAI format will auto-build request',
+    customTemplate: 'Custom Template',
+    customBodyTemplate: 'Request Body Template',
+    customBodyTemplatePlaceholder: '{"image": "{image}", "key": "{api_key}"}',
+    customBodyTemplateHint: 'Use {image} for image base64, {api_key} for API Key',
+    customResponseFormat: 'Response Format',
+    responseText: 'Plain Text',
+    customResponsePath: 'Response Path',
+    customResponsePathHint: 'Use JSONPath format, e.g. choices[0].message.content',
+    customHeaders: 'Custom Headers',
+    customHeadersPlaceholder: '{"Authorization": "Bearer your-key"}',
+    customHeadersHint: 'JSON format headers, optional',
+    regions: {
+      guangzhou: 'Guangzhou',
+      shanghai: 'Shanghai',
+      beijing: 'Beijing',
+      chengdu: 'Chengdu'
     },
     languages: {
       chineseEnglish: 'Chinese & English',
@@ -302,7 +331,8 @@ export default {
       setDefaultFailed: 'Failed to set default configuration',
       testSuccess: 'Test successful',
       testFailed: 'Test failed',
-      fillRequired: 'Please fill in required fields'
+      fillRequired: 'Please fill in required fields',
+      invalidJson: 'Invalid JSON format, please check your input'
     }
   }
 }

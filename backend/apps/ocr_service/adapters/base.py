@@ -13,7 +13,6 @@ import numpy as np
 class OCREngineType(Enum):
     """OCR 引擎类型"""
     TESSERACT = 'tesseract'
-    PPOCR = 'ppocr'
     ONLINE = 'online'
 
 
@@ -77,15 +76,11 @@ class OCRConfig:
     """OCR 配置"""
     engine_type: OCREngineType = OCREngineType.TESSERACT
     language: OCRLanguage = OCRLanguage.CHINESE_ENGLISH
-    use_gpu: bool = False
     
     min_confidence: float = 0.3
     
     tesseract_path: Optional[str] = None
     tesseract_data_path: Optional[str] = None
-    
-    ppocr_use_angle_cls: bool = True
-    ppocr_det_db_thresh: float = 0.3
     
     online_provider: str = 'openai'
     online_api_key: Optional[str] = None

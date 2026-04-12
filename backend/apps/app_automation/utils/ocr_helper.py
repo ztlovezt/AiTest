@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 OCR 工具类 - 统一 OCR 服务层
-支持 Tesseract 和 PP-OCRv5
+支持 Tesseract
 """
 import os
 import time
@@ -33,16 +33,14 @@ class OCRHelper:
         self,
         ocr_engine: str = 'tesseract',
         language: str = 'chi_sim+eng',
-        use_gpu: bool = False,
         min_confidence: float = 0.3
     ):
         """
         初始化 OCR 助手
         
         Args:
-            ocr_engine: OCR 引擎 ('tesseract' 或 'ppocr')
+            ocr_engine: OCR 引擎 ('tesseract')
             language: OCR 识别语言
-            use_gpu: 是否使用 GPU 加速
             min_confidence: 最小置信度阈值
         """
         from django.conf import settings
@@ -50,7 +48,6 @@ class OCRHelper:
         
         self.ocr_engine = ocr_engine
         self.language = language
-        self.use_gpu = use_gpu
         self.min_confidence = min_confidence
         
         self._init_ocr_service()
@@ -75,15 +72,9 @@ class OCRHelper:
                 'korean': OCRLanguage.KOREAN,
             }
             
-            engine_type_map = {
-                'tesseract': OCREngineType.TESSERACT,
-                'ppocr': OCREngineType.PPOCR,
-            }
-            
             self._config = OCRConfig(
-                engine_type=engine_type_map.get(self.ocr_engine, OCREngineType.TESSERACT),
+                engine_type=OCREngineType.TESSERACT,
                 language=lang_map.get(self.language, OCRLanguage.CHINESE_ENGLISH),
-                use_gpu=self.use_gpu,
                 min_confidence=self.min_confidence
             )
             
@@ -283,8 +274,7 @@ _ocr_helper_instance = None
 
 def get_ocr_helper(
     ocr_engine: str = 'tesseract',
-    language: str = 'chi_sim+eng',
-    use_gpu: bool = False
+    language: str = 'chi_sim+eng'
 ) -> OCRHelper:
     """
     获取全局 OCR Helper 单例实例
@@ -292,7 +282,6 @@ def get_ocr_helper(
     Args:
         ocr_engine: OCR 引擎
         language: OCR 识别语言
-        use_gpu: 是否使用 GPU
         
     Returns:
         OCRHelper 实例
@@ -302,17 +291,14 @@ def get_ocr_helper(
     if _ocr_helper_instance is None:
         _ocr_helper_instance = OCRHelper(
             ocr_engine=ocr_engine,
-            language=language,
-            use_gpu=use_gpu
+            language=language
         )
     else:
         if (_ocr_helper_instance.ocr_engine != ocr_engine or
-            _ocr_helper_instance.language != language or
-            _ocr_helper_instance.use_gpu != use_gpu):
+            _ocr_helper_instance.language != language):
             _ocr_helper_instance = OCRHelper(
                 ocr_engine=ocr_engine,
-                language=language,
-                use_gpu=use_gpu
+                language=language
             )
     
     return _ocr_helper_instance
@@ -332,8 +318,7 @@ def get_ocr_helper_from_config() -> OCRHelper:
         if config:
             return get_ocr_helper(
                 ocr_engine=config.ocr_engine,
-                language=config.ocr_language,
-                use_gpu=config.ocr_use_gpu
+                language=config.ocr_language
             )
     except Exception as e:
         logger.warning(f"从数据库获取 OCR 配置失败: {e}")

@@ -235,7 +235,6 @@ cache_config = config_loader.get_cache_config()
 
 # OCR 配置（统一管理）
 ocr_config = config_loader.get_ocr_config()
-OCR_WARMUP_ENABLED = ocr_config.get('warmup_enabled', True)
 OCR_TIMEOUT = ocr_config.get('timeout', 300)
 OCR_MAX_CONCURRENT_TASKS = ocr_config.get('max_concurrent_tasks', 3)
 OCR_MAX_IMAGE_SIZE = ocr_config.get('max_image_size', 50)

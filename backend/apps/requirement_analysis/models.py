@@ -240,7 +240,6 @@ class AIModelConfig(models.Model):
 
     OCR_PROVIDER_CHOICES = [
         ('tesseract', 'Tesseract OCR'),
-        ('ppocr', 'PP-OCRv5'),
         ('openai', 'OpenAI GPT-4V'),
         ('zhipu', '智谱 GLM-4V'),
         ('baidu', '百度 AI OCR'),
@@ -290,7 +289,6 @@ class AIModelConfig(models.Model):
         verbose_name='OCR 识别语言',
         help_text='Tesseract: chi_sim(中文), eng(英文), chi_sim+eng(中英文)'
     )
-    ocr_use_gpu = models.BooleanField(default=False, verbose_name='OCR 使用 GPU')
     
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='创建者')
@@ -774,8 +772,11 @@ class AIModelService:
                     break
 
             except Exception as e:
-                logger.error(f"流式请求异常: {e}")
-                # 如果是超时或其他网络错误，可能需要重试机制，这里暂时直接抛出
+                import traceback
+                error_type = type(e).__name__
+                error_msg = str(e) if str(e) else repr(e)
+                error_traceback = traceback.format_exc()
+                logger.error(f"流式请求异常: 类型={error_type}, 消息={error_msg}\n堆栈跟踪:\n{error_traceback}")
                 raise e
 
     @staticmethod
@@ -858,9 +859,12 @@ class AIModelService:
 
             return response['choices'][0]['message']['content']
         except Exception as e:
-            logger.error(f"评审测试用例时出错: {e}")
-            # 返回一个默认的评审结果
-            return f"评审过程中出现错误: {str(e)}\n\n建议：测试用例结构完整，可以使用。"
+            import traceback
+            error_type = type(e).__name__
+            error_msg = str(e) if str(e) else repr(e)
+            error_traceback = traceback.format_exc()
+            logger.error(f"评审测试用例时出错: 类型={error_type}, 消息={error_msg}\n堆栈跟踪:\n{error_traceback}")
+            return f"评审过程中出现错误: {error_msg}\n\n建议：测试用例结构完整，可以使用。"
 
     @staticmethod
     async def generate_test_cases_stream(
@@ -935,7 +939,11 @@ class AIModelService:
                 full_content += chunk
                 chunk_count += 1
         except Exception as e:
-            logger.error(f"流式生成测试用例时出错: {e}")
+            import traceback
+            error_type = type(e).__name__
+            error_msg = str(e) if str(e) else repr(e)
+            error_traceback = traceback.format_exc()
+            logger.error(f"流式生成测试用例时出错: 类型={error_type}, 消息={error_msg}\n堆栈跟踪:\n{error_traceback}")
             raise
         finally:
             # 确保生成器被正确关闭
@@ -1007,8 +1015,12 @@ class AIModelService:
                 full_content += chunk
                 chunk_count += 1
         except Exception as e:
-            logger.error(f"流式评审测试用例时出错: {e}")
-            return f"评审过程中出现错误: {str(e)}\n\n建议：测试用例结构完整，可以使用。"
+            import traceback
+            error_type = type(e).__name__
+            error_msg = str(e) if str(e) else repr(e)
+            error_traceback = traceback.format_exc()
+            logger.error(f"流式评审测试用例时出错: 类型={error_type}, 消息={error_msg}\n堆栈跟踪:\n{error_traceback}")
+            return f"评审过程中出现错误: {error_msg}\n\n建议：测试用例结构完整，可以使用。"
         finally:
             # 确保生成器被正确关闭
             try:
@@ -1093,8 +1105,11 @@ class AIModelService:
                 full_content += chunk
                 chunk_count += 1
         except Exception as e:
-            logger.error(f"根据评审意见改进测试用例时出错: {e}")
-            # 改进失败时返回原始用例
+            import traceback
+            error_type = type(e).__name__
+            error_msg = str(e) if str(e) else repr(e)
+            error_traceback = traceback.format_exc()
+            logger.error(f"根据评审意见改进测试用例时出错: 类型={error_type}, 消息={error_msg}\n堆栈跟踪:\n{error_traceback}")
             return original_test_cases
         finally:
             # 确保生成器被正确关闭

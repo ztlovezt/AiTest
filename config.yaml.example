@@ -226,8 +226,6 @@ timeouts:
 # OCR 配置
 # ================================
 ocr:
-  # 是否启用 OCR 模型预热（服务启动时预加载 PP-OCRv5 模型）
-  warmup_enabled: true
   # OCR 识别超时时间（秒）
   timeout: 300
   # 最大并发 OCR 任务数
@@ -236,9 +234,6 @@ ocr:
   max_image_size: 50
   # OCR 纠错文件路径（相对于项目根目录）
   correction_file: "expand/ocr_correct/ocr_corrections.json"
-  # PP-OCRv5 模型类型: mobile(轻量快速) 或 server(高精度慢速)
-  # 注意: use_gpu 等配置在设置中心 OCR 配置中设置
-  model_type: "mobile"
 
 # ================================
 # Docker镜像配置 - Docker Hub 示例

@@ -31,7 +31,6 @@ from .adapters import (
     OCRLanguage,
     OCRConfig as OCRConfigData,
     TesseractAdapter,
-    PPOCRAdapter,
     OnlineOCRAdapter,
 )
 
@@ -88,7 +87,6 @@ class OCRConfigViewSet(viewsets.ModelViewSet):
             ocr_config = OCRConfigData(
                 engine_type=self._get_engine_type(config.provider),
                 language=OCRLanguage.CHINESE_ENGLISH,
-                use_gpu=config.use_gpu,
                 min_confidence=config.min_confidence,
                 online_provider=config.provider,
                 online_api_key=config.api_key,
@@ -115,8 +113,6 @@ class OCRConfigViewSet(viewsets.ModelViewSet):
         """根据提供商获取引擎类型"""
         if provider == 'tesseract':
             return OCREngineType.TESSERACT
-        elif provider == 'ppocr':
-            return OCREngineType.PPOCR
         else:
             return OCREngineType.ONLINE
 
@@ -157,12 +153,12 @@ class OCRRecognizeView(APIView):
                     ocr_config = OCRConfigData(
                         engine_type=self._get_engine_type(config.provider),
                         language=self._get_language(language),
-                        use_gpu=config.use_gpu,
                         min_confidence=config.min_confidence,
                         online_provider=config.provider,
                         online_api_key=config.api_key,
                         online_base_url=config.base_url,
                         online_model=config.model_name,
+                        extra_params=config.extra_config or {},
                     )
                     engine_type = ocr_config.engine_type
                 except OCRConfig.DoesNotExist:
@@ -205,8 +201,6 @@ class OCRRecognizeView(APIView):
     def _get_engine_type(self, provider: str) -> OCREngineType:
         if provider == 'tesseract':
             return OCREngineType.TESSERACT
-        elif provider == 'ppocr':
-            return OCREngineType.PPOCR
         else:
             return OCREngineType.ONLINE
     
@@ -252,7 +246,6 @@ class OCRRecognizeBase64View(APIView):
                     ocr_config = OCRConfigData(
                         engine_type=self._get_engine_type(config.provider),
                         language=self._get_language(language),
-                        use_gpu=config.use_gpu,
                         min_confidence=config.min_confidence,
                         online_provider=config.provider,
                         online_api_key=config.api_key,
@@ -290,8 +283,6 @@ class OCRRecognizeBase64View(APIView):
     def _get_engine_type(self, provider: str) -> OCREngineType:
         if provider == 'tesseract':
             return OCREngineType.TESSERACT
-        elif provider == 'ppocr':
-            return OCREngineType.PPOCR
         else:
             return OCREngineType.ONLINE
     
@@ -327,23 +318,8 @@ def ocr_check_installation(request):
     results = {}
     
     results['tesseract'] = TesseractAdapter.check_installation()
-    results['ppocr'] = PPOCRAdapter.check_installation()
     
     return Response(results)
-
-
-@api_view(['GET'])
-def ocr_gpu_status(request):
-    """检查 GPU 加速状态"""
-    from .gpu_utils import get_gpu_info, check_gpu_requirements
-    
-    info = get_gpu_info()
-    requirements = check_gpu_requirements()
-    
-    return Response({
-        'gpu_info': info,
-        'requirements': requirements,
-    })
 
 
 class OCRBatchRecognizeView(APIView):
@@ -373,7 +349,6 @@ class OCRBatchRecognizeView(APIView):
                     ocr_config = OCRConfigData(
                         engine_type=self._get_engine_type(config.provider),
                         language=self._get_language(language),
-                        use_gpu=config.use_gpu,
                         min_confidence=config.min_confidence,
                         online_provider=config.provider,
                         online_api_key=config.api_key,
@@ -452,8 +427,6 @@ class OCRBatchRecognizeView(APIView):
     def _get_engine_type(self, provider: str) -> OCREngineType:
         if provider == 'tesseract':
             return OCREngineType.TESSERACT
-        elif provider == 'ppocr':
-            return OCREngineType.PPOCR
         else:
             return OCREngineType.ONLINE
     

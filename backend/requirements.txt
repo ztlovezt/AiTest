@@ -1,6 +1,5 @@
 airtest>=1.4.3
 asgiref==3.11.1
-#argon2-cffi  # 可选
 barcode_generator==0.1rc15
 browser_use
 channels==4.3.2
@@ -17,8 +16,6 @@ django-filter==25.2
 drf_spectacular_sidecar==2026.1.1
 drf_spectacular==0.29.0
 pytesseract>=0.3.10
-paddleocr[all]>=2.7.0
-paddlepaddle>=2.5.0
 fakerx
 httpx
 jsonpath_ng==1.8.0

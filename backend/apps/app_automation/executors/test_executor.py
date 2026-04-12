@@ -104,24 +104,6 @@ class AppTestExecutor(BaseTestExecutor):
                         'message': f'Tesseract OCR 未正确安装或配置，请检查安装。错误: {str(e)}'
                     }
             
-            elif config.ocr_engine == 'ppocr':
-                try:
-                    from apps.ocr_service.adapters.ppocr import PPOCRAdapter
-                    adapter = PPOCRAdapter()
-                    if not adapter.is_available():
-                        return {
-                            'valid': False,
-                            'message': 'PP-OCRv5 未正确安装，请安装 paddleocr 和 paddlepaddle'
-                        }
-                    logger.info(f"OCR 配置校验通过: PP-OCRv5")
-                    return {'valid': True, 'message': 'OK'}
-                except Exception as e:
-                    logger.warning(f"PP-OCRv5 不可用: {e}")
-                    return {
-                        'valid': False,
-                        'message': f'PP-OCRv5 未正确安装，请安装 paddleocr 和 paddlepaddle。错误: {str(e)}'
-                    }
-            
             return {'valid': True, 'message': 'OK'}
             
         except Exception as e:

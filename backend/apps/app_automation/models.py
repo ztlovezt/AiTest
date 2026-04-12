@@ -56,7 +56,6 @@ class AppTestConfig(models.Model):
     """APP自动化测试配置"""
     OCR_ENGINE_CHOICES = [
         ('tesseract', 'Tesseract OCR'),
-        ('ppocr', 'PP-OCRv5'),
     ]
     
     adb_path = models.CharField(
@@ -78,11 +77,6 @@ class AppTestConfig(models.Model):
         default='chi_sim+eng',
         verbose_name='OCR 语言',
         help_text='Tesseract: chi_sim(中文), eng(英文), chi_sim+eng(中英文)'
-    )
-    ocr_use_gpu = models.BooleanField(
-        default=False,
-        verbose_name='OCR 使用 GPU',
-        help_text='PP-OCRv5 可使用 GPU 加速'
     )
     ocr_min_confidence = models.FloatField(
         default=0.3,

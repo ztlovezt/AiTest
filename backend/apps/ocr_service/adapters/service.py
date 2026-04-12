@@ -66,10 +66,6 @@ class OCRService:
             from .tesseract import TesseractAdapter
             return TesseractAdapter(config)
         
-        elif engine_type == OCREngineType.PPOCR:
-            from .ppocr import PPOCRAdapter
-            return PPOCRAdapter(config)
-        
         elif engine_type == OCREngineType.ONLINE:
             from .online import OnlineOCRAdapter
             return OnlineOCRAdapter(config)

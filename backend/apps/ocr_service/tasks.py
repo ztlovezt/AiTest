@@ -166,7 +166,6 @@ def _do_ocr_recognition(
         
         engine_type_map = {
             'tesseract': OCREngineType.TESSERACT,
-            'ppocr': OCREngineType.PPOCR,
             'openai': OCREngineType.ONLINE,
             'zhipu': OCREngineType.ONLINE,
             'baidu': OCREngineType.ONLINE,
@@ -186,7 +185,6 @@ def _do_ocr_recognition(
         config_data = OCRConfigData(
             engine_type=engine_type_map.get(ocr_config.provider, OCREngineType.TESSERACT),
             language=lang_map.get(ocr_config.language, OCRLanguage.CHINESE_ENGLISH),
-            use_gpu=ocr_config.use_gpu,
             min_confidence=ocr_config.min_confidence,
             online_provider=ocr_config.provider,
             online_api_key=ocr_config.api_key,
@@ -386,5 +384,4 @@ def get_ocr_status() -> Dict[str, Any]:
         'max_concurrent_tasks': max_concurrent,
         'timeout_seconds': timeout,
         'semaphore_value': semaphore._value if hasattr(semaphore, '_value') else 'N/A',
-        'warmup_enabled': getattr(settings, 'OCR_WARMUP_ENABLED', True),
     }

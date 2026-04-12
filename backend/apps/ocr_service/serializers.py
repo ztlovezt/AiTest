@@ -13,7 +13,7 @@ class OCRConfigSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'provider', 'provider_display',
             'api_key', 'base_url', 'model_name',
-            'language', 'use_gpu', 'min_confidence', 'extra_config',
+            'language', 'min_confidence', 'extra_config',
             'is_active', 'is_default',
             'created_by', 'created_by_name',
             'created_at', 'updated_at'
@@ -33,7 +33,7 @@ class OCRConfigListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'provider', 'provider_display',
             'base_url', 'model_name', 'language',
-            'use_gpu', 'min_confidence',
+            'min_confidence',
             'is_active', 'is_default',
             'created_at', 'updated_at'
         ]

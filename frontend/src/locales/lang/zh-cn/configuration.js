@@ -248,7 +248,7 @@ export default {
     emptyTitle: '暂无OCR配置',
     emptyDescription: '请添加您的OCR配置以开始使用图片文字识别功能',
     configName: '配置名称',
-    configNamePlaceholder: '例如：PP-OCRv5中文识别',
+    configNamePlaceholder: '例如：Tesseract中文识别',
     provider: '服务提供商',
     selectProvider: '请选择提供商',
     apiKey: 'API Key',
@@ -261,7 +261,6 @@ export default {
     language: '识别语言',
     minConfidence: '最小置信度',
     minConfidenceHint: '低于此置信度的识别结果将被过滤，范围0-1',
-    useGpu: '使用GPU加速',
     enableConfig: '启用此配置',
     default: '默认',
     setDefault: '设为默认',
@@ -274,13 +273,43 @@ export default {
     recognizedText: '识别结果',
     providers: {
       tesseract: 'Tesseract OCR (离线)',
-      ppocr: 'PP-OCRv5 (离线)',
       openai: 'OpenAI GPT-4V',
       zhipu: '智谱 GLM-4V',
       baidu: '百度AI OCR',
       tencent: '腾讯OCR',
       aliyun: '阿里云OCR',
       custom: '自定义OCR'
+    },
+    baiduSecretKey: '百度 Secret Key',
+    baiduSecretKeyPlaceholder: '输入百度 OCR Secret Key',
+    tencentSecretId: '腾讯 SecretId',
+    tencentSecretIdPlaceholder: '输入腾讯云 SecretId',
+    tencentSecretKey: '腾讯 SecretKey',
+    tencentSecretKeyPlaceholder: '输入腾讯云 SecretKey',
+    tencentRegion: '腾讯云区域',
+    aliyunAccessKeyId: '阿里云 AccessKeyId',
+    aliyunAccessKeyIdPlaceholder: '输入阿里云 AccessKeyId',
+    aliyunAccessKeySecret: '阿里云 AccessKeySecret',
+    aliyunAccessKeySecretPlaceholder: '输入阿里云 AccessKeySecret',
+    customRequestMethod: '请求方法',
+    customRequestFormat: '请求格式',
+    customRequestFormatHint: '选择请求体的格式，OpenAI 格式会自动构建请求',
+    customTemplate: '自定义模板',
+    customBodyTemplate: '请求体模板',
+    customBodyTemplatePlaceholder: '{"image": "{image}", "key": "{api_key}"}',
+    customBodyTemplateHint: '使用 {image} 表示图片 base64，{api_key} 表示 API Key',
+    customResponseFormat: '响应格式',
+    responseText: '纯文本',
+    customResponsePath: '响应路径',
+    customResponsePathHint: '使用 JSONPath 格式，如 choices[0].message.content',
+    customHeaders: '自定义请求头',
+    customHeadersPlaceholder: '{"Authorization": "Bearer your-key"}',
+    customHeadersHint: 'JSON 格式的请求头，可选',
+    regions: {
+      guangzhou: '广州',
+      shanghai: '上海',
+      beijing: '北京',
+      chengdu: '成都'
     },
     languages: {
       chineseEnglish: '中英文混合',
@@ -302,7 +331,8 @@ export default {
       setDefaultFailed: '设置默认配置失败',
       testSuccess: '测试成功',
       testFailed: '测试失败',
-      fillRequired: '请填写必填字段'
+      fillRequired: '请填写必填字段',
+      invalidJson: 'JSON 格式无效，请检查输入'
     }
   }
 }

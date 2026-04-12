@@ -19,7 +19,7 @@ class OCRConfigAdmin(admin.ModelAdmin):
             'classes': ('collapse',),
         }),
         ('识别配置', {
-            'fields': ('language', 'use_gpu', 'min_confidence', 'extra_config'),
+            'fields': ('language', 'min_confidence', 'extra_config'),
         }),
         ('元信息', {
             'fields': ('created_by', 'created_at', 'updated_at'),

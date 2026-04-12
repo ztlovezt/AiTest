@@ -7,7 +7,6 @@ class OCRConfig(models.Model):
     """OCR 配置模型"""
     PROVIDER_CHOICES = [
         ('tesseract', 'Tesseract OCR'),
-        ('ppocr', 'PP-OCRv5'),
         ('openai', 'OpenAI GPT-4V'),
         ('zhipu', '智谱 GLM-4V'),
         ('baidu', '百度 AI OCR'),
@@ -29,7 +28,6 @@ class OCRConfig(models.Model):
         verbose_name='识别语言',
         help_text='Tesseract: chi_sim(中文), eng(英文), chi_sim+eng(中英文)'
     )
-    use_gpu = models.BooleanField(default=False, verbose_name='使用 GPU')
     min_confidence = models.FloatField(default=0.3, verbose_name='最小置信度')
     
     extra_config = models.JSONField(default=dict, blank=True, verbose_name='额外配置')

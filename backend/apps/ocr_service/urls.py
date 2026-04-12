@@ -13,7 +13,6 @@ urlpatterns = [
     path('recognize-base64/', views.OCRRecognizeBase64View.as_view(), name='ocr-recognize-base64'),
     path('engines/', views.ocr_engines, name='ocr-engines'),
     path('check-installation/', views.ocr_check_installation, name='ocr-check-installation'),
-    path('gpu-status/', views.ocr_gpu_status, name='ocr-gpu-status'),
 ]
 
 urlpatterns += router.urls

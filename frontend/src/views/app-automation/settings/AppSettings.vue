@@ -86,15 +86,6 @@
               </div>
             </el-form-item>
 
-            <el-form-item :label="t('appAutomation.settings.ocrUseGpu')" prop="ocr_use_gpu">
-              <el-switch v-model="form.ocr_use_gpu" />
-              <div class="form-item-tip">
-                <el-text size="small" type="info">
-                  {{ t('appAutomation.settings.ocrUseGpuTip') }}
-                </el-text>
-              </div>
-            </el-form-item>
-
             <el-form-item :label="t('appAutomation.settings.ocrMinConfidence')" prop="ocr_min_confidence">
               <el-slider
                 v-model="form.ocr_min_confidence"
@@ -131,11 +122,6 @@
           <el-descriptions-item :label="t('appAutomation.settings.ocrLanguageLabel')">
             <el-tag type="info">{{ getOcrLanguageLabel(currentConfig.ocr_language) }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item :label="t('appAutomation.settings.ocrUseGpu')">
-            <el-tag :type="currentConfig.ocr_use_gpu ? 'warning' : 'info'">
-              {{ currentConfig.ocr_use_gpu ? t('appAutomation.settings.ocrUseGpu') : t('appAutomation.settings.ocrUseCpu') }}
-            </el-tag>
-          </el-descriptions-item>
           <el-descriptions-item :label="t('appAutomation.settings.ocrMinConfidence')">
             <el-tag type="warning">{{ currentConfig.ocr_min_confidence || 0.3 }}</el-tag>
           </el-descriptions-item>
@@ -165,7 +151,6 @@ const form = reactive({
   adb_path: 'adb',
   ocr_engine: 'tesseract',
   ocr_language: 'chi_sim+eng',
-  ocr_use_gpu: false,
   ocr_min_confidence: 0.3
 })
 
@@ -174,15 +159,13 @@ const currentConfig = reactive({
   ocr_engine: '',
   ocr_engine_display: '',
   ocr_language: '',
-  ocr_use_gpu: false,
   ocr_min_confidence: 0.3,
   created_at: '',
   updated_at: ''
 })
 
 const ocrEngineOptions = [
-  { value: 'tesseract', label: 'Tesseract OCR' },
-  { value: 'ppocr', label: 'PP-OCRv5' }
+  { value: 'tesseract', label: 'Tesseract OCR' }
 ]
 
 const ocrLanguageOptions = [

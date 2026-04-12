@@ -951,7 +951,6 @@ export default {
     getOcrProviderLabel(provider) {
       const labels = {
         tesseract: this.$t('configuration.ocr.providers.tesseract'),
-        ppocr: this.$t('configuration.ocr.providers.ppocr'),
         openai: this.$t('configuration.ocr.providers.openai'),
         zhipu: this.$t('configuration.ocr.providers.zhipu'),
         baidu: this.$t('configuration.ocr.providers.baidu'),

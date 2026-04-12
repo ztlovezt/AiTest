@@ -106,16 +106,8 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **统一 OCR 服务层**: 独立的 OCR 服务应用，提供统一的文字识别接口
 - **多引擎支持**:
     - **Tesseract OCR**: 传统 OCR 引擎，轻量级，支持多语言
-    - **PP-OCRv5**: 离线深度学习模型，高精度中文识别，支持 GPU 加速
     - **在线 OCR 大模型**: OpenAI GPT-4V、智谱 GLM-4V、百度 AI OCR、腾讯 OCR、阿里云 OCR
-- **GPU 加速支持**:
-    - 支持 NVIDIA GPU 加速，识别速度提升 5-10 倍
-    - 自动检测 GPU 环境（NVIDIA 驱动、CUDA、PaddlePaddle-GPU）
-    - GPU 不可用时自动降级到 CPU 模式
-    - 提供 GPU 状态检测 API，方便用户了解环境配置
 - **智能降级机制**:
-    - GPU 初始化失败 → 自动切换 CPU 模式
-    - PP-OCRv5 不可用 → 自动回退 Tika 解析
     - 图片识别失败 → 自动回退 Tika 内置 OCR
 - **文件格式支持**:
     - **图片格式**: PNG、JPG、JPEG、GIF、BMP、TIFF、WebP
@@ -127,7 +119,7 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **批量处理**: 支持批量图片 OCR 识别，自动合并和清理文本
 - **AI 用例生成集成**: 上传图片需求文档时可选择 OCR 识别方式
 - **APP 自动化集成**: 
-    - APP 自动化测试支持多种 OCR 引擎选择（Tesseract/PP-OCRv5）
+    - APP 自动化测试支持 Tesseract OCR 引擎
     - 在设置中心/APP环境配置中配置 OCR 引擎和语言
     - 执行测试时自动校验 OCR 配置，未配置时给出提示
 - **文本格式优化**: 自动清理 OCR 识别结果中的多余空格和格式问题
@@ -196,8 +188,6 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 - **定时任务**: Django-Q2 1.6.0+ (任务队列和定时任务)
 - **OCR 服务**:
     - pytesseract 0.3.10+: Tesseract OCR Python 接口
-    - paddleocr 2.7.0+: PP-OCRv5 离线模型
-    - paddlepaddle 2.5.0+: PaddlePaddle 深度学习框架
 
 ### 前端技术栈
 
@@ -353,8 +343,6 @@ testhub_platform/
 - **allure-pytest**: 2.15.3 (测试报告)
 - **pytest**: 9.0.2 (测试框架)
 - **pytesseract**: 0.3.10+ (Tesseract OCR)
-- **paddleocr**: 2.7.0+ (PP-OCRv5 离线模型)
-- **paddlepaddle**: 2.5.0+ (PaddlePaddle 深度学习框架)
 
 完整依赖列表请查看 [requirements.txt](./backend/requirements.txt)
 
@@ -435,54 +423,6 @@ jwt:
 
 ### OCR 服务配置
 
-#### GPU 加速配置
-
-如需启用 GPU 加速，需要安装 GPU 版本的 PaddlePaddle：
-
-```bash
-# 卸载 CPU 版本
-pip uninstall paddlepaddle
-
-# 安装 GPU 版本（CUDA 11.8）
-python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
-
-# 或安装 GPU 版本（CUDA 12.3）
-python -m pip install paddlepaddle-gpu -i https://mirror.baidu.com/pypi/simple
-```
-
-**GPU 环境要求**：
-
-| 组件 | 要求 |
-|-----|------|
-| NVIDIA 驱动 | 最新版本 |
-| CUDA | 11.8 或 12.3 |
-| cuDNN | 对应 CUDA 版本 |
-| PaddlePaddle-GPU | 与 CUDA 版本匹配 |
-
-**GPU 状态检测 API**：
-
-```bash
-# 检查 GPU 加速状态
-GET /api/ocr/gpu-status/
-
-# 返回示例
-{
-    "gpu_info": {
-        "nvidia_driver": {"available": true, "message": "NVIDIA 驱动已安装"},
-        "paddle_gpu": {"available": true, "message": "PaddlePaddle-GPU 已安装"},
-        "cuda": {"available": true, "message": "检测到 1 个 GPU: NVIDIA GeForce RTX 3080"},
-        "gpu_available": true,
-        "gpu_name": "NVIDIA GeForce RTX 3080",
-        "gpu_count": 1
-    },
-    "requirements": {
-        "can_use_gpu": true,
-        "issues": [],
-        "warnings": []
-    }
-}
-```
-
 #### 在线 OCR 大模型配置
 
 在设置中心配置在线 OCR 大模型（如 GLM-4V、GPT-4V）：
@@ -507,13 +447,11 @@ GET /api/ocr/gpu-status/
 #### OCR 配置优先级
 
 1. **设置中心 OCR 配置**（用户级配置）
-   - use_gpu: 是否启用 GPU 加速
    - language: 识别语言
    - min_confidence: 最小置信度
    - provider: OCR 服务商
 
 2. **config.yaml 配置**（系统级配置）
-   - model_type: 模型类型（mobile/server）
    - timeout: 超时时间
    - max_concurrent_tasks: 最大并发数
 
@@ -522,17 +460,12 @@ GET /api/ocr/gpu-status/
 ```
 用户请求 OCR 识别
     ↓
-检查是否启用 GPU
-    ↓
-┌─ GPU 已启用 ─────────────────────┐
+┌─ 选择 OCR 引擎 ─────────────────┐
 │   ↓                              │
-│ 检测 GPU 环境                     │
-│   ↓                              │
-│ GPU 可用 → 使用 GPU 加速          │
-│ GPU 不可用 → 自动切换 CPU 模式    │
+│ Tesseract / 在线 OCR             │
 └──────────────────────────────────┘
     ↓
-执行 PP-OCRv5 识别
+执行 OCR 识别
     ↓
 ┌─ 识别成功 ─→ 返回结果
 │
@@ -543,7 +476,7 @@ GET /api/ocr/gpu-status/
 
 | 类型 | 格式 | 处理方式 |
 |-----|------|---------|
-| **图片** | PNG, JPG, JPEG, GIF, BMP, TIFF, WebP | PP-OCRv5 / 在线 OCR |
+| **图片** | PNG, JPG, JPEG, GIF, BMP, TIFF, WebP | Tesseract / 在线 OCR |
 | **文档** | PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX | Tika 解析 |
 | **文本** | TXT, MD, RTF, CSV, JSON, XML, HTML | Tika 解析 |
 | **其他** | 1000+ 种格式 | Tika 自动识别 |
