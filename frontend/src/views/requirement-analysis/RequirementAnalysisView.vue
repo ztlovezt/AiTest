@@ -854,11 +854,13 @@ export default {
     if (this.pollInterval) {
       clearInterval(this.pollInterval)
     }
-    // 停止进度条定时器
     if (this.progressTimer) {
       clearInterval(this.progressTimer)
     }
-    // 停止token自动刷新定时器
+    if (this.eventSource) {
+      this.eventSource.close()
+      this.eventSource = null
+    }
     const userStore = useUserStore()
     userStore.stopAutoRefresh()
   },
@@ -1321,7 +1323,9 @@ export default {
       if (this.selectedFiles.length === 0) {
         this.documentTitle = ''
       }
-      this.$refs.fileInput.value = ''
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
     },
 
     formatFileSize(bytes) {
