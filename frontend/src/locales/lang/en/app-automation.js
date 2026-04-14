@@ -144,12 +144,43 @@ export default {
     reconnect: 'Reconnect',
     disconnect: 'Disconnect',
     usageCount: 'Usage Count',
+    remoteConnect: 'Remote Connect',
+    detail: 'Detail',
+    delete: 'Delete',
     statusMap: {
       online: 'Online',
       offline: 'Offline',
       locked: 'Locked',
       available: 'Available'
     }
+  },
+
+  // Remote Connection
+  remoteConnection: {
+    back: 'Back',
+    screenshot: 'Screenshot',
+    fullscreen: 'Fullscreen',
+    endSession: 'End Debugging',
+    connecting: 'Connecting to device...',
+    waitingVideo: 'Waiting for video stream...',
+    videoLoading: 'Loading video...',
+    connected: 'Connected successfully',
+    disconnected: 'Connection closed',
+    connectionFailed: 'Connection failed',
+    confirmEndSession: 'Are you sure you want to end the current debugging session?',
+    endSessionTitle: 'End Debugging',
+    confirmEnd: 'Confirm End',
+    cancel: 'Cancel',
+    sessionEnded: 'Debugging session ended',
+    deviceConnected: 'Device connected successfully',
+    connectionInterrupted: 'Connection unexpectedly interrupted',
+    websocketError: 'WebSocket connection error',
+    connectionFailedMsg: 'Connection failed',
+    initializationFailed: 'Initialization failed',
+    missingDeviceId: 'Device ID is missing',
+    screenshotSaved: 'Screenshot saved',
+    screenshotFailed: 'Screenshot failed',
+    fullscreenFailed: 'Fullscreen failed'
   },
 
   // Package Management

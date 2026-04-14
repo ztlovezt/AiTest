@@ -5,7 +5,7 @@
       <div class="toolbar-left">
         <el-button @click="goBack" size="small">
           <el-icon><ArrowLeft /></el-icon>
-          返回
+          {{ t('appAutomation.remoteConnection.back') }}
         </el-button>
         <span class="device-name">{{ deviceName }}</span>
       </div>
@@ -20,15 +20,15 @@
       <div class="toolbar-right">
         <el-button @click="takeScreenshot" size="small" :loading="screenshotLoading">
           <el-icon><Camera /></el-icon>
-          截图
+          {{ t('appAutomation.remoteConnection.screenshot') }}
         </el-button>
         <el-button @click="toggleFullscreen" size="small">
           <el-icon><FullScreen /></el-icon>
-          全屏
+          {{ t('appAutomation.remoteConnection.fullscreen') }}
         </el-button>
         <el-button @click="endSession" type="danger" size="small">
           <el-icon><Close /></el-icon>
-          结束调试
+          {{ t('appAutomation.remoteConnection.endSession') }}
         </el-button>
       </div>
     </div>
@@ -45,7 +45,7 @@
         <!-- 视频加载中提示 -->
         <div v-if="!videoReady && isConnected" class="video-loading">
           <el-icon class="loading-icon" :size="32"><Loading /></el-icon>
-          <p>视频加载中...</p>
+          <p>{{ t('appAutomation.remoteConnection.videoLoading') }}</p>
         </div>
         
         <video 
@@ -92,11 +92,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   ArrowLeft, Clock, Camera, FullScreen, Close, 
   Loading, HomeFilled, Menu, ZoomIn, ZoomOut 
 } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 // Global types from loaded scripts - declare for TypeScript
 declare global {
@@ -136,7 +139,7 @@ const router = useRouter()
 const deviceName = ref('')
 const isConnected = ref(false)
 const videoReady = ref(false) // 视频是否已准备好
-const connectionMessage = ref('正在连接设备...')
+const connectionMessage = ref(t('appAutomation.remoteConnection.connecting'))
 const sessionStartTime = ref(null)
 const sessionDuration = ref(0)
 const screenshotLoading = ref(false)
@@ -293,7 +296,7 @@ const connectWebSocket = async () => {
     
     ws.onopen = () => {
       console.log('WebSocket connected')
-      connectionMessage.value = '等待视频流...'
+      connectionMessage.value = t('appAutomation.remoteConnection.waitingVideo')
     }
     
     ws.onmessage = (event) => {
@@ -313,11 +316,11 @@ const connectWebSocket = async () => {
     ws.onclose = (event) => {
       console.log('WebSocket closed:', event.code, event.reason)
       isConnected.value = false
-      connectionMessage.value = '连接已断开'
+      connectionMessage.value = t('appAutomation.remoteConnection.disconnected')
       stopTimer()
       
       if (event.code !== 1000) {
-        ElMessage.warning('连接意外断开')
+        ElMessage.warning(t('appAutomation.remoteConnection.connectionInterrupted'))
       }
       
       // 重置视频状态
@@ -326,8 +329,8 @@ const connectWebSocket = async () => {
     
     ws.onerror = (error) => {
       console.error('WebSocket error:', error)
-      connectionMessage.value = '连接失败'
-      ElMessage.error('WebSocket 连接错误')
+      connectionMessage.value = t('appAutomation.remoteConnection.connectionFailed')
+      ElMessage.error(t('appAutomation.remoteConnection.websocketError'))
     }
     
   } catch (error) {
@@ -342,11 +345,11 @@ const handleTextMessage = (message) => {
   
   if (message.type === 'connected') {
     isConnected.value = true
-    connectionMessage.value = '连接成功'
+    connectionMessage.value = t('appAutomation.remoteConnection.connected')
     startTimer()
-    ElMessage.success('设备连接成功')
+    ElMessage.success(t('appAutomation.remoteConnection.deviceConnected'))
   } else if (message.type === 'error') {
-    ElMessage.error(message.message || '发生错误')
+    ElMessage.error(message.message || t('appAutomation.common.failed'))
     connectionMessage.value = message.message
   }
 }
@@ -422,13 +425,13 @@ const takeScreenshot = async () => {
       link.href = result.data.content
       link.download = result.data.filename
       link.click()
-      ElMessage.success('截图已保存')
+      ElMessage.success(t('appAutomation.remoteConnection.screenshotSaved'))
     } else {
-      ElMessage.error(result.msg || '截图失败')
+      ElMessage.error(result.msg || t('appAutomation.remoteConnection.screenshotFailed'))
     }
   } catch (error) {
     console.error('Screenshot failed:', error)
-    ElMessage.error('截图失败: ' + error.message)
+    ElMessage.error(t('appAutomation.remoteConnection.screenshotFailed') + ': ' + error.message)
   } finally {
     screenshotLoading.value = false
   }
@@ -454,7 +457,7 @@ const getCookie = (name) => {
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
     videoContainerRef.value.requestFullscreen().catch(err => {
-      ElMessage.error(`全屏失败: ${err.message}`)
+      ElMessage.error(t('appAutomation.remoteConnection.fullscreenFailed') + ': ' + err.message)
     })
   } else {
     document.exitFullscreen()
@@ -481,11 +484,11 @@ const applyZoom = () => {
 // 结束会话
 const endSession = () => {
   ElMessageBox.confirm(
-    '确定要结束当前调试会话吗？',
-    '结束调试',
+    t('appAutomation.remoteConnection.confirmEndSession'),
+    t('appAutomation.remoteConnection.endSessionTitle'),
     {
-      confirmButtonText: '确定结束',
-      cancelButtonText: '取消',
+      confirmButtonText: t('appAutomation.remoteConnection.confirmEnd'),
+      cancelButtonText: t('appAutomation.remoteConnection.cancel'),
       type: 'warning',
       center: true,
       roundButton: true,
@@ -494,7 +497,7 @@ const endSession = () => {
     if (ws) {
       ws.close(1000, 'User ended session')
     }
-    ElMessage.success('调试会话已结束')
+    ElMessage.success(t('appAutomation.remoteConnection.sessionEnded'))
     goBack()
   }).catch(() => {
     // 用户取消
@@ -510,7 +513,7 @@ const goBack = () => {
 onMounted(async () => {
   // 检查 device_id
   if (!deviceId.value) {
-    ElMessage.error('设备 ID 缺失')
+    ElMessage.error(t('appAutomation.remoteConnection.missingDeviceId'))
     router.back()
     return
   }
@@ -529,11 +532,11 @@ onMounted(async () => {
     connectWebSocket()
     
     // 设置设备名称
-    deviceName.value = `设备: ${deviceId.value}`
+    deviceName.value = `${t('appAutomation.device.deviceName')}: ${deviceId.value}`
     
   } catch (error) {
     console.error('Initialization failed:', error)
-    ElMessage.error('初始化失败: ' + error.message)
+    ElMessage.error(t('appAutomation.remoteConnection.initializationFailed') + ': ' + error.message)
   }
 })
 

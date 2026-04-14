@@ -62,18 +62,14 @@ if exist ".venv\Scripts\activate.bat" (
     echo Already activated
 )
 
-REM 从config.yaml读取端口配置
-for /f "tokens=2 delims=: " %%a in ('type ..\config.yaml ^| findstr /i "backend_port"') do set BACKEND_PORT=%%a
-
-REM 如果未找到，则使用默认端口
-if "%BACKEND_PORT%"=="" set BACKEND_PORT=8000
-
-echo Starting Daphne server on port %BACKEND_PORT%...
-echo WebSocket support: ENABLED
+echo Starting backend server with WebSocket support...
+echo This will start:
+echo   - Daphne ASGI server (WebSocket enabled)
+echo   - Django-Q task queue
 echo.
 
-REM 使用 Daphne 启动（支持 WebSocket）
-%PYTHON_CMD% -m daphne -b 0.0.0.0 -p %BACKEND_PORT% backend.asgi:application
+REM 调用统一的启动脚本
+%PYTHON_CMD% start_backend.py
 
 echo.
 echo Server stopped.

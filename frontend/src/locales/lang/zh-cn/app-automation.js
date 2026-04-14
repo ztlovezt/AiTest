@@ -144,12 +144,43 @@ export default {
     reconnect: '重连',
     disconnect: '断开',
     usageCount: '使用次数',
+    remoteConnect: '远程连接',
+    detail: '详情',
+    delete: '删除',
     statusMap: {
       online: '在线',
       offline: '离线',
       locked: '已锁定',
       available: '可用'
     }
+  },
+
+  // 远程连接
+  remoteConnection: {
+    back: '返回',
+    screenshot: '截图',
+    fullscreen: '全屏',
+    endSession: '结束调试',
+    connecting: '正在连接设备...',
+    waitingVideo: '等待视频流...',
+    videoLoading: '视频加载中...',
+    connected: '连接成功',
+    disconnected: '连接已断开',
+    connectionFailed: '连接失败',
+    confirmEndSession: '确定要结束当前调试会话吗？',
+    endSessionTitle: '结束调试',
+    confirmEnd: '确定结束',
+    cancel: '取消',
+    sessionEnded: '调试会话已结束',
+    deviceConnected: '设备连接成功',
+    connectionInterrupted: '连接意外断开',
+    websocketError: 'WebSocket 连接错误',
+    connectionFailedMsg: '连接失败',
+    initializationFailed: '初始化失败',
+    missingDeviceId: '设备 ID 缺失',
+    screenshotSaved: '截图已保存',
+    screenshotFailed: '截图失败',
+    fullscreenFailed: '全屏失败'
   },
 
   // 应用包管理

@@ -102,7 +102,7 @@
             @click="goToRemoteConnection(row)"
           >
             <el-icon><Monitor /></el-icon>&nbsp;
-            远程连接
+            {{ t('appAutomation.device.remoteConnect') }}
           </el-button>
           <el-button
             v-if="row.status === 'available' || row.status === 'online'"
