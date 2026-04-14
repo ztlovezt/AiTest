@@ -37,7 +37,7 @@ class ScrcpyDeviceSession:
         self.stop = False
         self.video_callback = None
         # 默认配置：优化平衡延迟和画质
-        self.video_bit_rate = "2048000"  # 2Mbps（720p/1080p 推荐码率）
+        self.video_bit_rate = "2048000"  # 2Mbps（1080p 推荐码率）
         self.max_size = "1080"           # 1080p（保证显示大小）
         self.max_fps = "60"              # 30fps（流畅且延迟低）
         

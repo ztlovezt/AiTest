@@ -9,6 +9,14 @@ class ScrcpyInput {
         let mouseY = null;
         let leftButtonIsPressed = false;
         let rightButtonIsPressed = false;
+        
+        // 优化：添加节流控制，避免滑动事件过于频繁
+        let lastMouseMoveTime = 0;
+        const MOUSE_MOVE_THROTTLE = 16; // 约60fps，每16ms最多发送一次
+        
+        // 优化：滚轮事件节流
+        let lastWheelTime = 0;
+        const WHEEL_THROTTLE = 50; // 每50ms最多发送一次滚轮事件
 
         // 使用 videoElement 而不是 document，避免全局污染和重复绑定
         videoElement.addEventListener('mousedown', (event) => {
@@ -63,6 +71,13 @@ class ScrcpyInput {
         videoElement.addEventListener('mousemove', (event) => {
             if (!leftButtonIsPressed) return;
 
+            // 节流优化：限制鼠标移动事件的发送频率
+            const now = Date.now();
+            if (now - lastMouseMoveTime < MOUSE_MOVE_THROTTLE) {
+                return; // 跳过本次事件
+            }
+            lastMouseMoveTime = now;
+
             const rect = videoElement.getBoundingClientRect();
             const local_x = event.clientX - rect.left;
             const local_y = event.clientY - rect.top;
@@ -81,6 +96,13 @@ class ScrcpyInput {
         });
 
         videoElement.addEventListener('wheel', (event) => {
+            // 节流优化：限制滚轮事件的发送频率
+            const now = Date.now();
+            if (now - lastWheelTime < WHEEL_THROTTLE) {
+                return; // 跳过本次事件
+            }
+            lastWheelTime = now;
+            
             const hScroll = event.deltaX;
             const vScroll = event.deltaY;
             const deltaMode = event.deltaMode;
