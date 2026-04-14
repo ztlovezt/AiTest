@@ -16,11 +16,24 @@ if not exist "..\config.yaml" (
 )
 
 set DOC_PARSER_URL=
-for /f "delims=" %%i in ('python -c "import yaml; c=yaml.safe_load(open('../config.yaml','r',encoding='utf-8')); print(c.get('server',{}).get('doc_parser_url','http://localhost:9987'))" 2^>nul') do (
+set TIKA_TIMEOUT=
+set TIKA_MEMORY=
+
+for /f "delims=" %%i in ('python -c "import yaml; c=yaml.safe_load(open('../config.yaml','r',encoding='utf-8')); s=c.get('server',{}); print(s.get('doc_parser_url','http://localhost:9987'))" 2^>nul') do (
     set "DOC_PARSER_URL=%%i"
 )
 
+for /f "delims=" %%i in ('python -c "import yaml; c=yaml.safe_load(open('../config.yaml','r',encoding='utf-8')); s=c.get('server',{}); print(s.get('tika_timeout',180))" 2^>nul') do (
+    set "TIKA_TIMEOUT=%%i"
+)
+
+for /f "delims=" %%i in ('python -c "import yaml; c=yaml.safe_load(open('../config.yaml','r',encoding='utf-8')); s=c.get('server',{}); print(s.get('tika_memory','2g'))" 2^>nul') do (
+    set "TIKA_MEMORY=%%i"
+)
+
 if "%DOC_PARSER_URL%"=="" set DOC_PARSER_URL=http://localhost:9987
+if "%TIKA_TIMEOUT%"=="" set TIKA_TIMEOUT=180
+if "%TIKA_MEMORY%"=="" set TIKA_MEMORY=2g
 
 set TIKA_HOST=localhost
 set TIKA_PORT=9987
@@ -37,6 +50,8 @@ echo Configuration:
 echo   - URL: %DOC_PARSER_URL%
 echo   - Host: %TIKA_HOST%
 echo   - Port: %TIKA_PORT%
+echo   - Timeout: %TIKA_TIMEOUT%s
+echo   - Memory: %TIKA_MEMORY%
 echo.
 
 echo Checking Java environment...
@@ -61,4 +76,4 @@ echo Starting Tika Server...
 echo Press Ctrl+C to stop the server
 echo.
 
-java -Djava.awt.headless=true -Xmx512m -jar "%TIKA_JAR%" --host=%TIKA_HOST% --port=%TIKA_PORT%
+java -Djava.awt.headless=true -Xmx%TIKA_MEMORY% -jar "%TIKA_JAR%" --host=%TIKA_HOST% --port=%TIKA_PORT%

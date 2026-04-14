@@ -186,6 +186,9 @@ def execute_test_suite(test_suite, environment, executed_by, async_report=True):
         failed_count = 0
         skipped_count = 0
         
+        # 会话变量：存储提取的变量，供后续请求使用
+        session_variables = {}
+        
         # 执行每个请求
         for suite_request in suite_requests:
             api_request = suite_request.request
@@ -195,6 +198,9 @@ def execute_test_suite(test_suite, environment, executed_by, async_report=True):
                 variables = {}
                 if environment:
                     variables.update(environment.variables)
+                
+                # 合并会话变量（会话变量优先级高于环境变量）
+                variables.update(session_variables)
                 
                 # 替换URL中的变量（先解析动态函数，再替换环境变量）
                 url = _replace_variables(api_request.url, variables)
@@ -256,7 +262,9 @@ def execute_test_suite(test_suite, environment, executed_by, async_report=True):
                 # 检查套件请求的断言
                 for assertion in suite_request.assertions:
                     if assertion.get('type') == 'status_code':
-                        expected = assertion.get('value')
+                        expected = assertion.get('expected')
+                        if expected is not None:
+                            expected = int(expected)
                         if response.status_code != expected:
                             passed = False
                             error_message = f'状态码断言失败: 期望 {expected}, 实际 {response.status_code}'
@@ -269,6 +277,19 @@ def execute_test_suite(test_suite, environment, executed_by, async_report=True):
                             passed = False
                             error_message = f"断言失败: {assertion_result.get('name', '未命名断言')} - {assertion_result.get('error', '断言不通过')}"
                             break
+                
+                # 执行变量提取 - 优先使用 extractors 字段
+                extractors_config = suite_request.extractors or suite_request.extract_variables or []
+                if not extractors_config:
+                    # 如果套件请求没有提取器，尝试使用接口的提取器
+                    extractors_config = api_request.extractors or api_request.extract_variables or []
+                
+                if extractors_config:
+                    from .extractor import extract_variables as do_extract
+                    extracted_vars, _ = do_extract(response, extractors_config)
+                    if extracted_vars:
+                        session_variables.update(extracted_vars)
+                        logger.info(f"[execute_test_suite] 提取变量: {list(extracted_vars.keys())}")
                 
                 if passed:
                     passed_count += 1
@@ -387,21 +408,19 @@ def execute_api_request(api_request, environment, executed_by):
     """执行单个API请求并返回结果"""
     import requests
     import time
+    import base64
+    from io import BytesIO
     
     try:
-        # 创建变量解析器
         resolver = VariableResolver()
         
-        # 解析环境变量
         variables = {}
         if environment:
             variables.update(environment.variables)
         
-        # 替换URL中的变量（先解析动态函数，再替换环境变量）
         url = _replace_variables(api_request.url, variables)
         url = resolver.resolve(url)
         
-        # 准备请求头
         headers = {}
         if isinstance(api_request.headers, list):
             for header_item in api_request.headers:
@@ -416,36 +435,109 @@ def execute_api_request(api_request, environment, executed_by):
                 headers[key] = _replace_variables(str(value), variables)
                 headers[key] = resolver.resolve(headers[key])
         
-        # 准备请求参数
         params = api_request.params.copy() if api_request.params else {}
         for key, value in params.items():
             params[key] = _replace_variables(str(value), variables)
             params[key] = resolver.resolve(params[key])
         
-        # 准备请求体
         body_data = None
+        body_kwarg = 'json'
+        files_data = None
+        body_type = ''
+        
         if api_request.body and api_request.method in ['POST', 'PUT', 'PATCH']:
-            if api_request.body.get('type') == 'json':
+            body_type = api_request.body.get('type', '')
+            
+            if body_type == 'json':
                 body_data = api_request.body.get('data', {})
                 body_data = _replace_variables_in_dict(body_data, variables)
                 body_data = _resolve_variables_in_dict(body_data, resolver)
+                body_kwarg = 'json'
+            
+            elif body_type == 'x-www-form-urlencoded':
+                form_data = {}
+                for item in (api_request.body.get('data') or []):
+                    if item.get('enabled', True) and item.get('key'):
+                        key = item['key']
+                        value = _replace_variables(str(item.get('value', '')), variables)
+                        value = resolver.resolve(value)
+                        form_data[key] = value
+                body_data = form_data
+                body_kwarg = 'data'
+            
+            elif body_type == 'form-data':
+                form_data = {}
+                files_data = {}
+                
+                for item in (api_request.body.get('data') or []):
+                    if not item.get('enabled', True) or not item.get('key'):
+                        continue
+                    key = item['key']
+                    
+                    if item.get('type') == 'file' and item.get('fileData'):
+                        filename = item.get('filename', item.get('value', 'file'))
+                        content_type = item.get('contentType', 'application/octet-stream')
+                        try:
+                            file_bytes = base64.b64decode(item['fileData'])
+                            files_data[key] = (filename, BytesIO(file_bytes), content_type)
+                            logger.info(f"[API测试] 文件上传: key={key}, filename={filename}, size={len(file_bytes)} bytes")
+                        except Exception as e:
+                            logger.error(f"[API测试] 文件解码失败: key={key}, error={e}")
+                            form_data[key] = item.get('value', '')
+                    else:
+                        value = _replace_variables(str(item.get('value', '')), variables)
+                        value = resolver.resolve(value)
+                        form_data[key] = value
+                
+                body_data = form_data if form_data else None
+                body_kwarg = 'data'
+                if files_data:
+                    body_data = form_data if form_data else {}
+                    body_kwarg = 'files'
+                    body_data.update(files_data)
+            
+            elif body_type == 'raw':
+                raw_body = api_request.body.get('raw', '')
+                body_data = _replace_variables(raw_body, variables) if isinstance(raw_body, str) else raw_body
+                body_data = resolver.resolve(body_data) if isinstance(body_data, str) else body_data
+                body_kwarg = 'data'
         
-        # 执行请求
+        def serialize_body_data(data, body_type_str):
+            if not isinstance(data, dict):
+                return data
+            result = {}
+            for key, value in data.items():
+                if isinstance(value, tuple) and len(value) == 3:
+                    filename, file_obj, content_type = value
+                    if hasattr(file_obj, 'getbuffer'):
+                        file_size = len(file_obj.getbuffer())
+                    else:
+                        file_size = 0
+                    result[key] = f"[文件] {filename} ({file_size} bytes)"
+                elif hasattr(value, 'read'):
+                    result[key] = f"[文件对象] {key}"
+                else:
+                    result[key] = value
+            return result
+        
+        request_kwargs = {
+            'method': api_request.method,
+            'url': url,
+            'headers': headers,
+            'params': params,
+            'timeout': 30
+        }
+        
+        if body_data is not None:
+            request_kwargs[body_kwarg] = body_data
+        
         start_time = time.time()
         start_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_time))
-        response = requests.request(
-            method=api_request.method,
-            url=url,
-            headers=headers,
-            params=params,
-            json=body_data,
-            timeout=30
-        )
+        response = requests.request(**request_kwargs)
         end_time = time.time()
         end_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end_time))
         response_time = (end_time - start_time) * 1000
         
-        # 执行断言验证
         assertions = api_request.assertions or []
         for assertion in assertions:
             if assertion.get('type') == 'response_time':
@@ -453,7 +545,8 @@ def execute_api_request(api_request, environment, executed_by):
         
         assertions_results = execute_assertions(response, assertions)
         
-        # 保存请求历史
+        serializable_body_data = serialize_body_data(body_data, body_type) if body_type == 'form-data' and body_data else body_data
+        
         history = RequestHistory.objects.create(
             request=api_request,
             environment=environment,
@@ -462,7 +555,7 @@ def execute_api_request(api_request, environment, executed_by):
                 'method': api_request.method,
                 'headers': headers,
                 'params': params,
-                'body': body_data
+                'body': serializable_body_data
             },
             response_data={
                 'headers': dict(response.headers),
@@ -557,58 +650,67 @@ def _check_java_environment():
 def _generate_allure_result_files(execution, results_dir):
     """从 execution.results 生成 Allure 结果 JSON 文件"""
     import json as json_module
+    import uuid as uuid_module
     
     os.makedirs(results_dir, exist_ok=True)
     
     results = execution.results or []
-    test_index = 1
     
     for result in results:
+        test_uuid = str(uuid_module.uuid4())
+        
+        start_ms = int(execution.start_time.timestamp() * 1000) if execution.start_time else None
+        stop_ms = int(execution.end_time.timestamp() * 1000) if execution.end_time else None
+        
         allure_result = {
-            'uuid': f'{execution.id}-{test_index}',
-            'name': result.get('name', f'请求{test_index}'),
+            'uuid': test_uuid,
+            'name': result.get('name', 'API请求'),
             'fullName': f'API Test Suite - {result.get("method", "")} {result.get("url", "")}',
+            'historyId': f'{test_uuid}',
             'status': 'passed' if result.get('passed') else 'failed',
             'stage': 'finished',
-            'start': execution.start_time.isoformat() + 'Z' if execution.start_time else None,
-            'stop': execution.end_time.isoformat() + 'Z' if execution.end_time else None,
+            'start': start_ms,
+            'stop': stop_ms,
             'labels': [
-                {'name': 'suite', 'value': execution.test_suite.name},
+                {'name': 'suite', 'value': execution.test_suite.name if execution.test_suite else 'API Test Suite'},
                 {'name': 'method', 'value': result.get('method', '')},
                 {'name': 'epic', 'value': 'API Testing'},
+                {'name': 'framework', 'value': 'TestHub'},
             ],
             'parameters': [
                 {'name': 'url', 'value': result.get('url', '')},
                 {'name': 'status_code', 'value': str(result.get('status_code', ''))},
-                {'name': 'response_time', 'value': f"{result.get('response_time', 0):.2f}"},
+                {'name': 'response_time', 'value': f"{result.get('response_time', 0):.2f}ms"},
             ],
             'steps': [],
         }
         
-        # 添加断言步骤
         assertions_results = result.get('assertions_results', [])
         for ar in assertions_results:
             step = {
                 'name': ar.get('name', '断言'),
                 'status': 'passed' if ar.get('passed') else 'failed',
-                'start': execution.start_time.isoformat() + 'Z' if execution.start_time else None,
-                'stop': execution.end_time.isoformat() + 'Z' if execution.end_time else None,
+                'start': start_ms,
+                'stop': stop_ms,
                 'stage': 'finished',
             }
             if not ar.get('passed'):
                 step['statusDetails'] = {'message': ar.get('error', '断言失败')}
             allure_result['steps'].append(step)
         
-        # 如果测试失败，添加错误信息
         if not result.get('passed'):
-            allure_result['statusDetails'] = {'message': result.get('error', '测试失败')}
+            allure_result['statusDetails'] = {
+                'known': False,
+                'muted': False,
+                'flaky': False,
+                'message': result.get('error', '测试失败')
+            }
         
-        # 写入 JSON 文件
-        result_file = os.path.join(results_dir, f'result-{test_index}.json')
+        result_file = os.path.join(results_dir, f'{test_uuid}-result.json')
         with open(result_file, 'w', encoding='utf-8') as f:
             json_module.dump(allure_result, f, ensure_ascii=False, indent=2)
         
-        test_index += 1
+        logger.info(f"生成 Allure 结果文件: {result_file}")
 
 
 def generate_allure_report_for_execution(execution):
@@ -627,12 +729,11 @@ def generate_allure_report_for_execution(execution):
             execution.save(update_fields=['report_status'])
             return
         
-        # 3. 构建路径
-        module_name = 'api_testing'
+        # 3. 构建路径（与 executor.py 保持一致）
         from django.conf import settings
-        base_dir = settings.MEDIA_ROOT
-        report_dir = os.path.join(base_dir, module_name, 'allure-reports', f'execution_{execution.id}')
-        results_dir = os.path.join(report_dir, 'allure-results')
+        results_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_RESULTS_DIR, f'execution_{execution.id}')
+        report_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_REPORTS_DIR, f'execution_{execution.id}')
+        single_file_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_API_TESTING, settings.ALLURE_SINGLE_FILE_DIR, f'execution_{execution.id}')
         
         # 清空旧结果
         if os.path.exists(results_dir):
@@ -643,42 +744,48 @@ def generate_allure_report_for_execution(execution):
         _generate_allure_result_files(execution, results_dir)
         
         # 写入 environment.xml
-        env_xml = '''<?xml version="1.0" encoding="UTF-8"?>
+        env_xml = '''<?xml version='1.0' encoding='utf-8'?>
 <environment xmlns="urn:model.commons.qatools.yandex.ru">
   <parameter>
     <name>Platform</name>
-    <key>platform</key>
+    <key>Platform</key>
     <value>TestHub</value>
   </parameter>
   <parameter>
     <name>Module</name>
-    <key>module</key>
+    <key>Module</key>
     <value>API Testing</value>
   </parameter>
 </environment>'''
         with open(os.path.join(results_dir, 'environment.xml'), 'w', encoding='utf-8') as f:
             f.write(env_xml)
         
+        # 写入 executor.json
+        executor_info = {
+            "name": "TestHub",
+            "type": "TestHub",
+            "buildName": f"API Test Suite - execution_{execution.id}",
+            "reportUrl": f"/api/api-testing-reports/execution_{execution.id}/index.html"
+        }
+        with open(os.path.join(results_dir, 'executor.json'), 'w', encoding='utf-8') as f:
+            json.dump(executor_info, f, ensure_ascii=False, indent=2)
+        
         # 5. 生成 Allure HTML 报告
-        output_dir = report_dir
-        if os.path.exists(output_dir) and os.path.isdir(output_dir):
-            # 保留 results 目录
-            for item in os.listdir(output_dir):
-                item_path = os.path.join(output_dir, item)
-                if item != 'allure-results' and os.path.isfile(item_path):
-                    os.remove(item_path)
-                elif item != 'allure-results' and os.path.isdir(item_path):
-                    shutil.rmtree(item_path)
+        if os.path.exists(report_dir):
+            shutil.rmtree(report_dir)
+        os.makedirs(report_dir, exist_ok=True)
         
         if os.name == 'nt':
-            cmd = f'allure generate "{results_dir}" -o "{output_dir}" --clean'
+            cmd = f'allure generate "{results_dir}" -o "{report_dir}" --clean'
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60, encoding='utf-8', errors='ignore')
         else:
-            cmd = ['allure', 'generate', results_dir, '-o', output_dir, '--clean']
+            cmd = ['allure', 'generate', results_dir, '-o', report_dir, '--clean']
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60, encoding='utf-8', errors='ignore')
         
+        if result.returncode != 0:
+            logger.warning(f"Allure 报告生成失败: {result.stderr}")
+        
         # 6. 生成 single-file 报告
-        single_file_dir = os.path.join(base_dir, module_name, settings.ALLURE_SINGLE_FILE_DIR, f'execution_{execution.id}')
         os.makedirs(single_file_dir, exist_ok=True)
         
         if os.name == 'nt':
@@ -698,9 +805,12 @@ def generate_allure_report_for_execution(execution):
         execution.save(update_fields=['report_status', 'report_url'])
         
         logger.info(f"Allure 报告生成成功: execution_{execution.id}")
+        logger.info(f"  结果目录: {results_dir}")
+        logger.info(f"  报告目录: {report_dir}")
+        logger.info(f"  单文件目录: {single_file_dir}")
         
     except Exception as e:
-        logger.error(f"Allure 报告生成失败 execution_{execution.id}: {str(e)}")
+        logger.error(f"Allure 报告生成失败 execution_{execution.id}: {str(e)}", exc_info=True)
         try:
             execution.report_status = 'FAILED'
             execution.save(update_fields=['report_status'])

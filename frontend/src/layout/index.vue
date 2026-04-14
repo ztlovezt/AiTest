@@ -261,6 +261,10 @@
               <el-icon><Cellphone /></el-icon>
               <span>{{ $t('menu.appEnvConfig') }}</span>
             </el-menu-item>
+            <el-menu-item index="/configuration/ocr-config">
+              <el-icon><Search /></el-icon>
+              <span>{{ $t('menu.ocrConfig') }}</span>
+            </el-menu-item>
             <el-menu-item index="/configuration/ai-mode">
               <el-icon><MagicStick /></el-icon>
               <span>{{ $t('menu.aiModeConfig') }}</span>
@@ -358,7 +362,7 @@ import defaultAvatar from '@/assets/images/user-avatar.svg'
 import {
   Monitor, Folder, Document, Flag, Check, Collection, VideoPlay,
   DataAnalysis, ChatDotRound, DocumentCopy, Link, MagicStick,
-  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush, Moon, Sunny
+  Odometer, Timer, Setting, AlarmClock, Bell, Aim, Edit, Cpu, ArrowDown, Cellphone, Connection, FolderOpened, Brush, Moon, Sunny, Search
 } from '@element-plus/icons-vue'
 import logoSvg from '@/assets/images/logo.svg'
 import logoHomePng from '@/assets/images/logo_home.png'

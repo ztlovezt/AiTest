@@ -81,7 +81,7 @@ const routes = [
       {
         path: 'schedule/:id',
         name: 'ScheduleReport',
-        component: () => import('@/views/reports/ReportList.vue')
+        component: () => import('@/views/reports/ScheduleReport.vue')
       }
     ]
   },
@@ -452,6 +452,11 @@ const routes = [
             path: 'app-env',
             name: 'ConfigAppEnv',
             component: () => import('@/views/app-automation/settings/AppSettings.vue')
+          },
+          {
+            path: 'ocr-config',
+            name: 'ConfigOCR',
+            component: () => import('@/views/ocr/OCRConfig.vue')
           },
           {
             path: 'ai-mode',

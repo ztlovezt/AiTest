@@ -133,8 +133,17 @@ export default {
     invalidFileFormatDetail: '请选择 PDF、Word、TXT 或 Markdown 格式的文件',
     extractingContent: '正在提取文档内容...',
     extractionFailed: '文档内容提取失败',
+    extractingProgress: '正在提取文档内容 ({current}/{total})...',
+    extractingProgressPercent: '正在提取文档内容 {percent}%',
+    extractingFileProgress: '正在处理第 {current}/{total} 个文件',
     documentProcessingFailed: '文档处理失败',
+    documentProcessingTimeout: '文档处理超时，OCR 识别耗时较长，请稍后重试',
     loadProjectsFailed: '加载项目列表失败',
+
+    // OCR Config
+    ocrConfig: 'OCR 识别方式',
+    defaultOcr: '默认 (Tika OCR)',
+    ocrConfigHint: '上传图片文件时可选择 OCR 识别方式，默认使用 Tika 的传统 OCR',
 
     // Progress
     analyzingRequirement: '📖 分析需求文档中...',

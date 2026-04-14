@@ -843,6 +843,9 @@ export default {
       variableInserted: '已插入变量: {name}',
       dataFactoryInserted: '已插入数据工厂数据: {name}',
       fromDataFactory: '来自数据工厂: {name}',
+      type: '类型',
+      text: '文本',
+      file: '文件',
       // 变量分类
       categories: {
         randomNumber: '随机数',

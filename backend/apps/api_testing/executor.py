@@ -88,11 +88,10 @@ class ApiTestExecutor(BaseTestExecutor):
 
     # ======================== 执行记录管理 ========================
 
-    def _create_execution_record(self, test_suite=None, user=None, single_request=None):
+    def _create_execution_record(self, test_suite=None, user=None):
         """创建测试执行记录"""
         self.execution = TestExecution.objects.create(
             test_suite=test_suite,
-            single_request=single_request,
             status='RUNNING',
             start_time=timezone.now(),
             executed_by=user
@@ -214,6 +213,10 @@ class ApiTestExecutor(BaseTestExecutor):
 
                 end_time = datetime.now()
 
+                # 从测试套件直接获取项目名称和环境名称
+                project_name = test_suite.project.name if test_suite.project else ''
+                environment_name = environment.name if environment else (test_suite.environment.name if test_suite.environment else '')
+
                 return {
                     'success': exit_code == 0,
                     'exit_code': exit_code,
@@ -221,11 +224,14 @@ class ApiTestExecutor(BaseTestExecutor):
                     'total_requests': passed + failed,
                     'passed_count': passed,
                     'failed_count': failed,
+                    'skipped_count': skipped,
                     'duration': duration,
                     'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
                     'results': self.results,
                     'report_url': self._get_report_url(execution_id),
+                    'project_name': project_name,
+                    'environment_name': environment_name,
                 }
 
             finally:
@@ -448,6 +454,7 @@ class ApiTestExecutor(BaseTestExecutor):
             
             body_data = None
             body_kwarg = 'json'  # requests.request 的参数名: json / data / files
+            body_type = ''
             if api_request.body and api_request.method in ['POST', 'PUT', 'PATCH']:
                 body_type = api_request.body.get('type', '')
                 raw_body = api_request.body.get('raw', '')
@@ -473,17 +480,38 @@ class ApiTestExecutor(BaseTestExecutor):
                     body_kwarg = 'data'
 
                 elif body_type == 'form-data':
-                    # multipart/form-data
-                    form_data = []
+                    import base64
+                    from io import BytesIO
+                    
+                    form_data = {}
+                    files_data = {}
+                    
                     for item in (api_request.body.get('data') or []):
                         if not item.get('enabled', True) or not item.get('key'):
                             continue
                         key = item['key']
-                        value = self._replace_variables(str(item.get('value', '')), variables)
-                        value = resolver.resolve(value)
-                        form_data.append((key, (item.get('filename', ''), value, item.get('content_type', '')) if item.get('type') == 'file' else (key, value)))
-                    body_data = form_data
-                    body_kwarg = 'files' if any(item.get('type') == 'file' for item in (api_request.body.get('data') or [])) else 'data'
+                        
+                        if item.get('type') == 'file' and item.get('fileData'):
+                            filename = item.get('filename', item.get('value', 'file'))
+                            content_type = item.get('contentType', 'application/octet-stream')
+                            try:
+                                file_bytes = base64.b64decode(item['fileData'])
+                                files_data[key] = (filename, BytesIO(file_bytes), content_type)
+                                logger.info(f"[API测试] 文件上传: key={key}, filename={filename}, size={len(file_bytes)} bytes, type={content_type}")
+                            except Exception as e:
+                                logger.error(f"[API测试] 文件解码失败: key={key}, error={e}")
+                                form_data[key] = item.get('value', '')
+                        else:
+                            value = self._replace_variables(str(item.get('value', '')), variables)
+                            value = resolver.resolve(value)
+                            form_data[key] = value
+                    
+                    body_data = form_data if form_data else None
+                    body_kwarg = 'data'
+                    if files_data:
+                        body_data = form_data if form_data else {}
+                        body_kwarg = 'files'
+                        body_data.update(files_data)
 
                 elif body_type == 'raw':
                     # 原始文本/XML 等
@@ -523,6 +551,26 @@ class ApiTestExecutor(BaseTestExecutor):
             except (ValueError, requests.exceptions.JSONDecodeError):
                 response_data['json'] = None
 
+            def serialize_body_data(data):
+                if not isinstance(data, dict):
+                    return data
+                result = {}
+                for key, value in data.items():
+                    if isinstance(value, tuple) and len(value) == 3:
+                        filename, file_obj, content_type = value
+                        if hasattr(file_obj, 'getbuffer'):
+                            file_size = len(file_obj.getbuffer())
+                        else:
+                            file_size = 0
+                        result[key] = f"[文件] {filename} ({file_size} bytes)"
+                    elif hasattr(value, 'read'):
+                        result[key] = f"[文件对象] {key}"
+                    else:
+                        result[key] = value
+                return result
+            
+            serializable_body_data = serialize_body_data(body_data) if body_type == 'form-data' and body_data else body_data
+
             history = RequestHistory.objects.create(
                 request=api_request,
                 environment=environment,
@@ -531,7 +579,7 @@ class ApiTestExecutor(BaseTestExecutor):
                     'method': api_request.method,
                     'headers': headers,
                     'params': params,
-                    'body': body_data
+                    'body': serializable_body_data
                 },
                 response_data=response_data,
                 status_code=response.status_code,

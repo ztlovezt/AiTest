@@ -15,9 +15,13 @@ server:
   # 前端服务URL（用于生成报告链接等）
   frontend_url: "http://localhost:3000"
   # 文档解析服务URL
-  doc_parser_url: "http://localhost:9998"
+  doc_parser_url: "http://localhost:9987"
   # 文档解析语言（简体中文：chi_sim、英文：eng、繁体中文：chi_tra）
   doc_language: "chi_sim"
+  # Tika 服务超时时间（秒）
+  tika_timeout: 180
+  # Tika 服务内存配置（如：512m、1g、2g）
+  tika_memory: "2g"
   # 是否启用后端debug
   debug: false
   # 后端SECRET_KEY，可使用backend/docs/key.py生成
@@ -27,8 +31,6 @@ server:
 # 数据库配置
 # ================================
 database:
-  # 数据库名称
-  name: testhub
   # 数据库用户名
   user: root
   # 数据库密码（生产环境请修改）
@@ -61,8 +63,6 @@ cache:
   default_timeout: 300
   # 缓存键前缀
   key_prefix: "testhub"
-  # OCR 识别图片最大尺寸
-  ocr_max_size: 50
 
 # ================================
 # 日志配置
@@ -74,6 +74,8 @@ logging:
   level: INFO
   # 是否启用DEBUG日志输出
   debug_enabled: false
+  # 是否记录ORM SQL查询日志（数据库操作日志）
+  log_sql_queries: true
   # 日志文件最大大小（MB）
   max_bytes: 10
   # 日志文件备份数量
@@ -171,6 +173,10 @@ allure:
   api_testing: "api_testing"
   # Allure app自动化测试目录
   app_automation: "app_automation"
+  # Allure ui自动化测试目录
+  ui_automation: "ui_automation"
+  # Allure single-file 离线报告目录
+  single_file_dir: "allure-single-file"
 
 # ================================
 # 路径配置
@@ -185,13 +191,11 @@ paths:
   # 数据工厂静态图片目录（相对于backend目录）
   data_factory_static_img: "static_files/img"
   # APP 自动化截图目录（相对于项目根目录）
-  app_automation_screenshots: "app-automation/screenshots"
+  app_automation_screenshots: "expand/media/app_automation"
   # UI 自动化截图目录（相对于项目根目录）
-  ui_automation_screenshots: "ui_automation/screenshots"
+  ui_automation_screenshots: "expand/media/ui_automation"
   # 向量数据库chroma（相对于项目根目录）
   chroma_db: "expand/chroma_db"
-  # OCR纠错文件（相对于项目根目录）
-  ocr_correction: "expand/ocr_correct/ocr_corrections.json"
 
 # ================================
 # 超时配置
@@ -219,6 +223,19 @@ timeouts:
   screenshot: 5000
 
 # ================================
+# OCR 配置
+# ================================
+ocr:
+  # OCR 识别超时时间（秒）
+  timeout: 300
+  # 最大并发 OCR 任务数
+  max_concurrent_tasks: 3
+  # OCR 识别图片最大尺寸（MB）
+  max_image_size: 50
+  # OCR 纠错文件路径（相对于项目根目录）
+  correction_file: "expand/ocr_correct/ocr_corrections.json"
+
+# ================================
 # Docker镜像配置 - Docker Hub 示例
 # 不用docker部署可以忽略
 # ================================
@@ -227,3 +244,4 @@ docker:
   DOCKER_REGISTRY=https://hub.docker.com/
   DOCKER_NAMESPACE=your-namespace
   IMAGE_VERSION=latest
+

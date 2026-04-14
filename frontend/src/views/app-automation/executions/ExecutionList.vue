@@ -208,6 +208,45 @@ const loadExecutions = async () => {
   }
 }
 
+const refreshRunningExecutions = async () => {
+  const runningIds = executions.value
+    .filter(e => ['running', 'pending'].includes(e.status))
+    .map(e => e.id)
+  
+  if (runningIds.length === 0) {
+    return
+  }
+  
+  try {
+    const baseParams = {
+      page: 1,
+      page_size: 100
+    }
+    if (projectFilter.value) baseParams.project = projectFilter.value
+    
+    const [runningRes, pendingRes] = await Promise.all([
+      getExecutionList({ ...baseParams, status: 'running' }),
+      getExecutionList({ ...baseParams, status: 'pending' })
+    ])
+    
+    const runningExecutions = runningRes.data.results || []
+    const pendingExecutions = pendingRes.data.results || []
+    const updatedExecutions = [...runningExecutions, ...pendingExecutions]
+    
+    const updatedMap = new Map(updatedExecutions.map(e => [e.id, e]))
+    
+    executions.value = executions.value.map(execution => {
+      const updated = updatedMap.get(execution.id)
+      if (updated) {
+        return { ...execution, ...updated }
+      }
+      return execution
+    })
+  } catch (error) {
+    console.error('局部刷新失败:', error)
+  }
+}
+
 const stopExecution = async (execution) => {
   try {
     await ElMessageBox.confirm(
@@ -262,12 +301,11 @@ const formatDuration = (seconds) => {
 // 自动刷新执行中的记录
 const startAutoRefresh = () => {
   refreshTimer = setInterval(() => {
-    // 如果有执行中的记录，自动刷新
     const hasRunning = executions.value.some(e => ['running', 'pending'].includes(e.status))
     if (hasRunning) {
-      loadExecutions()
+      refreshRunningExecutions()
     }
-  }, 5000) // 每5秒刷新一次
+  }, 5000)
 }
 
 const stopAutoRefresh = () => {

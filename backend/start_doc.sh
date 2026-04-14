@@ -23,9 +23,21 @@ fi
 # Format: doc_parser_url: "http://localhost:9987"
 DOC_PARSER_URL=$(grep -E "^\s*doc_parser_url:" ../config.yaml | sed 's/.*doc_parser_url:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
 
-# Use default value if not found
+# Read Tika timeout from config.yaml
+TIKA_TIMEOUT=$(grep -E "^\s*tika_timeout:" ../config.yaml | sed 's/.*tika_timeout:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
+
+# Read Tika memory from config.yaml
+TIKA_MEMORY=$(grep -E "^\s*tika_memory:" ../config.yaml | sed 's/.*tika_memory:[[:space:]]*//' | tr -d '"' | tr -d "'" | tr -d ' ')
+
+# Use default values if not found
 if [ -z "$DOC_PARSER_URL" ]; then
     DOC_PARSER_URL="http://localhost:9987"
+fi
+if [ -z "$TIKA_TIMEOUT" ]; then
+    TIKA_TIMEOUT=180
+fi
+if [ -z "$TIKA_MEMORY" ]; then
+    TIKA_MEMORY="2g"
 fi
 
 # Parse URL to get host and port
@@ -50,6 +62,8 @@ echo "Configuration:"
 echo "  - URL: $DOC_PARSER_URL"
 echo "  - Host: $TIKA_HOST"
 echo "  - Port: $TIKA_PORT"
+echo "  - Timeout: ${TIKA_TIMEOUT}s"
+echo "  - Memory: $TIKA_MEMORY"
 echo ""
 
 # Check Java environment
@@ -89,7 +103,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 # Start Tika Server
-java -Djava.awt.headless=true -Xmx512m -jar "$TIKA_JAR" --host="$TIKA_HOST" --port="$TIKA_PORT" &
+java -Djava.awt.headless=true -Xmx$TIKA_MEMORY -jar "$TIKA_JAR" --host="$TIKA_HOST" --port="$TIKA_PORT" &
 TIKA_PID=$!
 
 # Wait a moment to check if process started successfully

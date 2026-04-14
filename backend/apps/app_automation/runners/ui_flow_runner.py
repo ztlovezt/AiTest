@@ -59,9 +59,9 @@ class UiFlowRunner:
             # 使用配置文件中的 Template 目录作为图片基础目录
             self.image_base_dir = os.path.join(settings.BASE_DIR, settings.PATHS_APP_AUTOMATION_TEMPLATE)
         
-        # 截图保存目录: 使用配置文件中的路径
+        # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
         self.screenshots_dir = os.path.join(
-            settings.MEDIA_ROOT, settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
+            settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
         )
         
         os.makedirs(self.image_base_dir, exist_ok=True)
@@ -720,7 +720,7 @@ class UiFlowRunner:
     def _assert_text(self, step: Dict[str, Any]):
         """文本断言：OCR 识别文本，支持 exact/contains/regex 匹配"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("文本断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected = step.get('expected', '')
@@ -745,7 +745,7 @@ class UiFlowRunner:
     def _assert_number(self, step: Dict[str, Any]):
         """数值断言：OCR 识别数字（去逗号），与期望值精确匹配"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("数值断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected_raw = step.get('expected', '0')
@@ -785,7 +785,7 @@ class UiFlowRunner:
     def _assert_range(self, step: Dict[str, Any]):
         """范围断言：OCR 识别数字，判断是否在 [min, max] 范围内"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("范围断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         
@@ -1433,15 +1433,15 @@ class UiFlowRunner:
         """获取或创建 OCR Helper 实例"""
         if self._ocr_helper is None:
             if not OCR_AVAILABLE:
-                raise RuntimeError("OCR 功能不可用，请安装: pip install easyocr opencv-python")
-            self._ocr_helper = get_ocr_helper(languages=['en'], use_gpu=False)
+                raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
+            self._ocr_helper = get_ocr_helper(languages=['en'])
         return self._ocr_helper
     
     
     def _action_foreach_assert(self, step: Dict[str, Any]):
         """循环点击断言（OCR）"""
         if not OCR_AVAILABLE:
-            logger.warning("foreach_assert 需要 OCR 支持，请安装 easyocr")
+            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
             return
         
         try:

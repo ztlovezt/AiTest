@@ -74,6 +74,7 @@ LOCAL_APPS = [
     'apps.core',
     'apps.data_factory',
     'apps.unified_projects.apps.UnifiedProjectsConfig',
+    'apps.ocr_service',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -113,6 +114,7 @@ TEMPLATES = [
 ASGI_APPLICATION = 'backend.asgi.application'
 
 db_config = config_loader.get_database_config()
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -126,9 +128,9 @@ DATABASES = {
         'OPTIONS': {
             'charset': db_config.get('charset', 'utf8mb4'),
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+08:00'",
-            'connect_timeout': 10,
-            'read_timeout': 30,
-            'write_timeout': 30,
+            'connect_timeout': 30,
+            'read_timeout': 60,
+            'write_timeout': 60,
         },
     }
 }
@@ -212,8 +214,6 @@ PATHS_APP_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.ge
 PATHS_UI_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots'))
 # 向量数据库chroma（相对于项目根目录）
 PATHS_CHROMA_DB = os.path.join(BASE_DIR.parent, paths_config.get('chroma_db', 'expand/chroma_db'))
-# OCR纠错文件（相对于项目根目录）
-PATHS_OCR_CORRECTION = os.path.join(BASE_DIR.parent, paths_config.get('ocr_correction', 'expand/ocr_correct/ocr_corrections.json'))
 
 
 # 超时配置
@@ -232,7 +232,13 @@ TIMEOUTS_SCREENSHOT = timeouts_config.get('screenshot', 5000)
 
 # 缓存配置
 cache_config = config_loader.get_cache_config()
-CACHE_OCR_MAX_SIZE = cache_config.get('ocr_max_size', 50)
+
+# OCR 配置（统一管理）
+ocr_config = config_loader.get_ocr_config()
+OCR_TIMEOUT = ocr_config.get('timeout', 300)
+OCR_MAX_CONCURRENT_TASKS = ocr_config.get('max_concurrent_tasks', 3)
+OCR_MAX_IMAGE_SIZE = ocr_config.get('max_image_size', 50)
+PATHS_OCR_CORRECTION = os.path.join(BASE_DIR.parent, ocr_config.get('correction_file', 'expand/ocr_correct/ocr_corrections.json'))
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -500,8 +506,8 @@ cache_config = config_loader.get_cache_config()
 Q_CLUSTER = {
     'name': 'testhub',
     'workers': 1,  # 工作进程数，根据服务器配置做调整
-    'timeout': 90,  # 任务超时时间（秒）
-    'retry': 180,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
+    'timeout': 600,  # 任务超时时间（秒），OCR任务可能需要较长时间
+    'retry': 1200,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
     'queue_limit': 50,  # 队列限制
     'bulk': 10,  # 批量处理数量
     'orm': 'default',  # 数据库配置
@@ -574,7 +580,14 @@ EMAIL_TIMEOUT = email_config.get('timeout', 30)
 # 读取日志配置
 logging_config = config_loader.get_logging_config()
 debug_enabled = logging_config.get('debug_enabled', False)
+log_sql_queries = logging_config.get('log_sql_queries', True)
 console_level = 'DEBUG' if debug_enabled else 'INFO'
+
+# 强制启用 SQL 查询记录（即使 DEBUG=False）
+# 这样可以通过 log_sql_queries 配置控制是否记录 SQL 查询
+if log_sql_queries and not DEBUG:
+    from django.db.backends.mysql import base
+    base.DatabaseWrapper.force_debug_cursor = True
 
 # Logging - 使用log_config.py统一配置
 LOGGING = {

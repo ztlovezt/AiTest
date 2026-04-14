@@ -54,12 +54,36 @@ class AppProject(models.Model):
 
 class AppTestConfig(models.Model):
     """APP自动化测试配置"""
+    OCR_ENGINE_CHOICES = [
+        ('tesseract', 'Tesseract OCR'),
+    ]
+    
     adb_path = models.CharField(
         max_length=500, 
         default='adb', 
         verbose_name='ADB路径',
         help_text='Android Debug Bridge 工具路径，默认为 adb（系统PATH）'
     )
+    
+    ocr_engine = models.CharField(
+        max_length=20,
+        choices=OCR_ENGINE_CHOICES,
+        default='tesseract',
+        verbose_name='OCR 引擎',
+        help_text='APP自动化测试使用的 OCR 引擎'
+    )
+    ocr_language = models.CharField(
+        max_length=20,
+        default='chi_sim+eng',
+        verbose_name='OCR 语言',
+        help_text='Tesseract: chi_sim(中文), eng(英文), chi_sim+eng(中英文)'
+    )
+    ocr_min_confidence = models.FloatField(
+        default=0.3,
+        verbose_name='OCR 最小置信度',
+        help_text='低于此置信度的识别结果将被过滤'
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
     
@@ -69,7 +93,7 @@ class AppTestConfig(models.Model):
         verbose_name_plural = 'APP测试配置'
     
     def __str__(self):
-        return f"APP测试配置 (ADB: {self.adb_path})"
+        return f"APP测试配置 (ADB: {self.adb_path}, OCR: {self.get_ocr_engine_display()})"
 
 
 class AppDevice(models.Model):

@@ -82,6 +82,7 @@ export default {
     knowledgeBaseConfig: '知识库配置',
     uiEnvConfig: 'UI环境配置',
     appEnvConfig: 'APP环境配置',
+    ocrConfig: 'OCR服务配置',
     aiModeConfig: 'AI智能模式配置',
     scheduledTaskConfig: '消息通知配置',
     difyConfig: 'AI评测师配置',

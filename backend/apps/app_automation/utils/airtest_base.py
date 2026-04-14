@@ -43,12 +43,12 @@ class AirtestBase:
         self.is_connected = False
         self.last_error = None  # 保存最后一次错误信息
         
-        # 设置截图目录: 使用配置文件中的路径
+        # 设置截图目录: 直接使用配置文件中的路径（已经是绝对路径）
         if screenshots_dir:
             self.screenshots_dir = screenshots_dir
         else:
             self.screenshots_dir = os.path.join(
-                settings.MEDIA_ROOT, settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
+                settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
             )
         
         # 确保截图目录存在
