@@ -503,6 +503,17 @@ const routes = [
         component: () => import('@/views/app-automation/devices/DeviceList.vue')
       },
       {
+        path: 'real-devices',
+        name: 'AppRealDeviceManagement',
+        component: () => import('@/views/app-automation/devices/RealDeviceManagement.vue')
+      },
+      {
+        path: 'remote-connection/:device_id',
+        name: 'AppRemoteConnection',
+        component: () => import('@/views/app-automation/devices/RemoteConnection.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'packages',
         name: 'AppPackageList',
         component: () => import('@/views/app-automation/packages/PackageList.vue')

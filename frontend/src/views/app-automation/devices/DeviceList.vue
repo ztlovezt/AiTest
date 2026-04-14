@@ -93,8 +93,17 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="t('appAutomation.common.operation')" width="250" fixed="right">
+      <el-table-column :label="t('appAutomation.common.operation')" width="300" fixed="right">
         <template #default="{ row }">
+          <el-button
+            link
+            size="small"
+            type="warning"
+            @click="goToRemoteConnection(row)"
+          >
+            <el-icon><Monitor /></el-icon>&nbsp;
+            远程连接
+          </el-button>
           <el-button
             v-if="row.status === 'available' || row.status === 'online'"
             link
@@ -273,7 +282,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Plus } from '@element-plus/icons-vue'
+import { Refresh, Plus, Monitor } from '@element-plus/icons-vue'
 import {
   getDeviceList,
   discoverDevices,
@@ -285,7 +294,10 @@ import {
 } from '@/api/app-automation'
 import { getDeviceStatusType, getDeviceStatusText, formatDateTime } from '@/utils/app-automation-helpers'
 
+import { useRouter } from 'vue-router'
+
 const { t } = useI18n()
+const router = useRouter()
 
 // Refs
 const remoteDeviceFormRef = ref(null)
@@ -566,6 +578,15 @@ const getConnectionTypeName = (type) => {
 
 const isRemoteDevice = (type) => {
   return type === 'remote_emulator' || type === 'remote'
+}
+
+// 跳转到远程连接页面
+const goToRemoteConnection = (row) => {
+  if (!row || !row.device_id) {
+    ElMessage.warning('设备信息不完整')
+    return
+  }
+  router.push(`/app-automation/remote-connection/${row.device_id}`)
 }
 
 // 生命周期

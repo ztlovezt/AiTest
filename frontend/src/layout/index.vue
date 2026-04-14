@@ -160,6 +160,10 @@
               <el-icon><Cellphone /></el-icon>
               <span>{{ $t('menu.appDeviceManagement') }}</span>
             </el-menu-item>
+            <el-menu-item index="/app-automation/real-devices">
+              <el-icon><Cellphone /></el-icon>
+              <span>真机设备管理</span>
+            </el-menu-item>
             <el-menu-item index="/app-automation/packages">
               <el-icon><Collection /></el-icon>
               <span>{{ $t('menu.appPackageManagement') }}</span>
@@ -464,6 +468,8 @@ const breadcrumbTitle = computed(() => {
     '/app-automation/dashboard': t('menu.appDashboard'),
     '/app-automation/projects': t('menu.appProjectManagement'),
     '/app-automation/devices': t('menu.appDeviceManagement'),
+    '/app-automation/real-devices': '真机设备管理',
+    '/app-automation/remote-connection': '远程设备连接',
     '/app-automation/packages': t('menu.appPackageManagement'),
     '/app-automation/elements': t('menu.appElementManagement'),
     '/app-automation/scene-builder': t('menu.appSceneBuilder'),

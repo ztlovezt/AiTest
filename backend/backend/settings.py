@@ -342,6 +342,7 @@ if DEBUG:
         *parsed_cors_origins,  # config.yaml 配置的地址优先
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://192.168.3.208:3000",  # 局域网IP
         "http://localhost:8080",
         "http://127.0.0.1:8080",
     ]
@@ -467,14 +468,30 @@ SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
 SESSION_CACHE_ALIAS = 'sessions'
 
 # Channels Configuration - 统一使用config.yaml中的Redis配置
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}"],
+# 如果 Redis 不可用，可以使用内存后端（仅用于开发测试）
+try:
+    import redis
+    # 测试 Redis 连接
+    r = redis.Redis(host='127.0.0.1', port=6379, db=0)
+    r.ping()
+    
+    # Redis 可用，使用 RedisChannelLayer
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}"],
+            },
         },
-    },
-}
+    }
+except Exception:
+    # Redis 不可用时使用内存后端（仅用于开发）
+    logger.warning("Redis 不可用，使用内存后端（仅用于开发测试）")
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 # Cache配置，使用 Redis 缓存（生产环境推荐）
 cache_config = config_loader.get_cache_config()

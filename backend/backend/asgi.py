@@ -5,6 +5,12 @@ ASGI config for backend project.
 
 import os
 import logging
+import sys
+import asyncio
+
+# 修复 Windows 环境下 asyncio 子进程的 NotImplementedError
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from django.core.asgi import get_asgi_application
 
@@ -18,10 +24,11 @@ try:
     from channels.auth import AuthMiddlewareStack
     from channels.routing import ProtocolTypeRouter, URLRouter
     from apps.app_automation import routing as app_automation_routing
+    from .websocket_auth import QueryAuthMiddlewareStack
 
     application = ProtocolTypeRouter({
         "http": django_asgi_app,
-        "websocket": AuthMiddlewareStack(
+        "websocket": QueryAuthMiddlewareStack(
             URLRouter(app_automation_routing.websocket_urlpatterns)
         ),
     })
