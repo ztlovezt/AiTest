@@ -124,18 +124,18 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             logger.error(f"接收数据失败: {e}")
     
     async def start_scrcpy_session(self):
-        """启动 scrcpy 会话"""
+        """启动 scrcpy 会话 - 优化视频流传输延迟"""
         try:
             # 获取当前事件循环，用于从后台线程调度协程
             loop = asyncio.get_event_loop()
             
             def video_callback(data):
-                """视频数据回调 - 从后台线程异步发送到 WebSocket"""
+                """视频数据回调 - 优化：直接发送，减少调度开销"""
                 try:
-                    # 使用 run_coroutine_threadsafe 在主事件循环中调度协程
-                    asyncio.run_coroutine_threadsafe(
-                        self.send(bytes_data=data),
-                        loop
+                    # 使用 call_soon_threadsafe 比 run_coroutine_threadsafe 更快
+                    # 因为它直接在事件循环中调度，不需要创建新的 Future
+                    loop.call_soon_threadsafe(
+                        lambda: asyncio.ensure_future(self.send(bytes_data=data))
                     )
                 except Exception as e:
                     logger.error(f"发送视频帧失败: {e}")

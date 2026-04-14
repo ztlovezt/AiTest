@@ -36,40 +36,40 @@ class ScrcpyDeviceSession:
         
         self.stop = False
         self.video_callback = None
-        # 默认配置：1Mbps 码率（参考原始 web-scrcpy）
-        self.video_bit_rate = "1024000"  # 1Mbps
-        self.max_size = "720"            # 720p（低延迟优先）
+        # 默认配置：优化平衡延迟和画质
+        self.video_bit_rate = "2048000"  # 2Mbps（720p/1080p 推荐码率）
+        self.max_size = "1080"           # 1080p（保证显示大小）
         self.max_fps = "60"              # 30fps（流畅且延迟低）
         
         # 检测设备类型并优化参数
-        self._optimize_for_device_type()
+        # self._optimize_for_device_type()
     
-    def _optimize_for_device_type(self):
-        """根据设备类型优化 max_size 和 max_fps，码率统一使用 1Mbps"""
-        try:
-            # 检查是否为模拟器
-            result = subprocess.run(
-                [ADB_PATH, "-s", self.device_id, "shell", "getprop", "ro.product.model"],
-                capture_output=True, text=True, timeout=5
-            )
-            model = result.stdout.strip().lower()
+    # def _optimize_for_device_type(self):
+    #     """根据设备类型优化 max_size 和 max_fps，码率统一使用 1Mbps"""
+    #     try:
+    #         # 检查是否为模拟器
+    #         result = subprocess.run(
+    #             [ADB_PATH, "-s", self.device_id, "shell", "getprop", "ro.product.model"],
+    #             capture_output=True, text=True, timeout=5
+    #         )
+    #         model = result.stdout.strip().lower()
             
-            # 常见模拟器标识
-            emulator_keywords = ['emulator', 'sdk', 'android sdk', 'genymotion']
-            is_emulator = any(keyword in model for keyword in emulator_keywords) or self.device_id.startswith('emulator-')
+    #         # 常见模拟器标识
+    #         emulator_keywords = ['emulator', 'sdk', 'android sdk', 'genymotion']
+    #         is_emulator = any(keyword in model for keyword in emulator_keywords) or self.device_id.startswith('emulator-')
             
-            if is_emulator:
-                # 模拟器性能强，可以使用更高配置
-                self.max_size = "1080"  # 1080p（高画质）
-                self.max_fps = "60"     # 60fps（更流畅）
-                logger.info(f"[{self.device_id}] Detected emulator, using high quality: 1080p@60fps")
-            else:
-                # 真机 USB 连接，优先低延迟
-                self.max_size = "720"   # 720p（平衡画质和延迟）
-                self.max_fps = "30"     # 30fps（足够流畅）
-                logger.info(f"[{self.device_id}] Detected real device, using low latency: 720p@30fps")
-        except Exception as e:
-            logger.warning(f"[{self.device_id}] Failed to detect device type: {e}, using default: 720p@30fps")
+    #         if is_emulator:
+    #             # 模拟器性能强，可以使用更高配置
+    #             self.max_size = "1080"  # 模拟器使用 1080p
+    #             self.max_fps = "30"     # 30fps 足够流畅
+    #             logger.info(f"[{self.device_id}] Detected emulator, using optimized: 1080p@30fps")
+    #         else:
+    #             # 真机 USB 连接，优先低延迟但保证显示大小
+    #             self.max_size = "1080"  # 1080p（保证显示大小）
+    #             self.max_fps = "30"     # 30fps（足够流畅）
+    #             logger.info(f"[{self.device_id}] Detected real device, using balanced: 1080p@30fps")
+    #     except Exception as e:
+    #         logger.warning(f"[{self.device_id}] Failed to detect device type: {e}, using default: 720p@30fps")
     
     def push_server_to_device(self) -> bool:
         """推送 scrcpy-server 到设备"""
@@ -110,16 +110,19 @@ class ScrcpyDeviceSession:
             return False
     
     def start_server(self):
-        """启动 scrcpy server - 参考原始 web-scrcpy 实现"""
+        """启动 scrcpy server - 参考原始 web-scrcpy 实现，添加关键参数优化"""
         logger.info(f"[{self.device_id}] Starting scrcpy server...")
         try:
             # 使用与原始 web-scrcpy 相同的简化命令
-            # 但需要显式启用 video 和 control，否则可能不发送数据
+            # 关键：必须显式传递 max_size 和 max_fps，否则使用设备原生分辨率导致高延迟
             server_cmd = [
                 ADB_PATH, "-s", self.device_id, "shell",
                 f"CLASSPATH={DEVICE_SERVER_PATH} app_process / com.genymobile.scrcpy.Server 3.1 "
                 f"tunnel_forward=true control=true video=true audio=false log_level=info "
-                f"video_bit_rate={self.video_bit_rate}"
+                f"video_bit_rate={self.video_bit_rate} "
+                f"max_size={self.max_size} "
+                f"max_fps={self.max_fps} "
+                f"lock_video_orientation=-1"  # 不锁定方向，允许自动旋转
             ]
             logger.info(f"[{self.device_id}] Server command: {' '.join(server_cmd)}")
             
@@ -171,7 +174,7 @@ class ScrcpyDeviceSession:
             logger.error(f"[{self.device_id}] Server error: {e}", exc_info=True)
     
     def receive_video_data(self):
-        """接收视频数据线程 - 参考原始 web-scrcpy 实现"""
+        """接收视频数据线程 - 优化：减小 recv 缓冲区，加快数据返回速度"""
         try:
             if not self.video_socket:
                 logger.error(f"[{self.device_id}] Video socket is None")
@@ -180,14 +183,16 @@ class ScrcpyDeviceSession:
             logger.info(f"[{self.device_id}] Starting to receive video data...")
             # 读取初始字节
             initial_byte = self.video_socket.recv(1)
-            logger.info(f"[{self.device_id}] Received initial byte: {len(initial_byte)} bytes")
+            logger.debug(f"[{self.device_id}] Received initial byte: {len(initial_byte)} bytes")
             
             count = 0
             while not self.stop:
                 if not self.video_socket:
                     break
                 try:
-                    data = self.video_socket.recv(20480)
+                    # 优化：减小 recv 缓冲区从 20480 到 8192
+                    # 更小的缓冲区可以更快返回数据，减少等待时间
+                    data = self.video_socket.recv(8192)
                     if not data:
                         logger.warning(f"[{self.device_id}] Video socket returned empty data")
                         break
@@ -197,9 +202,9 @@ class ScrcpyDeviceSession:
                 
                 count += 1
                 if count <= 10 or count % 100 == 0:
-                    logger.info(f"[{self.device_id}] Received video chunk #{count}: {len(data)} bytes")
+                    logger.debug(f"[{self.device_id}] Received video chunk #{count}: {len(data)} bytes")
                 
-                # 直接回调
+                # 直接回调 - 尽可能快地发送数据
                 if self.video_callback:
                     try:
                         self.video_callback(data)
@@ -281,27 +286,33 @@ class ScrcpyDeviceSession:
         logger.info(f"[{self.device_id}] Waiting for server to start...")
         time.sleep(1)
         
-        # 连接视频socket
+        # 连接视频socket - 参考原始 web-scrcpy，添加TCP_NODELAY优化
         try:
             logger.info(f"[{self.device_id}] Connecting to video socket on port {self.local_port}...")
             self.video_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # 禁用Nagle算法，减少小包延迟（关键优化）
+            self.video_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            # 减小接收缓冲区，避免数据积压导致延迟
+            self.video_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)  # 64KB
             self.video_socket.settimeout(5)
             self.video_socket.connect(('localhost', self.local_port))
             self.video_socket.settimeout(None)
-            logger.info(f"[{self.device_id}] Video connection established")
+            logger.info(f"[{self.device_id}] Video connection established with TCP_NODELAY")
         except Exception as e:
             logger.error(f"[{self.device_id}] Video connection failed: {e}")
             self.stop_all()
             return False
         
-        # 连接控制socket
+        # 连接控制socket - 添加TCP_NODELAY优化
         try:
             logger.info(f"[{self.device_id}] Connecting to control socket on port {self.local_port}...")
             self.control_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            # 禁用Nagle算法，确保控制命令立即发送
+            self.control_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self.control_socket.settimeout(5)
             self.control_socket.connect(('localhost', self.local_port))
             self.control_socket.settimeout(None)
-            logger.info(f"[{self.device_id}] Control connection established")
+            logger.info(f"[{self.device_id}] Control connection established with TCP_NODELAY")
         except Exception as e:
             logger.error(f"[{self.device_id}] Control connection failed: {e}")
             self.stop_all()
