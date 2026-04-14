@@ -61,7 +61,7 @@ expand/media/app_automation/screenshots/*
 !expand/media/app_automation/screenshots/.gitkeep
 expand/media/app_automation/allure-single-file/*
 !expand/media/app_automation/allure-single-file/.gitkeep
-app-automation/
+# 注意：不要忽略 app-automation/ 源码目录，只忽略运行时产生的文件
 # 忽略APP自动化模板文件
 apps/app_automation/Template/**
 !apps/app_automation/Template/
