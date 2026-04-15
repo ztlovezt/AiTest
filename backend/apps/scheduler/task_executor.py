@@ -83,13 +83,13 @@ def _build_dingtalk_message(rendered_content, status_text):
     if not rendered_content:
         rendered_content = ""
 
-    # 使用正则表达式统一处理所有换行符
-    # 先将 \r\n 和 \r 统一为 \n
-    rendered_content = re.sub(r'\r\n|\r', '\n', rendered_content)
-    # 将连续的多个换行符（2 个以上）替换为两个 \n
-    rendered_content = re.sub(r'\n{2,}', '\n\n', rendered_content)
-    # 将单个换行符替换为两个 \n（钉钉 Markdown 格式要求）
-    rendered_content = re.sub(r'(?<!\n)\n(?!\n)', '\n\n', rendered_content)
+    # # 使用正则表达式统一处理所有换行符
+    # # 先将 \r\n 和 \r 统一为 \n
+    # rendered_content = re.sub(r'\r\n|\r', '\n', rendered_content)
+    # # 将连续的多个换行符（2 个以上）替换为两个 \n
+    # rendered_content = re.sub(r'\n{2,}', '\n\n', rendered_content)
+    # # 将单个换行符替换为两个 \n（钉钉 Markdown 格式要求）
+    # rendered_content = re.sub(r'(?<!\n)\n(?!\n)', '\n\n', rendered_content)
     return {
             "msgtype": "markdown",
             "markdown": {

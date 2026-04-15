@@ -492,7 +492,6 @@ try:
     }
 except Exception:
     # Redis 不可用时使用内存后端（仅用于开发）
-    logger.warning("Redis 不可用，使用内存后端（仅用于开发测试）")
     CHANNEL_LAYERS = {
         'default': {
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
