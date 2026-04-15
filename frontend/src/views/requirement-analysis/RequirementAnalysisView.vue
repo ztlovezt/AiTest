@@ -2758,13 +2758,14 @@ export default {
 }
 
 .panel-tab.active {
-  background: linear-gradient(135deg, var(--th-color-primary), var(--th-color-primary-strong));
+  background: transparent;
   border-color: var(--th-color-primary);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 30%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 15%, transparent);
 }
 
 .panel-tab.active::before {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, var(--th-color-primary), var(--th-color-primary-strong));
+  height: 4px;
 }
 
 .panel-icon {
@@ -2789,7 +2790,7 @@ export default {
 }
 
 .panel-tab.active .panel-icon {
-  background: #eff6ff;
+  background: color-mix(in srgb, var(--th-color-primary) 10%, white);
   transform: scale(1.05);
 }
 
@@ -2816,7 +2817,7 @@ export default {
 }
 
 .panel-tab.active .panel-label {
-  color: #1d4ed8;
+  color: var(--th-color-primary);
 }
 
 .panel-desc {

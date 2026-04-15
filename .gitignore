@@ -8,6 +8,7 @@ venv/
 .claude/
 .vscode/
 .trae/
+.workbuddy
 __pycache__/
 .DS_Store
 .pytest_cache
@@ -53,6 +54,7 @@ expand/media/api_testing/allure-static/*
 !expand/media/api_testing/allure-static/.gitkeep
 
 # 忽略 APP 自动化运行时产生的文件，但保留.gitkeep文件
+app-automation/*
 expand/media/app_automation/allure-results/*
 !expand/media/app_automation/allure-results/.gitkeep
 expand/media/app_automation/allure-reports/*

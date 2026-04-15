@@ -49,3 +49,4 @@ build-multiplatform.sh
 .qcluster.pid
 django_server.pid
 django_qcluster.pid
+tika_server.pid
