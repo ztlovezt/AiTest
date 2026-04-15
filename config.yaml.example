@@ -142,11 +142,11 @@ cors:
 email:
   # SMTP 服务器地址
   host: "smtp.gmail.com"
-  # SMTP 端口
+  # SMTP 端口（163邮箱是465，QQ邮箱是587）
   port: 587
-  # 是否使用 TLS
+  # 是否使用 TLS（163关闭、QQ开启）
   use_tls: true
-  # 是否使用 SSL
+  # 是否使用 SSL（163开启、QQ关闭）
   use_ssl: false
   # 发件人邮箱
   host_user: ""
