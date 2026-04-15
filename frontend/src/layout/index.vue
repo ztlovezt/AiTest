@@ -160,10 +160,10 @@
               <el-icon><Cellphone /></el-icon>
               <span>{{ $t('menu.appDeviceManagement') }}</span>
             </el-menu-item>
-            <el-menu-item index="/app-automation/real-devices">
+            <!-- <el-menu-item index="/app-automation/real-devices">
               <el-icon><Cellphone /></el-icon>
               <span>真机设备管理</span>
-            </el-menu-item>
+            </el-menu-item> -->
             <el-menu-item index="/app-automation/packages">
               <el-icon><Collection /></el-icon>
               <span>{{ $t('menu.appPackageManagement') }}</span>
