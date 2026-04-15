@@ -952,6 +952,23 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
                 )
 
                 print(f"[测试套件] 执行完成: {test_suite.name}, 结果: {result}")
+
+                # 更新套件执行状态和统计
+                try:
+                    from django.db import connection
+                    suite = TestSuite.objects.get(id=test_suite.id)
+                    if result.get('success', False):
+                        suite.execution_status = 'passed'
+                    else:
+                        suite.execution_status = 'failed'
+                    suite.passed_count = result.get('passed_count', 0)
+                    suite.failed_count = result.get('failed_count', 0)
+                    suite.save()
+                    print(f"[测试套件] 已更新状态: {suite.execution_status}, 通过: {suite.passed_count}, 失败: {suite.failed_count}")
+                    connection.close()
+                except Exception as save_error:
+                    print(f"[测试套件] 更新状态失败: {save_error}")
+
             except Exception as e:
                 print(f"[测试套件] 执行异常: {test_suite.name}")
                 print(f"[测试套件] 错误: {str(e)}")
@@ -959,9 +976,12 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
 
                 # 更新套件状态为失败
                 try:
-                    test_suite.execution_status = 'failed'
-                    test_suite.save()
+                    from django.db import connection
+                    suite = TestSuite.objects.get(id=test_suite.id)
+                    suite.execution_status = 'failed'
+                    suite.save()
                     print(f"[测试套件] 已更新状态为失败")
+                    connection.close()
                 except Exception as save_error:
                     print(f"[测试套件] 更新状态失败: {save_error}")
 

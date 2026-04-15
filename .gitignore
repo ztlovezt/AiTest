@@ -72,6 +72,13 @@ backend/apps/app_automation/Template/**
 # 忽略UI自动化运行时产生的截图文件，但保留.gitkeep文件
 !expand/media/ui_automation/screenshots/.gitkeep
 expand/media/ui_automation/screenshots/*
+# 忽略 APP 自动化运行时产生的文件，但保留.gitkeep文件
+expand/media/ui_automation/allure-results/*
+!expand/media/ui_automation/allure-results/.gitkeep
+expand/media/ui_automation/allure-reports/*
+!expand/media/ui_automation/allure-reports/.gitkeep
+expand/media/ui_automation/allure-single-file/*
+!expand/media/ui_automation/allure-single-file/.gitkeep
 
 # 忽略知识库上传文件，但保留.gitkeep文件
 expand/media/knowledge_base/*

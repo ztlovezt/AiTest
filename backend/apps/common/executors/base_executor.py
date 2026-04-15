@@ -422,7 +422,14 @@ class BaseTestExecutor:
             builtin_allure = project_root / allure_bin_path / allure_executable
 
         if builtin_allure.exists():
-            return str(builtin_allure)
+            allure_path = str(builtin_allure)
+            if os.name != 'nt' and not os.access(allure_path, os.X_OK):
+                try:
+                    os.chmod(allure_path, 0o755)
+                    logger.info(f"已设置 Allure 执行权限: {allure_path}")
+                except Exception as e:
+                    logger.warning(f"设置 Allure 执行权限失败: {e}")
+            return allure_path
 
         possible_paths = [
             project_root / 'expand' / 'allure' / 'bin' / allure_executable,
@@ -431,7 +438,14 @@ class BaseTestExecutor:
         ]
         for path in possible_paths:
             if path.exists():
-                return str(path)
+                allure_path = str(path)
+                if os.name != 'nt' and not os.access(allure_path, os.X_OK):
+                    try:
+                        os.chmod(allure_path, 0o755)
+                        logger.info(f"已设置 Allure 执行权限: {allure_path}")
+                    except Exception as e:
+                        logger.warning(f"设置 Allure 执行权限失败: {e}")
+                return allure_path
 
         logger.warning(f"未找到 Allure 命令: {builtin_allure}")
         return None
