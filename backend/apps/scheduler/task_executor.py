@@ -441,7 +441,7 @@ def execute_ui_test_suite(*args, **kwargs):
             browser=task_config.get('browser', 'chrome'),
             headless=task_config.get('headless', True),
             user=config.created_by,
-            async_report=True
+            async_report=False
         )
         
         logger.info(f"[定时任务] UI测试套件执行完成: suite_name={test_suite.name}, execution_id={result.get('execution_id')}")
