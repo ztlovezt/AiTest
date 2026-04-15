@@ -55,7 +55,8 @@ class CustomEmailBackend(EmailBackend):
                 f"1. SMTP 服务器不可达或网络问题\n"
                 f"2. 邮箱账号被限制或封禁\n"
                 f"3. 授权码已过期，请重新生成\n"
-                f"4. 防火墙阻止了 {self.port} 端口连接"
+                f"4. 防火墙阻止了 {self.port} 端口连接\n"
+                f"5. 请把 SSL 或 TLS 配置设置为true尝试"
             )
             logger.error(f"❌ {error_msg}")
             if not self.fail_silently:
