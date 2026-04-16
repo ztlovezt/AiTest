@@ -765,7 +765,7 @@
 
       <template #footer>
         <el-button @click="closeEditCollectionDialog">{{ $t('apiTesting.common.cancel') }}</el-button>
-        <el-button type="primary" @click="editCollection">{{ $t('apiTesting.common.save') }}</el-button>
+        <el-button type="primary" @click="updateCollection">{{ $t('apiTesting.common.save') }}</el-button>
       </template>
     </el-dialog>
 

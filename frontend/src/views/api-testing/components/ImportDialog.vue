@@ -231,7 +231,9 @@ async function handlePreview() {
       formData.append('file', selectedFile.value)
     }
 
-    const res = await api.post('/api-testing/import/preview/', formData)
+    const res = await api.post('/api-testing/import/preview/', formData, {
+      headers: { 'Content-Type': undefined },
+    })
     previewData.value = res.data
 
     // 默认全选

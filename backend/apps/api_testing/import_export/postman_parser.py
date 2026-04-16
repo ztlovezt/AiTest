@@ -21,8 +21,22 @@ class PostmanParser:
         except json.JSONDecodeError:
             raise ValueError('无效的 JSON 格式')
 
+        # 支持 {"collection": {...}} 包装格式（Postman API 导出）
+        if 'collection' in data and isinstance(data['collection'], dict):
+            data = data['collection']
+
         info = data.get('info', {})
-        if not info.get('schema', '').startswith('https://schema.getpostman.com/json/collection/v2'):
+        schema_url = info.get('schema', '')
+
+        # 兼容 http/https 以及第三方工具（如 Apifox）的导出格式
+        is_postman_v2 = (
+            schema_url.startswith('https://schema.getpostman.com/json/collection/v2')
+            or schema_url.startswith('http://schema.getpostman.com/json/collection/v2')
+        )
+        # 即使没有标准 schema URL，只要有 info.name 和 item 数组就尝试解析
+        has_collection_structure = info.get('name') and isinstance(data.get('item'), list)
+
+        if not is_postman_v2 and not has_collection_structure:
             raise ValueError('不支持的 Postman Collection 版本，仅支持 v2.x')
 
         title = info.get('name', 'Imported Collection')

@@ -119,6 +119,10 @@ class ApiProjectSerializer(serializers.ModelSerializer):
 
 class ApiCollectionSerializer(serializers.ModelSerializer):
     children = serializers.SerializerMethodField()
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=ApiProject.objects.all(),
+        required=False,
+    )
 
     class Meta:
         model = ApiCollection

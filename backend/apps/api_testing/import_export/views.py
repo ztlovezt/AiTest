@@ -32,10 +32,11 @@ class ImportPreviewView(APIView):
             file = request.FILES.get('file')
             if not file:
                 return Response({'error': '请上传文件'}, status=400)
+            raw_bytes = file.read()
             try:
-                content = file.read().decode('utf-8')
+                content = raw_bytes.decode('utf-8-sig')
             except UnicodeDecodeError:
-                content = file.read().decode('utf-8', errors='ignore')
+                content = raw_bytes.decode('utf-8', errors='ignore')
 
         parser_map = {
             'openapi': OpenAPIParser,
@@ -100,7 +101,7 @@ class ImportConfirmView(APIView):
 
                     ApiRequest.objects.create(
                         collection=collection,
-                        name=req_data.get('name', f'Request {idx + 1}'),
+                        name=req_data.get('name', f'Request {idx + 1}')[:200],
                         description=req_data.get('description', ''),
                         method=req_data.get('method', 'GET').upper(),
                         url=req_data.get('url', ''),
