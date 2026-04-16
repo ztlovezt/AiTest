@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django.db import transaction
 from django.http import JsonResponse
 
 from ..models import ApiProject, ApiCollection, ApiRequest
@@ -81,37 +82,38 @@ class ImportConfirmView(APIView):
         created_requests = 0
 
         try:
-            for col_data in collections_data:
-                # 创建集合
-                collection = ApiCollection.objects.create(
-                    name=col_data.get('name', 'Imported'),
-                    description=col_data.get('description', ''),
-                    project=project,
-                )
-                created_collections += 1
-
-                # 创建请求
-                for idx, req_data in enumerate(col_data.get('requests', [])):
-                    headers = req_data.get('headers', [])
-                    if isinstance(headers, dict):
-                        headers = [{'key': k, 'value': v, 'enabled': True} for k, v in headers.items()]
-
-                    params = req_data.get('params', {})
-                    body = req_data.get('body', {})
-
-                    ApiRequest.objects.create(
-                        collection=collection,
-                        name=req_data.get('name', f'Request {idx + 1}')[:200],
-                        description=req_data.get('description', ''),
-                        method=req_data.get('method', 'GET').upper(),
-                        url=req_data.get('url', ''),
-                        headers=headers,
-                        params=params,
-                        body=body,
-                        order=idx,
-                        created_by=request.user,
+            with transaction.atomic():
+                for col_data in collections_data:
+                    # 创建集合
+                    collection = ApiCollection.objects.create(
+                        name=col_data.get('name', 'Imported'),
+                        description=col_data.get('description', ''),
+                        project=project,
                     )
-                    created_requests += 1
+                    created_collections += 1
+
+                    # 创建请求
+                    for idx, req_data in enumerate(col_data.get('requests', [])):
+                        headers = req_data.get('headers', [])
+                        if isinstance(headers, dict):
+                            headers = [{'key': k, 'value': v, 'enabled': True} for k, v in headers.items()]
+
+                        params = req_data.get('params', {})
+                        body = req_data.get('body', {})
+
+                        ApiRequest.objects.create(
+                            collection=collection,
+                            name=req_data.get('name', f'Request {idx + 1}')[:200],
+                            description=req_data.get('description', ''),
+                            method=req_data.get('method', 'GET').upper(),
+                            url=req_data.get('url', ''),
+                            headers=headers,
+                            params=params,
+                            body=body,
+                            order=idx,
+                            created_by=request.user,
+                        )
+                        created_requests += 1
 
             return Response({
                 'message': f'导入成功：{created_collections} 个集合，{created_requests} 个接口',
