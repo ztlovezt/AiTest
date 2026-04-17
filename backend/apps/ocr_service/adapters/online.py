@@ -29,6 +29,7 @@ class OnlineOCRProvider(Enum):
     """在线 OCR 服务提供商"""
     OPENAI = 'openai'
     ZHIPU = 'zhipu'
+    SILICONFLOW = 'siliconflow'
     BAIDU = 'baidu'
     TENCENT = 'tencent'
     ALIYUN = 'aliyun'
@@ -49,6 +50,11 @@ class OnlineOCRAdapter(BaseOCRAdapter):
         OnlineOCRProvider.ZHIPU: {
             'default_model': 'glm-4v',
             'default_base_url': 'https://open.bigmodel.cn/api/paas/v4',
+            'auth_type': 'bearer',
+        },
+        OnlineOCRProvider.SILICONFLOW: {
+            'default_model': 'Qwen/Qwen2.5-VL-72B-Instruct',
+            'default_base_url': 'https://api.siliconflow.cn/v1',
             'auth_type': 'bearer',
         },
         OnlineOCRProvider.BAIDU: {

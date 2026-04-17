@@ -9,6 +9,7 @@ class OCRConfig(models.Model):
         ('tesseract', 'Tesseract OCR'),
         ('openai', 'OpenAI GPT-4V'),
         ('zhipu', '智谱 GLM-4V'),
+        ('siliconflow', '硅基流动'),
         ('baidu', '百度 AI OCR'),
         ('tencent', '腾讯 OCR'),
         ('aliyun', '阿里云 OCR'),

@@ -19,7 +19,7 @@
             <div v-if="config && config.id" class="config-card">
               <div class="config-header">
                 <div class="config-title">
-                  <h3>{{ config.name || $t('configuration.common.unnamed') }}</h3>
+                  <h3 :title="config.name || $t('configuration.common.unnamed')">{{ config.name || $t('configuration.common.unnamed') }}</h3>
                   <div class="config-badges">
                     <span class="provider-badge" :class="config.provider">
                       {{ getProviderLabel(config.provider) }}
@@ -33,6 +33,10 @@
                   </div>
                 </div>
                 <div class="config-actions">
+                  <button class="test-btn" :disabled="testingConfigId === config.id" @click="testConnection(config)">
+                    <span v-if="testingConfigId === config.id">{{ $t('configuration.ocr.testing') }}</span>
+                    <span v-else>{{ $t('configuration.ocr.testConnection') }}</span>
+                  </button>
                   <button v-if="!config.is_default" class="default-btn" @click="setDefault(config.id)">
                     {{ $t('configuration.ocr.setDefault') }}
                   </button>
@@ -110,6 +114,7 @@
                 <option value="tesseract">{{ $t('configuration.ocr.providers.tesseract') }}</option>
                 <option value="openai">{{ $t('configuration.ocr.providers.openai') }}</option>
                 <option value="zhipu">{{ $t('configuration.ocr.providers.zhipu') }}</option>
+                <option value="siliconflow">{{ $t('configuration.ocr.providers.siliconflow') }}</option>
                 <option value="baidu">{{ $t('configuration.ocr.providers.baidu') }}</option>
                 <option value="tencent">{{ $t('configuration.ocr.providers.tencent') }}</option>
                 <option value="aliyun">{{ $t('configuration.ocr.providers.aliyun') }}</option>
@@ -317,7 +322,8 @@ import {
   createOCRConfig,
   updateOCRConfig,
   deleteOCRConfig,
-  setDefaultOCRConfig
+  setDefaultOCRConfig,
+  testOCRConfig
 } from '@/api/ocr'
 
 export default {
@@ -332,6 +338,7 @@ export default {
       showModal: false,
       isEditing: false,
       isSaving: false,
+      testingConfigId: null,
       editingConfigId: null,
       configForm: {
         name: '',
@@ -361,6 +368,7 @@ export default {
       providerBaseUrlMap: {
         openai: 'https://api.openai.com/v1',
         zhipu: 'https://open.bigmodel.cn/api/paas/v4',
+        siliconflow: 'https://api.siliconflow.cn/v1',
         baidu: 'https://aip.baidubce.com/rest/2.0/ocr/v1',
         tencent: 'https://ocr.tencentcloudapi.com',
         aliyun: 'https://ocr.cn-shanghai.aliyuncs.com'
@@ -369,7 +377,7 @@ export default {
   },
   computed: {
     isOnlineProvider() {
-      return ['openai', 'zhipu', 'baidu', 'tencent', 'aliyun', 'custom'].includes(this.configForm.provider)
+      return ['openai', 'zhipu', 'siliconflow', 'baidu', 'tencent', 'aliyun', 'custom'].includes(this.configForm.provider)
     },
     isBaiduProvider() {
       return this.configForm.provider === 'baidu'
@@ -384,7 +392,7 @@ export default {
       return this.configForm.provider === 'custom'
     },
     showModelName() {
-      return ['openai', 'zhipu'].includes(this.configForm.provider)
+      return ['openai', 'zhipu', 'siliconflow'].includes(this.configForm.provider)
     }
   },
   mounted() {
@@ -413,6 +421,7 @@ export default {
         tesseract: this.t('configuration.ocr.providers.tesseract'),
         openai: this.t('configuration.ocr.providers.openai'),
         zhipu: this.t('configuration.ocr.providers.zhipu'),
+        siliconflow: this.t('configuration.ocr.providers.siliconflow'),
         baidu: this.t('configuration.ocr.providers.baidu'),
         tencent: this.t('configuration.ocr.providers.tencent'),
         aliyun: this.t('configuration.ocr.providers.aliyun'),
@@ -605,6 +614,23 @@ export default {
       }
     },
 
+    async testConnection(config) {
+      this.testingConfigId = config.id
+      try {
+        const response = await testOCRConfig(config.id)
+        if (response.data && response.data.success) {
+          ElMessage.success(this.t('configuration.ocr.testSuccess'))
+        } else {
+          ElMessage.error(response.data?.message || this.t('configuration.ocr.testFailed'))
+        }
+      } catch (error) {
+        console.error('Failed to test OCR config:', error)
+        ElMessage.error(error.response?.data?.message || this.t('configuration.ocr.testFailed'))
+      } finally {
+        this.testingConfigId = null
+      }
+    },
+
     closeModal() {
       this.showModal = false
       this.isEditing = false
@@ -685,14 +711,22 @@ export default {
 .config-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 15px;
+}
+
+.config-title {
+  flex: 1;
+  min-width: 0;
 }
 
 .config-title h3 {
   font-size: 16px;
   color: #303133;
   margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .config-badges {
@@ -743,6 +777,9 @@ export default {
 .config-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .config-actions button {
@@ -760,6 +797,12 @@ export default {
 
 .test-btn:hover {
   background: #ebb563;
+}
+
+.test-btn:disabled {
+  background: #f5deb3;
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .default-btn {

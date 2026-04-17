@@ -82,7 +82,8 @@ else:
     
     # 启动 Daphne 服务器（支持 WebSocket）
     proc_server = subprocess.Popen(
-        [sys.executable, '-m', 'daphne', '-b', '0.0.0.0', '-p', str(backend_port), asgi_app]
+        # [sys.executable, '-m', 'daphne', '-b', '0.0.0.0', '-p', str(backend_port), asgi_app]
+        [sys.executable, manage_py_path, 'runserver', f'0.0.0.0:{backend_port}']
     )
     processes.append(proc_server)
     print(f"✓ Daphne 服务器已启动 (端口: {backend_port})")
