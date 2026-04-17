@@ -462,7 +462,8 @@ export default {
     jsonPathPlaceholder: 'Enter JSONPath expression',
     headerName: 'Header Name',
     noAssertions: 'No assertions configured',
-    dataFactoryInserted: 'Data factory data inserted: {name}'
+    dataFactoryInserted: 'Data factory data inserted: {name}',
+    order: 'Order'
   },
 
   // Scheduled Tasks
@@ -1051,7 +1052,8 @@ export default {
       exportFailed: 'Export failed',
       generateCodeFailed: 'Failed to generate code',
       sendMessageFailed: 'Failed to send message',
-      loadVariableFunctionsFailed: 'Failed to load variable functions, using local data'
+      loadVariableFunctionsFailed: 'Failed to load variable functions, using local data',
+      removeFailed: 'Failed to remove'
     },
     warning: {
       pleaseConnect: 'Please establish WebSocket connection first',

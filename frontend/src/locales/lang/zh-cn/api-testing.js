@@ -474,7 +474,8 @@ export default {
     jsonPathPlaceholder: '请输入JSONPath表达式',
     headerName: 'Header名称',
     noAssertions: '暂无断言配置',
-    dataFactoryInserted: '已插入数据工厂数据：{name}'
+    dataFactoryInserted: '已插入数据工厂数据：{name}',
+    order: '序号'
   },
 
   // 定时任务
@@ -1065,7 +1066,8 @@ export default {
       exportFailed: '导出失败',
       generateCodeFailed: '生成代码失败',
       sendMessageFailed: '发送消息失败',
-      loadVariableFunctionsFailed: '加载变量函数失败，使用本地数据'
+      loadVariableFunctionsFailed: '加载变量函数失败，使用本地数据',
+      removeFailed: '移除失败'
     },
     warning: {
       pleaseConnect: '请先建立WebSocket连接',

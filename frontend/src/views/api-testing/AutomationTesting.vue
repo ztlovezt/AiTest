@@ -119,7 +119,11 @@
             </div>
             
             <el-table :data="selectedSuite.suite_requests" style="width: 100%" size="small" border>
-              <el-table-column type="index" width="45" align="center" />
+              <el-table-column prop="order" :label="$t('apiTesting.automation.order')" width="55" align="center">
+                <template #default="scope">
+                  {{ scope.row.order + 1 }}
+                </template>
+              </el-table-column>
               <el-table-column prop="request.name" :label="$t('apiTesting.automation.requestName')" min-width="180" show-overflow-tooltip />
               <el-table-column prop="request.method" :label="$t('apiTesting.automation.method')" width="70" align="center">
                 <template #default="scope">
@@ -698,7 +702,7 @@ const getAverageExecutionTime = (execution) => {
 
 const getPassRate = (execution) => {
   if (execution.total_requests === 0) return 0
-  return ((execution.passed_requests / execution.total_requests) * 100).toFixed(1)
+  return parseFloat(((execution.passed_requests / execution.total_requests) * 100).toFixed(1))
 }
 
 const getEnvironmentName = (environmentId) => {
@@ -1282,7 +1286,7 @@ const viewExecutionDetail = (execution) => {
 
   // 如果执行记录正在运行，开始轮询
   if (execution.status === 'RUNNING') {
-    startPolling()
+    startPolling(execution.id)
   }
 }
 

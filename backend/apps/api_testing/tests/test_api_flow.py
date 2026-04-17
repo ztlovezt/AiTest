@@ -158,11 +158,11 @@ class VariableExtractor:
         extracted = {}
         
         for rule in extraction_rules:
-            var_name = rule.get('name')
+            var_name = rule.get('variable_name') or rule.get('name')
             source = rule.get('source', 'body')
-            extract_type = rule.get('type', 'json_path')
+            extract_type = rule.get('extract_type') or rule.get('type', 'json_path')
             expression = rule.get('expression')
-            default = rule.get('default')
+            default = rule.get('default_value') or rule.get('default')
             
             if not var_name or not expression:
                 continue
@@ -244,8 +244,8 @@ def _get_suite_data(suite_id):
             'suite_assertions': sr.assertions or [],
             'order': sr.order,
             'skip_condition': getattr(sr, 'skip_condition', None),
-            'extract_variables': getattr(sr, 'extract_variables', []),
-            'interface_extract_variables': req.extract_variables or [],
+            'extract_variables': getattr(sr, 'extractors', []) or getattr(sr, 'extract_variables', []),
+            'interface_extract_variables': getattr(req, 'extractors', []) or getattr(req, 'extract_variables', []),
         })
     
     _suite_cache[suite_id] = test_suite
