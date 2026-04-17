@@ -53,17 +53,7 @@ echo.
 REM 激活虚拟环境（可选，用于设置环境变量）
 call "%VENV_PATH%\Scripts\activate.bat"
 
-echo [1/2] Starting Daphne ASGI server (with WebSocket support)...
-
-REM 禁用 OneDNN 和其他优化以避免 PaddlePaddle 3.x 兼容性问题
-set FLAGS_use_mkldnn=0
-set FLAGS_enable_mkldnn=0
-set FLAGS_enable_onednn=0
-set FLAGS_cinn_new_group_scheduler=0
-set FLAGS_enable_pir_api=0
-set FLAGS_check_cuda_version=0
-set FLAGS_skip_allocator_mem_check=1
-set PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
+echo [1/2] Starting Django development server...
 
 REM 从config.yaml读取端口配置
 REM 注意：脚本在后端目录中，需要从父目录读取config.yaml
@@ -73,8 +63,7 @@ REM 如果未找到，则使用默认端口
 if "%BACKEND_PORT%"=="" set BACKEND_PORT=8000
 
 echo Starting backend server, port: %BACKEND_PORT%
-echo WebSocket support: ENABLED
-start "Daphne Server" cmd /k "%PYTHON_CMD% -m daphne -b 0.0.0.0 -p %BACKEND_PORT% backend.asgi:application"
+start "Django Server" cmd /k "%PYTHON_CMD% manage.py runserver 0.0.0.0:%BACKEND_PORT%"
 
 timeout /t 2 /nobreak >nul
 
@@ -86,13 +75,8 @@ echo ========================================
 echo    All services started!
 echo ========================================
 echo.
-echo Services:
-echo   - Daphne ASGI Server (WebSocket enabled): http://127.0.0.1:%BACKEND_PORT%
-echo   - Django-Q Task Queue: Running
-echo.
 echo Tips:
-echo   - Close window to stop service
+echo   - Press Ctrl+C to stop all services
 echo   - Check logs in logs/ directory
-echo   - API Docs: http://127.0.0.1:%BACKEND_PORT%/api/docs/
 echo.
 rem pause
