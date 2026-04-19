@@ -9,6 +9,8 @@ from .views import (
     NotificationLogViewSet, OperationLogViewSet,
     ApiDashboardViewSet, AIServiceConfigViewSet
 )
+from .import_export.views import ImportPreviewView, ImportConfirmView, ExportView
+from .parameterized_views import ParameterizedDataSetViewSet, ParameterizedExecutionViewSet
 
 router = DefaultRouter()
 router.register(r'dashboard', ApiDashboardViewSet, basename='dashboard')
@@ -24,9 +26,14 @@ router.register(r'users', UserViewSet)
 router.register(r'notification-logs', NotificationLogViewSet)
 router.register(r'operation-logs', OperationLogViewSet)
 router.register(r'ai-service-configs', AIServiceConfigViewSet, basename='aiserviceconfig')
+router.register(r'parameterized-datasets', ParameterizedDataSetViewSet)
+router.register(r'parameterized-executions', ParameterizedExecutionViewSet)
 
 urlpatterns = [
     path('api-testing/', include(router.urls)),
+    path('api-testing/import/preview/', ImportPreviewView.as_view(), name='import-preview'),
+    path('api-testing/import/confirm/', ImportConfirmView.as_view(), name='import-confirm'),
+    path('api-testing/export/<int:project_id>/', ExportView.as_view(), name='export'),
 ]
 
 # 添加媒体文件路由

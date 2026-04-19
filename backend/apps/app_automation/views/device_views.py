@@ -40,6 +40,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'connection_type']
     search_fields = ['device_id', 'name']
+    lookup_field = 'device_id'  # 使用 device_id 而不是默认的 pk
     
     @action(detail=False, methods=['get'])
     def discover(self, request):
@@ -96,7 +97,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['post'])
-    def lock(self, request, pk=None):
+    def lock(self, request, device_id=None):
         """锁定设备"""
         device = self.get_object()
         
@@ -115,7 +116,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
         })
     
     @action(detail=True, methods=['post'])
-    def unlock(self, request, pk=None):
+    def unlock(self, request, device_id=None):
         """释放设备"""
         device = self.get_object()
         
@@ -134,7 +135,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
         })
     
     @action(detail=True, methods=['post'])
-    def disconnect(self, request, pk=None):
+    def disconnect(self, request, device_id=None):
         """断开远程设备连接"""
         device = self.get_object()
         
@@ -215,7 +216,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['post'], url_path='screenshot')
-    def screenshot(self, request, pk=None):
+    def screenshot(self, request, device_id=None):
         """
         获取设备实时截图
         

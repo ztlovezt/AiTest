@@ -17,6 +17,11 @@ class CoreConfig(AppConfig):
         """应用启动时执行"""
         logger.info('Core应用启动，开始加载配置...')
         
+        # 应用第三方库模型中文补丁
+        from apps.core.patches import patch_third_party_models, patch_django_builtin_models
+        patch_third_party_models()
+        patch_django_builtin_models()
+        
         # 导入配置加载器
         from backend.config_loader import config_loader
         

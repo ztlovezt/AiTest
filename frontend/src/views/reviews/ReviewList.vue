@@ -305,7 +305,7 @@ const getReviewProgress = (review) => {
 
 const getProgressColor = (review) => {
   const progress = getReviewProgress(review)
-  if (progress === 100) return '#67c23a'
+  if (progress === 100) return 'var(--th-color-success)'
   if (progress >= 50) return '#e6a23c'
   return '#f56c6c'
 }
@@ -335,7 +335,7 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .priority-tag {
-  &.low { color: #67c23a; }
+  &.low { color: var(--th-color-success); }
   &.medium { color: #e6a23c; }
   &.high { color: #f56c6c; }
   &.urgent { color: #f56c6c; font-weight: bold; }

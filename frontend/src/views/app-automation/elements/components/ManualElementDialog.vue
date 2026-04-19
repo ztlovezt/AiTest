@@ -151,11 +151,11 @@
             
             <!-- 新图片预览区域 -->
             <div v-if="showUpload && imagePreview" style="margin-top: 15px">
-              <div style="color: #67C23A; font-size: 14px; margin-bottom: 10px; font-weight: 500;">
+              <div style="color: var(--th-color-success); font-size: 14px; margin-bottom: 10px; font-weight: 500;">
                 <el-icon><SuccessFilled /></el-icon> {{ t('appAutomation.element.newImage') }}
               </div>
               
-              <div class="image-preview-box" style="border-color: #67C23A;">
+              <div class="image-preview-box" style="border-color: var(--th-color-success);">
                 <el-image 
                   :src="imagePreview" 
                   style="max-width: 200px; max-height: 150px; border-radius: 4px;"
@@ -171,7 +171,7 @@
                 </div>
               </div>
               
-              <div style="color: #67C23A; font-size: 12px; margin-top: 8px;">
+              <div style="color: var(--th-color-success); font-size: 12px; margin-top: 8px;">
                 {{ t('appAutomation.element.willReplaceCurrentImage') }}
               </div>
             </div>
@@ -724,7 +724,7 @@ onMounted(() => {
 
 .current-image-section {
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-radius: 4px;
   border: 1px solid #e4e7ed;
 }

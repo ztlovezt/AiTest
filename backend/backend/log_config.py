@@ -12,20 +12,70 @@ from .config_loader import config_loader
 
 logging_config = config_loader.get_logging_config()
 
-def exclude_errors(record):
-    """过滤器：过滤掉 ERROR 级别的日志"""
-    return record["level"].name != "ERROR"
-
-
 def only_errors(record):
     """过滤器：只记录 ERROR 级别的日志"""
     return record["level"].name == "ERROR"
 
 
-def only_orm_sql(record):
-    """过滤器：只记录 ORM SQL 日志"""
-    name = record["extra"].get("name", "")
-    return name == "django.db.backends"
+def only_scheduler_tasks(record):
+    """过滤器：只记录定时任务相关日志"""
+    # loguru record 中 name 字段的位置
+    name = record.get("name", "")
+    
+    # 如果 name 为空，尝试从 extra 中获取
+    if not name:
+        name = record.get("extra", {}).get("name", "")
+    
+    # 匹配 scheduler 相关模块
+    scheduler_patterns = [
+        "apps.scheduler",
+        "task_executor",
+        "apps.ocr_service.tasks",
+        "apps.common.executors",
+        "apps.api_testing.executor",
+        "apps.ui_automation.test_executor",
+        "apps.app_automation.test_executor",
+    ]
+    
+    # 检查模块名
+    for pattern in scheduler_patterns:
+        if pattern in name:
+            return True
+    
+    return False
+
+
+def only_app_logs(record):
+    """过滤器：只记录应用日志（排除 ERROR 级别、ORM SQL 和定时任务日志）"""
+    # 排除 ERROR 级别
+    if record["level"].name == "ERROR":
+        return False
+    
+    # loguru record 中 name 字段的位置
+    name = record.get("name", "")
+    if not name:
+        name = record.get("extra", {}).get("name", "")
+    
+    # 排除 ORM SQL 日志
+    if name == "django.db.backends":
+        return False
+    
+    # 排除定时任务日志
+    scheduler_patterns = [
+        "apps.scheduler",
+        "task_executor",
+        "apps.ocr_service.tasks",
+        "apps.common.executors",
+        "apps.api_testing.executor",
+        "apps.ui_automation.test_executor",
+        "apps.app_automation.test_executor",
+    ]
+    
+    for pattern in scheduler_patterns:
+        if pattern in name:
+            return False
+    
+    return True
 
 
 class LogConfig:
@@ -35,6 +85,7 @@ class LogConfig:
         """初始化日志配置"""
         self.log_dir = self._get_log_dir()
         self.debug_enabled = self._get_debug_enabled()
+        self.log_sql_queries = self._get_log_sql_queries()
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self._configure_loguru_logger()
         self._configure_django_logging()
@@ -60,6 +111,14 @@ class LogConfig:
         except Exception as e:
             logger.warning(f"读取DEBUG配置失败，默认关闭DEBUG日志: {e}")
             return False
+    
+    def _get_log_sql_queries(self):
+        """获取是否记录SQL查询日志"""
+        try:
+            return logging_config.get('log_sql_queries', True)
+        except Exception as e:
+            logger.warning(f"读取SQL日志配置失败，默认启用SQL日志: {e}")
+            return True
     
     def _get_log_format(self):
         """获取日志格式"""
@@ -95,7 +154,7 @@ class LogConfig:
             enqueue=True
         )
         
-        # 主日志文件 - 保留7天（不包含 ERROR 级别的日志）
+        # 主日志文件 - 保留7天（不包含 ERROR 级别、ORM SQL 和定时任务的日志）
         # 使用文件大小轮转避免 Windows 文件锁定问题
         # delay=True 延迟文件打开，catch=True 捕获轮转错误
         app_log_level = "DEBUG" if self.debug_enabled else "INFO"
@@ -106,7 +165,7 @@ class LogConfig:
             encoding="utf-8",
             level=app_log_level,
             format="{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level.name} - {message}",
-            filter=exclude_errors,  # 过滤掉 ERROR 级别的日志
+            filter=only_app_logs,  # 过滤掉 ERROR 级别、ORM SQL 和定时任务日志
             backtrace=True,
             diagnose=True,
             enqueue=True,  # 异步写入
@@ -130,82 +189,48 @@ class LogConfig:
             catch=True  # 捕获轮转错误，避免程序崩溃
         )
         
-        # ORM SQL日志文件 - 保留7天（仅在debug_enabled为True时记录DEBUG日志）
-        if self.debug_enabled:
-            logger.add(
-                self.log_dir / "orm_sql.log",
-                rotation="10 MB",  # 文件大小达到10MB时轮转，减少文件锁定时间
-                retention="7 days",
-                encoding="utf-8",
-                level="DEBUG",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level.name} - {message}",
-                backtrace=True,
-                diagnose=True,
-                enqueue=True,
-                filter=only_orm_sql,
-                delay=True,  # 延迟文件打开，避免 Windows 文件锁定问题
-                catch=True  # 捕获轮转错误，避免程序崩溃
-            )
-        else:
-            logger.add(
-                self.log_dir / "orm_sql.log",
-                rotation="10 MB",  # 文件大小达到10MB时轮转，减少文件锁定时间
-                retention="7 days",
-                encoding="utf-8",
-                level="INFO",
-                format="{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level.name} - {message}",
-                backtrace=True,
-                diagnose=True,
-                enqueue=True,
-                filter=only_orm_sql,
-                delay=True,  # 延迟文件打开，避免 Windows 文件锁定问题
-                catch=True  # 捕获轮转错误，避免程序崩溃
-            )
+        # 定时任务日志文件 - 保留7天
+        task_log_level = "DEBUG" if self.debug_enabled else "INFO"
+        logger.add(
+            self.log_dir / "django_task.log",
+            rotation="10 MB",
+            retention="7 days",
+            encoding="utf-8",
+            level=task_log_level,
+            format="{time:YYYY-MM-DD HH:mm:ss.SSS} - [{name}-->{function}:{line}] - {level.name} - {message}",
+            backtrace=True,
+            diagnose=True,
+            enqueue=True,
+            filter=only_scheduler_tasks,
+            delay=True,
+            catch=True
+        )
     
     def _configure_django_logging(self):
         """配置Django标准logging系统"""
-        # 配置ORM SQL日志
-        try:
-            orm_logger = logging.getLogger('django.db.backends')
-            orm_logger.setLevel(logging.DEBUG)
-            orm_handler = logging.FileHandler(
-                self.log_dir / 'orm_sql.log',
-                encoding='utf-8',
-                delay=True  # 延迟文件打开，避免 Windows 文件锁定问题
-            )
-            orm_handler.setLevel(logging.DEBUG)
-            orm_handler.setFormatter(logging.Formatter(
-                '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-                style='{'
-            ))
-            orm_logger.addHandler(orm_handler)
-            orm_logger.propagate = False
-        except Exception as e:
-            logger.warning(f"配置ORM SQL日志失败: {e}")
-        
-        # 配置Django-Q任务日志
-        django_q_loggers = ['django_q', 'django_q.cluster', 'django_q.monitor', 
-                           'django_q.worker', 'django_q.pusher', 'monitor', 
-                           'tasks', 'scheduler', 'worker', 'pusher']
-        
-        for logger_name in django_q_loggers:
+        # 配置ORM SQL日志 - 根据配置决定是否记录
+        if self.log_sql_queries:
             try:
-                q_logger = logging.getLogger(logger_name)
-                q_logger.setLevel(logging.DEBUG)
-                q_handler = logging.FileHandler(
-                    self.log_dir / 'django_task.log',
+                orm_logger = logging.getLogger('django.db.backends')
+                orm_logger.setLevel(logging.DEBUG)
+                orm_handler = logging.FileHandler(
+                    self.log_dir / 'orm_sql.log',
                     encoding='utf-8',
                     delay=True  # 延迟文件打开，避免 Windows 文件锁定问题
                 )
-                q_handler.setLevel(logging.DEBUG)
-                q_handler.setFormatter(logging.Formatter(
-                    '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-                    style='{'
+                orm_handler.setLevel(logging.DEBUG)
+                orm_handler.setFormatter(logging.Formatter(
+                    '{asctime} - {message}',
+                    style='{',
+                    datefmt='%Y-%m-%d %H:%M:%S'
                 ))
-                q_logger.addHandler(q_handler)
-                q_logger.propagate = False
+                orm_logger.addHandler(orm_handler)
+                orm_logger.propagate = False
+                logger.info("ORM SQL 日志已启用，将记录所有数据库查询到 orm_sql.log")
             except Exception as e:
-                logger.warning(f"配置Django-Q日志 {logger_name} 失败: {e}")
+                logger.warning(f"配置ORM SQL日志失败: {e}")
+        else:
+            logger.info("ORM SQL 日志已禁用")
     
     def get_logger(self, name=None):
         """

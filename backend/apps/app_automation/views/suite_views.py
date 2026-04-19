@@ -30,6 +30,15 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
     filterset_fields = ['project']
     search_fields = ['name', 'description']
 
+    def get_queryset(self):
+        """获取queryset，过滤enabled=False的套件用例"""
+        queryset = super().get_queryset()
+        # 预加载suite_cases并过滤enabled=True的
+        queryset = queryset.prefetch_related(
+            'suite_cases'
+        ).filter(suite_cases__enabled=True).distinct()
+        return queryset
+
     def get_serializer_class(self):
         if self.action == 'create':
             return AppTestSuiteCreateSerializer
@@ -144,6 +153,28 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': str(e)},
                             status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=True, methods=['put'])
+    def update_test_case(self, request, pk=None):
+        """更新套件中的单个用例配置（enabled/extract_variables/skip_condition）"""
+        suite = self.get_object()
+        suite_case_id = request.data.get('id')
+
+        if not suite_case_id:
+            return Response({'success': False, 'message': '请提供套件用例ID'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            suite_case = AppTestSuiteCase.objects.get(id=suite_case_id, test_suite=suite)
+            serializer = AppTestSuiteCaseSerializer(suite_case, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'success': True, 'data': serializer.data})
+            return Response({'success': False, 'message': serializer.errors},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except AppTestSuiteCase.DoesNotExist:
+            return Response({'success': False, 'message': '套件用例不存在'},
+                            status=status.HTTP_404_NOT_FOUND)
+
     # ---------- 套件执行 ----------
 
     @action(detail=True, methods=['post'])
@@ -157,8 +188,8 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
             return Response({'success': False, 'message': '请选择执行设备'},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        # 检查套件是否包含用例
-        suite_cases = suite.suite_cases.select_related('test_case').all()
+        # 检查套件是否包含用例（只执行启用的用例）
+        suite_cases = suite.suite_cases.select_related('test_case').filter(enabled=True)
         if not suite_cases.exists():
             return Response({'success': False, 'message': '该套件未包含任何测试用例'},
                             status=status.HTTP_400_BAD_REQUEST)
@@ -201,14 +232,14 @@ class AppTestSuiteViewSet(viewsets.ModelViewSet):
                 executions[0].save(update_fields=['task_id'])
 
             logger.info(f"测试套件已提交执行: suite={suite.name}, "
-                        f"cases={len(executions)}, task_id={task.id}")
+                        f"cases={len(executions)}, task_id={task_id}")
 
             return Response({
                 'success': True,
                 'message': f'测试套件已提交执行，共 {len(executions)} 个用例',
                 'data': {
                     'suite_id': suite.id,
-                    'task_id': task.id,
+                    'task_id': task_id,
                     'execution_ids': execution_ids,
                     'test_case_count': len(executions),
                 }

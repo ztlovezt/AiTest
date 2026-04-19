@@ -194,7 +194,7 @@ const handleRegister = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
 }
 
 .register-form {
@@ -226,7 +226,7 @@ const handleRegister = async () => {
     margin-top: 20px;
     
     a {
-      color: #409eff;
+      color: var(--th-color-primary);
       text-decoration: none;
       
       &:hover {

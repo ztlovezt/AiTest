@@ -3,7 +3,13 @@ export default {
     home: '首页',
     logout: '退出登录',
     profile: '个人设置',
-    language: '语言切换'
+    language: '语言切换',
+    zhCN: '简体中文',
+    languageSwitched: '语言已切换',
+    logoutSuccess: '退出登录成功',
+    themeSwitch: '主题',
+    themeLight: 'Hoppscotch 浅色',
+    themeDark: 'Hoppscotch 深色'
   },
   modules: {
     aiGeneration: 'AI用例生成',
@@ -37,6 +43,7 @@ export default {
     requestHistory: '请求历史',
     environmentManagement: '环境管理',
     scheduledTasks: '定时任务',
+    parameterizedData: '参数化数据',
     notificationList: '通知列表',
 
     // UI自动化
@@ -75,9 +82,19 @@ export default {
     knowledgeBaseConfig: '知识库配置',
     uiEnvConfig: 'UI环境配置',
     appEnvConfig: 'APP环境配置',
+    ocrConfig: 'OCR服务配置',
     aiModeConfig: 'AI智能模式配置',
     scheduledTaskConfig: '消息通知配置',
     difyConfig: 'AI评测师配置',
+    themeConfig: '平台主题配置',
     projectManagementCenter: '项目管理'
+  },
+  themeConfig: {
+    indigo: 'Indigo 靛蓝',
+    indigoDesc: '沉稳专业的靛蓝色调，适合企业级测试管理平台',
+    semiOrange: 'Semi Orange 暖橙',
+    semiOrangeDesc: '源自字节跳动 Semi Design，充满活力与行动力的暖色方案',
+    current: '当前',
+    applied: '主题已应用'
   }
 }

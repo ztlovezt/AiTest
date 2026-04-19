@@ -155,14 +155,12 @@ const resetForm = () => {
 
 const openCreateDialog = () => {
   isEditing.value = false
-  dialogTitle.value = '新增包名'
   resetForm()
   dialogVisible.value = true
 }
 
 const openEditDialog = (row) => {
   isEditing.value = true
-  dialogTitle.value = '编辑包名'
   form.id = row.id
   form.name = row.name
   form.package_name = row.package_name
@@ -179,19 +177,19 @@ const submitForm = () => {
           name: form.name,
           package_name: form.package_name
         })
-        ElMessage.success('更新成功')
+        ElMessage.success(t('appAutomation.messages.updateSuccess'))
       } else {
         await createPackage({
           name: form.name,
           package_name: form.package_name
         })
-        ElMessage.success('创建成功')
+        ElMessage.success(t('appAutomation.messages.createSuccess'))
       }
       dialogVisible.value = false
       loadPackages()
     } catch (error) {
       console.error('保存应用包名失败:', error)
-      ElMessage.error(error?.response?.data?.detail || '保存失败')
+      ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.saveFailed'))
     } finally {
       saving.value = false
     }
@@ -200,17 +198,17 @@ const submitForm = () => {
 
 const handleDelete = (row) => {
   ElMessageBox.confirm(
-    `确认删除应用包名「${row.name}」吗？`,
-    '删除确认',
+    t('appAutomation.messages.deletePackageConfirm', { name: row.name }),
+    t('appAutomation.messages.deleteConfirmTitle'),
     { type: 'warning' }
   ).then(async () => {
     try {
       await deletePackage(row.id)
-      ElMessage.success('删除成功')
+      ElMessage.success(t('appAutomation.messages.deleteSuccess'))
       loadPackages()
     } catch (error) {
       console.error('删除应用包名失败:', error)
-      ElMessage.error(error?.response?.data?.detail || '删除失败')
+      ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.deleteFailed'))
     }
   }).catch(() => {})
 }

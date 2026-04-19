@@ -76,7 +76,7 @@ class TestPlanViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def testcases_by_projects(self, request):
         """
-        根据项目获取测试用例
+        根据项目获取测试用例（支持分页和筛选）
         """
         project_ids = request.query_params.getlist('project_ids')
         if not project_ids:
@@ -84,27 +84,67 @@ class TestPlanViewSet(viewsets.ModelViewSet):
                 'error': '请先选择项目',
                 'detail': '请先选择项目后再选择测试用例'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         try:
             # 过滤数字字符串和空值
             project_ids = [int(pid) for pid in project_ids if pid and pid.isdigit()]
-            
+
             if not project_ids:
                 return Response({
                     'error': '无效的项目 ID',
                     'detail': '请选择有效的项目'
                 }, status=status.HTTP_400_BAD_REQUEST)
-            
+
             # 获取指定项目的测试用例
-            testcases = TestCase.objects.filter(
+            queryset = TestCase.objects.filter(
                 project_id__in=project_ids,
                 status__in=['draft', 'active']  # 包含草稿和激活状态的测试用例
-            ).values('id', 'title', 'priority', 'test_type', 'project__name')
-            
+            ).order_by('id')  # 正序排列
+
+            # 关键词搜索（标题）
+            keyword = request.query_params.get('keyword')
+            if keyword:
+                queryset = queryset.filter(title__icontains=keyword)
+
+            # 优先级筛选
+            priority = request.query_params.get('priority')
+            if priority:
+                queryset = queryset.filter(priority=priority)
+
+            # 测试类型筛选
+            test_type = request.query_params.get('test_type')
+            if test_type:
+                queryset = queryset.filter(test_type=test_type)
+
+            # 支持通过 ids 参数获取特定用例（用于回显已选用例）
+            ids_param = request.query_params.get('ids')
+            if ids_param:
+                try:
+                    ids = [int(x) for x in ids_param.split(',') if x.strip().isdigit()]
+                    if ids:
+                        queryset = queryset.filter(id__in=ids)
+                except (ValueError, TypeError):
+                    pass
+
+            # 分页
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 20))
+
+            # 获取总数
+            total = queryset.count()
+
+            # 分页切片
+            start = (page - 1) * page_size
+            end = start + page_size
+            testcases = queryset[start:end].values(
+                'id', 'title', 'priority', 'test_type', 'status', 'project__name'
+            )
+
             return Response({
-                'results': list(testcases)
+                'results': list(testcases),
+                'count': total
             })
-            
+
         except ValueError:
             return Response({
                 'error': '项目 ID 格式错误',

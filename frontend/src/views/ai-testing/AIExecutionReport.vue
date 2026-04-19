@@ -402,7 +402,7 @@ const initPieChart = () => {
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 10,
-          borderColor: '#fff',
+          borderColor: 'var(--th-color-surface)',
           borderWidth: 2
         },
         label: {
@@ -420,7 +420,7 @@ const initPieChart = () => {
           show: false
         },
         data: [
-          { value: stats.completed || 0, name: t('uiAutomation.ai.executionReport.completed'), itemStyle: { color: '#67C23A' } },
+          { value: stats.completed || 0, name: t('uiAutomation.ai.executionReport.completed'), itemStyle: { color: 'var(--th-color-success)' } },
           { value: stats.pending || 0, name: t('uiAutomation.ai.executionReport.pending'), itemStyle: { color: '#909399' } },
           { value: stats.failed || 0, name: t('uiAutomation.ai.executionReport.failed'), itemStyle: { color: '#F56C6C' } },
           { value: stats.skipped || 0, name: t('uiAutomation.ai.executionReport.skipped'), itemStyle: { color: '#E6A23C' } }
@@ -480,7 +480,7 @@ const initBarChart = () => {
         type: 'bar',
         data: data.map(item => item.value),
         itemStyle: {
-          color: '#409EFF'
+          color: 'var(--th-color-primary)'
         }
       }
     ]
@@ -626,7 +626,7 @@ const handleClose = () => {
 }
 
 .overview-card {
-  background: #F5F7FA;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   padding: 16px;
   text-align: center;
@@ -685,19 +685,19 @@ const handleClose = () => {
 }
 
 .success-row {
-  background-color: #F0F9FF;
+  background-color: var(--th-color-info-soft);
 }
 
 .info-row {
-  background-color: #F5F7FA;
+  background-color: var(--th-color-surface-muted);
 }
 
 .danger-row {
-  background-color: #FEF0F0;
+  background-color: var(--th-color-danger-soft);
 }
 
 .warning-row {
-  background-color: #FDF6EC;
+  background-color: var(--th-color-warning-soft);
 }
 
 .timeline-container {
@@ -724,7 +724,7 @@ const handleClose = () => {
 }
 
 .step-card {
-  border-left: 3px solid #409EFF;
+  border-left: 3px solid var(--th-color-primary);
 }
 
 .step-header {
@@ -736,7 +736,7 @@ const handleClose = () => {
 
 .step-number {
   font-weight: 600;
-  color: #409EFF;
+  color: var(--th-color-primary);
 }
 
 .step-content > div {
@@ -756,7 +756,7 @@ const handleClose = () => {
 }
 
 .metric-card {
-  background: #F5F7FA;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   padding: 20px;
   text-align: center;
@@ -771,7 +771,7 @@ const handleClose = () => {
 .metric-value {
   font-size: 24px;
   font-weight: 600;
-  color: #409EFF;
+  color: var(--th-color-primary);
 }
 
 .gif-container {
@@ -816,7 +816,7 @@ const handleClose = () => {
 }
 
 .report-container::-webkit-scrollbar-track {
-  background: #F5F7FA;
+  background: var(--th-color-surface-muted);
   border-radius: 3px;
 }
 

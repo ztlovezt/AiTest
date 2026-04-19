@@ -395,7 +395,7 @@ onMounted(() => {
 .assistant-layout {
   display: flex;
   height: 100vh;
-  background: #fff;
+  background: var(--th-color-surface);
   overflow: hidden;
 }
 
@@ -417,8 +417,8 @@ onMounted(() => {
       height: 40px;
       border-radius: 4px; /* 稍微减小圆角以匹配整体风格 */
       font-size: 14px;
-      background: #1890ff;
-      border-color: #1890ff;
+      background: var(--th-color-primary);
+      border-color: var(--th-color-primary);
       color: white;
       
       &:hover {
@@ -475,7 +475,7 @@ onMounted(() => {
       }
       
       &.active {
-        background: #1890ff;
+        background: var(--th-color-primary);
         color: white;
       }
       
@@ -552,7 +552,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   position: relative;
-  background: #fff;
+  background: var(--th-color-surface);
 }
 
 /* 场景1：欢迎页（新会话） */
@@ -580,7 +580,7 @@ onMounted(() => {
     .logo-circle {
       width: 80px;
       height: 80px;
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -623,7 +623,7 @@ onMounted(() => {
         
         &:focus {
           box-shadow: 0 4px 20px rgba(64, 158, 255, 0.15);
-          border-color: #409eff;
+          border-color: var(--th-color-primary);
         }
       }
     }
@@ -643,7 +643,7 @@ onMounted(() => {
     
     .chip {
       padding: 8px 16px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       border-radius: 20px;
       font-size: 14px;
       color: #606266;
@@ -652,7 +652,7 @@ onMounted(() => {
       
       &:hover {
         background: #e6f1fc;
-        color: #409eff;
+        color: var(--th-color-primary);
       }
     }
   }
@@ -690,7 +690,7 @@ onMounted(() => {
     flex: 1;
     overflow-y: auto;
     padding: 24px;
-    background: #fff;
+    background: var(--th-color-surface);
     
     .message-row {
       display: flex;
@@ -701,7 +701,7 @@ onMounted(() => {
         flex-direction: row-reverse;
         
         .message-bubble {
-          background: #409eff;
+          background: var(--th-color-primary);
           color: white;
           border-radius: 12px 12px 0 12px;
           
@@ -711,14 +711,14 @@ onMounted(() => {
           
           :deep(code) {
             background: rgba(0, 0, 0, 0.1);
-            color: #fff;
+            color: var(--th-color-surface);
           }
         }
       }
       
       &.assistant {
         .message-bubble {
-          background: #f5f7fa;
+          background: var(--th-color-surface-muted);
           color: #303133;
           border-radius: 12px 12px 12px 0;
         }
@@ -733,7 +733,7 @@ onMounted(() => {
         }
         
         .ai-avatar {
-          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
         }
       }
       
@@ -785,18 +785,18 @@ onMounted(() => {
   .chat-footer {
     padding: 20px 24px;
     border-top: 1px solid #f0f2f5;
-    background: #fff;
+    background: var(--th-color-surface);
     
     .input-box {
       position: relative;
       border: 1px solid #e4e7ed;
       border-radius: 12px;
       padding: 8px;
-      background: #fff;
+      background: var(--th-color-surface);
       transition: all 0.3s;
       
       &:focus-within {
-        border-color: #409eff;
+        border-color: var(--th-color-primary);
         box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
       }
       

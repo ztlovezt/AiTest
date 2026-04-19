@@ -23,6 +23,7 @@ from airtest.core.api import (
     double_click,
     G,
     text as airtest_text,
+    keyevent,
 )
 
 # 导入 OCR 工具
@@ -58,9 +59,9 @@ class UiFlowRunner:
             # 使用配置文件中的 Template 目录作为图片基础目录
             self.image_base_dir = os.path.join(settings.BASE_DIR, settings.PATHS_APP_AUTOMATION_TEMPLATE)
         
-        # 截图保存目录: 使用配置文件中的路径
+        # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
         self.screenshots_dir = os.path.join(
-            settings.MEDIA_ROOT, settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
+            settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
         )
         
         os.makedirs(self.image_base_dir, exist_ok=True)
@@ -239,6 +240,9 @@ class UiFlowRunner:
     
     def _execute_step(self, step: Dict[str, Any]):
         """执行单个步骤，支持基础组件和自定义组件"""
+        # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
+        step = copy.deepcopy(step)
+        
         # 使用 type 字段获取步骤类型
         action_type = step.get('type', '')
         action = action_type.lower() if action_type else ''
@@ -306,6 +310,7 @@ class UiFlowRunner:
             'extract_output': self._action_extract_output,
             'screenshot': self._action_screenshot,
             'api_request': self._action_api_request,
+            'key_event': self._action_key_event,
             
             # 控制流
             'wait': self._action_wait,
@@ -553,6 +558,7 @@ class UiFlowRunner:
             raise ValueError(f"步骤 '{step_name}' 无法解析选择器，请检查元素配置（selector 或 element_id）")
         logger.info(f"执行点击: {target}")
         touch(target)
+        sleep(1)
     
     def _action_double_click(self, step: Dict[str, Any]):
         """双击动作"""
@@ -560,6 +566,7 @@ class UiFlowRunner:
         if target:
             logger.info(f"执行双击: {target}")
             double_click(target)
+            sleep(1)
     
     def _action_swipe(self, step: Dict[str, Any]):
         """滑动动作"""
@@ -602,6 +609,7 @@ class UiFlowRunner:
         text_value = step.get('text', '')
         logger.info(f"输入文本: {text_value}")
         airtest_text(text_value)
+        sleep(1)
     
     def _action_set_variable(self, step: Dict[str, Any]):
         """设置变量"""
@@ -712,7 +720,7 @@ class UiFlowRunner:
     def _assert_text(self, step: Dict[str, Any]):
         """文本断言：OCR 识别文本，支持 exact/contains/regex 匹配"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("文本断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected = step.get('expected', '')
@@ -737,7 +745,7 @@ class UiFlowRunner:
     def _assert_number(self, step: Dict[str, Any]):
         """数值断言：OCR 识别数字（去逗号），与期望值精确匹配"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("数值断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected_raw = step.get('expected', '0')
@@ -777,7 +785,7 @@ class UiFlowRunner:
     def _assert_range(self, step: Dict[str, Any]):
         """范围断言：OCR 识别数字，判断是否在 [min, max] 范围内"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("范围断言需要 OCR 支持，请安装 easyocr")
+            raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         
@@ -860,7 +868,40 @@ class UiFlowRunner:
         
         logger.info(f"输入文本: {value}")
         airtest_text(value)
-    
+
+    def _action_key_event(self, step: Dict[str, Any]):
+        """键盘事件：模拟键盘按键"""
+        target = self._resolve_selector(step)
+        
+        if target:
+            touch(target)
+            time.sleep(1)
+        key = step.get('key', 'backspace')
+        repeat = step.get('repeat', 1)
+        
+        logger.info(f"执行键盘事件: {key}, 重复 {repeat} 次")
+        
+        # 映射键盘按键到 Airtest keyevent 支持的键值
+        key_map = {
+            "backspace": "67",
+            "enter": "66",
+            "delete": "112",
+            "home": "3",
+            "back": "4"
+        }
+        
+        # 获取对应的键值
+        key_code = key_map.get(key)
+        if not key_code:
+            raise Exception(f"不支持的key: {key}")
+        
+        # 执行键盘事件
+        for _ in range(repeat):
+            keyevent(key_code)
+            # 每次按键后短暂等待，避免按键过快导致系统未能识别
+            sleep(0.1)
+        sleep(1)
+ 
     def _action_long_press(self, step: Dict[str, Any]):
         """长按"""
         target = self._resolve_selector(step)
@@ -1392,15 +1433,15 @@ class UiFlowRunner:
         """获取或创建 OCR Helper 实例"""
         if self._ocr_helper is None:
             if not OCR_AVAILABLE:
-                raise RuntimeError("OCR 功能不可用，请安装: pip install easyocr opencv-python")
-            self._ocr_helper = get_ocr_helper(languages=['en'], use_gpu=False)
+                raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
+            self._ocr_helper = get_ocr_helper(languages=['en'])
         return self._ocr_helper
     
     
     def _action_foreach_assert(self, step: Dict[str, Any]):
         """循环点击断言（OCR）"""
         if not OCR_AVAILABLE:
-            logger.warning("foreach_assert 需要 OCR 支持，请安装 easyocr")
+            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
             return
         
         try:

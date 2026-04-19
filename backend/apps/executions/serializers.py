@@ -11,9 +11,11 @@ class TestRunCaseHistorySerializer(serializers.ModelSerializer):
 
 class TestRunCaseSimpleSerializer(serializers.ModelSerializer):
     testcase = serializers.StringRelatedField()
+    testcase_id = serializers.IntegerField(source='testcase.id', read_only=True)
+
     class Meta:
         model = TestRunCase
-        fields = ('id', 'testcase', 'status')
+        fields = ('id', 'testcase', 'testcase_id', 'status')
 
 class TestRunCaseDetailSerializer(serializers.ModelSerializer):
     testcase = serializers.StringRelatedField()
