@@ -29,9 +29,9 @@ export default {
 
     // Document Upload
     uploadTitle: 'Upload Document',
-    uploadDesc: 'Upload PRD requirement documents in Word, PDF and other formats',
+    uploadDesc: 'Upload PRD requirement documents in common formats',
     dragDropText: 'Drag file here or click to select',
-    supportedFormats: 'Supports PDF, Word, TXT, Markdown formats',
+    supportedFormats: 'Supports various file formats, auto-detects document content',
     selectFileBtn: 'Select File',
     selectFile: 'Select File',
     removeFile: '❌',
@@ -134,8 +134,17 @@ export default {
     invalidFileFormatDetail: 'Please select a PDF, Word, TXT, or Markdown file',
     extractingContent: 'Extracting document content...',
     extractionFailed: 'Failed to extract document content',
+    extractingProgress: 'Extracting document content ({current}/{total})...',
+    extractingProgressPercent: 'Extracting document content {percent}%',
+    extractingFileProgress: 'Processing file {current} of {total}',
     documentProcessingFailed: 'Document processing failed',
+    documentProcessingTimeout: 'Document processing timeout, OCR recognition takes a long time, please try again later',
     loadProjectsFailed: 'Failed to load project list',
+
+    // OCR Config
+    ocrConfig: 'OCR Recognition Method',
+    defaultOcr: 'Default (Tika OCR)',
+    ocrConfigHint: 'Select OCR method when uploading image files, default uses Tika traditional OCR',
 
     // Progress
     analyzingRequirement: '📖 Analyzing requirement...',

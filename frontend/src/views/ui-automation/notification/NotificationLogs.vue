@@ -554,7 +554,7 @@ export default {
 <style scoped>
 .notification-logs-container {
   padding: 20px;
-  background: #fff;
+  background: var(--th-color-surface);
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
@@ -591,7 +591,7 @@ export default {
 }
 
 .notification-content-parsed {
-  background: #ffffff;
+  background: var(--th-color-surface);
   border-radius: 8px;
   padding: 20px;
   border: 1px solid #e4e7ed;
@@ -637,7 +637,7 @@ export default {
   word-break: break-word;
   margin: 0;
   padding: 16px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   border: 1px solid #e4e7ed;
   font-size: 13px;

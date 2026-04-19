@@ -592,7 +592,7 @@ export default {
 }
 
 .type-badge.reviewer {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #f57c00;
 }
 
@@ -622,12 +622,12 @@ export default {
 }
 
 .preview-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
 }
 
 .preview-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .edit-btn {
@@ -636,7 +636,7 @@ export default {
 }
 
 .edit-btn:hover {
-  background: #e67e22;
+  background: var(--th-color-warning);
 }
 
 .delete-btn {
@@ -671,7 +671,7 @@ export default {
   color: #2c3e50;
   font-size: 0.9rem;
   line-height: 1.5;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .config-meta {
@@ -722,7 +722,7 @@ export default {
 }
 
 .add-first-config-btn, .load-defaults-first-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 15px 30px;
@@ -733,7 +733,7 @@ export default {
 }
 
 .add-first-config-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .load-defaults-first-btn {
@@ -818,7 +818,7 @@ export default {
 
 .form-input:focus, .form-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -844,7 +844,7 @@ export default {
 
 .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -860,7 +860,7 @@ export default {
   padding: 15px;
   background: #f8f9fa;
   border-radius: 6px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .textarea-tips p {
@@ -920,7 +920,7 @@ export default {
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: var(--th-color-text-muted);
 }
 
 .confirm-btn {
@@ -980,7 +980,7 @@ export default {
   white-space: pre-wrap;
   font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 0.9rem;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
   max-height: 400px;
   overflow-y: auto;
 }
@@ -1004,8 +1004,8 @@ export default {
 }
 
 .tab-btn.active {
-  color: #3498db;
-  border-bottom-color: #3498db;
+  color: var(--th-color-primary);
+  border-bottom-color: var(--th-color-primary);
   background: #f8f9fa;
 }
 

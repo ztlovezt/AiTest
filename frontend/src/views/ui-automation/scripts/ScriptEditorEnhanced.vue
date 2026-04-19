@@ -644,7 +644,7 @@ onMounted(async () => {
   align-items: center;
   padding: 10px 15px;
   border-bottom: 1px solid #e6e6e6;
-  background-color: #fafafa;
+  background-color: var(--th-color-surface-muted);
 }
 
 .toolbar-left,
@@ -680,7 +680,7 @@ onMounted(async () => {
   align-items: center;
   padding: 5px 15px;
   border-top: 1px solid #e6e6e6;
-  background-color: #fafafa;
+  background-color: var(--th-color-surface-muted);
   font-size: 12px;
   color: #666;
 }
@@ -719,7 +719,7 @@ onMounted(async () => {
   border-radius: 4px;
   padding: 10px;
   background-color: #1e1e1e;
-  color: #fff;
+  color: var(--th-color-surface);
   font-family: monospace;
   font-size: 12px;
 }
@@ -740,7 +740,7 @@ onMounted(async () => {
 }
 
 .log-entry.info .log-level {
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .log-entry.error .log-level {
@@ -748,7 +748,7 @@ onMounted(async () => {
 }
 
 .log-entry.success .log-level {
-  color: #67c23a;
+  color: var(--th-color-success);
 }
 
 .element-detail {

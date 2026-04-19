@@ -126,7 +126,7 @@ export function executeTestSuite(id, data) {
 // 执行API请求
 export function executeApiRequest(id, data) {
   return request({
-    url: `/api-testing/api-requests/${id}/execute/`,
+    url: `/api-testing/requests/${id}/execute/`,
     method: 'post',
     data
   })

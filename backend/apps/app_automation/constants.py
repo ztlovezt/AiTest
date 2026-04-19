@@ -30,6 +30,7 @@ class ExecutionResult:
     PASSED = 'passed'
     FAILED = 'failed'
     SKIPPED = 'skipped'
+    PARTIAL_FAILED = 'partial_failed'
 
 
 class ElementType:

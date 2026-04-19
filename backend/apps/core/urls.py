@@ -4,7 +4,7 @@ Core 应用路由
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import UnifiedNotificationConfigViewSet
+from .views import UnifiedNotificationConfigViewSet, health_check
 from .views_notification import NotificationTemplateViewSet
 
 router = DefaultRouter()
@@ -12,5 +12,6 @@ router.register(r'notification-configs', UnifiedNotificationConfigViewSet, basen
 router.register(r'notification-templates', NotificationTemplateViewSet, basename='notification-template')
 
 urlpatterns = [
+    path('health/', health_check, name='health-check'),
     path('', include(router.urls)),
 ]

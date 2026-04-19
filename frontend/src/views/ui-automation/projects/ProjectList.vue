@@ -516,7 +516,7 @@ onMounted(() => {
 }
 
 .card-container {
-  background-color: #fff;
+  background-color: var(--th-color-surface);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -533,11 +533,11 @@ onMounted(() => {
 }
 
 .highlight-row {
-  background-color: #ecf5ff !important;
+  background-color: var(--th-color-info-soft) !important;
 }
 
 .highlight-text {
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 600;
 }
 </style>

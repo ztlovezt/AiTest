@@ -265,7 +265,7 @@ class TestSuiteTestCaseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TestSuiteTestCase
-        fields = ('id', 'test_case', 'test_case_id', 'order')
+        fields = ('id', 'test_case', 'test_case_id', 'order', 'enabled', 'extract_variables', 'skip_condition')
 
     def get_test_case(self, obj):
         """获取测试用例信息"""

@@ -1,5 +1,5 @@
 name: ui-component-pack
-version: 2026.02.02
+version: 2026.04.03
 description: 导出的组件包
 author: ''
 components:
@@ -222,6 +222,51 @@ components:
     image_threshold: 0.7
   enabled: true
   sort_order: 40
+- type: assert
+  name: 断言
+  category: assert
+  description: 支持文本/数值/正则/范围/存在性/图片6种断言
+  schema:
+    required:
+    - assert_type
+    properties:
+      max:
+        type: number
+      min:
+        type: number
+      expected:
+        type: string
+      selector:
+        type: string
+      match_mode:
+        type: string
+      assert_type:
+        type: string
+      image_scope:
+        type: string
+      ocr_selector:
+        type: string
+      selector_type:
+        type: string
+      expected_exists:
+        type: boolean
+      image_threshold:
+        type: number
+      ocr_selector_type:
+        type: string
+      expected_image_scope:
+        type: string
+  default_config:
+    expected: ''
+    selector: ''
+    match_mode: contains
+    assert_type: text
+    image_scope: common
+    selector_type: region
+    image_threshold: 0.7
+    expected_image_scope: common
+  enabled: true
+  sort_order: 50
 - type: image_exists_click
   name: 图片存在点击
   category: action
@@ -231,42 +276,42 @@ components:
     - selector
     - fallback_selector
     properties:
-      selector_type:
-        type: string
-        enum:
-        - image
-        - pos
-        - region
+      timeout:
+        type: number
       selector:
         type: string
       image_scope:
         type: string
-      image_threshold:
-        type: number
-      fallback_selector_type:
-        type: string
+      selector_type:
         enum:
         - image
         - pos
         - region
+        type: string
+      image_threshold:
+        type: number
       fallback_selector:
         type: string
       fallback_image_scope:
         type: string
+      fallback_selector_type:
+        enum:
+        - image
+        - pos
+        - region
+        type: string
       fallback_image_threshold:
         type: number
-      timeout:
-        type: number
   default_config:
-    selector_type: image
+    timeout: 5
     selector: ''
     image_scope: common
+    selector_type: image
     image_threshold: 0.7
-    fallback_selector_type: image
     fallback_selector: ''
     fallback_image_scope: common
+    fallback_selector_type: image
     fallback_image_threshold: 0.7
-    timeout: 5
   enabled: true
   sort_order: 70
 - type: screenshot
@@ -293,42 +338,42 @@ components:
     - selector
     - fallback_selector
     properties:
-      selector_type:
-        type: string
-        enum:
-        - image
-        - pos
-        - region
+      timeout:
+        type: number
       selector:
         type: string
       image_scope:
         type: string
-      image_threshold:
-        type: number
-      fallback_selector_type:
-        type: string
+      selector_type:
         enum:
         - image
         - pos
         - region
+        type: string
+      image_threshold:
+        type: number
       fallback_selector:
         type: string
       fallback_image_scope:
         type: string
+      fallback_selector_type:
+        enum:
+        - image
+        - pos
+        - region
+        type: string
       fallback_image_threshold:
         type: number
-      timeout:
-        type: number
   default_config:
-    selector_type: image
+    timeout: 5
     selector: ''
     image_scope: common
+    selector_type: image
     image_threshold: 0.7
-    fallback_selector_type: image
     fallback_selector: ''
     fallback_image_scope: common
+    fallback_selector_type: image
     fallback_image_threshold: 0.7
-    timeout: 5
   enabled: true
   sort_order: 72
 - type: long_press
@@ -450,51 +495,6 @@ components:
     target_selector_type: image
   enabled: true
   sort_order: 110
-- type: assert
-  name: 断言
-  category: assert
-  description: 支持文本/数值/正则/范围/存在性/图片6种断言
-  schema:
-    required:
-    - assert_type
-    properties:
-      assert_type:
-        type: string
-      selector_type:
-        type: string
-      selector:
-        type: string
-      expected:
-        type: string
-      match_mode:
-        type: string
-      min:
-        type: number
-      max:
-        type: number
-      expected_exists:
-        type: boolean
-      image_scope:
-        type: string
-      expected_image_scope:
-        type: string
-      image_threshold:
-        type: number
-      ocr_selector_type:
-        type: string
-      ocr_selector:
-        type: string
-  default_config:
-    assert_type: text
-    selector_type: region
-    selector: ''
-    expected: ''
-    match_mode: contains
-    image_scope: common
-    expected_image_scope: common
-    image_threshold: 0.7
-  enabled: true
-  sort_order: 50
 - type: foreach_assert
   name: 循环点击断言
   category: assert
@@ -555,16 +555,46 @@ components:
   description: 根据条件执行分支
   schema:
     required:
-    - left
-    - operator
     - then_steps
     properties:
       left:
         type: string
       right:
         type: string
+      else_ifs:
+        type: array
+        items:
+          type: object
+          required:
+          - left
+          - operator
+          - right
+          properties:
+            left:
+              type: string
+            right:
+              type: string
+            steps:
+              type: array
+            operator:
+              enum:
+              - ==
+              - '!='
+              - '>'
+              - '>='
+              - <
+              - <=
+              - in
+              - not in
+              - contains
+              - not_contains
+              - regex
+              - truthy
+              - falsy
+              - startswith
+              - endswith
+              type: string
       operator:
-        type: string
         enum:
         - ==
         - '!='
@@ -581,16 +611,56 @@ components:
         - falsy
         - startswith
         - endswith
+        type: string
+      conditions:
+        type: array
+        items:
+          type: object
+          required:
+          - left
+          - operator
+          - right
+          properties:
+            left:
+              type: string
+            right:
+              type: string
+            operator:
+              enum:
+              - ==
+              - '!='
+              - '>'
+              - '>='
+              - <
+              - <=
+              - in
+              - not in
+              - contains
+              - not_contains
+              - regex
+              - truthy
+              - falsy
+              - startswith
+              - endswith
+              type: string
       else_steps:
         type: array
       then_steps:
         type: array
+      conditions_mode:
+        enum:
+        - all
+        - any
+        type: string
   default_config:
     left: ''
     right: ''
+    else_ifs: []
     operator: ==
+    conditions: []
     else_steps: []
     then_steps: []
+    conditions_mode: all
   enabled: true
   sort_order: 130
 - type: loop
@@ -673,3 +743,30 @@ components:
     finally_steps: []
   enabled: true
   sort_order: 170
+- type: key_event
+  name: 键盘事件
+  category: action
+  description: 模拟键盘按键（删除/回车/返回等）
+  schema:
+    required:
+    - selector_type
+    - selector
+    - key
+    properties:
+      repeat:
+        type: number
+      selector:
+        type: string
+      key_event:
+        type: string
+      image_scope:
+        type: string
+      selector_type:
+        type: string
+      image_threshold:
+        type: number
+  default_config:
+    key: backspace
+    repeat: 1
+  enabled: true
+  sort_order: 200

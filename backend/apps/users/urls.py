@@ -1,6 +1,5 @@
 from django.urls import path
 from . import views, test_views
-from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('me/', views.get_current_user, name='get_current_user'),
@@ -9,7 +8,8 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
+    path('change-password/', views.change_password_view, name='change-password'),
     path('users/', views.UserListView.as_view(), name='user-list'),
     path('users/<int:pk>/', views.UserDetailView.as_view(), name='user-detail'),
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),  # JWT token刷新
+    path('token/refresh/', views.token_refresh_view, name='token_refresh'),  # 自定义 JWT token刷新，返回过期时间
 ]

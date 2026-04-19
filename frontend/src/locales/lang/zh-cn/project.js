@@ -57,6 +57,24 @@ export default {
       deleteFailed: '项目删除失败',
       deleteConfirm: '确认删除该项目？此操作不可恢复。'
     },
+    configLabels: {
+      baseUrl: '基础URL',
+      timeout: '超时时间',
+      retryCount: '重试次数',
+      browser: '浏览器',
+      headless: '无头模式',
+      viewportWidth: '视口宽度',
+      viewportHeight: '视口高度',
+      platform: '平台',
+      deviceId: '设备ID',
+      appPackage: 'APP包名',
+      appActivity: '启动Activity',
+      owner: '负责人',
+      endDate: '结束日期',
+      members: '成员',
+      startDate: '开始日期',
+      projectType: '项目类型'
+    },
     moduleTypes: {
       AI: 'AI用例生成',
       AI_TEST: 'AI智能测试',
@@ -190,6 +208,21 @@ export default {
     currentPassword: '当前密码',
     newPassword: '新密码',
     confirmPassword: '确认密码',
-    changePasswordButton: '修改密码'
+    changePasswordButton: '修改密码',
+
+    // Validation
+    emailRequired: '请输入邮箱',
+    emailInvalid: '请输入有效的邮箱地址',
+    currentPasswordRequired: '请输入当前密码',
+    newPasswordRequired: '请输入新密码',
+    passwordMinLength: '密码长度不能少于6位',
+    confirmPasswordRequired: '请确认新密码',
+    passwordMismatch: '两次输入的密码不一致',
+
+    // Messages
+    saveSuccess: '保存成功',
+    saveFailed: '保存失败',
+    passwordChangeSuccess: '密码修改成功',
+    passwordChangeFailed: '密码修改失败'
   }
 }

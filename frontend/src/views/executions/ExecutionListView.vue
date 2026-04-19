@@ -139,19 +139,25 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('execution.testCases')" prop="testcases">
-          <el-select
-            v-model="newPlanForm.testcases"
-            multiple
-            :placeholder="loadingTestcases ? $t('execution.loadingTestcases') : (!newPlanForm.projects || newPlanForm.projects.length === 0 ? $t('execution.selectTestcasesDisabled') : $t('execution.selectTestcases'))"
-            style="width: 100%"
-            :disabled="!newPlanForm.projects || newPlanForm.projects.length === 0"
-            :loading="loadingTestcases"
-            @visible-change="handleTestcaseSelectOpen">
-            <el-option v-for="item in filteredTestcases" :key="item.id" :label="item.title" :value="item.id">
-              <span style="float: left">{{ item.title }}</span>
-              <span style="float: right; color: #8492a6; font-size: 13px">{{ item.project__name }}</span>
-            </el-option>
-          </el-select>
+          <div class="testcase-selector-wrapper">
+            <el-button
+              type="primary"
+              plain
+              @click="openTestCaseSelector"
+              :disabled="!newPlanForm.projects || newPlanForm.projects.length === 0">
+              <el-icon><Search /></el-icon>
+              {{ $t('execution.selectTestcases') }}
+            </el-button>
+            <div class="testcase-summary" v-if="newPlanForm.testcases.length > 0">
+              {{ $t('execution.selectedCount', { count: newPlanForm.testcases.length }) }}
+              <el-button type="primary" link @click="openTestCaseSelector">
+                {{ $t('execution.modifySelection') }}
+              </el-button>
+            </div>
+            <div class="testcase-hint" v-else>
+              {{ $t('execution.noTestcaseSelected') }}
+            </div>
+          </div>
         </el-form-item>
         <el-form-item :label="$t('execution.assignees')">
           <el-select v-model="newPlanForm.assignees" multiple :placeholder="$t('execution.selectAssignees')" style="width: 100%">
@@ -186,6 +192,27 @@
             <el-option v-for="item in projects" :key="item.id" :label="item.name" :value="item.id"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item :label="$t('execution.testCases')">
+          <div class="testcase-selector-wrapper">
+            <el-button
+              type="primary"
+              plain
+              @click="openEditTestCaseSelector"
+              :disabled="!editPlanForm.projects || editPlanForm.projects.length === 0">
+              <el-icon><Search /></el-icon>
+              {{ $t('execution.selectTestcases') }}
+            </el-button>
+            <div class="testcase-summary" v-if="editPlanForm.testcases && editPlanForm.testcases.length > 0">
+              {{ $t('execution.selectedCount', { count: editPlanForm.testcases.length }) }}
+              <el-button type="primary" link @click="openEditTestCaseSelector">
+                {{ $t('execution.modifySelection') }}
+              </el-button>
+            </div>
+            <div class="testcase-hint" v-else>
+              {{ $t('execution.noTestcaseSelected') }}
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item :label="$t('execution.relatedVersion')">
           <el-select v-model="editPlanForm.version" :placeholder="$t('execution.selectVersion')" style="width: 100%">
             <el-option v-for="item in versions" :key="item.id" :label="item.name" :value="item.id"></el-option>
@@ -211,6 +238,22 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 测试用例表格选择器（新建） -->
+    <TestCaseTableSelector
+      v-model="isTestCaseSelectorVisible"
+      :project-ids="newPlanForm.projects"
+      :selected-ids="newPlanForm.testcases"
+      @confirm="handleTestcaseConfirm"
+    />
+
+    <!-- 测试用例表格选择器（编辑） -->
+    <TestCaseTableSelector
+      v-model="isEditTestCaseSelectorVisible"
+      :project-ids="editPlanForm.projects"
+      :selected-ids="editPlanForm.testcases"
+      @confirm="handleEditTestcaseConfirm"
+    />
   </div>
 </template>
 
@@ -219,8 +262,9 @@ import { ref, reactive, onMounted, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Delete } from '@element-plus/icons-vue'
+import { Plus, Delete, Search } from '@element-plus/icons-vue'
 import api from '@/utils/api'
+import TestCaseTableSelector from '@/components/executions/TestCaseTableSelector.vue'
 
 const { t } = useI18n()
 
@@ -232,8 +276,6 @@ const testPlans = ref([])
 const projects = ref([])
 const versions = ref([])
 const testcases = ref([])
-const filteredTestcases = ref([])
-const loadingTestcases = ref(false)
 const users = ref([])
 const selectedPlans = ref([])
 const isDeleting = ref(false)
@@ -252,6 +294,8 @@ const filters = reactive({
 // 表单
 const isCreatePlanDialogOpen = ref(false)
 const isEditPlanDialogOpen = ref(false)
+const isTestCaseSelectorVisible = ref(false)
+const isEditTestCaseSelectorVisible = ref(false)
 const planFormRef = ref()
 const editPlanFormRef = ref()
 const currentEditingPlan = ref(null)
@@ -270,6 +314,7 @@ const editPlanForm = reactive({
   description: '',
   projects: [],
   version: null,
+  testcases: [],
   assignees: [],
   is_active: true
 })
@@ -340,60 +385,40 @@ const fetchBasicData = async () => {
   }
 }
 
-// 根据选中的项目加载测试用例
-const loadTestcasesByProjects = async (projectIds) => {
-  if (!projectIds || projectIds.length === 0) {
-    filteredTestcases.value = []
+// 打开测试用例表格选择器
+const openTestCaseSelector = () => {
+  if (!newPlanForm.projects || newPlanForm.projects.length === 0) {
+    ElMessage.warning(t('execution.selectProjectFirst'))
     return
   }
-
-  loadingTestcases.value = true
-
-  try {
-    const params = new URLSearchParams()
-    projectIds.forEach(id => params.append('project_ids', id))
-
-    console.log('API URL:', `/executions/plans/testcases_by_projects/?${params.toString()}`)
-
-    const response = await api.get(`/executions/plans/testcases_by_projects/?${params.toString()}`)
-    console.log('API Response:', response.data)
-
-    filteredTestcases.value = response.data.results || []
-    console.log('Filtered testcases:', filteredTestcases.value)
-  } catch (error) {
-    console.error('Load testcases error:', error)
-    if (error.response?.status === 400) {
-      ElMessage.warning(error.response.data.detail || t('execution.selectProjectFirst'))
-    } else if (error.response?.status === 401) {
-      ElMessage.error(t('auth.loginFailed'))
-    } else {
-      ElMessage.error(t('execution.fetchTestcasesFailed') + ': ' + (error.response?.data?.detail || error.message))
-    }
-    filteredTestcases.value = []
-  } finally {
-    loadingTestcases.value = false
-  }
+  isTestCaseSelectorVisible.value = true
 }
 
-// 处理测试用例选择器打开事件
-const handleTestcaseSelectOpen = (visible) => {
-  if (visible && (!newPlanForm.projects || newPlanForm.projects.length === 0)) {
+// 处理测试用例选择确认
+const handleTestcaseConfirm = (selectedIds) => {
+  newPlanForm.testcases = selectedIds
+}
+
+// 打开编辑测试计划用例选择器
+const openEditTestCaseSelector = () => {
+  if (!editPlanForm.projects || editPlanForm.projects.length === 0) {
     ElMessage.warning(t('execution.selectProjectFirst'))
-    return false
+    return
   }
+  isEditTestCaseSelectorVisible.value = true
+}
+
+// 处理编辑测试用例选择确认
+const handleEditTestcaseConfirm = (selectedIds) => {
+  editPlanForm.testcases = selectedIds
 }
 
 // 处理项目选择变化
 const handleProjectChange = (selectedProjects) => {
   // 清空已选择的测试用例
   newPlanForm.testcases = []
-  
-  // 加载新项目的测试用例
-  if (selectedProjects && selectedProjects.length > 0) {
-    loadTestcasesByProjects(selectedProjects)
-  } else {
-    filteredTestcases.value = []
-  }
+  // 同步清空选择器中的已选
+  isTestCaseSelectorVisible.value = false
 }
 
 const createPlan = async () => {
@@ -428,6 +453,20 @@ const editPlan = async (plan) => {
     // 设置当前编辑的计划
     currentEditingPlan.value = planDetail
 
+    // 从 test_runs 中提取所有已关联的测试用例 ID
+    const testcaseIds = []
+    if (planDetail.test_runs) {
+      for (const run of planDetail.test_runs) {
+        if (run.run_cases) {
+          for (const runCase of run.run_cases) {
+            if (runCase.testcase_id && !testcaseIds.includes(runCase.testcase_id)) {
+              testcaseIds.push(runCase.testcase_id)
+            }
+          }
+        }
+      }
+    }
+
     // 填充编辑表单数据
     Object.assign(editPlanForm, {
       id: planDetail.id,
@@ -439,6 +478,7 @@ const editPlan = async (plan) => {
         return project ? project.id : p
       }) || [],
       version: planDetail.version ? versions.value.find(v => v.name === planDetail.version)?.id : null,
+      testcases: testcaseIds,
       assignees: planDetail.assignees || [],
       is_active: planDetail.is_active
     })
@@ -520,13 +560,11 @@ const resetPlanForm = () => {
   Object.assign(newPlanForm, {
     name: '',
     description: '',
-    projects: [], // 改为数组
+    projects: [],
     version: null,
     testcases: [],
     assignees: []
   })
-  filteredTestcases.value = [] // 清空过滤后的测试用例
-  loadingTestcases.value = false // 重置加载状态
   planFormRef.value?.resetFields()
 }
 
@@ -628,16 +666,9 @@ const batchDeletePlans = async () => {
 // 监听项目选择变化
 watch(
   () => newPlanForm.projects,
-  (newProjects, oldProjects) => {
+  () => {
     // 清空已选择的测试用例
     newPlanForm.testcases = []
-    
-    // 加载新项目的测试用例
-    if (newProjects && newProjects.length > 0) {
-      loadTestcasesByProjects(newProjects)
-    } else {
-      filteredTestcases.value = []
-    }
   },
   { deep: true }
 )
@@ -682,5 +713,21 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.testcase-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.testcase-summary {
+  font-size: 14px;
+  color: #409eff;
+}
+
+.testcase-hint {
+  font-size: 14px;
+  color: #909399;
 }
 </style>

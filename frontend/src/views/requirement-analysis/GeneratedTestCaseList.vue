@@ -1076,7 +1076,7 @@ export default {
 
 .filter-select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -1086,7 +1086,7 @@ export default {
 }
 
 .refresh-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -1097,7 +1097,7 @@ export default {
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .refresh-btn:disabled {
@@ -1150,7 +1150,7 @@ export default {
 .stat-number {
   font-size: 2rem;
   font-weight: bold;
-  color: #3498db;
+  color: var(--th-color-primary);
 }
 
 .stat-label {
@@ -1183,7 +1183,7 @@ export default {
 }
 
 .empty-state a {
-  color: #3498db;
+  color: var(--th-color-primary);
   text-decoration: none;
 }
 
@@ -1258,7 +1258,7 @@ export default {
   justify-content: center;
   width: 60px;
   font-weight: 500;
-  color: #7f8c8d;
+  color: var(--th-color-text-muted);
   flex-shrink: 0;
 }
 
@@ -1266,7 +1266,7 @@ export default {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #3498db;
+  accent-color: var(--th-color-primary);
 }
 
 /* 任务ID列 */
@@ -1336,7 +1336,7 @@ export default {
 }
 
 .count-badge {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
@@ -1376,7 +1376,7 @@ export default {
 }
 
 .priority-tag.p1 {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #f57c00;
 }
 
@@ -1391,7 +1391,7 @@ export default {
 }
 
 .status-tag.pending {
-  background: #fff3cd;
+  background: var(--th-color-surface)3cd;
   color: #856404;
 }
 
@@ -1416,7 +1416,7 @@ export default {
 }
 
 .view-detail-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 6px 10px;
@@ -1429,7 +1429,7 @@ export default {
 }
 
 .view-detail-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .adopt-btn {
@@ -1541,20 +1541,20 @@ export default {
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f0f0f0;
+  background: var(--th-color-surface-muted);
   border-color: #ccc;
 }
 
 .page-btn:disabled {
   color: #ccc;
   cursor: not-allowed;
-  background: #f9f9f9;
+  background: var(--th-color-surface-muted);
 }
 
 .page-btn.active {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
 }
 
 .page-numbers {
@@ -1590,7 +1590,7 @@ export default {
 
 .jump-btn {
   padding: 6px 12px;
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -1600,7 +1600,7 @@ export default {
 }
 
 .jump-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 /* 测试用例详情弹窗 */
@@ -1675,7 +1675,7 @@ export default {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 6px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 /* 采纳用例弹框样式 */
@@ -1723,7 +1723,7 @@ export default {
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -1784,7 +1784,7 @@ export default {
 }
 
 .cancel-btn:hover {
-  background: #7f8c8d;
+  background: var(--th-color-text-muted);
 }
 
 /* 响应式设计 */

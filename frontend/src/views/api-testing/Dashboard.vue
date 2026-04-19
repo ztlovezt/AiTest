@@ -72,10 +72,10 @@
         <div v-else class="activities-list">
           <div v-for="log in operationLogs" :key="log.id" class="activity-item">
             <div class="activity-icon">
-              <el-icon v-if="log.operation_type === 'create'" color="#52c41a"><Plus /></el-icon>
-              <el-icon v-else-if="log.operation_type === 'edit'" color="#1890ff"><Edit /></el-icon>
+              <el-icon v-if="log.operation_type === 'create'" color="var(--th-color-success)"><Plus /></el-icon>
+              <el-icon v-else-if="log.operation_type === 'edit'" color="var(--th-color-primary)"><Edit /></el-icon>
               <el-icon v-else-if="log.operation_type === 'delete'" color="#ff4d4f"><Delete /></el-icon>
-              <el-icon v-else-if="log.operation_type === 'execute'" color="#722ed1"><VideoPlay /></el-icon>
+              <el-icon v-else-if="log.operation_type === 'execute'" color="var(--th-color-primary-strong)"><VideoPlay /></el-icon>
               <el-icon v-else color="#666"><Operation /></el-icon>
             </div>
             <div class="activity-content">
@@ -195,7 +195,7 @@ import {
   getOperationLogs
 } from '@/api/api-testing'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // 统计数据
 const projectCount = ref(0)
@@ -285,7 +285,8 @@ const formatTime = (timeStr) => {
     return t('apiTesting.dashboard.timeFormat.daysAgo', { n: Math.floor(diff / 86400000) })
   }
   // 超过7天显示具体日期
-  return date.toLocaleString('zh-CN', {
+  const loc = locale.value === 'zh-cn' ? 'zh-CN' : 'en-US'
+  return date.toLocaleString(loc, {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
@@ -321,42 +322,30 @@ onMounted(() => {
 .stat-icon {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-right: 20px;
   color: white;
-  font-size: 24px;
-}
-
-.stat-icon :deep(.el-icon) {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-icon :deep(.el-icon svg) {
-  width: 100%;
-  height: 60%;
+  font-size: 28px;
+  flex-shrink: 0;
 }
 
 .stat-icon.bg-blue {
-  background-color: #1890ff;
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
 }
 
 .stat-icon.bg-green {
-  background-color: #52c41a;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 
 .stat-icon.bg-purple {
-  background-color: #722ed1;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .stat-icon.bg-orange {
-  background-color: #fa8c16;
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 .stat-info {
@@ -402,13 +391,13 @@ onMounted(() => {
   text-align: center;
   padding: 15px 10px;
   border-radius: 8px;
-  background-color: #f9f9f9;
+  background-color: var(--th-color-surface-muted);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .action-item:hover {
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -417,7 +406,7 @@ onMounted(() => {
   margin: 0 auto 15px;
   width: 50px;
   height: 50px;
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -425,41 +414,28 @@ onMounted(() => {
   font-size: 24px;
 }
 
-.action-icon :deep(.el-icon) {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-icon :deep(.el-icon svg) {
-  width: 60%;
-  height: 60%;
-}
-
 .action-icon.bg-blue {
-  background-color: #1890ff;
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%);
 }
 
 .action-icon.bg-green {
-  background-color: #52c41a;
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
 }
 
 .action-icon.bg-cyan {
-  background-color: #13c2c2;
+  background: linear-gradient(135deg, #00bcd4 0%, #80deea 100%);
 }
 
 .action-icon.bg-purple {
-  background-color: #722ed1;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 }
 
 .action-icon.bg-orange {
-  background-color: #fa8c16;
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 }
 
 .action-icon.bg-indigo {
-  background-color: #597ef7;
+  background: linear-gradient(135deg, var(--th-color-primary) 0%, #667eea 100%);
 }
 
 .action-label {
@@ -489,13 +465,13 @@ onMounted(() => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background-color: #f0f0f0;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
   font-size: 36px;
-  color: #1890ff;
+  color: var(--th-color-primary);
 }
 
 .feature-icon :deep(.el-icon) {
@@ -532,7 +508,7 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .activity-item:last-child {
@@ -543,7 +519,7 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #f5f5f5;
+  background-color: var(--th-color-surface-muted);
   display: flex;
   align-items: center;
   justify-content: center;

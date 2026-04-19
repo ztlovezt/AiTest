@@ -1,6 +1,8 @@
 """
-TestHub 后端启动脚本，建议开发测试阶段，生产不建议使用
-自动使用 config.yaml 中配置的端口
+TestHub 后端启动脚本
+- 开发测试阶段使用
+- 自动使用 config.yaml 中配置的端口
+- 同时启动 Django-Q 任务队列
 """
 import os
 import sys

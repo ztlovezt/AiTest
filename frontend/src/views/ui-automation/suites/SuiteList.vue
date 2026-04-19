@@ -55,7 +55,7 @@
         </el-table-column>
         <el-table-column :label="$t('uiAutomation.suite.passedCount')" width="90">
           <template #default="{ row }">
-            <span style="color: #67c23a; font-weight: bold;">{{ row.passed_count || 0 }}</span>
+            <span style="color: var(--th-color-success); font-weight: bold;">{{ row.passed_count || 0 }}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('uiAutomation.suite.failedCount')" width="90">
@@ -761,7 +761,7 @@ const handleNewSuite = async () => {
 <style scoped lang="scss">
 .page-container {
   padding: 20px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   min-height: 100vh;
 }
 
@@ -811,7 +811,7 @@ const handleNewSuite = async () => {
 }
 
 .panel-header {
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   padding: 12px 15px;
   border-bottom: 1px solid #dcdfe6;
   display: flex;
@@ -831,14 +831,14 @@ const handleNewSuite = async () => {
 
 
 :deep(.selected-row) {
-  background-color: #f0f9ff !important;
+  background-color: var(--th-color-info-soft) !important;
 }
 
 :deep(.el-table__row) {
   cursor: pointer;
 
   &:hover {
-    background-color: #f5f7fa;
+    background-color: var(--th-color-surface-muted);
   }
 }
 

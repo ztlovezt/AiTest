@@ -23,7 +23,7 @@ class PassThroughRenderer(BaseRenderer):
         return data
 
 
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django.http import StreamingHttpResponse
 from django.utils import timezone
 from asgiref.sync import sync_to_async
@@ -40,9 +40,9 @@ from .serializers import (
     AnalysisTaskSerializer, DocumentUploadSerializer,
     TestCaseGenerationRequestSerializer, TestCaseReviewRequestSerializer,
     AIModelConfigSerializer, PromptConfigSerializer, TestCaseGenerationTaskSerializer,
-    GenerationConfigSerializer
+    GenerationConfigSerializer, TestCaseGenerationFromTextSerializer
 )
-from .services import DocumentProcessor
+from .services import document_processor
 from backend.log_config import get_logger
 
 logger = get_logger(__name__)
@@ -87,7 +87,7 @@ class RequirementDocumentViewSet(viewsets.ModelViewSet):
                     # 简化版同步分析
                     # 提取文档文本
                     if not document.extracted_text:
-                        document.extracted_text = DocumentProcessor.extract_text(document)
+                        document.extracted_text = document_processor([document.file.path])
                         document.save()
 
                     # 创建模拟分析结果
@@ -162,19 +162,60 @@ class RequirementDocumentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def extract_text(self, request, pk=None):
-        """提取文档文本"""
+        """提取文档文本 - 图片文件使用OCR识别，非图片文件使用Tika解析"""
         document = self.get_object()
+        ocr_config_id = request.query_params.get('ocr_config_id')
+        warning_message = None
 
         try:
             if not document.extracted_text:
-                text = DocumentProcessor.extract_text(document)
+                file_path = document.file.path
+                file_ext = os.path.splitext(file_path)[1].lower()
+                
+                image_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']
+                
+                if file_ext in image_extensions:
+                    from apps.ocr_service.tasks import _do_ocr_recognition, get_ocr_timeout
+                    from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+                    
+                    timeout_seconds = get_ocr_timeout()
+                    logger.info(f"开始 OCR 识别: document_id={document.id}, timeout={timeout_seconds}s")
+                    
+                    try:
+                        with ThreadPoolExecutor(max_workers=1) as executor:
+                            future = executor.submit(
+                                _do_ocr_recognition,
+                                file_path,
+                                ocr_config_id
+                            )
+                            
+                            try:
+                                result = future.result(timeout=timeout_seconds)
+                                text = result['text']
+                                warning_message = result.get('warning')
+                            except FuturesTimeoutError:
+                                warning_message = f"OCR 识别超时（{timeout_seconds}秒），已回退到 Tika 解析"
+                                logger.warning(f"OCR 识别超时: document_id={document.id}")
+                                text = document_processor([file_path])
+                                
+                    except Exception as e:
+                        warning_message = f"OCR 处理异常: {str(e)}，已回退到 Tika 解析"
+                        logger.error(f"OCR 处理异常: {e}")
+                        text = document_processor([file_path])
+                else:
+                    text = document_processor([file_path])
+                
                 document.extracted_text = text
                 document.save()
 
-            return Response({
+            response_data = {
                 'extracted_text': document.extracted_text,
                 'text_length': len(document.extracted_text)
-            }, status=status.HTTP_200_OK)
+            }
+            if warning_message:
+                response_data['warning'] = warning_message
+
+            return Response(response_data, status=status.HTTP_200_OK)
 
         except Exception as e:
             logger.error(f"提取文本时出错: {e}")
@@ -182,6 +223,111 @@ class RequirementDocumentViewSet(viewsets.ModelViewSet):
                 {'error': f'提取文本失败: {str(e)}'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['post'], parser_classes=[JSONParser])
+    def extract_text_async(self, request, pk=None):
+        """异步提取文档文本 - 使用 Django-Q 任务队列"""
+        document = self.get_object()
+        ocr_config_id = request.data.get('ocr_config_id')
+        
+        try:
+            from django_q.tasks import async_task
+            from django_q.models import Schedule
+            
+            task_id = async_task(
+                'apps.ocr_service.tasks.extract_text_async',
+                document.id,
+                ocr_config_id,
+                group='ocr_extraction'
+            )
+            
+            logger.info(f"已创建异步文本提取任务: document_id={document.id}, task_id={task_id}, ocr_config_id={ocr_config_id}")
+            
+            return Response({
+                'success': True,
+                'document_id': document.id,
+                'task_id': task_id,
+                'message': '文本提取任务已提交，请轮询获取结果'
+            }, status=status.HTTP_202_ACCEPTED)
+            
+        except Exception as e:
+            logger.warning(f"创建异步任务失败，尝试同步执行: document_id={document.id}, error={e}")
+            
+            try:
+                from apps.ocr_service.tasks import extract_text_async as do_extract
+                result = do_extract(document.id, ocr_config_id)
+                
+                if result.get('success'):
+                    logger.info(f"同步文本提取成功: document_id={document.id}")
+                    return Response({
+                        'success': True,
+                        'document_id': document.id,
+                        'status': 'completed',
+                        'extracted_text': result.get('extracted_text'),
+                        'text_length': result.get('text_length', 0),
+                        'warning': result.get('warning'),
+                        'message': '文本提取完成'
+                    }, status=status.HTTP_200_OK)
+                else:
+                    logger.error(f"同步文本提取失败: document_id={document.id}, error={result.get('error')}")
+                    return Response({
+                        'success': False,
+                        'error': result.get('error', '文本提取失败')
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
+            except Exception as sync_error:
+                logger.error(f"同步文本提取异常: document_id={document.id}, error={sync_error}", exc_info=True)
+                return Response({
+                    'success': False, 
+                    'error': f'文本提取失败: {str(sync_error)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=True, methods=['get'])
+    def get_extraction_result(self, request, pk=None):
+        """获取异步文本提取结果"""
+        document = self.get_object()
+        
+        if document.status == 'failed':
+            logger.warning(f"获取提取结果: document_id={document.id}, status=failed, error={document.extraction_error}")
+            return Response({
+                'success': False,
+                'status': 'failed',
+                'error': document.extraction_error or '文本提取失败'
+            }, status=status.HTTP_200_OK)
+        
+        if document.extracted_text:
+            logger.info(f"获取提取结果: document_id={document.id}, status=completed, text_length={len(document.extracted_text)}")
+            response_data = {
+                'success': True,
+                'status': 'completed',
+                'extracted_text': document.extracted_text,
+                'text_length': len(document.extracted_text)
+            }
+            if document.extraction_warning:
+                response_data['warning'] = document.extraction_warning
+            return Response(response_data, status=status.HTTP_200_OK)
+        else:
+            logger.debug(f"获取提取结果: document_id={document.id}, status=pending")
+            return Response({
+                'success': True,
+                'status': 'pending',
+                'message': '文本提取进行中，请稍后重试'
+            }, status=status.HTTP_200_OK)
+    
+    def _clean_ocr_text(self, text: str) -> str:
+        """清理 OCR 识别结果，去除多余空格和格式问题"""
+        if not text:
+            return ''
+        
+        import re
+        text = re.sub(r'[ \t]+', ' ', text)
+        text = re.sub(r'\n\s*\n+', '\n\n', text)
+        text = re.sub(r' +', ' ', text)
+        text = re.sub(r'\n +', '\n', text)
+        text = re.sub(r' +\n', '\n', text)
+        text = text.strip()
+        
+        return text
 
 
 class RequirementAnalysisViewSet(viewsets.ReadOnlyModelViewSet):
@@ -558,7 +704,11 @@ class AnalysisTaskViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(document_id=document_id)
         return queryset
 
-    @action(detail=True, methods=['get'])
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[]  # 允许访问，task_id本身就是安全标识
+    )
     def progress(self, request, pk=None):
         """获取任务进度"""
         task = self.get_object()
@@ -597,7 +747,7 @@ def upload_and_analyze(request):
                 # 简化版同步分析
                 # 提取文档文本
                 if not document.extracted_text:
-                    document.extracted_text = DocumentProcessor.extract_text(document)
+                    document.extracted_text = document_processor([document.file.path])
                     document.save()
 
                 # 创建模拟分析结果
@@ -1114,7 +1264,7 @@ class PromptConfigViewSet(viewsets.ModelViewSet):
 ```markdown
 | 用例ID | 测试目标 | 前置条件 | 操作步骤 | 预期结果 | 优先级 | 测试类型 | 关联需求 |
 |--------|--------|--------|--------|--------|--------|--------|--------|
-| LOGIN_001 | 验证手机号格式校验 | 在登录页 | 1. 输入10位手机号<br>2. 点击获取验证码 | 提示"手机号格式不正确"，发送按钮不可点 | P1 | 功能验证 | 登录模块 |
+| LOGIN_001 | 验证手机号格式校验 | 在登录页 | 1. 输入10位手机号<br>2. 点击获取验证码 | 提示"手机号格式不正确"，发送按钮不可点 | P1 | 功能测试 | 登录模块 |
 ```"""
 
             try:
@@ -1295,7 +1445,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
     def generate(self, request):
         """创建新的测试用例生成任务"""
         try:
-            serializer = TestCaseGenerationRequestSerializer(data=request.data)
+            serializer = TestCaseGenerationFromTextSerializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1878,7 +2028,11 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @action(detail=True, methods=['get'])
+    @action(
+        detail=True,
+        methods=['get'],
+        permission_classes=[]  # 允许访问，task_id本身就是安全标识
+    )
     def progress(self, request, task_id=None):
         """获取任务进度"""
         try:
@@ -2072,8 +2226,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                         yield f"data: {json.dumps({'type': 'done'}, ensure_ascii=False)}\n\n"
                         logger.info(f"SSE流结束，总循环次数: {loop_count}")
 
-                        # 添加短暂延迟，确保done信号被发送
-                        time.sleep(0.1)
+                        # 跳出循环，关闭连接
                         break
 
                     # 如果是流式模式，发送新增的内容
@@ -2952,7 +3105,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 expected = expected.replace('\n', '<br>')
 
                 content_lines.append(
-                    f"| {case_id} | {scenario} | {precondition} | {steps} | {expected} | {priority} | 功能验证 | 需求1 |")
+                    f"| {case_id} | {scenario} | {precondition} | {steps} | {expected} | {priority} | 功能测试 | 需求1 |")
         else:
             # 原始格式（没有测试步骤列）
             content_lines.append("| 用例ID | 测试目标 | 前置条件 | 预期结果 | 优先级 | 测试类型 | 关联需求 |")
@@ -2970,7 +3123,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 expected = expected.replace('\n', '<br>')
 
                 content_lines.append(
-                    f"| {case_id} | {scenario} | {precondition} | {expected} | {priority} | 功能验证 | 需求1 |")
+                    f"| {case_id} | {scenario} | {precondition} | {expected} | {priority} | 功能测试 | 需求1 |")
 
         content_lines.append("```")
         return "\n".join(content_lines)

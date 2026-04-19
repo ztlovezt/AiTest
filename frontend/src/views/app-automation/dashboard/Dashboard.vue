@@ -128,7 +128,7 @@
                   type="primary" 
                   size="small" 
                   text
-                  @click="viewExecution(execution.id)"
+                  @click="viewExecution(execution)"
                 >
                   查看
                 </el-button>
@@ -217,17 +217,29 @@ const statistics = ref({
   recent_executions: []
 })
 
-const loadStatistics = async () => {
-  loading.value = true
+const loadStatistics = async (isRefresh = false) => {
+  if (!isRefresh) {
+    loading.value = true
+  }
   try {
     const res = await getDashboardStatistics()
     if (res.data.success) {
       statistics.value = res.data.data
+    } else {
+      console.error('加载统计数据失败:', res.data)
+      if (!isRefresh) {
+        ElMessage.error(t('appAutomation.dashboard.loadStatsFailed'))
+      }
     }
   } catch (error) {
-    ElMessage.error(t('appAutomation.dashboard.loadStatsFailed') + ': ' + (error.message || t('common.unknown')))
+    console.error('加载统计数据异常:', error)
+    if (!isRefresh) {
+      ElMessage.error(t('appAutomation.dashboard.loadStatsFailed') + ': ' + (error.message || t('common.unknown')))
+    }
   } finally {
-    loading.value = false
+    if (!isRefresh) {
+      loading.value = false
+    }
   }
 }
 
@@ -241,16 +253,29 @@ const getPassRateClass = (rate) => {
   return 'danger'
 }
 
-const viewExecution = (id) => {
-  ElMessage.info(t('appAutomation.dashboard.executionDetailPending'))
+const viewExecution = (execution) => {
+  if (!execution || !execution.id) {
+    console.warn('查看执行记录失败: 执行记录ID无效', execution)
+    ElMessage.warning(t('appAutomation.dashboard.invalidExecutionId'))
+    return
+  }
+  
+  if (execution.report_path) {
+    console.log(`打开执行报告: execution_id=${execution.id}, report_path=${execution.report_path}`)
+    const reportUrl = `/api/app-automation/executions/${execution.id}/report/index.html`
+    window.open(reportUrl, '_blank')
+  } else {
+    console.warn(`执行记录无报告: execution_id=${execution.id}`)
+    ElMessage.warning(t('appAutomation.dashboard.noReportAvailable'))
+  }
 }
 
 let refreshTimer = null
 
 onMounted(() => {
   loadStatistics()
-  // 每30秒刷新一次统计数据
-  refreshTimer = setInterval(loadStatistics, 30000)
+  // 每30秒刷新一次统计数据（无感知刷新）
+  refreshTimer = setInterval(() => loadStatistics(true), 30000)
 })
 
 onUnmounted(() => {
@@ -286,17 +311,18 @@ onUnmounted(() => {
     .stat-icon {
       width: 60px;
       height: 60px;
-      border-radius: 12px;
+      border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
+      font-size: 28px;
       color: white;
-      
-      &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-      &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+      flex-shrink: 0;
+
+      &.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+      &.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
       &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-      &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      &.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
     }
     
     .stat-info {
@@ -320,6 +346,23 @@ onUnmounted(() => {
 
 .content-section {
   margin-bottom: 20px;
+  
+  .el-col {
+    display: flex;
+    
+    .el-card {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      
+      :deep(.el-card__body) {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+    }
+  }
 }
 
 .card-header {
@@ -334,12 +377,13 @@ onUnmounted(() => {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    flex: 1;
     
     .stat-item {
       text-align: center;
       padding: 15px;
       border-radius: 8px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       
       .stat-label {
         font-size: 14px;
@@ -351,8 +395,8 @@ onUnmounted(() => {
         font-size: 24px;
         font-weight: bold;
         
-        &.large { font-size: 32px; color: #409eff; }
-        &.success { color: #67c23a; }
+        &.large { font-size: 32px; color: var(--th-color-primary); }
+        &.success { color: var(--th-color-success); }
         &.warning { color: #e6a23c; }
         &.danger { color: #f56c6c; }
       }
@@ -361,7 +405,20 @@ onUnmounted(() => {
 }
 
 .recent-executions {
+  :deep(.el-card__body) {
+    padding: 0;
+  }
+  
+  .loading-container,
+  .empty-container {
+    padding: 40px 20px;
+  }
+  
   .executions-list {
+    flex: 1;
+    max-height: 400px;
+    overflow-y: auto;
+    
     .execution-item {
       display: flex;
       justify-content: space-between;
@@ -374,7 +431,7 @@ onUnmounted(() => {
       }
       
       &:hover {
-        background: #f5f7fa;
+        background: var(--th-color-surface-muted);
       }
       
       .execution-info {
@@ -420,10 +477,10 @@ onUnmounted(() => {
       border-radius: 8px;
       cursor: pointer;
       transition: all 0.3s;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       
       &:hover {
-        background: #ecf5ff;
+        background: var(--th-color-info-soft);
         transform: translateY(-3px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
@@ -431,17 +488,17 @@ onUnmounted(() => {
       .action-icon {
         width: 50px;
         height: 50px;
-        border-radius: 10px;
+        border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 24px;
         color: white;
-        
-        &.bg-blue { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        &.bg-green { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+
+        &.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
+        &.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
         &.bg-orange { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        &.bg-purple { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        &.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
       }
       
       .action-label {
@@ -456,5 +513,83 @@ onUnmounted(() => {
 .loading-container,
 .empty-container {
   padding: 40px 0;
+}
+
+@media screen and (max-width: 1400px) {
+  .executions-list {
+    max-height: 350px;
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .stats-section {
+    margin-bottom: 15px;
+  }
+  
+  .stat-card {
+    .stat-content {
+      .stat-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+      
+      .stat-info {
+        .stat-value {
+          font-size: 24px;
+        }
+        
+        .stat-label {
+          font-size: 12px;
+        }
+      }
+    }
+  }
+  
+  .executions-list {
+    max-height: 300px;
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .app-automation-dashboard {
+    padding: 10px;
+  }
+  
+  .stats-section {
+    margin-bottom: 10px;
+  }
+  
+  .content-section {
+    margin-bottom: 15px;
+  }
+  
+  .executions-list {
+    max-height: 250px;
+  }
+  
+  .action-item {
+    padding: 15px;
+    
+    .action-icon {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+    
+    .action-label {
+      font-size: 12px;
+    }
+  }
 }
 </style>

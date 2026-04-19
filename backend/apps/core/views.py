@@ -2,11 +2,13 @@
 Core 应用视图
 """
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+from django.db import connection
+from django.core.cache import cache
 
 from .models import UnifiedNotificationConfig, NotificationTemplate
 from .serializers import UnifiedNotificationConfigSerializer, NotificationTemplateSerializer
@@ -24,6 +26,44 @@ from django.conf import settings
 from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    健康检查端点
+    用于 Docker 容器健康检查和负载均衡器探测
+    """
+    health_status = {
+        'status': 'healthy',
+        'timestamp': time.time(),
+        'services': {}
+    }
+    
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute('SELECT 1')
+        health_status['services']['database'] = 'healthy'
+    except Exception as e:
+        health_status['services']['database'] = f'unhealthy: {str(e)}'
+        health_status['status'] = 'unhealthy'
+    
+    try:
+        cache.set('health_check', 'ok', 10)
+        if cache.get('health_check') == 'ok':
+            health_status['services']['redis'] = 'healthy'
+        else:
+            health_status['services']['redis'] = 'unhealthy: cache read/write failed'
+            health_status['status'] = 'unhealthy'
+    except Exception as e:
+        health_status['services']['redis'] = f'unhealthy: {str(e)}'
+        health_status['status'] = 'unhealthy'
+    
+    if health_status['status'] == 'healthy':
+        return Response(health_status, status=status.HTTP_200_OK)
+    else:
+        return Response(health_status, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
 
 class NotificationTemplateViewSet(viewsets.ModelViewSet):

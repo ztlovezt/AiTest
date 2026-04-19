@@ -82,334 +82,345 @@
                 <el-icon><Check /></el-icon>
                 {{ t('uiAutomation.testCase.saveTestCase') }}
               </el-button>
-              <el-select v-model="selectedEngine" :placeholder="t('uiAutomation.testCase.selectEngine')" size="small" style="width: 130px; margin-right: 10px">
+              <el-divider direction="vertical" />
+              <el-select v-model="selectedEngine" size="small" style="width: 100px">
                 <el-option label="Playwright" value="playwright" />
                 <el-option label="Selenium" value="selenium" />
               </el-select>
-              <el-select v-model="selectedBrowser" :placeholder="t('uiAutomation.testCase.selectBrowser')" size="small" style="width: 120px; margin-right: 10px">
+              <el-select v-model="selectedBrowser" size="small" style="width: 85px">
                 <el-option label="Chrome" value="chrome" />
                 <el-option label="Firefox" value="firefox" />
                 <el-option label="Safari" value="safari" />
                 <el-option label="Edge" value="edge" />
               </el-select>
-              <el-select v-model="headlessMode" :placeholder="t('uiAutomation.testCase.runModeLabel')" size="small" style="width: 110px; margin-right: 10px">
+              <el-select v-model="headlessMode" size="small" style="width: 80px">
                 <el-option :label="t('uiAutomation.testCase.headedMode')" :value="false" />
                 <el-option :label="t('uiAutomation.testCase.headlessMode')" :value="true" />
               </el-select>
-              <el-button size="small" type="success" @click="runTestCase(selectedTestCase)" :loading="isRunning">
-                <el-icon v-if="!isRunning"><CaretRight /></el-icon>
-                {{ isRunning ? t('uiAutomation.testCase.running') : t('uiAutomation.testCase.runLabel') }}
-              </el-button>
-              <el-button size="small" v-if="executionResult" @click="toggleView">
-                <el-icon><component :is="showSteps ? 'View' : 'Edit'" /></el-icon>
-                {{ showSteps ? t('uiAutomation.testCase.viewResult') : t('uiAutomation.testCase.editSteps') }}
-              </el-button>
-              <el-button
-                size="small"
-                v-if="executionResult && !showSteps"
-                type="success"
-                @click="runTestCase(selectedTestCase)"
+              <el-button 
+                size="small" 
+                :type="executionResult ? 'warning' : 'success'" 
+                @click="runTestCase(selectedTestCase)" 
                 :loading="isRunning"
               >
-                <el-icon v-if="!isRunning"><Refresh /></el-icon>
-                {{ t('uiAutomation.testCase.rerun') }}
+                <el-icon v-if="!isRunning"><CaretRight /></el-icon>
+                {{ executionResult ? t('uiAutomation.testCase.rerun') : t('uiAutomation.testCase.runLabel') }}
               </el-button>
             </div>
           </div>
 
-          <!-- 测试步骤编辑 -->
-          <div class="steps-container" v-show="showSteps">
-            <div class="steps-header">
-              <h4>{{ t('uiAutomation.testCase.testSteps') }}</h4>
-              <el-button size="small" text @click="expandAllSteps">
-                {{ allStepsExpanded ? t('uiAutomation.testCase.foldAll') : t('uiAutomation.testCase.expandAll') }}
-              </el-button>
-            </div>
+          <!-- 主内容区域：步骤编辑 + 执行结果 -->
+          <div class="detail-content-wrapper">
+            <!-- 测试步骤编辑 -->
+            <div class="steps-container" :class="{ 'with-result': executionResult && showResultPanel }">
+              <div class="steps-header">
+                <h4>{{ t('uiAutomation.testCase.testSteps') }}</h4>
+                <el-button size="small" text @click="expandAllSteps">
+                  {{ allStepsExpanded ? t('uiAutomation.testCase.foldAll') : t('uiAutomation.testCase.expandAll') }}
+                </el-button>
+              </div>
 
-            <div class="steps-scroll-container">
-              <div class="steps-list">
-                <draggable
-                  v-model="currentSteps"
-                  item-key="id"
-                  handle=".drag-handle"
-                  @change="onStepsReorder"
-                >
-                  <template #item="{ element, index }">
-                    <div class="step-item" :class="{ expanded: element.expanded }">
-                      <div class="step-header">
-                        <div class="step-left">
-                          <el-icon class="drag-handle"><Rank /></el-icon>
-                          <span class="step-number">{{ index + 1 }}</span>
-                          <el-select
-                            v-model="element.action_type"
-                            :placeholder="t('uiAutomation.testCase.selectAction')"
-                            size="small"
-                            style="width: 120px"
-                            @change="onActionTypeChange(element)"
-                          >
-                            <el-option :label="t('uiAutomation.testCase.actionClick')" value="click" />
-                            <el-option :label="t('uiAutomation.testCase.actionFill')" value="fill" />
-                            <el-option :label="t('uiAutomation.testCase.actionGetText')" value="getText" />
-                            <el-option :label="t('uiAutomation.testCase.actionWaitFor')" value="waitFor" />
-                            <el-option :label="t('uiAutomation.testCase.actionHover')" value="hover" />
-                            <el-option :label="t('uiAutomation.testCase.actionScroll')" value="scroll" />
-                            <el-option :label="t('uiAutomation.testCase.actionScreenshot')" value="screenshot" />
-                            <el-option :label="t('uiAutomation.testCase.actionAssert')" value="assert" />
-                            <el-option :label="t('uiAutomation.testCase.actionWait')" value="wait" />
-                            <el-option :label="t('uiAutomation.testCase.actionSwitchTab')" value="switchTab" />
-                            <el-option :label="t('uiAutomation.testCase.actionNavigateTo')" value="navigateTo" />
-                          </el-select>
-                          <!-- 页面筛选下拉框 -->
-                          <el-select
-                            v-if="needsElement(element)"
-                            v-model="element.selectedPage"
-                            :placeholder="t('uiAutomation.testCase.selectPage')"
-                            size="small"
-                            style="width: 110px"
-                            clearable
-                            @change="onPageFilterChange(element)"
-                          >
-                            <el-option :label="t('uiAutomation.testCase.allPages')" value="" />
-                            <el-option
-                              v-for="page in uniquePages"
-                              :key="page"
-                              :label="page"
-                              :value="page"
-                            />
-                          </el-select>
-                          <!-- 元素选择下拉框（带模糊匹配） -->
-                          <el-select
-                            v-if="needsElement(element)"
-                            v-model="element.element_id"
-                            :placeholder="t('uiAutomation.testCase.selectElement')"
-                            size="small"
-                            style="width: 220px"
-                            filterable
-                            @change="onElementChange(element)"
-                          >
-                            <el-option
-                              v-for="elem in getFilteredElements(element)"
-                              :key="elem.id"
-                              :label="`${elem.name} (${elem.locator_value})`"
-                              :value="elem.id"
-                            />
-                          </el-select>
-                        </div>
-                        <div class="step-right">
-                          <el-button
-                            size="small"
-                            text
-                            @click="element.expanded = !element.expanded"
-                          >
-                            <el-icon>
-                              <component :is="element.expanded ? 'ArrowUp' : 'ArrowDown'" />
-                            </el-icon>
-                          </el-button>
-                          <el-button size="small" text type="danger" @click="removeStep(index)">
-                            <el-icon><Delete /></el-icon>
-                          </el-button>
-                        </div>
-                      </div>
-
-                      <div v-if="element.expanded" class="step-content">
-                        <!-- 输入参数 -->
-                        <div v-if="needsInputValue(element.action_type)" class="step-param">
-                          <label>{{ t('uiAutomation.testCase.inputValue') }}</label>
-                          <div style="display: flex; gap: 5px; flex: 1">
-                            <el-input
-                              v-model="element.input_value"
-                              :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : element.action_type === 'navigateTo' ? t('uiAutomation.testCase.urlPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
+              <div class="steps-scroll-container">
+                <div class="steps-list">
+                  <draggable
+                    v-model="currentSteps"
+                    item-key="id"
+                    handle=".drag-handle"
+                    @change="onStepsReorder"
+                  >
+                    <template #item="{ element, index }">
+                      <div class="step-item" :class="{ expanded: element.expanded }">
+                        <div class="step-header">
+                          <div class="step-left">
+                            <el-icon class="drag-handle"><Rank /></el-icon>
+                            <span class="step-number">{{ index + 1 }}</span>
+                            <el-select
+                              v-model="element.action_type"
+                              :placeholder="t('uiAutomation.testCase.selectAction')"
                               size="small"
+                              style="width: 100px"
+                              @change="onActionTypeChange(element)"
                             >
-                              <template #append>
-                                <el-button
-                                  size="small"
-                                  :icon="MagicStick"
-                                  @click="openDataFactorySelector(element, 'input_value')"
-                                  :title="t('uiAutomation.testCase.referenceDataFactory')"
-                                  class="data-factory-btn"
-                                />
-                              </template>
-                            </el-input>
-                            <el-tooltip :content="t('uiAutomation.testCase.insertVariable')" placement="top" v-if="element.action_type !== 'switchTab'">
-                              <el-button size="small" @click="openVariableHelper(element, 'input_value')" class="variable-helper-btn">
-                                <el-icon><MagicStick /></el-icon>
-                              </el-button>
-                            </el-tooltip>
+                              <el-option :label="t('uiAutomation.testCase.actionClick')" value="click" />
+                              <el-option :label="t('uiAutomation.testCase.actionFill')" value="fill" />
+                              <el-option :label="t('uiAutomation.testCase.actionGetText')" value="getText" />
+                              <el-option :label="t('uiAutomation.testCase.actionWaitFor')" value="waitFor" />
+                              <el-option :label="t('uiAutomation.testCase.actionHover')" value="hover" />
+                              <el-option :label="t('uiAutomation.testCase.actionScroll')" value="scroll" />
+                              <el-option :label="t('uiAutomation.testCase.actionScreenshot')" value="screenshot" />
+                              <el-option :label="t('uiAutomation.testCase.actionAssert')" value="assert" />
+                              <el-option :label="t('uiAutomation.testCase.actionWait')" value="wait" />
+                              <el-option :label="t('uiAutomation.testCase.actionSwitchTab')" value="switchTab" />
+                              <el-option :label="t('uiAutomation.testCase.actionNavigateTo')" value="navigateTo" />
+                            </el-select>
+                            <!-- 页面筛选下拉框 -->
+                            <el-select
+                              v-if="needsElement(element)"
+                              v-model="element.selectedPage"
+                              :placeholder="t('uiAutomation.testCase.selectPage')"
+                              size="small"
+                              style="width: 100px"
+                              clearable
+                              @change="onPageFilterChange(element)"
+                            >
+                              <el-option :label="t('uiAutomation.testCase.allPages')" value="" />
+                              <el-option
+                                v-for="page in uniquePages"
+                                :key="page"
+                                :label="page"
+                                :value="page"
+                              />
+                            </el-select>
+                            <!-- 元素选择下拉框（带模糊匹配） -->
+                            <el-select
+                              v-if="needsElement(element)"
+                              v-model="element.element_id"
+                              :placeholder="t('uiAutomation.testCase.selectElement')"
+                              size="small"
+                              style="width: 180px"
+                              filterable
+                              @change="onElementChange(element)"
+                            >
+                              <el-option
+                                v-for="elem in getFilteredElements(element)"
+                                :key="elem.id"
+                                :label="`${elem.name} (${elem.locator_value})`"
+                                :value="elem.id"
+                              />
+                            </el-select>
+                          </div>
+                          <div class="step-right">
+                            <el-button
+                              size="small"
+                              text
+                              @click="element.expanded = !element.expanded"
+                            >
+                              <el-icon>
+                                <component :is="element.expanded ? 'ArrowUp' : 'ArrowDown'" />
+                              </el-icon>
+                            </el-button>
+                            <el-button size="small" text type="danger" @click="removeStep(index)">
+                              <el-icon><Delete /></el-icon>
+                            </el-button>
                           </div>
                         </div>
 
-                        <!-- 等待时间 -->
-                        <div v-if="needsWaitTime(element.action_type)" class="step-param">
-                          <label>{{ t('uiAutomation.testCase.waitTime') }}</label>
-                          <el-input-number
-                            v-model="element.wait_time"
-                            :min="100"
-                            :max="30000"
-                            :step="100"
-                            size="small"
-                          />
-                        </div>
+                        <div v-if="element.expanded" class="step-content">
+                          <!-- 输入参数 -->
+                          <div v-if="needsInputValue(element.action_type)" class="step-param">
+                            <label>{{ t('uiAutomation.testCase.inputValue') }}</label>
+                            <div style="display: flex; gap: 5px; flex: 1">
+                              <el-input
+                                v-model="element.input_value"
+                                :data-field="'input_value'"
+                                :placeholder="element.action_type === 'switchTab' ? t('uiAutomation.testCase.switchTabPlaceholder') : element.action_type === 'navigateTo' ? t('uiAutomation.testCase.urlPlaceholder') : t('uiAutomation.testCase.inputPlaceholder')"
+                                size="small"
+                              >
+                                <template #append>
+                                  <el-button
+                                    size="small"
+                                    :icon="MagicStick"
+                                    @click="openDataFactorySelector(element, 'input_value')"
+                                    :title="t('uiAutomation.testCase.referenceDataFactory')"
+                                    class="data-factory-btn"
+                                  />
+                                </template>
+                              </el-input>
+                              <el-tooltip :content="t('uiAutomation.testCase.insertVariable')" placement="top" v-if="element.action_type !== 'switchTab'">
+                                <el-button size="small" @click="openVariableHelper(element, 'input_value')" class="variable-helper-btn">
+                                  <el-icon><MagicStick /></el-icon>
+                                </el-button>
+                              </el-tooltip>
+                            </div>
+                          </div>
 
-                        <!-- 断言参数 -->
-                        <div v-if="element.action_type === 'assert'" class="step-param">
-                          <label>{{ t('uiAutomation.testCase.assertType') }}</label>
-                          <el-select v-model="element.assert_type" size="small" style="width: 150px">
-                            <el-option :label="t('uiAutomation.testCase.assertTextContains')" value="textContains" />
-                            <el-option :label="t('uiAutomation.testCase.assertTextEquals')" value="textEquals" />
-                            <el-option :label="t('uiAutomation.testCase.assertIsVisible')" value="isVisible" />
-                            <el-option :label="t('uiAutomation.testCase.assertExists')" value="exists" />
-                            <el-option :label="t('uiAutomation.testCase.assertHasAttribute')" value="hasAttribute" />
-                            <el-option :label="t('uiAutomation.testCase.assertUrlContains')" value="urlContains" />
-                          </el-select>
-                          <div style="display: flex; align-items: center; margin-left: 10px; width: 240px">
-                            <el-input
-                              v-model="element.assert_value"
-                              :placeholder="t('uiAutomation.testCase.expectedValue')"
+                          <!-- 等待时间 -->
+                          <div v-if="needsWaitTime(element.action_type)" class="step-param">
+                            <label>{{ t('uiAutomation.testCase.waitTime') }}</label>
+                            <el-input-number
+                              v-model="element.wait_time"
+                              :min="100"
+                              :max="30000"
+                              :step="100"
                               size="small"
-                              style="flex: 1"
-                            >
-                              <template #append>
-                                <el-button
-                                  size="small"
-                                  :icon="MagicStick"
-                                  @click="openDataFactorySelector(element, 'assert_value')"
-                                  :title="t('uiAutomation.testCase.referenceDataFactory')"
-                                  class="data-factory-btn"
-                                />
-                              </template>
-                            </el-input>
-                            <el-tooltip :content="t('uiAutomation.testCase.insertVariable')" placement="top">
-                              <el-button size="small" style="margin-left: 5px" @click="openVariableHelper(element, 'assert_value')" class="variable-helper-btn">
-                                <el-icon><MagicStick /></el-icon>
-                              </el-button>
-                            </el-tooltip>
+                            />
+                          </div>
+
+                          <!-- 断言参数 -->
+                          <div v-if="element.action_type === 'assert'" class="step-param">
+                            <label>{{ t('uiAutomation.testCase.assertType') }}</label>
+                            <el-select v-model="element.assert_type" size="small" style="width: 150px">
+                              <el-option :label="t('uiAutomation.testCase.assertTextContains')" value="textContains" />
+                              <el-option :label="t('uiAutomation.testCase.assertTextEquals')" value="textEquals" />
+                              <el-option :label="t('uiAutomation.testCase.assertIsVisible')" value="isVisible" />
+                              <el-option :label="t('uiAutomation.testCase.assertExists')" value="exists" />
+                              <el-option :label="t('uiAutomation.testCase.assertHasAttribute')" value="hasAttribute" />
+                              <el-option :label="t('uiAutomation.testCase.assertUrlContains')" value="urlContains" />
+                            </el-select>
+                            <div style="display: flex; align-items: center; margin-left: 10px; width: 240px">
+                              <el-input
+                                v-model="element.assert_value"
+                                :data-field="'assert_value'"
+                                :placeholder="t('uiAutomation.testCase.expectedValue')"
+                                size="small"
+                                style="flex: 1"
+                              >
+                                <template #append>
+                                  <el-button
+                                    size="small"
+                                    :icon="MagicStick"
+                                    @click="openDataFactorySelector(element, 'assert_value')"
+                                    :title="t('uiAutomation.testCase.referenceDataFactory')"
+                                    class="data-factory-btn"
+                                  />
+                                </template>
+                              </el-input>
+                              <el-tooltip :content="t('uiAutomation.testCase.insertVariable')" placement="top">
+                                <el-button size="small" style="margin-left: 5px" @click="openVariableHelper(element, 'assert_value')" class="variable-helper-btn">
+                                  <el-icon><MagicStick /></el-icon>
+                                </el-button>
+                              </el-tooltip>
+                            </div>
+                          </div>
+
+                          <!-- 步骤描述 -->
+                          <div class="step-param">
+                            <label>{{ t('uiAutomation.testCase.stepDescription') }}</label>
+                            <el-input
+                              v-model="element.description"
+                              :placeholder="t('uiAutomation.testCase.stepDescPlaceholder')"
+                              size="small"
+                            />
                           </div>
                         </div>
-
-                        <!-- 步骤描述 -->
-                        <div class="step-param">
-                          <label>{{ t('uiAutomation.testCase.stepDescription') }}</label>
-                          <el-input
-                            v-model="element.description"
-                            :placeholder="t('uiAutomation.testCase.stepDescPlaceholder')"
-                            size="small"
-                          />
-                        </div>
                       </div>
-                    </div>
-                  </template>
-                </draggable>
+                    </template>
+                  </draggable>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 执行结果 -->
-          <div v-if="executionResult" class="execution-result" v-show="!showSteps">
-            <div class="result-header">
-              <h4>{{ t('uiAutomation.testCase.executionResult') }}</h4>
-              <el-tag :type="executionResult.success ? 'success' : 'danger'">
-                {{ executionResult.success ? t('uiAutomation.testCase.executionSuccess') : t('uiAutomation.testCase.executionFailed') }}
-              </el-tag>
-            </div>
-            <div class="result-content">
-              <el-tabs v-model="resultActiveTab">
-                <el-tab-pane :label="t('uiAutomation.testCase.executionLogs')" name="logs">
-                  <div class="logs-container">
-                    <div v-if="parsedExecutionLogs.length > 0">
-                      <div v-for="(step, index) in parsedExecutionLogs" :key="index" class="log-item">
-                        <div class="log-header">
-                          <el-tag :type="step.success ? 'success' : 'danger'" size="small">
-                            {{ t('uiAutomation.testCase.step') }} {{ step.step_number }}
+            <!-- 执行结果（右侧面板） -->
+            <div v-if="executionResult && showResultPanel" class="execution-result-panel">
+              <div class="result-panel-header">
+                <h4>{{ t('uiAutomation.testCase.executionResult') }}</h4>
+                <div class="result-panel-actions">
+                  <el-tag :type="executionResult.success ? 'success' : 'danger'" size="small">
+                    {{ executionResult.success ? t('uiAutomation.testCase.executionSuccess') : t('uiAutomation.testCase.executionFailed') }}
+                  </el-tag>
+                  <el-button 
+                    size="small" 
+                    type="warning" 
+                    @click="runTestCase(selectedTestCase)" 
+                    :loading="isRunning"
+                  >
+                    <el-icon v-if="!isRunning"><Refresh /></el-icon>
+                    {{ t('uiAutomation.testCase.rerun') }}
+                  </el-button>
+                  <el-button size="small" text @click="showResultPanel = false">
+                    <el-icon><Close /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+              <div class="result-panel-content">
+                <el-tabs v-model="resultActiveTab" size="small">
+                  <el-tab-pane :label="t('uiAutomation.testCase.executionLogs')" name="logs">
+                    <div class="logs-container">
+                      <div v-if="parsedExecutionLogs.length > 0">
+                        <div v-for="(step, index) in parsedExecutionLogs" :key="index" class="log-item">
+                          <div class="log-header">
+                            <el-tag :type="step.success ? 'success' : 'danger'" size="small">
+                              {{ t('uiAutomation.testCase.step') }} {{ step.step_number }}
+                            </el-tag>
+                            <span class="log-action">{{ getActionText(step.action_type) }}</span>
+                            <span class="log-desc">{{ step.description }}</span>
+                          </div>
+                          <div v-if="step.error" class="log-error">
+                            <el-icon><WarningFilled /></el-icon>
+                            <pre class="error-message">{{ step.error }}</pre>
+                          </div>
+                        </div>
+                      </div>
+                      <el-empty v-else :description="t('uiAutomation.testCase.noLogs')" />
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane :label="t('uiAutomation.testCase.failedScreenshots')" name="screenshots" v-if="executionResult.screenshots && executionResult.screenshots.length > 0">
+                    <div class="screenshots-container">
+                      <div
+                        v-for="(screenshot, index) in executionResult.screenshots"
+                        :key="index"
+                        class="screenshot-item"
+                        @click="previewScreenshot(screenshot)"
+                      >
+                        <div class="screenshot-wrapper">
+                          <img
+                            :src="screenshot.url"
+                            :alt="`${t('uiAutomation.testCase.screenshot')} ${index + 1}`"
+                            :data-index="index"
+                            @error="handleImageError"
+                            @load="handleImageLoad"
+                          />
+                          <div class="screenshot-placeholder" v-if="!screenshot.loaded">
+                            <el-icon><Picture /></el-icon>
+                            <span>{{ t('uiAutomation.testCase.loadingImage') }}</span>
+                          </div>
+                          <div class="screenshot-error" v-if="screenshot.error">
+                            <el-icon><Warning /></el-icon>
+                            <span>{{ t('uiAutomation.testCase.imageLoadFailed') }}</span>
+                          </div>
+                          <div class="screenshot-overlay">
+                            <el-icon class="zoom-icon"><ZoomIn /></el-icon>
+                          </div>
+                        </div>
+                        <div class="screenshot-info">
+                          <p class="screenshot-description">{{ screenshot.description || t('uiAutomation.testCase.screenshot') + ' ' + (index + 1) }}</p>
+                          <p class="screenshot-meta" v-if="screenshot.step_number">{{ t('uiAutomation.testCase.step') }} {{ screenshot.step_number }}</p>
+                          <p class="screenshot-time" v-if="screenshot.timestamp">{{ formatTime(screenshot.timestamp) }}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </el-tab-pane>
+                  <el-tab-pane :label="t('uiAutomation.testCase.errorInfo')" name="errors" v-if="executionResult.errors && executionResult.errors.length > 0">
+                    <div class="errors-container">
+                      <div
+                        v-for="(error, index) in executionResult.errors"
+                        :key="index"
+                        class="error-item"
+                      >
+                        <div class="error-header">
+                          <el-tag type="danger" size="large">
+                            <el-icon><WarningFilled /></el-icon>
+                            {{ error.message || error }}
                           </el-tag>
-                          <span class="log-action">{{ getActionText(step.action_type) }}</span>
-                          <span class="log-desc">{{ step.description }}</span>
+                          <span v-if="error.step_number" class="error-step">
+                            {{ t('uiAutomation.testCase.step') }} {{ error.step_number }}
+                          </span>
                         </div>
-                        <div v-if="step.error" class="log-error">
-                          <el-icon><WarningFilled /></el-icon>
-                          <pre class="error-message">{{ step.error }}</pre>
-                        </div>
-                      </div>
-                    </div>
-                    <el-empty :description="t('uiAutomation.testCase.noLogs')" />
-                  </div>
-                </el-tab-pane>
-                <el-tab-pane :label="t('uiAutomation.testCase.failedScreenshots')" name="screenshots" v-if="executionResult.screenshots && executionResult.screenshots.length > 0">
-                  <div class="screenshots-container">
-                    <div
-                      v-for="(screenshot, index) in executionResult.screenshots"
-                      :key="index"
-                      class="screenshot-item"
-                      @click="previewScreenshot(screenshot)"
-                    >
-                      <div class="screenshot-wrapper">
-                        <img
-                          :src="screenshot.url"
-                          :alt="`${t('uiAutomation.testCase.screenshot')} ${index + 1}`"
-                          :data-index="index"
-                          @error="handleImageError"
-                          @load="handleImageLoad"
-                        />
-                        <div class="screenshot-placeholder" v-if="!screenshot.loaded">
-                          <el-icon><Picture /></el-icon>
-                          <span>{{ t('uiAutomation.testCase.loadingImage') }}</span>
-                        </div>
-                        <div class="screenshot-error" v-if="screenshot.error">
-                          <el-icon><Warning /></el-icon>
-                          <span>{{ t('uiAutomation.testCase.imageLoadFailed') }}</span>
-                        </div>
-                        <div class="screenshot-overlay">
-                          <el-icon class="zoom-icon"><ZoomIn /></el-icon>
-                        </div>
-                      </div>
-                      <div class="screenshot-info">
-                        <p class="screenshot-description">{{ screenshot.description || t('uiAutomation.testCase.screenshot') + ' ' + (index + 1) }}</p>
-                        <p class="screenshot-meta" v-if="screenshot.step_number">{{ t('uiAutomation.testCase.step') }} {{ screenshot.step_number }}</p>
-                        <p class="screenshot-time" v-if="screenshot.timestamp">{{ formatTime(screenshot.timestamp) }}</p>
-                      </div>
-                    </div>
-                  </div>
-                </el-tab-pane>
-                <el-tab-pane :label="t('uiAutomation.testCase.errorInfo')" name="errors" v-if="executionResult.errors && executionResult.errors.length > 0">
-                  <div class="errors-container">
-                    <div
-                      v-for="(error, index) in executionResult.errors"
-                      :key="index"
-                      class="error-item"
-                    >
-                      <div class="error-header">
-                        <el-tag type="danger" size="large">
-                          <el-icon><WarningFilled /></el-icon>
-                          {{ error.message || error }}
-                        </el-tag>
-                        <span v-if="error.step_number" class="error-step">
-                          {{ t('uiAutomation.testCase.step') }} {{ error.step_number }}
-                        </span>
-                      </div>
 
-                      <div v-if="error.action_type || error.element || error.description" class="error-meta">
-                        <div v-if="error.action_type" class="meta-item">
-                          <span class="meta-label">{{ t('uiAutomation.testCase.operationType') }}</span>
-                          <span class="meta-value">{{ error.action_type }}</span>
+                        <div v-if="error.action_type || error.element || error.description" class="error-meta">
+                          <div v-if="error.action_type" class="meta-item">
+                            <span class="meta-label">{{ t('uiAutomation.testCase.operationType') }}</span>
+                            <span class="meta-value">{{ error.action_type }}</span>
+                          </div>
+                          <div v-if="error.element" class="meta-item">
+                            <span class="meta-label">{{ t('uiAutomation.testCase.targetElement') }}</span>
+                            <span class="meta-value">{{ error.element }}</span>
+                          </div>
+                          <div v-if="error.description" class="meta-item">
+                            <span class="meta-label">{{ t('uiAutomation.testCase.stepDesc') }}</span>
+                            <span class="meta-value">{{ error.description }}</span>
+                          </div>
                         </div>
-                        <div v-if="error.element" class="meta-item">
-                          <span class="meta-label">{{ t('uiAutomation.testCase.targetElement') }}</span>
-                          <span class="meta-value">{{ error.element }}</span>
-                        </div>
-                        <div v-if="error.description" class="meta-item">
-                          <span class="meta-label">{{ t('uiAutomation.testCase.stepDesc') }}</span>
-                          <span class="meta-value">{{ error.description }}</span>
-                        </div>
-                      </div>
 
-                      <div v-if="error.details || error.stack" class="error-details">
-                        <div class="details-header">{{ t('uiAutomation.testCase.detailErrorInfo') }}</div>
-                        <pre class="details-content">{{ error.details || error.stack }}</pre>
+                        <div v-if="error.details || error.stack" class="error-details">
+                          <div class="details-header">{{ t('uiAutomation.testCase.detailErrorInfo') }}</div>
+                          <pre class="details-content">{{ error.details || error.stack }}</pre>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </el-tab-pane>
-              </el-tabs>
+                  </el-tab-pane>
+                </el-tabs>
+              </div>
             </div>
           </div>
         </div>
@@ -525,7 +536,7 @@
 import { ref, reactive, computed, onMounted, onActivated, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Search, Plus, Edit, Delete, Check, CaretRight, ArrowUp, ArrowDown, Rank, Picture, Warning, View, ZoomIn, Refresh, WarningFilled, MagicStick
+  Search, Plus, Edit, Delete, Check, CaretRight, ArrowUp, ArrowDown, Rank, Picture, Warning, View, ZoomIn, Refresh, WarningFilled, MagicStick, Close
 } from '@element-plus/icons-vue'
 import draggable from 'vuedraggable'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
@@ -560,6 +571,7 @@ const executionResult = ref(null)
 const resultActiveTab = ref('logs')
 const allStepsExpanded = ref(false)
 const showSteps = ref(true)
+const showResultPanel = ref(false)
 const showScreenshotPreview = ref(false)
 const currentScreenshot = ref(null)
 const isRunning = ref(false)
@@ -574,6 +586,7 @@ const currentStepForDataFactory = ref(null)
 const currentFieldForDataFactory = ref('')
 const variableCategories = ref([])
 const loading = ref(false)
+const currentFocusedInput = ref(null)
 
 
 
@@ -623,7 +636,7 @@ const loadProjects = async () => {
     const response = await getUiProjects({ page_size: 100 })
     projects.value = response.data.results || response.data
   } catch (error) {
-    ElMessage.error('获取项目列表失败')
+    ElMessage.error(t('uiAutomation.project.messages.loadFailed'))
     console.error('获取项目列表失败:', error)
   }
 }
@@ -691,6 +704,7 @@ const selectTestCase = (testCase) => {
   // 只有在切换到不同用例时才清空执行结果
   executionResult.value = null
   showSteps.value = true
+  showResultPanel.value = false
 }
 
 const addStep = () => {
@@ -829,7 +843,7 @@ const runTestCase = async (testCase) => {
 
     executionResult.value = response.data
     resultActiveTab.value = 'logs'
-    showSteps.value = false  // 自动切换到结果视图
+    showResultPanel.value = true  // 自动显示结果面板
 
     if (response.data.success) {
       ElMessage.success(t('uiAutomation.testCase.run.success'))
@@ -844,8 +858,8 @@ const runTestCase = async (testCase) => {
     console.error('执行测试用例失败:', error)
 
     // 即使出错也要设置执行结果,显示错误信息
-    const errorMessage = error.response?.data?.message || error.message || '执行失败'
-    const errorLogs = error.response?.data?.logs || `测试用例执行出错\n\n错误信息: ${errorMessage}`
+    const errorMessage = error.response?.data?.message || error.message || t('uiAutomation.testCase.run.executionError')
+    const errorLogs = error.response?.data?.logs || `${t('uiAutomation.testCase.run.executionErrorLog')}\n\n${t('uiAutomation.testCase.run.errorMessage')}: ${errorMessage}`
 
     // 格式化错误信息为统一的对象格式
     const errors = error.response?.data?.errors || [{
@@ -865,16 +879,12 @@ const runTestCase = async (testCase) => {
       errors: errors
     }
     resultActiveTab.value = 'logs'
-    showSteps.value = false  // 切换到结果视图显示错误
+    showResultPanel.value = true  // 自动显示结果面板
 
     ElMessage.error(t('uiAutomation.testCase.run.failedWithMessage', { message: errorMessage }))
   } finally {
     isRunning.value = false
   }
-}
-
-const toggleView = () => {
-  showSteps.value = !showSteps.value
 }
 
 const editTestCase = (testCase) => {
@@ -915,7 +925,7 @@ const deleteTestCase = async (testCase) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除测试用例失败:', error)
-      ElMessage.error('删除失败')
+      ElMessage.error(t('uiAutomation.testCase.delete.failed'))
     }
   }
 }
@@ -947,7 +957,7 @@ const copyTestCase = async (testCase) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('复制测试用例失败:', error)
-      ElMessage.error('复制失败')
+      ElMessage.error(t('uiAutomation.testCase.copy.failed'))
     }
   }
 }
@@ -984,7 +994,7 @@ const loadVariableFunctions = async () => {
     if (Array.isArray(functionsData)) {
       // 如果是数组格式
       functionsData.forEach(func => {
-        const category = func.category || '未分类'
+        const category = func.category || t('uiAutomation.testCase.variableCategory.uncategorized')
         if (!grouped[category]) {
           grouped[category] = []
         }
@@ -1012,7 +1022,16 @@ const loadVariableFunctions = async () => {
     console.log('按分类组织后的函数:', grouped)
     
     // 定义固定的分类顺序
-    const categoryOrder = ['随机数', '测试数据', '字符串', '编码转换', '加密', '时间日期', 'Crontab', '未分类']
+    const categoryOrder = [
+      t('uiAutomation.testCase.variableCategory.randomNumber'),
+      t('uiAutomation.testCase.variableCategory.testData'),
+      t('uiAutomation.testCase.variableCategory.string'),
+      t('uiAutomation.testCase.variableCategory.encoding'),
+      t('uiAutomation.testCase.variableCategory.encryption'),
+      t('uiAutomation.testCase.variableCategory.dateTime'),
+      'Crontab',
+      t('uiAutomation.testCase.variableCategory.uncategorized')
+    ]
     
     // 按固定顺序构建分类列表
     const orderedCategories = []
@@ -1038,7 +1057,7 @@ const loadVariableFunctions = async () => {
     variableCategories.value = orderedCategories
   } catch (error) {
     console.error('加载变量函数失败:', error)
-    ElMessage.error('加载变量函数失败，使用本地数据')
+    ElMessage.error(t('uiAutomation.testCase.messages.loadVariableFailed'))
     useLocalVariableCategories()
   } finally {
     loading.value = false
@@ -1080,6 +1099,7 @@ const openVariableHelper = (step, field) => {
   console.log('variableCategories.value.length:', variableCategories.value.length)
   currentEditingStep.value = step
   currentEditingField.value = field
+  currentFocusedInput.value = document.activeElement
   showVariableHelper.value = true
   console.log('showVariableHelper.value:', showVariableHelper.value)
 }
@@ -1087,6 +1107,7 @@ const openVariableHelper = (step, field) => {
 const openDataFactorySelector = (step, field) => {
   currentStepForDataFactory.value = step
   currentFieldForDataFactory.value = field
+  currentFocusedInput.value = document.activeElement
   showDataFactorySelector.value = true
 }
 
@@ -1107,27 +1128,100 @@ const handleDataFactorySelect = (record) => {
       valueToSet = JSON.stringify(record.output_data)
     }
     
-    step[field] = valueToSet
+    const currentValue = step[field] || ''
+    
+    let inputElement = currentFocusedInput.value
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+      const cursorPosition = inputElement.selectionStart || 0
+      const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+      step[field] = newValue
+      
+      const newCursorPosition = cursorPosition + valueToSet.length
+      setTimeout(() => {
+        inputElement.focus()
+        inputElement.selectionStart = newCursorPosition
+        inputElement.selectionEnd = newCursorPosition
+      }, 0)
+    } else {
+      const inputSelector = `[data-field="${field}"] .el-input__inner, textarea[data-field="${field}"]`
+      inputElement = document.querySelector(inputSelector)
+      
+      if (inputElement) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+        step[field] = newValue
+        
+        const newCursorPosition = cursorPosition + valueToSet.length
+        setTimeout(() => {
+          inputElement.focus()
+          inputElement.selectionStart = newCursorPosition
+          inputElement.selectionEnd = newCursorPosition
+        }, 0)
+      } else {
+        if (!currentValue) {
+          step[field] = valueToSet
+        } else {
+          step[field] = currentValue + valueToSet
+        }
+      }
+    }
+    
     ElMessage.success(t('uiAutomation.testCase.messages.dataFactorySelected', { toolName: record.tool_name }))
   }
   
   showDataFactorySelector.value = false
+  currentFocusedInput.value = null
 }
 
 const insertVariable = (variable) => {
   if (currentEditingStep.value && currentEditingField.value) {
     const example = variable.example
     const currentValue = currentEditingStep.value[currentEditingField.value] || ''
-    
-    // 简单起见，这里直接追加到末尾，或者如果为空则替换
-    if (!currentValue) {
-      currentEditingStep.value[currentEditingField.value] = example
+    const field = currentEditingField.value
+
+    let inputElement = currentFocusedInput.value
+
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+      const cursorPosition = inputElement.selectionStart || 0
+
+      const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+      currentEditingStep.value[field] = newValue
+
+      const newCursorPosition = cursorPosition + example.length
+      setTimeout(() => {
+        inputElement.focus()
+        inputElement.selectionStart = newCursorPosition
+        inputElement.selectionEnd = newCursorPosition
+      }, 0)
     } else {
-      currentEditingStep.value[currentEditingField.value] = currentValue + example
+      const inputSelector = `[data-field="${field}"] .el-input__inner, textarea[data-field="${field}"]`
+      inputElement = document.querySelector(inputSelector)
+
+      if (inputElement) {
+        const cursorPosition = inputElement.selectionStart || 0
+
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        currentEditingStep.value[field] = newValue
+
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+          inputElement.focus()
+          inputElement.selectionStart = newCursorPosition
+          inputElement.selectionEnd = newCursorPosition
+        }, 0)
+      } else {
+        if (!currentValue) {
+          currentEditingStep.value[field] = example
+        } else {
+          currentEditingStep.value[field] = currentValue + example
+        }
+      }
     }
-    
+
     ElMessage.success(t('uiAutomation.testCase.messages.variableInserted', { name: variable.name }))
     showVariableHelper.value = false
+    currentFocusedInput.value = null
   }
 }
 
@@ -1353,13 +1447,13 @@ onActivated(async () => {
 }
 
 .test-case-item:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.1);
 }
 
 .test-case-item.active {
-  border-color: #409eff;
-  background-color: #f0f8ff;
+  border-color: var(--th-color-primary);
+  background-color: var(--th-color-info-soft);
 }
 
 .case-header {
@@ -1400,12 +1494,13 @@ onActivated(async () => {
 }
 
 .step-count {
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 500;
 }
 
 .right-panel {
   flex: 1;
+  min-width: 700px;
   background: white;
   display: flex;
   flex-direction: column;
@@ -1420,6 +1515,14 @@ onActivated(async () => {
   height: 100%;
 }
 
+.detail-content-wrapper {
+  flex: 1;
+  display: flex;
+  gap: 15px;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .detail-header {
   display: flex;
   justify-content: space-between;
@@ -1427,15 +1530,28 @@ onActivated(async () => {
   margin-bottom: 20px;
   padding-bottom: 15px;
   border-bottom: 1px solid #e6e6e6;
+  min-width: 0;
 }
 
 .detail-header h3 {
   margin: 0;
+  flex-shrink: 0;
+  margin-right: 15px;
 }
 
 .detail-actions {
   display: flex;
-  gap: 10px;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 520px;
+}
+
+.detail-actions .el-divider--vertical {
+  height: 20px;
+  margin: 0 4px;
 }
 
 .steps-container {
@@ -1443,11 +1559,16 @@ onActivated(async () => {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  margin-bottom: 20px;
   border: 1px solid #e6e6e6;
   border-radius: 6px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   overflow: hidden;
+  transition: flex 0.3s ease;
+}
+
+.steps-container.with-result {
+  flex: 1;
+  min-width: 0;
 }
 
 .steps-container.has-steps {
@@ -1483,7 +1604,7 @@ onActivated(async () => {
 }
 
 .steps-scroll-container::-webkit-scrollbar-track {
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 3px;
 }
 
@@ -1502,10 +1623,11 @@ onActivated(async () => {
   margin-bottom: 10px;
   background: white;
   transition: all 0.3s;
+  overflow: hidden;
 }
 
 .step-item:hover {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .step-header {
@@ -1513,14 +1635,20 @@ onActivated(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 15px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px 6px 0 0;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .step-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .drag-handle {
@@ -1529,7 +1657,7 @@ onActivated(async () => {
 }
 
 .step-number {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
   width: 24px;
   height: 24px;
@@ -1564,70 +1692,66 @@ onActivated(async () => {
   color: #333;
 }
 
-.execution-result {
-  flex: 1;
+.execution-result-panel {
+  width: 450px;
+  min-width: 350px;
   display: flex;
   flex-direction: column;
-  min-height: 0;
   border: 1px solid #e6e6e6;
   border-radius: 6px;
   background: white;
   overflow: hidden;
 }
 
-.execution-result.with-steps {
-  margin-top: 0;
-}
-
-.execution-result .result-header {
-  padding: 15px;
+.result-panel-header {
+  padding: 12px 15px;
   border-bottom: 1px solid #e6e6e6;
-  background: #fafafa;
-  border-radius: 6px 6px 0 0;
+  background: var(--th-color-surface-muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.execution-result .result-content {
+.result-panel-header h4 {
+  margin: 0;
+}
+
+.result-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.result-panel-content {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 15px;
-}
-
-.result-content {
-  flex: 1;
   overflow: hidden;
 }
 
-/* 为el-tabs和el-tab-pane添加flex布局支持 */
-.result-content :deep(.el-tabs) {
+.result-panel-content :deep(.el-tabs) {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.result-content :deep(.el-tabs__content) {
+.result-panel-content :deep(.el-tabs__content) {
   flex: 1;
   min-height: 0;
   overflow: hidden;
 }
 
-.result-content :deep(.el-tab-pane) {
+.result-panel-content :deep(.el-tab-pane) {
   height: 100%;
   overflow: auto;
 }
 
-/* .result-header 已在 .execution-result 中定义 */
-
-.result-header h4 {
-  margin: 0;
-}
-
 .logs-container {
-  max-height: 500px;
+  height: 100%;
   overflow-y: auto;
-  background: #f5f7fa;
-  padding: 15px;
+  background: var(--th-color-surface-muted);
+  padding: 10px;
   border-radius: 4px;
 }
 
@@ -1636,7 +1760,7 @@ onActivated(async () => {
   padding: 12px;
   background: white;
   border-radius: 4px;
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--th-color-primary);
 }
 
 .log-item:last-child {
@@ -1665,7 +1789,7 @@ onActivated(async () => {
   align-items: flex-start;  /* 改为 flex-start，适配多行文本 */
   gap: 8px;
   color: #f56c6c;
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   padding: 8px 12px;
   border-radius: 4px;
   margin-top: 8px;
@@ -1710,7 +1834,7 @@ onActivated(async () => {
   position: relative;
   width: 100%;
   min-height: 200px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   border: 2px solid #e6e6e6;
   overflow: hidden;
@@ -1718,7 +1842,7 @@ onActivated(async () => {
 }
 
 .screenshot-item:hover .screenshot-wrapper {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .screenshot-wrapper img {
@@ -1809,7 +1933,7 @@ onActivated(async () => {
 .preview-info {
   margin-bottom: 20px;
   padding: 15px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px;
 }
 
@@ -1829,7 +1953,7 @@ onActivated(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   border-radius: 8px;
   padding: 20px;
   max-height: 70vh;
@@ -1850,7 +1974,7 @@ onActivated(async () => {
 }
 
 .error-item {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 2px solid #f56c6c;
   border-radius: 8px;
   padding: 20px;
@@ -1867,7 +1991,7 @@ onActivated(async () => {
   justify-content: space-between;
   margin-bottom: 15px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--th-color-surface-muted);
 }
 
 .error-header .el-tag {
@@ -1881,7 +2005,7 @@ onActivated(async () => {
 }
 
 .error-step {
-  background: #fef0f0;
+  background: var(--th-color-danger-soft);
   color: #f56c6c;
   padding: 5px 12px;
   border-radius: 4px;
@@ -1890,7 +2014,7 @@ onActivated(async () => {
 }
 
 .error-meta {
-  background: #f9f9f9;
+  background: var(--th-color-surface-muted);
   padding: 15px;
   border-radius: 6px;
   margin-bottom: 15px;
@@ -1926,7 +2050,7 @@ onActivated(async () => {
 
 .details-header {
   background: #1e1e1e;
-  color: #fff;
+  color: var(--th-color-surface);
   padding: 10px 15px;
   font-weight: 600;
   font-size: 14px;
@@ -1971,24 +2095,24 @@ onActivated(async () => {
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
   color: white;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34;
-  border-color: #5daf34;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
 }
 </style>

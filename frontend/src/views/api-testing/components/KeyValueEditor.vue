@@ -31,6 +31,7 @@
             :placeholder="placeholderValue"
             size="small"
             @input="updateValue"
+            :ref="el => setInputRef(el, index)"
           >
             <template #append>
               <el-button
@@ -55,7 +56,7 @@
               <el-icon><MagicStick /></el-icon>
             </el-button>
           </el-tooltip>
-          <span v-if="row.file" class="file-name">{{ row.file.name }}</span>
+          <span v-if="row.filename" class="file-name">{{ row.filename }}</span>
         </div>
 
         <div class="column description-column">
@@ -72,11 +73,12 @@
             v-if="showFile"
             v-model="row.type"
             size="small"
-            style="width: 70px; margin-right: 5px;"
+            style="width: 80px; margin-right: 5px;"
             @change="updateValue"
+            :placeholder="$t('apiTesting.component.keyValueEditor.type')"
           >
-            <el-option label="Text" value="text" />
-            <el-option label="File" value="file" />
+            <el-option :label="$t('apiTesting.component.keyValueEditor.text')" value="text" />
+            <el-option :label="$t('apiTesting.component.keyValueEditor.file')" value="file" />
           </el-select>
           
           <el-button
@@ -177,6 +179,45 @@ const showVariableHelper = ref(false)
 const currentRowIndex = ref(0)
 const variableCategories = ref([])
 const loading = ref(false)
+const inputRefs = ref({})
+
+// 设置输入框ref的函数
+const setInputRef = (el, index) => {
+  if (el) {
+    inputRefs.value[index] = el
+  }
+}
+
+// 获取输入框DOM元素的辅助函数
+const getInputElement = (index) => {
+  const inputRef = inputRefs.value[index]
+  if (!inputRef) {
+    console.warn(`Input ref not found for index ${index}`)
+    return null
+  }
+  
+  // el-input组件的$el是外层div，需要找到内部的input或textarea
+  const inputEl = inputRef.$el
+  if (!inputEl) {
+    console.warn('Input $el not found')
+    return null
+  }
+  
+  // 尝试找到input元素
+  let inputElement = inputEl.querySelector('.el-input__inner')
+  if (!inputElement) {
+    // 如果找不到，可能是textarea
+    inputElement = inputEl.querySelector('textarea')
+  }
+  if (!inputElement) {
+    // 如果还找不到，直接尝试inputEl本身
+    if (inputEl.tagName === 'INPUT' || inputEl.tagName === 'TEXTAREA') {
+      inputElement = inputEl
+    }
+  }
+  
+  return inputElement
+}
 
 // 加载变量函数
 const loadVariableFunctions = async () => {
@@ -339,21 +380,21 @@ const initializeRows = () => {
   console.log('KeyValueEditor initializeRows called with data:', data)
   const newRows = []
   
-  // 检查数据是否为数组格式
   if (Array.isArray(data)) {
     console.log('Data is array, processing...')
-    // 如果是数组，直接使用
     newRows.push(...data.map(item => ({
       enabled: item.enabled !== false,
       key: item.key || '',
       value: item.value || '',
       description: item.description || '',
       type: item.type || 'text',
-      file: item.file || null
+      file: item.file || null,
+      filename: item.filename || null,
+      fileData: item.fileData || null,
+      contentType: item.contentType || null
     })))
   } else {
     console.log('Data is object, converting...')
-    // 如果是对象，转换为行数据
     Object.keys(data).forEach(key => {
       if (key && data[key] !== undefined) {
         newRows.push({
@@ -362,13 +403,15 @@ const initializeRows = () => {
           value: data[key],
           description: '',
           type: 'text',
-          file: null
+          file: null,
+          filename: null,
+          fileData: null,
+          contentType: null
         })
       }
     })
   }
   
-  // 确保至少有一个空行
   if (newRows.length === 0) {
     newRows.push({
       enabled: true,
@@ -376,7 +419,10 @@ const initializeRows = () => {
       value: '',
       description: '',
       type: 'text',
-      file: null
+      file: null,
+      filename: null,
+      fileData: null,
+      contentType: null
     })
   }
   
@@ -385,19 +431,27 @@ const initializeRows = () => {
 }
 
 const updateValue = () => {
-  // 发送完整的行数据数组，而不是简化的key-value对象
-  const result = rows.value.filter(row => row.key || row.value || row.description).map(row => ({
-    key: row.key || '',
-    value: row.value || '',
-    description: row.description || '',
-    enabled: row.enabled !== false,
-    type: row.type || 'text'
-  }))
+  const result = rows.value.filter(row => row.key || row.value || row.description).map(row => {
+    const item = {
+      key: row.key || '',
+      value: row.value || '',
+      description: row.description || '',
+      enabled: row.enabled !== false,
+      type: row.type || 'text'
+    }
+    
+    if (row.type === 'file' && row.fileData) {
+      item.filename = row.filename || row.value
+      item.fileData = row.fileData
+      item.contentType = row.contentType || 'application/octet-stream'
+    }
+    
+    return item
+  })
   
   console.log('KeyValueEditor updateValue result (full format):', result)
   emit('update:modelValue', result)
   
-  // 如果最后一行有内容，自动添加新行
   const lastRow = rows.value[rows.value.length - 1]
   if (lastRow.key || lastRow.value) {
     addRow()
@@ -411,7 +465,10 @@ const addRow = () => {
     value: '',
     description: '',
     type: 'text',
-    file: null
+    file: null,
+    filename: null,
+    fileData: null,
+    contentType: null
   })
 }
 
@@ -422,10 +479,19 @@ const removeRow = (index) => {
   }
 }
 
-const handleFileChange = (index, file) => {
-  rows.value[index].file = file
+const handleFileChange = async (index, file) => {
+  rows.value[index].file = file.raw
+  rows.value[index].filename = file.name
   rows.value[index].value = file.name
-  updateValue()
+  
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    const base64 = e.target.result.split(',')[1]
+    rows.value[index].fileData = base64
+    rows.value[index].contentType = file.raw.type || 'application/octet-stream'
+    updateValue()
+  }
+  reader.readAsDataURL(file.raw)
 }
 
 const openDataFactorySelector = (index) => {
@@ -445,7 +511,6 @@ const handleDataFactorySelect = (record) => {
     } else if (record.output_data.output_data) {
       valueToSet = record.output_data.output_data
     } else if (typeof record.output_data === 'object') {
-      // 检查是否有类似result的字段
       const possibleResultFields = ['result', 'value', 'data', 'output', 'content']
       let foundResult = false
       for (const field of possibleResultFields) {
@@ -455,7 +520,6 @@ const handleDataFactorySelect = (record) => {
           break
         }
       }
-      // 如果没有找到可能的结果字段，将整个对象转为JSON字符串
       if (!foundResult) {
         valueToSet = JSON.stringify(record.output_data)
       }
@@ -463,13 +527,46 @@ const handleDataFactorySelect = (record) => {
       valueToSet = JSON.stringify(record.output_data)
     }
 
-    // 确保valueToSet是字符串类型
     if (typeof valueToSet !== 'string') {
       valueToSet = JSON.stringify(valueToSet)
     }
 
-    rows.value[rowIndex].value = valueToSet
+    // 使用ref获取输入框元素
+    const inputElement = getInputElement(rowIndex)
+    
+    if (inputElement) {
+      // 确保输入框有焦点
+      inputElement.focus()
+      
+      // 获取光标位置
+      const cursorPosition = inputElement.selectionStart || inputElement.selectionEnd || 0
+      const currentValue = rows.value[rowIndex].value || ''
+      
+      console.log(`Cursor position: ${cursorPosition}, Current value: "${currentValue}"`)
+      
+      // 在光标位置插入数据
+      const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+      rows.value[rowIndex].value = newValue
+      
+      // 更新光标位置
+      const newCursorPosition = cursorPosition + valueToSet.length
+      setTimeout(() => {
+        inputElement.focus()
+        inputElement.setSelectionRange(newCursorPosition, newCursorPosition)
+        console.log(`New cursor position: ${newCursorPosition}`)
+      }, 10)
+    } else {
+      console.warn('Input element not found, appending to end')
+      const currentValue = rows.value[rowIndex].value || ''
+      if (!currentValue) {
+        rows.value[rowIndex].value = valueToSet
+      } else {
+        rows.value[rowIndex].value = currentValue + valueToSet
+      }
+    }
+
     rows.value[rowIndex].description = t('apiTesting.component.keyValueEditor.fromDataFactory', { name: record.tool_name })
+    ElMessage.success(t('apiTesting.component.keyValueEditor.dataFactoryInserted', { name: record.tool_name }))
     updateValue()
   }
   showDataFactorySelector.value = false
@@ -484,11 +581,39 @@ const insertVariable = (variable) => {
   const rowIndex = currentRowIndex.value
   const example = variable.example
 
-  const currentValue = rows.value[rowIndex].value || ''
-  if (!currentValue) {
-    rows.value[rowIndex].value = example
+  // 使用ref获取输入框元素
+  const inputElement = getInputElement(rowIndex)
+  
+  if (inputElement) {
+    // 确保输入框有焦点
+    inputElement.focus()
+    
+    // 获取光标位置
+    const cursorPosition = inputElement.selectionStart || inputElement.selectionEnd || 0
+    const currentValue = rows.value[rowIndex].value || ''
+    
+    console.log(`Cursor position: ${cursorPosition}, Current value: "${currentValue}"`)
+    
+    // 在光标位置插入变量
+    const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+    rows.value[rowIndex].value = newValue
+    
+    // 更新光标位置
+    const newCursorPosition = cursorPosition + example.length
+    setTimeout(() => {
+      inputElement.focus()
+      inputElement.setSelectionRange(newCursorPosition, newCursorPosition)
+      console.log(`New cursor position: ${newCursorPosition}`)
+    }, 10)
   } else {
-    rows.value[rowIndex].value = currentValue + example
+    // 回退到原来的逻辑（追加到末尾）
+    console.warn('Input element not found, appending to end')
+    const currentValue = rows.value[rowIndex].value || ''
+    if (!currentValue) {
+      rows.value[rowIndex].value = example
+    } else {
+      rows.value[rowIndex].value = currentValue + example
+    }
   }
 
   ElMessage.success(t('apiTesting.component.keyValueEditor.variableInserted', { name: variable.name }))
@@ -525,7 +650,7 @@ defineExpose({
 
 .header {
   display: flex;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-bottom: 1px solid #e4e7ed;
   padding: 8px;
   font-weight: 500;
@@ -540,7 +665,7 @@ defineExpose({
 
 .row {
   display: flex;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--th-color-surface-muted);
   padding: 8px;
   min-height: 40px;
   align-items: center;
@@ -577,31 +702,31 @@ defineExpose({
 
 .action-column {
   width: 20%;
-  min-width: 100px;
+  min-width: 120px;
   justify-content: flex-end;
-  gap: 135px;
+  gap: 5px;
 }
 
 .data-factory-btn {
-  background-color: #409eff !important;
-  border-color: #409eff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
   color: white !important;
 }
 
 .data-factory-btn:hover {
-  background-color: #66b1ff !important;
-  border-color: #66b1ff !important;
+  background-color: var(--th-color-primary) !important;
+  border-color: var(--th-color-primary) !important;
 }
 
 .variable-helper-btn {
-  background-color: #67c23a;
-  border-color: #67c23a;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
   color: white;
 }
 
 .variable-helper-btn:hover {
-  background-color: #5daf34;
-  border-color: #5daf34;
+  background-color: var(--th-color-success);
+  border-color: var(--th-color-success);
 }
 
 .file-name {
@@ -612,7 +737,7 @@ defineExpose({
 
 .footer {
   padding: 8px;
-  border-top: 1px solid #f5f7fa;
+  border-top: 1px solid var(--th-color-surface-muted);
   background: #fafbfc;
 }
 
@@ -634,7 +759,7 @@ defineExpose({
 }
 
 :deep(.el-table th) {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
   font-weight: 600;
   color: #303133;
 }
@@ -652,10 +777,10 @@ defineExpose({
 }
 
 :deep(.el-table__row:hover) {
-  background-color: #f5f7fa;
+  background-color: var(--th-color-surface-muted);
 }
 
 :deep(.el-table__row.current-row) {
-  background-color: #ecf5ff;
+  background-color: var(--th-color-info-soft);
 }
 </style>
