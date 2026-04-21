@@ -81,7 +81,7 @@ const routes = [
       {
         path: 'schedule/:id',
         name: 'ScheduleReport',
-        component: () => import('@/views/reports/ReportList.vue')
+        component: () => import('@/views/reports/ScheduleReport.vue')
       }
     ]
   },
@@ -259,6 +259,11 @@ const routes = [
         path: 'ai-service-config',
         name: 'ApiAIServiceConfig',
         component: ApiAIServiceConfig
+      },
+      {
+        path: 'parameterized-data',
+        name: 'ParameterizedData',
+        component: () => import('@/views/api-testing/ParameterizedData.vue')
       },
       {
         path: 'notification-logs',
@@ -449,6 +454,11 @@ const routes = [
             component: () => import('@/views/app-automation/settings/AppSettings.vue')
           },
           {
+            path: 'ocr-config',
+            name: 'ConfigOCR',
+            component: () => import('@/views/ocr/OCRConfig.vue')
+          },
+          {
             path: 'ai-mode',
             name: 'ConfigAIMode',
             component: () => import('@/views/configuration/AIIntelligentModeConfig.vue')
@@ -462,6 +472,11 @@ const routes = [
             path: 'dify',
             name: 'DifyConfig',
             component: () => import('@/views/configuration/DifyConfig.vue')
+          },
+          {
+            path: 'theme',
+            name: 'ConfigTheme',
+            component: () => import('@/views/configuration/ThemeConfig.vue')
           }
         ]
       }
@@ -491,6 +506,17 @@ const routes = [
         path: 'devices',
         name: 'AppDeviceList',
         component: () => import('@/views/app-automation/devices/DeviceList.vue')
+      },
+      {
+        path: 'real-devices',
+        name: 'AppRealDeviceManagement',
+        component: () => import('@/views/app-automation/devices/RealDeviceManagement.vue')
+      },
+      {
+        path: 'remote-connection/:device_id',
+        name: 'AppRemoteConnection',
+        component: () => import('@/views/app-automation/devices/RemoteConnection.vue'),
+        meta: { requiresAuth: true }
       },
       {
         path: 'packages',

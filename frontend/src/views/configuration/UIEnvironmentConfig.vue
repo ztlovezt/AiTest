@@ -188,13 +188,13 @@ onMounted(() => {
 .os-name {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #409EFF;
+  color: var(--th-color-primary);
   margin-top: 10px;
 }
 
 .section-title {
   margin: 20px 0 10px;
-  border-left: 4px solid #409EFF;
+  border-left: 4px solid var(--th-color-primary);
   padding-left: 10px;
 }
 

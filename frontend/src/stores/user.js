@@ -66,8 +66,9 @@ export const useUserStore = defineStore('user', () => {
       refreshToken.value = response.data.refresh
       user.value = response.data.user
 
-      // 计算过期时间（当前时间 + 30分钟）
-      const expiresAt = Date.now() + 30 * 60 * 1000
+      // 使用后端返回的过期时间（秒），如果没有则默认15分钟
+      const accessExpiresIn = response.data.access_expires_in || 15 * 60
+      const expiresAt = Date.now() + accessExpiresIn * 1000
       tokenExpiresAt.value = expiresAt
 
       // 持久化存储
@@ -148,9 +149,12 @@ export const useUserStore = defineStore('user', () => {
         refresh: refreshToken.value
       })
 
-      // 更新access token和过期时间
+      // 更新access token
       accessToken.value = response.data.access
-      const expiresAt = Date.now() + 30 * 60 * 1000
+      
+      // 使用后端返回的过期时间（从 config.yaml 配置）
+      const accessExpiresIn = response.data.access_expires_in || 15 * 60
+      const expiresAt = Date.now() + accessExpiresIn * 1000
       tokenExpiresAt.value = expiresAt
 
       // 如果返回了新的refresh token（启用了ROTATE_REFRESH_TOKENS）
@@ -205,7 +209,6 @@ export const useUserStore = defineStore('user', () => {
       isExpired: isTokenExpired.value
     })
 
-    // 从localStorage恢复用户信息
     if (!user.value) {
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
@@ -218,7 +221,6 @@ export const useUserStore = defineStore('user', () => {
     }
 
     if (accessToken.value) {
-      // 检查token是否过期
       if (isTokenExpired.value && refreshToken.value) {
         console.log('Token已过期，尝试刷新...')
         try {
@@ -226,11 +228,15 @@ export const useUserStore = defineStore('user', () => {
           console.log('Token刷新成功')
         } catch (error) {
           console.error('Token刷新失败:', error)
+          await logout()
           return
         }
+      } else if (isTokenExpired.value && !refreshToken.value) {
+        console.log('Token已过期且没有refresh token，跳转登录页')
+        await logout()
+        return
       }
 
-      // 获取用户信息
       if (!user.value) {
         try {
           console.log('获取用户信息...')
@@ -244,7 +250,6 @@ export const useUserStore = defineStore('user', () => {
         console.log('用户信息已存在，跳过获取')
       }
 
-      // 启动自动刷新定时器
       startAutoRefresh()
     } else {
       console.log('没有access token，跳过认证初始化')

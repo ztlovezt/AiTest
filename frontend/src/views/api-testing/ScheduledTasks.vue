@@ -54,44 +54,44 @@
         <el-table-column prop="task_type_display" :label="$t('apiTesting.scheduledTask.taskType')" width="150">
           <template #default="scope">
             <el-tag :type="scope.row.task_type === 'API_TEST_SUITE' ? 'success' : 'primary'">
-              {{ scope.row.task_type_display || scope.row.task_type }}
+              {{ getTaskTypeDisplay(scope.row.config?.task_type) || scope.row.task_type_display || scope.row.task_type }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="schedule_type_display" :label="$t('apiTesting.scheduledTask.triggerType')" width="120">
           <template #default="scope">
             <el-tag>
-              {{ scope.row.schedule_type_display || getScheduleTypeText(scope.row.schedule_type) }}
+              {{ getScheduleTypeText(scope.row.schedule_type) || scope.row.schedule_type_display }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="status_display" :label="$t('apiTesting.common.status')" width="100">
           <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status_display)">
-              {{ scope.row.status_display || getStatusText(scope.row.status) }}
+            <el-tag :type="getStatusType(scope.row.status)">
+              {{ getStatusText(scope.row.status) || scope.row.status_display }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="notification_type_display" :label="$t('apiTesting.scheduledTask.notificationType')" width="150">
           <template #default="scope">
             <el-tag
-              v-if="scope.row.notification_type_display && scope.row.notification_type_display !== '未配置'"
-              :type="getNotificationTypeTag(scope.row.notification_type_display)"
+              v-if="scope.row.notification_type_display && !isNotConfigured(scope.row.notification_type_display)"
+              :type="getNotificationTypeTag(scope.row)"
               size="small"
             >
-              {{ scope.row.notification_type_display }}
+              {{ getNotificationTypeDisplayText(scope.row) }}
             </el-tag>
             <span v-else>-</span>
           </template>
         </el-table-column>
         <el-table-column prop="next_run_display" :label="$t('apiTesting.scheduledTask.nextRunTime')" width="180">
           <template #default="scope">
-            {{ scope.row.next_run_display || formatDateTime(scope.row.next_run) }}
+            {{ formatDateTime(scope.row.next_run) }}
           </template>
         </el-table-column>
         <el-table-column prop="last_run_display" :label="$t('apiTesting.scheduledTask.lastRunTime')" width="180">
           <template #default="scope">
-            {{ scope.row.last_run_display || '-' }}
+            {{ formatDateTime(scope.row.last_run) }}
           </template>
         </el-table-column>
         <el-table-column :label="$t('apiTesting.common.operation')" width="200" fixed="right">
@@ -194,7 +194,7 @@
                   <div>• {{ $t('apiTesting.scheduledTask.cronHelp.monthly') }}</div>
                 </div>
               </template>
-              <span style="cursor: pointer; color: #409EFF;">{{ $t('apiTesting.scheduledTask.cronHelpLink') }}</span>
+              <span style="cursor: pointer; color: var(--th-color-primary);">{{ $t('apiTesting.scheduledTask.cronHelpLink') }}</span>
             </el-tooltip>
           </div>
         </el-form-item>
@@ -416,7 +416,7 @@ import {
 } from '@/api/api-testing.js'
 import { getUnifiedNotificationConfigs } from '@/api/core.js'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 // 获取状态文本
 const getStatusText = (status) => {
@@ -891,7 +891,8 @@ const runTaskNow = async (task) => {
 const formatDateTime = (dateString) => {
   if (!dateString) return '-'
   const date = new Date(dateString)
-  return date.toLocaleString('zh-CN', {
+  const loc = locale.value === 'zh-cn' ? 'zh-CN' : 'en-US'
+  return date.toLocaleString(loc, {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -928,24 +929,41 @@ const getScheduleTypeDisplay = (scheduleType) => {
 }
 
 const getStatusType = (status) => {
-  if (status === '激活' || status === 'ACTIVE') return 'success'
-  if (status === '暂停' || status === 'PAUSED') return 'warning'
-  if (status === '失败' || status === 'FAILED') return 'danger'
+  if (status === 'ACTIVE') return 'success'
+  if (status === 'PAUSED') return 'warning'
+  if (status === 'FAILED') return 'danger'
   return 'info'
 }
 
-const getNotificationTypeTag = (notificationTypeDisplay) => {
-  if (!notificationTypeDisplay || notificationTypeDisplay === '未配置') {
-    return 'info'
-  }
-  if (notificationTypeDisplay.includes('+')) {
-    return 'warning'
-  } else if (notificationTypeDisplay.includes('邮箱')) {
-    return 'success'
-  } else if (notificationTypeDisplay.includes('Webhook')) {
-    return 'primary'
-  }
+// 判断通知类型是否为"未配置"
+const isNotConfigured = (displayText) => {
+  return !displayText || displayText === '未配置' || displayText === 'Not Configured'
+}
+
+// 获取通知类型的标签颜色
+const getNotificationTypeTag = (row) => {
+  const config = row.config || {}
+  const hasEmail = config.notify_on_email
+  const hasWebhook = config.notify_on_webhook
+
+  if (hasEmail && hasWebhook) return 'warning'
+  if (hasEmail) return 'success'
+  if (hasWebhook) return 'primary'
   return 'info'
+}
+
+// 获取通知类型的显示文本
+const getNotificationTypeDisplayText = (row) => {
+  const config = row.config || {}
+  const hasEmail = config.notify_on_email
+  const hasWebhook = config.notify_on_webhook
+
+  if (hasEmail && hasWebhook) {
+    return t('apiTesting.scheduledTask.notifyOnEmail') + ' + ' + t('apiTesting.scheduledTask.notifyOnWebhook')
+  }
+  if (hasEmail) return t('apiTesting.scheduledTask.notifyOnEmail')
+  if (hasWebhook) return t('apiTesting.scheduledTask.notifyOnWebhook')
+  return row.notification_type_display || '-'
 }
 
 // 查看执行日志

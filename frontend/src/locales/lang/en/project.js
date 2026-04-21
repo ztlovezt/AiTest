@@ -64,6 +64,24 @@ export default {
       deleteFailed: 'Failed to delete project',
       deleteConfirm: 'Are you sure to delete this project? This action cannot be undone.'
     },
+    configLabels: {
+      baseUrl: 'Base URL',
+      timeout: 'Timeout',
+      retryCount: 'Retry Count',
+      browser: 'Browser',
+      headless: 'Headless Mode',
+      viewportWidth: 'Viewport Width',
+      viewportHeight: 'Viewport Height',
+      platform: 'Platform',
+      deviceId: 'Device ID',
+      appPackage: 'APP Package',
+      appActivity: 'Launch Activity',
+      owner: 'Owner',
+      endDate: 'End Date',
+      members: 'Members',
+      startDate: 'Start Date',
+      projectType: 'Project Type'
+    },
     moduleTypes: {
       AI: 'AI Case Generation',
       AI_TEST: 'AI Smart Testing',
@@ -197,6 +215,21 @@ export default {
     currentPassword: 'Current Password',
     newPassword: 'New Password',
     confirmPassword: 'Confirm Password',
-    changePasswordButton: 'Change Password'
+    changePasswordButton: 'Change Password',
+
+    // Validation
+    emailRequired: 'Please enter email',
+    emailInvalid: 'Please enter a valid email address',
+    currentPasswordRequired: 'Please enter current password',
+    newPasswordRequired: 'Please enter new password',
+    passwordMinLength: 'Password must be at least 6 characters',
+    confirmPasswordRequired: 'Please confirm new password',
+    passwordMismatch: 'Passwords do not match',
+
+    // Messages
+    saveSuccess: 'Saved successfully',
+    saveFailed: 'Save failed',
+    passwordChangeSuccess: 'Password changed successfully',
+    passwordChangeFailed: 'Password change failed'
   }
 }

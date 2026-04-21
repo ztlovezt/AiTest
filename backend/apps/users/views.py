@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.contrib.auth import login, logout
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.conf import settings
 from .models import User, UserProfile
 from .serializers import UserSerializer, UserCreateSerializer, LoginSerializer, UserProfileSerializer
 
@@ -56,10 +57,16 @@ def login_view(request):
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
 
+        # 获取token过期时间配置
+        access_token_lifetime = settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']
+        refresh_token_lifetime = settings.SIMPLE_JWT['REFRESH_TOKEN_LIFETIME']
+
         return Response({
             'user': UserSerializer(user).data,
-            'access': access_token,       # JWT access token
-            'refresh': refresh_token,     # JWT refresh token
+            'access': access_token,
+            'refresh': refresh_token,
+            'access_expires_in': int(access_token_lifetime.total_seconds()),
+            'refresh_expires_in': int(refresh_token_lifetime.total_seconds()),
             'message': '登录成功'
         })
     except exceptions.ValidationError as e:
@@ -95,6 +102,54 @@ def login_view(request):
             'message': '登录失败'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def token_refresh_view(request):
+    """自定义 Token 刷新接口，返回过期时间"""
+    from rest_framework_simplejwt.tokens import RefreshToken
+    from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+    
+    refresh_token = request.data.get('refresh')
+    
+    if not refresh_token:
+        return Response({
+            'error': 'refresh token is required'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    try:
+        refresh = RefreshToken(refresh_token)
+        
+        # 生成新的 access token
+        access_token = str(refresh.access_token)
+        
+        # 获取过期时间配置
+        access_token_lifetime = settings.SIMPLE_JWT['ACCESS_TOKEN_LIFETIME']
+        
+        response_data = {
+            'access': access_token,
+            'access_expires_in': int(access_token_lifetime.total_seconds()),
+        }
+        
+        # 如果启用了 token 轮换，生成新的 refresh token
+        if settings.SIMPLE_JWT.get('ROTATE_REFRESH_TOKENS', False):
+            refresh.blacklist()
+            new_refresh = RefreshToken.for_user(refresh.user)
+            response_data['refresh'] = str(new_refresh)
+        
+        return Response(response_data)
+        
+    except (TokenError, InvalidToken) as e:
+        return Response({
+            'error': 'invalid or expired refresh token',
+            'detail': str(e)
+        }, status=status.HTTP_401_UNAUTHORIZED)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
 @api_view(['POST'])
 @csrf_exempt
 def logout_view(request):
@@ -123,6 +178,45 @@ def logout_view(request):
         logout(request)
 
     return Response({'message': '退出成功'})
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def change_password_view(request):
+    """修改密码"""
+    from django.contrib.auth import authenticate
+    from django.contrib.auth.hashers import make_password
+    
+    current_password = request.data.get('current_password')
+    new_password = request.data.get('new_password')
+    
+    if not current_password or not new_password:
+        return Response({
+            'error': '当前密码和新密码不能为空'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if len(new_password) < 6:
+        return Response({
+            'error': '新密码长度不能少于6位'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    user = request.user
+    
+    if not user.check_password(current_password):
+        return Response({
+            'error': '当前密码错误'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    if user.check_password(new_password):
+        return Response({
+            'error': '新密码不能与当前密码相同'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    user.set_password(new_password)
+    user.save()
+    
+    return Response({'message': '密码修改成功'})
+
 
 @api_view(['GET'])
 def profile_view(request):

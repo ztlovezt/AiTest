@@ -531,7 +531,7 @@ onMounted(async () => {
 
 .variables-header {
   display: flex;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-bottom: 1px solid #e4e7ed;
   padding: 8px;
   font-weight: 500;
@@ -546,7 +546,7 @@ onMounted(async () => {
 
 .variable-row {
   display: flex;
-  border-bottom: 1px solid #f5f7fa;
+  border-bottom: 1px solid var(--th-color-surface-muted);
   padding: 8px;
   min-height: 40px;
   align-items: center;
@@ -571,7 +571,7 @@ onMounted(async () => {
 
 .variables-footer {
   padding: 8px;
-  border-top: 1px solid #f5f7fa;
+  border-top: 1px solid var(--th-color-surface-muted);
   background: #fafbfc;
 }
 

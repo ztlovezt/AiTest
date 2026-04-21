@@ -438,6 +438,7 @@ const submitForm = () => {
     } catch (error) {
       console.error('保存应用包名失败:', error)
       ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.saveFailed'))
+      ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.saveFailed'))
     } finally {
       saving.value = false
     }
@@ -465,9 +466,11 @@ const handleDelete = (row) => {
     try {
       await deletePackage(row.id)
       ElMessage.success(t('appAutomation.messages.deleteSuccess'))
+      ElMessage.success(t('appAutomation.messages.deleteSuccess'))
       loadPackages()
     } catch (error) {
       console.error('删除应用包名失败:', error)
+      ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.deleteFailed'))
       ElMessage.error(error?.response?.data?.detail || t('appAutomation.messages.deleteFailed'))
     }
   }).catch(() => {})

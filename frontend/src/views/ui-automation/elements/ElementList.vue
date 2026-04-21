@@ -618,7 +618,7 @@ onMounted(async () => {
 }
 
 .card-container {
-  background-color: #fff;
+  background-color: var(--th-color-surface);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);

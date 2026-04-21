@@ -1063,7 +1063,7 @@ export default {
 }
 
 .requirement-text {
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   border-radius: 6px;
   padding: 16px;
   line-height: 1.8;
@@ -1074,7 +1074,7 @@ export default {
   overflow-y: auto;
   font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
-  border-left: 4px solid #409eff;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .requirement-actions {
@@ -1089,7 +1089,7 @@ export default {
 }
 
 .requirement-description-card :deep(.el-collapse-item__header) {
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-bottom: 1px solid #e4e7ed;
   padding: 16px 20px;
   font-size: 15px;
@@ -1204,7 +1204,7 @@ export default {
 }
 
 .selected-count {
-  color: #3498db;
+  color: var(--th-color-primary);
   font-weight: bold;
 }
 
@@ -1328,12 +1328,12 @@ export default {
 }
 
 .priority-tag.high {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #f57c00;
 }
 
 .priority-tag.p1 {
-  background: #fff3e0;
+  background: var(--th-color-surface)3e0;
   color: #f57c00;
 }
 
@@ -1363,12 +1363,12 @@ export default {
 }
 
 .view-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
 }
 
 .view-btn:hover {
-  background: #2980b9;
+  background: var(--th-color-primary);
 }
 
 .adopt-btn {
@@ -1428,7 +1428,7 @@ export default {
 }
 
 .pagination-buttons button:hover:not(:disabled) {
-  background: #f0f0f0;
+  background: var(--th-color-surface-muted);
 }
 
 .pagination-buttons button:disabled {
@@ -1504,7 +1504,7 @@ export default {
   background: #f8f9fa;
   padding: 15px;
   border-radius: 6px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .loading-state, .error-state, .empty-state {
@@ -1519,7 +1519,7 @@ export default {
 }
 
 .error-state a {
-  color: #3498db;
+  color: var(--th-color-primary);
   text-decoration: none;
 }
 
@@ -1543,7 +1543,7 @@ export default {
   .readonly-field {
     color: #666;
     padding: 8px 12px;
-    background: #f5f5f5;
+    background: var(--th-color-surface-muted);
     border-radius: 4px;
     display: inline-block;
   }
@@ -1556,7 +1556,7 @@ export default {
   gap: 12px;
   padding: 20px 30px;
   border-top: 1px solid #eee;
-  background: #f9f9f9;
+  background: var(--th-color-surface-muted);
   border-radius: 0 0 12px 12px;
 }
 
@@ -1574,16 +1574,16 @@ export default {
 }
 
 .edit-btn {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
 }
 
 .edit-btn:hover {
-  background: #66b1ff;
+  background: var(--th-color-primary);
 }
 
 .save-btn {
-  background: #67c23a;
+  background: var(--th-color-success);
   color: white;
 }
 
@@ -1611,7 +1611,7 @@ export default {
 }
 
 .close-btn-footer:hover {
-  background: #ecf5ff;
+  background: var(--th-color-info-soft);
 }
 </style>
 

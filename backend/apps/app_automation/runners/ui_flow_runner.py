@@ -24,6 +24,7 @@ from airtest.core.api import (
     G,
     text as airtest_text,
     keyevent,
+    keyevent,
 )
 
 # 导入 OCR 工具
@@ -60,7 +61,9 @@ class UiFlowRunner:
             self.image_base_dir = os.path.join(settings.BASE_DIR, settings.PATHS_APP_AUTOMATION_TEMPLATE)
         
         # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
+        # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
         self.screenshots_dir = os.path.join(
+            settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
             settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
         )
         
@@ -243,6 +246,9 @@ class UiFlowRunner:
         # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
         step = copy.deepcopy(step)
         
+        # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
+        step = copy.deepcopy(step)
+        
         # 使用 type 字段获取步骤类型
         action_type = step.get('type', '')
         action = action_type.lower() if action_type else ''
@@ -310,6 +316,7 @@ class UiFlowRunner:
             'extract_output': self._action_extract_output,
             'screenshot': self._action_screenshot,
             'api_request': self._action_api_request,
+            'key_event': self._action_key_event,
             'key_event': self._action_key_event,
             
             # 控制流
@@ -559,6 +566,7 @@ class UiFlowRunner:
         logger.info(f"执行点击: {target}")
         touch(target)
         sleep(1)
+        sleep(1)
     
     def _action_double_click(self, step: Dict[str, Any]):
         """双击动作"""
@@ -566,6 +574,7 @@ class UiFlowRunner:
         if target:
             logger.info(f"执行双击: {target}")
             double_click(target)
+            sleep(1)
             sleep(1)
     
     def _action_swipe(self, step: Dict[str, Any]):
@@ -609,6 +618,7 @@ class UiFlowRunner:
         text_value = step.get('text', '')
         logger.info(f"输入文本: {text_value}")
         airtest_text(text_value)
+        sleep(1)
         sleep(1)
     
     def _action_set_variable(self, step: Dict[str, Any]):
@@ -721,6 +731,7 @@ class UiFlowRunner:
         """文本断言：OCR 识别文本，支持 exact/contains/regex 匹配"""
         if not OCR_AVAILABLE:
             raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
+            raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected = step.get('expected', '')
@@ -745,6 +756,7 @@ class UiFlowRunner:
     def _assert_number(self, step: Dict[str, Any]):
         """数值断言：OCR 识别数字（去逗号），与期望值精确匹配"""
         if not OCR_AVAILABLE:
+            raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
             raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
@@ -785,6 +797,7 @@ class UiFlowRunner:
     def _assert_range(self, step: Dict[str, Any]):
         """范围断言：OCR 识别数字，判断是否在 [min, max] 范围内"""
         if not OCR_AVAILABLE:
+            raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
             raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
@@ -1436,12 +1449,15 @@ class UiFlowRunner:
             if not OCR_AVAILABLE:
                 raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
             self._ocr_helper = get_ocr_helper(languages=['en'])
+                raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
+            self._ocr_helper = get_ocr_helper(languages=['en'])
         return self._ocr_helper
     
     
     def _action_foreach_assert(self, step: Dict[str, Any]):
         """循环点击断言（OCR）"""
         if not OCR_AVAILABLE:
+            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
             logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
             return
         

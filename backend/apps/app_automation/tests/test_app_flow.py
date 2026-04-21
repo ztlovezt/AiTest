@@ -5,9 +5,9 @@ APP UI Flow 测试
 import logging
 import pytest
 import allure
-from ....apps.app_automation.models import AppTestCase, AppTestExecution
-from ....apps.app_automation.utils.airtest_base import AirtestBase
-from ....apps.app_automation.runners.ui_flow_runner import UiFlowRunner
+from apps.app_automation.models import AppTestCase, AppTestExecution
+from apps.app_automation.utils.airtest_base import AirtestBase
+from apps.app_automation.runners.ui_flow_runner import UiFlowRunner
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,9 @@ class TestAppFlow:
         
         # 设置环境
         if not airtest_base.setup_airtest():
-            pytest.fail("Airtest 环境设置失败")
+            # 包含详细的错误信息
+            error_msg = airtest_base.last_error or "未知错误"
+            pytest.fail(f"Airtest 环境设置失败\n\n错误信息:\n{error_msg}")
         
         yield airtest_base
         

@@ -626,7 +626,7 @@ onUnmounted(() => {
       gap: 30px;
       margin-bottom: 20px;
       padding: 15px;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       border-radius: 8px;
 
       .param-item {
@@ -643,7 +643,7 @@ onUnmounted(() => {
         .param-value {
           min-width: 40px;
           font-size: 14px;
-          color: #409eff;
+          color: var(--th-color-primary);
         }
 
         .help-icon {
@@ -668,18 +668,18 @@ onUnmounted(() => {
           min-width: 50px;
           font-size: 14px;
           font-weight: 500;
-          color: #409eff;
+          color: var(--th-color-primary);
         }
       }
     }
 
     .search-results {
       .result-item {
-        background: #f5f7fa;
+        background: var(--th-color-surface-muted);
         border-radius: 8px;
         padding: 16px;
         margin-bottom: 12px;
-        border-left: 3px solid #409eff;
+        border-left: 3px solid var(--th-color-primary);
 
         .result-header {
           display: flex;
@@ -689,8 +689,8 @@ onUnmounted(() => {
           flex-wrap: wrap;
 
           .result-index {
-            background: #409eff;
-            color: #fff;
+            background: var(--th-color-primary);
+            color: var(--th-color-surface);
             padding: 2px 8px;
             border-radius: 4px;
             font-size: 12px;
@@ -707,7 +707,7 @@ onUnmounted(() => {
           color: #606266;
           font-size: 14px;
           line-height: 1.6;
-          background: #fff;
+          background: var(--th-color-surface);
           padding: 12px;
           border-radius: 4px;
           margin-bottom: 8px;
@@ -722,10 +722,10 @@ onUnmounted(() => {
           .vector-ratio {
             margin-top: 8px;
             padding: 5px 10px;
-            background: #e6f7ff;
+            background: var(--th-color-info-soft);
             border-radius: 4px;
             font-size: 12px;
-            color: #409eff;
+            color: var(--th-color-primary);
             display: inline-flex;
             align-items: center;
 
@@ -752,7 +752,7 @@ onUnmounted(() => {
     .original-text {
       max-height: 60vh;
       overflow-y: auto;
-      background: #f5f7fa;
+      background: var(--th-color-surface-muted);
       padding: 15px;
       border-radius: 8px;
 

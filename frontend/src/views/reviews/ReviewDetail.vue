@@ -319,7 +319,7 @@ const reviewProgress = computed(() => {
 
 const progressColor = computed(() => {
   const progress = reviewProgress.value
-  if (progress === 100) return '#67c23a'
+  if (progress === 100) return 'var(--th-color-success)'
   if (progress >= 50) return '#e6a23c'
   return '#f56c6c'
 })
@@ -561,7 +561,7 @@ onMounted(() => {
       .stat-number {
         font-size: 28px;
         font-weight: bold;
-        color: #409eff;
+        color: var(--th-color-primary);
         margin-bottom: 4px;
       }
 
@@ -579,7 +579,7 @@ onMounted(() => {
 
 .comments-list {
   .comment-item {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--th-color-surface-muted);
     padding: 16px 0;
 
     &:last-child {
@@ -614,7 +614,7 @@ onMounted(() => {
     }
 
     .comment-testcase {
-      color: #409eff;
+      color: var(--th-color-primary);
       font-size: 12px;
     }
   }
@@ -627,7 +627,7 @@ onMounted(() => {
 }
 
 .priority-tag {
-  &.low { color: #67c23a; }
+  &.low { color: var(--th-color-success); }
   &.medium { color: #e6a23c; }
   &.high { color: #f56c6c; }
   &.critical { color: #f56c6c; font-weight: bold; }
@@ -656,7 +656,7 @@ onMounted(() => {
     margin-bottom: 4px;
 
     .pass-icon {
-      color: #67c23a;
+      color: var(--th-color-success);
     }
 
     .fail-icon {
@@ -680,7 +680,7 @@ onMounted(() => {
       justify-content: space-between;
       align-items: center;
       padding: 12px 16px;
-      background-color: #f5f7fa;
+      background-color: var(--th-color-surface-muted);
       border-bottom: 1px solid #dcdfe6;
 
       .checklist-title {
@@ -702,7 +702,7 @@ onMounted(() => {
         justify-content: space-between;
         align-items: center;
         padding: 12px 0;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid var(--th-color-surface-muted);
 
         &:last-child {
           border-bottom: none;

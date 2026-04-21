@@ -1,24 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-OCR 工具类 - 基于 EasyOCR
+OCR 工具类 - 统一 OCR 服务层
+支持 Tesseract
 """
 import os
 import time
 import logging
 import hashlib
-import re
 from typing import Any, Dict, Optional, Tuple
 from functools import lru_cache
 
 import cv2
 import numpy as np
 from PIL import Image, ImageEnhance
-
-try:
-    import easyocr
-    EASYOCR_AVAILABLE = True
-except ImportError:
-    EASYOCR_AVAILABLE = False
 
 from airtest.core.api import G, sleep as airtest_sleep
 
@@ -28,69 +22,72 @@ logger = logging.getLogger(__name__)
 class OCRHelper:
     """OCR 辅助类 - 提供图像文字识别功能"""
     
-    # OCR结果缓存：key为(坐标区域hash, 图片hash)，value为(识别结果, 时间戳)
     _ocr_cache = {}
-    _cache_ttl = 2.0  # 缓存有效期2秒
-    # 使用配置文件中的缓存大小
-    from django.conf import settings
-    _cache_max_size = settings.CACHE_OCR_MAX_SIZE
+    _cache_ttl = 2.0
+    _cache_max_size = 100
     
-    # EasyOCR reader实例（延迟初始化）
-    _easyocr_reader = None
+    _ocr_service = None
+    _config = None
     
-    def __init__(self, languages=None, use_gpu=False):
+    def __init__(
+        self,
+        ocr_engine: str = 'tesseract',
+        language: str = 'chi_sim+eng',
+        min_confidence: float = 0.3
+    ):
         """
         初始化 OCR 助手
         
         Args:
-            languages: OCR 识别语言列表，默认为 ['en']（英文）
-                      可选：['ch_sim', 'en'] (简体中文和英文)
-            use_gpu: 是否使用 GPU 加速，默认 False
+            ocr_engine: OCR 引擎 ('tesseract')
+            language: OCR 识别语言
+            min_confidence: 最小置信度阈值
         """
-        if not EASYOCR_AVAILABLE:
-            logger.warning("EasyOCR 未安装，OCR 功能将不可用。请运行: pip install easyocr")
+        from django.conf import settings
+        self._cache_max_size = getattr(settings, 'OCR_MAX_IMAGE_SIZE', 100)
         
-        self.languages = languages or ['en']
-        self.use_gpu = use_gpu
+        self.ocr_engine = ocr_engine
+        self.language = language
+        self.min_confidence = min_confidence
+        
+        self._init_ocr_service()
     
-    @classmethod
-    def get_easyocr_reader(cls, languages=None, use_gpu=False):
-        """
-        获取或创建EasyOCR reader实例（延迟初始化，单例模式）
-        
-        Args:
-            languages: 识别语言列表
-            use_gpu: 是否使用 GPU
+    def _init_ocr_service(self):
+        """初始化 OCR 服务"""
+        try:
+            from apps.ocr_service.adapters import (
+                get_ocr_service,
+                OCREngineType,
+                OCRLanguage,
+                OCRConfig
+            )
             
-        Returns:
-            easyocr.Reader 实例
-        """
-        if not EASYOCR_AVAILABLE:
-            raise ImportError("EasyOCR 未安装，请运行: pip install easyocr")
-        
-        if cls._easyocr_reader is None:
-            try:
-                languages = languages or ['en']
-                logger.info(f"初始化 EasyOCR reader (语言: {languages}, GPU: {use_gpu})...")
-                logger.info("首次使用会下载模型，可能需要一些时间")
-                cls._easyocr_reader = easyocr.Reader(languages, gpu=use_gpu)
-                logger.info("EasyOCR reader 初始化完成")
-            except Exception as e:
-                logger.error(f"EasyOCR 初始化失败: {e}")
-                raise
-        return cls._easyocr_reader
+            self._ocr_service = get_ocr_service()
+            
+            lang_map = {
+                'chi_sim': OCRLanguage.CHINESE,
+                'eng': OCRLanguage.ENGLISH,
+                'chi_sim+eng': OCRLanguage.CHINESE_ENGLISH,
+                'japan': OCRLanguage.JAPANESE,
+                'korean': OCRLanguage.KOREAN,
+            }
+            
+            self._config = OCRConfig(
+                engine_type=OCREngineType.TESSERACT,
+                language=lang_map.get(self.language, OCRLanguage.CHINESE_ENGLISH),
+                min_confidence=self.min_confidence
+            )
+            
+            logger.info(f"OCR 服务初始化完成: engine={self.ocr_engine}, language={self.language}")
+            
+        except Exception as e:
+            logger.error(f"OCR 服务初始化失败: {e}")
+            self._ocr_service = None
+            self._config = None
     
     @staticmethod
     def _get_image_hash(img) -> str:
-        """
-        计算图片的hash值用于缓存
-        
-        Args:
-            img: PIL Image 或 numpy array
-            
-        Returns:
-            图片的 MD5 hash 值
-        """
+        """计算图片的hash值用于缓存"""
         if isinstance(img, Image.Image):
             img_array = np.array(img)
         else:
@@ -113,17 +110,15 @@ class OCRHelper:
         for key in expired_keys:
             cls._ocr_cache.pop(key, None)
         
-        # 如果缓存仍然太大，删除最旧的条目
         if len(cls._ocr_cache) > cls._cache_max_size:
             sorted_items = sorted(
                 cls._ocr_cache.items(),
-                key=lambda x: x[1][1]  # 按时间戳排序
+                key=lambda x: x[1][1]
             )
-            # 删除最旧的一半
             for key, _ in sorted_items[:len(sorted_items)//2]:
                 cls._ocr_cache.pop(key, None)
     
-    def recognize_text(self, img, min_confidence=0.3, use_cache=True) -> str:
+    def recognize_text(self, img, min_confidence=None, use_cache=True) -> str:
         """
         识别图片中的文本
         
@@ -135,16 +130,17 @@ class OCRHelper:
         Returns:
             识别出的文本字符串
         """
-        if not EASYOCR_AVAILABLE:
-            logger.error("EasyOCR 未安装，无法进行文字识别")
+        if self._ocr_service is None:
+            logger.error("OCR 服务未初始化")
             return ""
         
-        # 检查缓存
+        min_conf = min_confidence if min_confidence is not None else self.min_confidence
+        
         img_hash = None
         cache_key = None
         if use_cache:
             img_hash = self._get_image_hash(img)
-            cache_key = (img_hash,)  # 简化的缓存键
+            cache_key = (img_hash,)
             if cache_key in self._ocr_cache:
                 result, timestamp = self._ocr_cache[cache_key]
                 if time.time() - timestamp < self._cache_ttl:
@@ -152,48 +148,26 @@ class OCRHelper:
                     return result
         
         try:
-            reader = self.get_easyocr_reader(self.languages, self.use_gpu)
+            from apps.ocr_service.adapters import OCREngineType
             
-            # 图像预处理
-            if isinstance(img, Image.Image):
-                # 转换为 RGB
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                
-                # 图片较小时放大以提高识别率
-                width, height = img.size
-                if width < 1000 or height < 200:
-                    scale_factor = 2
-                    img = img.resize(
-                        (width * scale_factor, height * scale_factor),
-                        Image.LANCZOS
-                    )
-                    logger.debug(f"图片放大 {scale_factor} 倍以提高识别率")
-                
-                img_array = np.array(img)
-            else:
-                img_array = img
-                if len(img_array.shape) == 2:
-                    # 灰度图转 RGB
-                    img_array = np.stack([img_array] * 3, axis=-1)
+            result = self._ocr_service.recognize(
+                img,
+                engine_type=self._config.engine_type,
+                config=self._config
+            )
             
-            # EasyOCR 识别
-            results = reader.readtext(img_array)
+            if not result.success:
+                logger.error(f"OCR 识别失败: {result.error_message}")
+                return ""
             
-            # 提取文本，按从左到右排序
-            text_items = []
-            for (bbox, text, confidence) in results:
-                if float(confidence) >= min_confidence:
-                    x_coord = bbox[0][0]  # 左上角的 x 坐标
-                    text_items.append((x_coord, text, float(confidence)))
-                    logger.debug(f"OCR: '{text}', 置信度: {confidence:.2f}, x: {x_coord:.1f}")
+            texts = []
+            for item in result.texts:
+                if item.confidence >= min_conf:
+                    texts.append(item.text)
+                    logger.debug(f"OCR: '{item.text}', 置信度: {item.confidence:.2f}")
             
-            # 按 x 坐标排序
-            text_items.sort(key=lambda x: x[0])
-            texts = [item[1] for item in text_items]
             combined_text = ' '.join(texts)
             
-            # 缓存结果
             if use_cache and cache_key:
                 self._ocr_cache[cache_key] = (combined_text, time.time())
                 self._clean_cache()
@@ -219,12 +193,10 @@ class OCRHelper:
         """
         text = self.recognize_text(img, use_cache=use_cache)
         
-        # 常见字符替换
-        text = text.replace('o', '0').replace('O', '0')  # o/O -> 0
-        text = text.replace('l', '1').replace('I', '1')  # l/I -> 1
-        text = text.replace('?', '1')  # ? -> 1
+        text = text.replace('o', '0').replace('O', '0')
+        text = text.replace('l', '1').replace('I', '1')
+        text = text.replace('?', '1')
         
-        # 提取数字和逗号
         if allow_comma:
             digits = ''.join(filter(lambda x: x.isdigit() or x == ',', text))
             digits = digits.replace(',', '')
@@ -252,23 +224,18 @@ class OCRHelper:
             裁剪后的 PIL Image
         """
         if screenshot_path and os.path.exists(screenshot_path):
-            # 从文件加载
             img_cv = cv2.imread(screenshot_path)
         else:
-            # 实时截图
             airtest_sleep(0.3)
             img_cv = G.DEVICE.snapshot()
             if img_cv is None:
                 raise RuntimeError("截图失败，snapshot 返回 None")
         
-        # 裁剪
         x1, y1, x2, y2 = region
         cropped = img_cv[y1:y2, x1:x2]
         
-        # 转换为 PIL Image
         pil_img = Image.fromarray(cv2.cvtColor(cropped, cv2.COLOR_BGR2RGB))
         
-        # 增强对比度
         pil_img = ImageEnhance.Contrast(pil_img).enhance(2.0)
         
         return pil_img
@@ -302,22 +269,58 @@ class OCRHelper:
         return self.recognize_number(img)
 
 
-# 全局单例实例
 _ocr_helper_instance = None
 
 
-def get_ocr_helper(languages=None, use_gpu=False) -> OCRHelper:
+def get_ocr_helper(
+    ocr_engine: str = 'tesseract',
+    language: str = 'chi_sim+eng'
+) -> OCRHelper:
     """
     获取全局 OCR Helper 单例实例
     
     Args:
-        languages: OCR 识别语言列表
-        use_gpu: 是否使用 GPU
+        ocr_engine: OCR 引擎
+        language: OCR 识别语言
         
     Returns:
         OCRHelper 实例
     """
     global _ocr_helper_instance
+    
     if _ocr_helper_instance is None:
-        _ocr_helper_instance = OCRHelper(languages=languages, use_gpu=use_gpu)
+        _ocr_helper_instance = OCRHelper(
+            ocr_engine=ocr_engine,
+            language=language
+        )
+    else:
+        if (_ocr_helper_instance.ocr_engine != ocr_engine or
+            _ocr_helper_instance.language != language):
+            _ocr_helper_instance = OCRHelper(
+                ocr_engine=ocr_engine,
+                language=language
+            )
+    
     return _ocr_helper_instance
+
+
+def get_ocr_helper_from_config() -> OCRHelper:
+    """
+    从数据库配置获取 OCR Helper
+    
+    Returns:
+        OCRHelper 实例
+    """
+    try:
+        from apps.app_automation.models import AppTestConfig
+        
+        config = AppTestConfig.objects.first()
+        if config:
+            return get_ocr_helper(
+                ocr_engine=config.ocr_engine,
+                language=config.ocr_language
+            )
+    except Exception as e:
+        logger.warning(f"从数据库获取 OCR 配置失败: {e}")
+    
+    return get_ocr_helper()

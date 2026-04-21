@@ -7,7 +7,6 @@
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/Django-4.2-green.svg)](https://www.djangoproject.com/)
 [![Vue](https://img.shields.io/badge/Vue-3.3-brightgreen.svg)](https://vuejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
@@ -629,6 +628,9 @@ chmod +x start.sh
 # python manage.py runserver  需要使用websocket，所以不支持该方式启动了，使用下方方式启动
 # 或
 python start_backend.py
+
+# 如果需要启动app远程控制则使用：
+start_with_websocket.bat
 
 # 启动 Django-Q2 任务队列服务（在另一个终端）
 python manage.py qcluster

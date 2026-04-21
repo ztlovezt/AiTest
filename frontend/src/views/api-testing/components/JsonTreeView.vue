@@ -8,6 +8,7 @@
         clearable
         prefix-icon="Search"
         class="search-input"
+        @input="onSearchChange"
       />
       <el-button-group>
         <el-button size="small" @click="expandAll">{{ $t('apiTesting.response.expandAll') }}</el-button>
@@ -21,6 +22,7 @@
         :depth="0"
         :expanded-keys="expandedKeys"
         :search-keyword="searchKeyword"
+        :matched-paths="matchedPaths"
         @toggle="toggleNode"
         @copy-path="copyPath"
       />
@@ -47,6 +49,77 @@ const emit = defineEmits(['select-path'])
 const searchKeyword = ref('')
 const expandedKeys = ref(new Set())
 const treeContainer = ref(null)
+const matchedPaths = ref(new Set())
+
+// 查找所有匹配的路径
+function findMatchedPaths(data, path, keyword, matches) {
+  if (!keyword) return
+  const kw = keyword.toLowerCase()
+  
+  if (data && typeof data === 'object') {
+    if (Array.isArray(data)) {
+      data.forEach((item, i) => {
+        const itemPath = `${path}[${i}]`
+        findMatchedPaths(item, itemPath, keyword, matches)
+      })
+    } else {
+      Object.keys(data).forEach(key => {
+        const itemPath = `${path}.${key}`
+        if (key.toLowerCase().includes(kw)) {
+          matches.add(itemPath)
+        }
+        findMatchedPaths(data[key], itemPath, keyword, matches)
+      })
+    }
+  } else {
+    if (String(data).toLowerCase().includes(kw)) {
+      matches.add(path)
+    }
+  }
+}
+
+// 获取路径的所有父路径
+function getParentPaths(path) {
+  const parents = new Set()
+  let current = path
+  
+  while (current !== '$') {
+    parents.add(current)
+    const lastDot = current.lastIndexOf('.')
+    const lastBracket = current.lastIndexOf('[')
+    
+    if (lastBracket > lastDot && lastBracket > 0) {
+      current = current.substring(0, lastBracket)
+    } else if (lastDot > 0) {
+      current = current.substring(0, lastDot)
+    } else {
+      break
+    }
+  }
+  parents.add('$')
+  return parents
+}
+
+// 搜索变化时展开匹配的路径
+function onSearchChange() {
+  if (!searchKeyword.value) {
+    matchedPaths.value = new Set()
+    return
+  }
+  
+  const matches = new Set()
+  findMatchedPaths(props.data, '$', searchKeyword.value, matches)
+  matchedPaths.value = matches
+  
+  // 展开所有匹配路径的父节点
+  const pathsToExpand = new Set()
+  matches.forEach(path => {
+    const parents = getParentPaths(path)
+    parents.forEach(p => pathsToExpand.add(p))
+  })
+  
+  expandedKeys.value = pathsToExpand
+}
 
 // 初始展开前两层
 function initExpand(data, path, depth) {
@@ -63,6 +136,7 @@ function initExpand(data, path, depth) {
 
 watch(() => props.data, (val) => {
   expandedKeys.value = new Set()
+  matchedPaths.value = new Set()
   if (val) initExpand(val, '$', 0)
 }, { immediate: true })
 
@@ -111,6 +185,7 @@ const TreeNode = defineComponent({
     keyName: { type: String, default: '' },
     expandedKeys: { type: Set, required: true },
     searchKeyword: { type: String, default: '' },
+    matchedPaths: { type: Set, default: () => new Set() },
     isArrayItem: { type: Boolean, default: false },
     arrayIndex: { type: Number, default: -1 }
   },
@@ -129,6 +204,16 @@ const TreeNode = defineComponent({
       const kw = props.searchKeyword.toLowerCase()
       if (props.keyName && props.keyName.toLowerCase().includes(kw)) return true
       if (!isObject.value && String(props.data).toLowerCase().includes(kw)) return true
+      return false
+    })
+
+    const isInMatchedPath = computed(() => {
+      if (!props.searchKeyword || props.matchedPaths.size === 0) return true
+      for (const matchedPath of props.matchedPaths) {
+        if (matchedPath.startsWith(props.path) || props.path.startsWith(matchedPath)) {
+          return true
+        }
+      }
       return false
     })
 
@@ -211,7 +296,7 @@ const TreeNode = defineComponent({
       )
 
       children.push(
-        h('div', { class: 'tree-line', style: indent }, labelParts)
+        h('div', { class: ['tree-line', isMatch.value ? 'matched-line' : ''], style: indent }, labelParts)
       )
 
       // 展开的子节点
@@ -228,6 +313,7 @@ const TreeNode = defineComponent({
                 arrayIndex: i,
                 expandedKeys: props.expandedKeys,
                 searchKeyword: props.searchKeyword,
+                matchedPaths: props.matchedPaths,
                 onToggle: (p) => emit('toggle', p),
                 onCopyPath: (p) => emit('copy-path', p)
               })
@@ -243,6 +329,7 @@ const TreeNode = defineComponent({
                 keyName: key,
                 expandedKeys: props.expandedKeys,
                 searchKeyword: props.searchKeyword,
+                matchedPaths: props.matchedPaths,
                 onToggle: (p) => emit('toggle', p),
                 onCopyPath: (p) => emit('copy-path', p)
               })
@@ -257,7 +344,7 @@ const TreeNode = defineComponent({
         )
       }
 
-      return h('div', { class: 'tree-node' }, children)
+      return h('div', { class: ['tree-node', !isInMatchedPath.value ? 'hidden' : ''] }, children)
     }
   }
 })
@@ -285,7 +372,7 @@ const TreeNode = defineComponent({
   max-height: 500px;
   overflow: auto;
   padding: 8px;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   border-radius: 4px;
   border: 1px solid #ebeef5;
 }
@@ -316,7 +403,7 @@ const TreeNode = defineComponent({
 }
 
 .tree-toggle:hover {
-  color: #409eff;
+  color: var(--th-color-primary);
 }
 
 .tree-toggle-placeholder {
@@ -372,6 +459,15 @@ const TreeNode = defineComponent({
   background: #fff3cd;
   border-radius: 2px;
   padding: 0 2px;
+}
+
+.matched-line {
+  background: #e6f7ff;
+  border-radius: 2px;
+}
+
+.tree-node.hidden {
+  display: none;
 }
 
 .copy-path-btn {

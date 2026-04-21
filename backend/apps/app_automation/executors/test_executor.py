@@ -44,7 +44,6 @@ class AppTestExecutor(BaseTestExecutor):
 
         self._current_process: Optional[subprocess.Popen] = None
         self.execution = None
-        # self._tesseract_cmd: Optional[str] = None
 
         logger.info(f"初始化 AppTestExecutor，基础路径: {self.base_path}")
 
@@ -68,93 +67,6 @@ class AppTestExecutor(BaseTestExecutor):
 
     def _get_report_url(self, execution_id: int) -> str:
         return f'/api/app-automation-reports/execution_{execution_id}/index.html'
-
-    # def _build_tesseract_candidates(self) -> List[str]:
-    #     """收集可能的 tesseract 可执行文件路径（环境变量优先）"""
-    #     candidates: List[str] = []
-
-    #     # 1) 环境变量显式指定（优先）
-    #     for key in ('TESSERACT_CMD', 'TESSERACT_PATH', 'OCR_TESSERACT_CMD'):
-    #         raw = os.environ.get(key, '')
-    #         if raw:
-    #             candidates.append(raw.strip().strip('"'))
-
-    #     # 2) 系统 PATH
-    #     which_cmd = shutil.which('tesseract')
-    #     if which_cmd:
-    #         candidates.append(which_cmd)
-
-    #     # 3) Windows 常见安装目录
-    #     if sys.platform.startswith('win'):
-    #         possible_paths = [
-    #             r'C:\Program Files\Tesseract-OCR\tesseract.exe',
-    #             r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
-    #         ]
-
-    #         local_appdata = os.environ.get('LOCALAPPDATA')
-    #         if local_appdata:
-    #             possible_paths.append(
-    #                 os.path.join(local_appdata, 'Programs', 'Tesseract-OCR', 'tesseract.exe')
-    #             )
-
-    #         candidates.extend(possible_paths)
-
-    #     # 去重并保序
-    #     seen = set()
-    #     unique_candidates: List[str] = []
-    #     for path in candidates:
-    #         norm = os.path.normcase(os.path.normpath(path))
-    #         if norm not in seen:
-    #             seen.add(norm)
-    #             unique_candidates.append(path)
-    #     return unique_candidates
-
-    # def _resolve_tesseract_cmd(self) -> Optional[str]:
-    #     """解析可用的 tesseract 可执行文件路径"""
-    #     if self._tesseract_cmd and os.path.isfile(self._tesseract_cmd):
-    #         return self._tesseract_cmd
-
-    #     for candidate in self._build_tesseract_candidates():
-    #         if not candidate:
-    #             continue
-
-    #         normalized = os.path.expandvars(os.path.expanduser(candidate))
-    #         # 允许传目录：自动拼接 tesseract(.exe)
-    #         if os.path.isdir(normalized):
-    #             executable = 'tesseract.exe' if sys.platform.startswith('win') else 'tesseract'
-    #             normalized = os.path.join(normalized, executable)
-
-    #         if os.path.isfile(normalized):
-    #             self._tesseract_cmd = normalized
-    #             return normalized
-
-    #     return None
-
-    # def _apply_tesseract_runtime_env(self, target_env: Optional[Dict[str, str]] = None) -> Optional[str]:
-    #     """
-    #     将 tesseract 路径注入当前进程或子进程环境变量，避免依赖系统 PATH 是否生效
-    #     """
-    #     cmd = self._resolve_tesseract_cmd()
-    #     if not cmd:
-    #         return None
-
-    #     env_obj = target_env if target_env is not None else os.environ
-    #     env_obj['TESSERACT_CMD'] = cmd
-
-    #     cmd_dir = os.path.dirname(cmd)
-    #     path_value = env_obj.get('PATH', '')
-    #     path_items = [item for item in path_value.split(os.pathsep) if item]
-    #     normalized_items = {os.path.normcase(os.path.normpath(item)) for item in path_items}
-    #     normalized_cmd_dir = os.path.normcase(os.path.normpath(cmd_dir))
-    #     if normalized_cmd_dir not in normalized_items:
-    #         env_obj['PATH'] = f"{cmd_dir}{os.pathsep}{path_value}" if path_value else cmd_dir
-
-    #     # 默认注入 tessdata 目录（如果存在且未显式配置）
-    #     tessdata_dir = os.path.join(cmd_dir, 'tessdata')
-    #     if os.path.isdir(tessdata_dir) and not env_obj.get('TESSDATA_PREFIX'):
-    #         env_obj['TESSDATA_PREFIX'] = tessdata_dir
-
-    #     return cmd
 
     def _check_ocr_config(self) -> Dict[str, Any]:
         """
@@ -183,19 +95,8 @@ class AppTestExecutor(BaseTestExecutor):
             if config.ocr_engine == 'tesseract':
                 try:
                     import pytesseract
-                    # resolved_cmd = self._apply_tesseract_runtime_env()
-                    # if resolved_cmd:
-                    #     pytesseract.pytesseract.tesseract_cmd = resolved_cmd
-                    # else:
-                    #     return {
-                    #         'valid': False,
-                    #         'message': (
-                    #             '未找到 Tesseract 可执行文件。请安装 Tesseract OCR，'
-                    #             '并配置环境变量 TESSERACT_CMD 或将安装目录加入 PATH。'
-                    #         )
-                    #     }
                     pytesseract.get_tesseract_version()
-                    logger.info(f"OCR 配置校验通过: Tesseract OCR ({pytesseract.pytesseract.tesseract_cmd})")
+                    logger.info(f"OCR 配置校验通过: Tesseract OCR")
                     return {'valid': True, 'message': 'OK'}
                 except Exception as e:
                     logger.warning(f"Tesseract OCR 不可用: {e}")
@@ -573,8 +474,7 @@ class AppTestExecutor(BaseTestExecutor):
             # 如果退出码非零，记录完整输出以便调试
             if exit_code != 0:
                 logger.error(f"pytest 执行失败，退出码: {exit_code}")
-                joined_output = '\n'.join(output_lines)
-                logger.error(f"完整输出:\n{joined_output}")
+                logger.error(f"完整输出:\n{'\n'.join(output_lines)}")
 
             test_results = self._parse_allure_results(allure_results_dir)
 

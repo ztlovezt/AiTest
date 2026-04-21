@@ -3,13 +3,7 @@
         <div class="page-header">
             <h3>{{ t('appAutomation.sceneBuilder.title') }}</h3>
             <div class="header-actions">
-                <el-button
-                    type="primary"
-                    size="small"
-                    :icon="Check"
-                    :loading="saving"
-                    @click="saveScene"
-                >
+                <el-button type="primary" size="small" :icon="Check" :loading="saving" @click="saveScene">
                     {{ t('appAutomation.sceneBuilder.saveCase') }}
                 </el-button>
                 <el-button size="small" :icon="Refresh" @click="resetScene">
@@ -23,27 +17,23 @@
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-form-item :label="t('appAutomation.sceneBuilder.sceneName')" required>
-                            <el-input
-                                v-model.trim="sceneForm.name"
-                                :placeholder="t('appAutomation.sceneBuilder.sceneNamePlaceholder')"
-                                clearable
-                            />
+                            <el-input v-model.trim="sceneForm.name"
+                                :placeholder="t('appAutomation.sceneBuilder.sceneNamePlaceholder')" clearable />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
                         <el-form-item :label="t('appAutomation.sceneBuilder.project')">
-                            <el-select v-model="sceneForm.project" :placeholder="t('appAutomation.sceneBuilder.selectProject')" clearable filterable style="width:100%">
+                            <el-select v-model="sceneForm.project"
+                                :placeholder="t('appAutomation.sceneBuilder.selectProject')" clearable filterable
+                                style="width:100%">
                                 <el-option v-for="p in projectList" :key="p.id" :label="p.name" :value="p.id" />
                             </el-select>
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
                         <el-form-item :label="t('appAutomation.sceneBuilder.sceneDescription')">
-                            <el-input
-                                v-model.trim="sceneForm.description"
-                                :placeholder="t('appAutomation.sceneBuilder.optional')"
-                                clearable
-                            />
+                            <el-input v-model.trim="sceneForm.description"
+                                :placeholder="t('appAutomation.sceneBuilder.optional')" clearable />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -51,37 +41,27 @@
                     <el-col :span="24">
                         <el-form-item :label="t('appAutomation.sceneBuilder.sceneVariables')">
                             <div class="scene-variables">
-                                <div
-                                    v-for="(item, index) in sceneVariables"
-                                    :key="`var_${index}`"
-                                    class="scene-variable-item"
-                                >
-                                    <el-input
-                                        v-model.trim="item.name"
-                                        :placeholder="t('appAutomation.sceneBuilder.variableName')"
-                                        size="small"
-                                    />
-                                    <el-select v-model="item.scope" :placeholder="t('appAutomation.sceneBuilder.scope')" size="small">
+                                <div v-for="(item, index) in sceneVariables" :key="`var_${index}`"
+                                    class="scene-variable-item">
+                                    <el-input v-model.trim="item.name"
+                                        :placeholder="t('appAutomation.sceneBuilder.variableName')" size="small" />
+                                    <el-select v-model="item.scope" :placeholder="t('appAutomation.sceneBuilder.scope')"
+                                        size="small">
                                         <el-option label="local" value="local" />
                                         <el-option label="global" value="global" />
                                     </el-select>
-                                    <el-select v-model="item.type" :placeholder="t('appAutomation.sceneBuilder.type')" size="small">
+                                    <el-select v-model="item.type" :placeholder="t('appAutomation.sceneBuilder.type')"
+                                        size="small">
                                         <el-option label="string" value="string" />
                                         <el-option label="number" value="number" />
                                         <el-option label="boolean" value="boolean" />
                                         <el-option label="array" value="array" />
                                         <el-option label="object" value="object" />
                                     </el-select>
-                                    <el-input
-                                        v-model.trim="item.value"
-                                        :placeholder="t('appAutomation.sceneBuilder.defaultValue')"
-                                        size="small"
-                                    />
-                                    <el-input
-                                        v-model.trim="item.description"
-                                        :placeholder="t('appAutomation.sceneBuilder.description')"
-                                        size="small"
-                                    />
+                                    <el-input v-model.trim="item.value"
+                                        :placeholder="t('appAutomation.sceneBuilder.defaultValue')" size="small" />
+                                    <el-input v-model.trim="item.description"
+                                        :placeholder="t('appAutomation.sceneBuilder.description')" size="small" />
                                     <el-button link size="small" @click="removeSceneVariable(index)">
                                         {{ t('appAutomation.sceneBuilder.delete') }}
                                     </el-button>
@@ -96,33 +76,22 @@
                 <el-row :gutter="16">
                     <el-col :span="10">
                         <el-form-item label="API_BASE_URL">
-                            <el-input
-                                v-model.trim="sceneRuntime.base_url"
-                                placeholder="http://127.0.0.1:8000"
-                                size="small"
-                            />
+                            <el-input v-model.trim="sceneRuntime.base_url" placeholder="http://127.0.0.1:8000"
+                                size="small" />
                         </el-form-item>
                     </el-col>
                 </el-row>
                 <el-row :gutter="16">
                     <el-col :span="8">
                         <el-form-item :label="t('appAutomation.sceneBuilder.retryTimes')">
-                            <el-input
-                                v-model.number="sceneRuntime.retry_times"
-                                type="number"
-                                :placeholder="t('appAutomation.sceneBuilder.retryPlaceholder')"
-                                size="small"
-                            />
+                            <el-input v-model.number="sceneRuntime.retry_times" type="number"
+                                :placeholder="t('appAutomation.sceneBuilder.retryPlaceholder')" size="small" />
                         </el-form-item>
                     </el-col>
                     <el-col :span="8">
                         <el-form-item :label="t('appAutomation.sceneBuilder.retryInterval')">
-                            <el-input
-                                v-model.number="sceneRuntime.retry_interval"
-                                type="number"
-                                :placeholder="t('appAutomation.sceneBuilder.retryIntervalPlaceholder')"
-                                size="small"
-                            />
+                            <el-input v-model.number="sceneRuntime.retry_interval" type="number"
+                                :placeholder="t('appAutomation.sceneBuilder.retryIntervalPlaceholder')" size="small" />
                         </el-form-item>
                     </el-col>
                 </el-row>
@@ -147,18 +116,11 @@
                     </template>
                     <el-tabs v-model="paletteTab" stretch>
                         <el-tab-pane :label="t('appAutomation.sceneBuilder.baseComponents')" name="base">
-                            <draggable
-                                class="palette-list"
-                                :list="componentPalette"
-                                :group="{ name: 'ui-components', pull: 'clone', put: false }"
-                                :clone="cloneComponent"
-                                :sort="false"
-                                item-key="type"
-                            >
+                            <draggable class="palette-list" :list="componentPalette"
+                                :group="{ name: 'ui-components', pull: 'clone', put: false }" :clone="cloneComponent"
+                                :sort="false" item-key="type">
                                 <template #item="{ element }">
-                                    <div
-                                        class="palette-item"
-                                    >
+                                    <div class="palette-item">
                                         <span class="palette-name">{{ element.name }}</span>
                                         <span class="palette-type">{{ element.type }}</span>
                                     </div>
@@ -171,18 +133,11 @@
                             </draggable>
                         </el-tab-pane>
                         <el-tab-pane :label="t('appAutomation.sceneBuilder.customComponents')" name="custom">
-                            <draggable
-                                class="palette-list"
-                                :list="customComponentPalette"
-                                :group="{ name: 'ui-components', pull: 'clone', put: false }"
-                                :clone="cloneComponent"
-                                :sort="false"
-                                item-key="id"
-                            >
+                            <draggable class="palette-list" :list="customComponentPalette"
+                                :group="{ name: 'ui-components', pull: 'clone', put: false }" :clone="cloneComponent"
+                                :sort="false" item-key="id">
                                 <template #item="{ element }">
-                                    <div
-                                        class="palette-item"
-                                    >
+                                    <div class="palette-item">
                                         <div class="palette-left">
                                             <span class="palette-name">{{ element.name }}</span>
                                             <span class="palette-type">{{ element.type }}</span>
@@ -191,12 +146,8 @@
                                             <el-button link size="small" @click.stop="openEditCustomComponent(element)">
                                                 {{ t('appAutomation.sceneBuilder.edit') }}
                                             </el-button>
-                                            <el-button
-                                                link
-                                                size="small"
-                                                style="color: #f56c6c"
-                                                @click.stop="deleteCustomComponent(element)"
-                                            >
+                                            <el-button link size="small" style="color: #f56c6c"
+                                                @click.stop="deleteCustomComponent(element)">
                                                 {{ t('appAutomation.sceneBuilder.delete') }}
                                             </el-button>
                                         </div>
@@ -218,13 +169,8 @@
                     <template #header>
                         <div class="card-title">
                             <span>{{ t('appAutomation.sceneBuilder.sceneSteps') }}</span>
-                            <el-button
-                                type="primary"
-                                size="small"
-                                :icon="FolderAdd"
-                                :disabled="scenarioSteps.length === 0"
-                                @click="openCustomComponentDialog"
-                            >
+                            <el-button type="primary" size="small" :icon="FolderAdd"
+                                :disabled="scenarioSteps.length === 0" @click="openCustomComponentDialog">
                                 {{ t('appAutomation.sceneBuilder.saveAsCustom') }}
                             </el-button>
                         </div>
@@ -232,23 +178,15 @@
                     <div class="scene-hint" v-if="scenarioSteps.length === 0">
                         {{ t('appAutomation.sceneBuilder.dragHint') }}
                     </div>
-                    <draggable
-                        v-model="scenarioSteps"
-                        class="scene-list"
-                        :group="{ name: 'ui-components', pull: true, put: true }"
-                        :animation="200"
-                        item-key="id"
-                    >
+                    <draggable v-model="scenarioSteps" class="scene-list"
+                        :group="{ name: 'ui-components', pull: true, put: true }" :animation="200" item-key="id"
+                        @add="handleMainStepAdd">
                         <template #item="{ element, index }">
                             <div class="scene-item-wrapper">
-                                <div
-                                    class="scene-item"
-                                    :class="{ 
-                                        active: selectedIndex === index && selectedSubIndex === null,
-                                        'is-expanded': element._expanded
-                                    }"
-                                    @click="selectStep(index)"
-                                >
+                                <div class="scene-item" :class="{
+                                    active: selectedIndex === index && selectedSubIndex === null,
+                                    'is-expanded': element._expanded
+                                }" @click="selectStep(index)">
                                     <div class="scene-item-main">
                                         <span class="scene-index">{{ index + 1 }}</span>
                                         <span class="scene-name">{{ element.name }}</span>
@@ -257,51 +195,606 @@
                                     </div>
                                     <div class="scene-item-actions">
                                         <el-button
-                                            v-if="element.kind === 'custom' && element.steps && element.steps.length"
-                                            link
-                                            size="small"
-                                            @click.stop="toggleExpandCustomStep(index)"
-                                        >
+                                            v-if="element.kind === 'custom' || element.type === 'loop' || element.type === 'if'"
+                                            link size="small" @click.stop="toggleExpandCustomStep(index)">
                                             {{ element._expanded ? '收起' : '展开' }}
                                         </el-button>
-                                        <el-button
-                                            link
-                                            size="small"
-                                            @click.stop="duplicateStep(index)"
-                                        >
+                                        <el-button link size="small" @click.stop="duplicateStep(index)">
                                             复制
                                         </el-button>
-                                        <el-button
-                                            link
-                                            size="small"
-                                            @click.stop="removeStep(index)"
-                                        >
+                                        <el-button link size="small" @click.stop="removeStep(index)">
                                             删除
                                         </el-button>
                                     </div>
                                 </div>
-                                <!-- 自定义组件展开的子步骤 -->
-                                <div v-if="element._expanded && element.steps" class="custom-sub-steps">
-                                    <div
-                                        v-for="(subStep, subIdx) in element.steps"
-                                        :key="subStep.id || subIdx"
-                                        class="scene-item sub-step-item"
-                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx }"
-                                        @click.stop="selectSubStep(index, subIdx)"
-                                    >
-                                        <div class="scene-item-main">
-                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}</span>
-                                            <span class="scene-name">{{ subStep.name || subStep.type }}</span>
-                                            <span class="scene-type">{{ subStep.type }}</span>
+                                <!-- 自定义组件、循环组件、IF 组件展开的子步骤 -->
+                                <div v-if="element._expanded" class="custom-sub-steps tree-node">
+                                    <!-- 循环组件的子步骤 -->
+                                    <draggable v-if="element.type === 'loop'" v-model="element.config.steps"
+                                        class="sub-steps-list" :group="{
+                                            name: 'ui-components',
+                                            pull: true,
+                                            put: true
+                                        }" :animation="200" item-key="id"
+                                        @add="handleSubStepAdd(index, $event)">
+                                        <template #item="{ element: subStep, index: subIdx }">
+                                            <div class="scene-item-wrapper">
+                                                <div class="scene-item sub-step-item"
+                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === null }"
+                                                    @click.stop="selectSubStep(index, subIdx)">
+                                                    <div class="scene-item-main">
+                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{
+                                                            Number(subIdx) + 1 }}</span>
+                                                        <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                        <span class="scene-type">{{ subStep.type }}</span>
+                                                    </div>
+                                                    <div class="scene-item-actions">
+                                                        <el-button
+                                                            v-if="subStep.kind === 'custom' || subStep.type === 'loop' || subStep.type === 'if'"
+                                                            link size="small"
+                                                            @click.stop="toggleExpandSubStep(index, subIdx)">
+                                                            {{ subStep._expanded ? '收起' : '展开' }}
+                                                        </el-button>
+                                                        <el-button link size="small"
+                                                            @click.stop="duplicateSubStep(index, subIdx)">
+                                                            复制
+                                                        </el-button>
+                                                        <el-button link size="small"
+                                                            @click.stop="removeSubStep(index, subIdx)">
+                                                            删除
+                                                        </el-button>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- 子步骤展开后的嵌套区域 -->
+                                                <div v-if="subStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                    <!-- 循环组件的嵌套子步骤 -->
+                                                    <draggable v-if="subStep.type === 'loop'" v-model="subStep.config.steps"
+                                                        class="sub-steps-list" :group="{
+                                                            name: 'ui-components',
+                                                            pull: true,
+                                                            put: true
+                                                        }" :animation="200" item-key="id"
+                                                        @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                        <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                            <div class="scene-item-wrapper">
+                                                                <div class="scene-item sub-step-item nested-step-item"
+                                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === null }"
+                                                                    @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                    <div class="scene-item-main">
+                                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}</span>
+                                                                        <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                        <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                    </div>
+                                                                    <div class="scene-item-actions">
+                                                                        <el-button
+                                                                            v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                            link size="small"
+                                                                            @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                            {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            复制
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            删除
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                    <!-- 循环组件的第三层子步骤 -->
+                                                                    <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                        class="sub-steps-list" :group="{
+                                                                            name: 'ui-components',
+                                                                            pull: true,
+                                                                            put: true
+                                                                        }" :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 自定义组件的第三层子步骤 -->
+                                                                    <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                        :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                    <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                        <el-button size="small" type="primary" link
+                                                                            @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                            + 添加子步骤（仅支持基础组件）
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </draggable>
+                                                    
+                                                    <!-- IF 组件的嵌套分支 -->
+                                                    <div v-else-if="subStep.type === 'if'" class="if-branches">
+                                                        <div class="if-branch-block">
+                                                            <div class="if-branch-header">
+                                                                <span>真分支（if）</span>
+                                                            </div>
+                                                            <draggable v-model="subStep.config.then_steps"
+                                                                class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                :animation="200" item-key="id"
+                                                                @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                                <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                                    <div class="scene-item-wrapper">
+                                                                        <div class="scene-item sub-step-item nested-step-item"
+                                                                            :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx }"
+                                                                            @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            <div class="scene-item-main">
+                                                                                <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}</span>
+                                                                                <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                                <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                            </div>
+                                                                            <div class="scene-item-actions">
+                                                                                <el-button
+                                                                                    v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                                    link size="small"
+                                                                                    @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                                    {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                                </el-button>
+                                                                                <el-button link size="small"
+                                                                                    @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                                    复制
+                                                                                </el-button>
+                                                                                <el-button link size="small"
+                                                                                    @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                                    删除
+                                                                                </el-button>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                        <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                            <!-- 循环组件的第三层子步骤 -->
+                                                                            <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                                class="sub-steps-list" :group="{
+                                                                                    name: 'ui-components',
+                                                                                    pull: true,
+                                                                                    put: true
+                                                                                }" :animation="200" item-key="id"
+                                                                                @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                                <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                                    <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                        @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        <div class="scene-item-main">
+                                                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                            <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                            <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                        </div>
+                                                                                        <div class="scene-item-actions">
+                                                                                            <el-button link size="small"
+                                                                                                @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                                删除
+                                                                                            </el-button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </draggable>
+                                                                            
+                                                                            <!-- 自定义组件的第三层子步骤 -->
+                                                                            <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                                class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                                :animation="200" item-key="id"
+                                                                                @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                                <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                                    <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                        @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        <div class="scene-item-main">
+                                                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.T{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                            <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                            <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                        </div>
+                                                                                        <div class="scene-item-actions">
+                                                                                            <el-button link size="small"
+                                                                                                @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                                删除
+                                                                                            </el-button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </template>
+                                                                            </draggable>
+                                                                            
+                                                                            <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                            <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                                <el-button size="small" type="primary" link
+                                                                                    @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                                    + 添加子步骤（仅支持基础组件）
+                                                                                </el-button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </template>
+                                                            </draggable>
+                                                            <div class="sub-step-toolbar">
+                                                                <el-button size="small" type="primary" link
+                                                                    @click.stop="addNestedIfBranchStep(index, subIdx, 'then')">
+                                                                    + 添加子步骤
+                                                                </el-button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- 自定义组件的嵌套子步骤 -->
+                                                    <draggable v-else-if="subStep.kind === 'custom'" v-model="subStep.steps"
+                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                        :animation="200" item-key="id"
+                                                        @add="handleNestedSubStepAdd(index, subIdx, $event)">
+                                                        <template #item="{ element: nestedStep, index: nestedIdx }">
+                                                            <div class="scene-item-wrapper">
+                                                                <div class="scene-item sub-step-item nested-step-item"
+                                                                    :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === null }"
+                                                                    @click.stop="selectNestedSubStep(index, subIdx, nestedIdx)">
+                                                                    <div class="scene-item-main">
+                                                                        <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}</span>
+                                                                        <span class="scene-name">{{ nestedStep.name || nestedStep.type }}</span>
+                                                                        <span class="scene-type">{{ nestedStep.type }}</span>
+                                                                    </div>
+                                                                    <div class="scene-item-actions">
+                                                                        <el-button
+                                                                            v-if="nestedStep.kind === 'custom' || nestedStep.type === 'loop' || nestedStep.type === 'if'"
+                                                                            link size="small"
+                                                                            @click.stop="toggleExpandNestedStep(index, subIdx, nestedIdx)">
+                                                                            {{ nestedStep._expanded ? '收起' : '展开' }}
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="duplicateNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            复制
+                                                                        </el-button>
+                                                                        <el-button link size="small"
+                                                                            @click.stop="removeNestedSubStep(index, subIdx, nestedIdx)">
+                                                                            删除
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <!-- 第三层嵌套展开区域（支持添加基础组件，但不支持控制组件） -->
+                                                                <div v-if="nestedStep._expanded" class="nested-sub-steps tree-node" style="margin-left: 20px;">
+                                                                    <!-- 循环组件的第三层子步骤 -->
+                                                                    <draggable v-if="nestedStep.type === 'loop'" v-model="nestedStep.config.steps"
+                                                                        class="sub-steps-list" :group="{
+                                                                            name: 'ui-components',
+                                                                            pull: true,
+                                                                            put: true
+                                                                        }" :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 自定义组件的第三层子步骤 -->
+                                                                    <draggable v-else-if="nestedStep.kind === 'custom'" v-model="nestedStep.steps"
+                                                                        class="sub-steps-list" :group="{ name: 'ui-components', pull: true, put: true }"
+                                                                        :animation="200" item-key="id"
+                                                                        @add="handleThirdLevelSubStepAdd(index, subIdx, nestedIdx, $event)">
+                                                                        <template #item="{ element: thirdStep, index: thirdIdx }">
+                                                                            <div class="scene-item sub-step-item nested-step-item third-level-item"
+                                                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedNestedIndex === nestedIdx && selectedThirdLevelIndex === thirdIdx }"
+                                                                                @click.stop="selectThirdLevelStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                <div class="scene-item-main">
+                                                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{ Number(subIdx) + 1 }}.{{ Number(nestedIdx) + 1 }}.{{ Number(thirdIdx) + 1 }}</span>
+                                                                                    <span class="scene-name">{{ thirdStep.name || thirdStep.type }}</span>
+                                                                                    <span class="scene-type">{{ thirdStep.type }}</span>
+                                                                                </div>
+                                                                                <div class="scene-item-actions">
+                                                                                    <el-button link size="small"
+                                                                                        @click.stop="removeThirdLevelSubStep(index, subIdx, nestedIdx, thirdIdx)">
+                                                                                        删除
+                                                                                    </el-button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </draggable>
+                                                                    
+                                                                    <!-- 添加子步骤按钮（只在loop和custom组件下显示） -->
+                                                                    <div class="sub-step-toolbar" v-if="nestedStep.type === 'loop' || nestedStep.kind === 'custom'">
+                                                                        <el-button size="small" type="primary" link
+                                                                            @click.stop="addThirdLevelSubStep(index, subIdx, nestedIdx)">
+                                                                            + 添加子步骤（仅支持基础组件）
+                                                                        </el-button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </template>
+                                                    </draggable>
+                                                    
+                                                    <!-- 添加子步骤按钮 -->
+                                                    <div class="sub-step-toolbar" v-if="subStep.type === 'loop' || subStep.kind === 'custom'">
+                                                        <el-button size="small" type="primary" link
+                                                            @click.stop="addNestedSubStep(index, subIdx)">
+                                                            + 添加子步骤
+                                                        </el-button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </draggable>
+
+                                    <!-- IF 组件分支步骤 -->
+                                    <div v-else-if="element.type === 'if'" class="if-branches">
+                                        <!-- 主条件（多条件支持） -->
+                                        <div class="if-branch-block if-main-conditions">
+                                            <div class="if-branch-header">
+                                                <span>真分支（if）</span>
+                                            </div>
+                                            <div class="if-conditions-list">
+                                                <div v-for="(cond, cIdx) in (element.config.conditions_input || [])"
+                                                    :key="cIdx" class="if-condition-row">
+                                                    <el-input v-model="cond.field" placeholder="字段" size="small"
+                                                        style="width: 180px" />
+                                                    <el-select v-model="cond.operator" placeholder="操作符" size="small"
+                                                        style="width: 120px">
+                                                        <el-option label="等于" value="equals" />
+                                                        <el-option label="包含" value="contains" />
+                                                        <el-option label="大于" value="greater_than" />
+                                                        <el-option label="小于" value="less_than" />
+                                                    </el-select>
+                                                    <el-input v-model="cond.value" placeholder="期望值" size="small" />
+                                                    <el-button link size="small" type="danger"
+                                                        @click.stop="removeIfCondition(index, cIdx)">
+                                                        删除
+                                                    </el-button>
+                                                </div>
+                                            </div>
+                                            <div class="sub-step-toolbar">
+                                                <el-button size="small" type="primary" link
+                                                    @click.stop="addIfCondition(index)">
+                                                    + 添加条件
+                                                </el-button>
+                                            </div>
+                                            <draggable v-model="element.config.then_steps" class="sub-steps-list"
+                                                :group="{ name: 'ui-components', pull: true, put: true }" :animation="200"
+                                                item-key="id">
+                                                <template #item="{ element: subStep, index: subIdx }">
+                                                    <div class="scene-item sub-step-item"
+                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedIfBranchType === 'then' }"
+                                                        @click.stop="selectIfBranchStep(index, 'then', subIdx)">
+                                                        <div class="scene-item-main">
+                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.T{{
+                                                                Number(subIdx) + 1 }}</span>
+                                                            <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                            <span class="scene-type">{{ subStep.type }}</span>
+                                                        </div>
+                                                        <div class="scene-item-actions">
+                                                            <el-button link size="small"
+                                                                @click.stop="duplicateIfBranchStep(index, 'then', subIdx)">
+                                                                复制
+                                                            </el-button>
+                                                            <el-button link size="small"
+                                                                @click.stop="removeIfBranchStep(index, 'then', subIdx)">
+                                                                删除
+                                                            </el-button>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </draggable>
+                                            <div class="sub-step-toolbar">
+                                                <el-button size="small" type="primary" link
+                                                    @click.stop="addIfBranchStep(index, 'then')">
+                                                    + 添加真分支子步骤，默认添加点击事件子步骤，如需其他操作请从左边的基础组件中拖动
+                                                </el-button>
+                                            </div>
                                         </div>
-                                        <div class="scene-item-actions">
-                                            <el-button link size="small" @click.stop="duplicateSubStep(index, subIdx)">复制</el-button>
-                                            <el-button link size="small" @click.stop="removeSubStep(index, subIdx)">删除</el-button>
+
+                                        <!-- Else If 分支（多分支支持） -->
+                                        <div v-for="(elseifBlock, branchIndex) in (element.config.elseif_branches || [])"
+                                            :key="`elseif_${branchIndex}`" class="if-branch-block">
+                                            <div class="if-branch-header">
+                                                <span>Else If 分支 {{ Number(branchIndex) + 1 }}</span>
+                                                <el-button link type="danger" size="small"
+                                                    @click.stop="removeElseIfBranch(index, branchIndex)">
+                                                    移除
+                                                </el-button>
+                                            </div>
+                                            <div class="if-conditions-list">
+                                                <div v-for="(cond, cIdx) in (elseifBlock.conditions_input || [])"
+                                                    :key="cIdx" class="if-condition-row">
+                                                    <el-input v-model="cond.field" placeholder="字段" size="small"
+                                                        style="width: 180px" />
+                                                    <el-select v-model="cond.operator" placeholder="操作符" size="small"
+                                                        style="width: 120px">
+                                                        <el-option label="等于" value="equals" />
+                                                        <el-option label="包含" value="contains" />
+                                                        <el-option label="大于" value="greater_than" />
+                                                        <el-option label="小于" value="less_than" />
+                                                    </el-select>
+                                                    <el-input v-model="cond.value" placeholder="期望值" size="small" />
+                                                    <el-button link size="small" type="danger"
+                                                        @click.stop="removeElseIfCondition(index, branchIndex, cIdx)">
+                                                        删除
+                                                    </el-button>
+                                                </div>
+                                            </div>
+                                            <div class="sub-step-toolbar">
+                                                <el-button size="small" type="primary" link
+                                                    @click.stop="addElseIfCondition(index, branchIndex)">
+                                                    + 添加条件
+                                                </el-button>
+                                            </div>
+                                            <draggable v-model="elseifBlock.steps" class="sub-steps-list"
+                                                :group="{ name: 'ui-components', pull: true, put: true }" :animation="200"
+                                                item-key="id">
+                                                <template #item="{ element: subStep, index: subIdx }">
+                                                    <div class="scene-item sub-step-item"
+                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedIfBranchType === 'elseif' && selectedElseIfIndex === branchIndex }"
+                                                        @click.stop="selectIfBranchStep(index, 'elseif', subIdx, branchIndex)">
+                                                        <div class="scene-item-main">
+                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.E{{
+                                                                Number(branchIndex) + 1 }}.{{ Number(subIdx) + 1 }}</span>
+                                                            <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                            <span class="scene-type">{{ subStep.type }}</span>
+                                                        </div>
+                                                        <div class="scene-item-actions">
+                                                            <el-button link size="small"
+                                                                @click.stop="duplicateIfBranchStep(index, 'elseif', subIdx, branchIndex)">
+                                                                复制
+                                                            </el-button>
+                                                            <el-button link size="small"
+                                                                @click.stop="removeIfBranchStep(index, 'elseif', subIdx, branchIndex)">
+                                                                删除
+                                                            </el-button>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </draggable>
+                                            <div class="sub-step-toolbar">
+                                                <el-button size="small" type="primary" link
+                                                    @click.stop="addIfBranchStep(index, 'elseif', branchIndex)">
+                                                    + 添加 Else If 子步骤，默认添加点击事件子步骤，如需其他操作请从左边的基础组件中拖动
+                                                </el-button>
+                                            </div>
+                                        </div>
+
+                                        <div class="if-branch-block">
+                                            <div class="if-branch-header">
+                                                <span>假分支（else）</span>
+                                                <div>
+                                                    <el-button v-if="!Array.isArray(element.config.else_steps)" link size="small"
+                                                        @click.stop="enableElseBranch(index)">
+                                                        添加 else
+                                                    </el-button>
+                                                    <el-button v-else link type="danger" size="small"
+                                                        @click.stop="disableElseBranch(index)">
+                                                        移除 else
+                                                    </el-button>
+                                                </div>
+                                            </div>
+                                            <draggable v-if="Array.isArray(element.config.else_steps)"
+                                                v-model="element.config.else_steps" class="sub-steps-list"
+                                                :group="{ name: 'ui-components', pull: true, put: true }" :animation="200"
+                                                item-key="id">
+                                                <template #item="{ element: subStep, index: subIdx }">
+                                                    <div class="scene-item sub-step-item"
+                                                        :class="{ active: selectedIndex === index && selectedSubIndex === subIdx && selectedIfBranchType === 'else' }"
+                                                        @click.stop="selectIfBranchStep(index, 'else', subIdx)">
+                                                        <div class="scene-item-main">
+                                                            <span class="scene-index sub-index">{{ Number(index) + 1 }}.F{{
+                                                                Number(subIdx) + 1 }}</span>
+                                                            <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                            <span class="scene-type">{{ subStep.type }}</span>
+                                                        </div>
+                                                        <div class="scene-item-actions">
+                                                            <el-button link size="small"
+                                                                @click.stop="duplicateIfBranchStep(index, 'else', subIdx)">
+                                                                复制
+                                                            </el-button>
+                                                            <el-button link size="small"
+                                                                @click.stop="removeIfBranchStep(index, 'else', subIdx)">
+                                                                删除
+                                                            </el-button>
+                                                        </div>
+                                                    </div>
+                                                </template>
+                                            </draggable>
+                                            <div v-else class="palette-empty">默认不启用 else 分支，点击上方"添加 else"即可开启。</div>
+                                            <div v-if="Array.isArray(element.config.else_steps)" class="sub-step-toolbar">
+                                                <el-button size="small" type="primary" link
+                                                    @click.stop="addIfBranchStep(index, 'else')">
+                                                    + 添加假分支子步骤，默认添加点击事件子步骤，如需其他操作请从左边的基础组件中拖动
+                                                </el-button>
+                                            </div>
+                                        </div>
+
+                                        <div class="sub-step-toolbar">
+                                            <el-button size="small" type="primary" link @click.stop="addElseIfBranch(index)">
+                                                + 添加 Else If 分支
+                                            </el-button>
                                         </div>
                                     </div>
+
+                                    <!-- 自定义组件的子步骤 -->
+                                    <draggable v-else v-model="element.steps" class="sub-steps-list"
+                                        :group="{ name: 'ui-components', pull: true, put: true }" :animation="200"
+                                        item-key="id"
+                                        @add="handleSubStepAdd(index, $event)">
+                                        <template #item="{ element: subStep, index: subIdx }">
+                                            <div class="scene-item sub-step-item"
+                                                :class="{ active: selectedIndex === index && selectedSubIndex === subIdx }"
+                                                @click.stop="selectSubStep(index, subIdx)">
+                                                <div class="scene-item-main">
+                                                    <span class="scene-index sub-index">{{ Number(index) + 1 }}.{{
+                                                        Number(subIdx) + 1 }}</span>
+                                                    <span class="scene-name">{{ subStep.name || subStep.type }}</span>
+                                                    <span class="scene-type">{{ subStep.type }}</span>
+                                                </div>
+                                                <div class="scene-item-actions">
+                                                    <el-button link size="small"
+                                                        @click.stop="duplicateSubStep(index, subIdx)">
+                                                        复制
+                                                    </el-button>
+                                                    <el-button link size="small"
+                                                        @click.stop="removeSubStep(index, subIdx)">
+                                                        删除
+                                                    </el-button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </draggable>
+
                                     <div class="sub-step-toolbar">
-                                        <el-button size="small" type="primary" link @click.stop="addSubStep(index)">
-                                            + 添加子步骤
+                                        <el-button size="small" type="primary" link @click.stop="addSubStep(index)"
+                                            v-if="element.type === 'loop'">
+                                            + 默认添加点击事件子步骤，如需其他操作请从左边的基础组件中拖动
                                         </el-button>
                                     </div>
                                 </div>
@@ -316,13 +809,8 @@
                     <template #header>
                         <div class="card-title">
                             {{ t('appAutomation.sceneBuilder.componentConfig') }}
-                            <el-button 
-                                type="success" 
-                                size="small" 
-                                :icon="Camera"
-                                style="margin-left: auto;"
-                                @click="openCaptureElementDialog"
-                            >
+                            <el-button type="success" size="small" :icon="Camera" style="margin-left: auto;"
+                                @click="openCaptureElementDialog">
                                 {{ t('appAutomation.sceneBuilder.createElementTool') }}
                             </el-button>
                         </div>
@@ -331,7 +819,8 @@
                         {{ t('appAutomation.sceneBuilder.selectStepConfig') }}
                     </div>
                     <!-- 选中自定义组件父级时提示展开编辑 -->
-                    <div v-else-if="activeParentStep && activeParentStep.kind === 'custom' && selectedSubIndex === null" class="config-form">
+                    <div v-else-if="activeParentStep && activeParentStep.kind === 'custom' && selectedSubIndex === null"
+                        class="config-form">
                         <el-form label-width="110px" size="small">
                             <el-form-item label="步骤名称">
                                 <el-input v-model.trim="activeParentStep.name" />
@@ -342,11 +831,7 @@
                             <el-form-item label="子步骤数">
                                 <span>{{ (activeParentStep.steps || []).length }} 个</span>
                             </el-form-item>
-                            <el-alert
-                                type="info"
-                                :closable="false"
-                                style="margin-top: 8px;"
-                            >
+                            <el-alert type="info" :closable="false" style="margin-top: 8px;">
                                 点击左侧"展开"按钮可查看和编辑子步骤，修改仅影响当前用例。
                             </el-alert>
                         </el-form>
@@ -358,16 +843,21 @@
                             </el-form-item>
                             
                             
-                            <div class="variable-hint" v-pre>
-                                {{ t('appAutomation.sceneBuilder.variableSupport') }}
+                            <div class="variable-hint" v-text="fixI18nBraces(t('appAutomation.sceneBuilder.variableSupport'))">
                             </div>
-                            <div v-if="activeStep && activeStep.type === 'image_exists_click'" class="variable-hint hint-danger">
+                            <div v-if="activeStep && activeStep.type === 'image_exists_click'"
+                                class="variable-hint hint-danger">
                                 {{ t('appAutomation.sceneBuilder.imageExistsClickLogic') }}
                             </div>
-                            <div v-if="activeStep && activeStep.type === 'image_exists_click_chain'" class="variable-hint hint-danger">
+                            <div v-if="activeStep && activeStep.type === 'image_exists_click_chain'"
+                                class="variable-hint hint-danger">
                                 {{ t('appAutomation.sceneBuilder.imageExistsClickChainLogic') }}
                             </div>
-                            <div v-if="activeStep && activeStep.type === 'foreach_assert'" class="variable-hint hint-danger">
+                            <div v-if="activeStep && activeStep.type === 'key_event'" class="variable-hint hint-danger">
+                                {{ t('appAutomation.sceneBuilder.keyEventLogic') }}
+                            </div>
+                            <div v-if="activeStep && activeStep.type === 'foreach_assert'"
+                                class="variable-hint hint-danger">
                                 {{ t('appAutomation.sceneBuilder.foreachAssertLogic') }}
                             </div>
                             <div v-if="activeStep && activeStep.type === 'api_request'" class="api-template-block">
@@ -376,7 +866,8 @@
                                     <div v-for="item in apiRequestTemplates" :key="item.name" class="template-item">
                                         <span class="template-name">{{ item.name }}</span>
                                         <div class="template-actions">
-                                            <el-button link size="small" @click="applyApiRequestTemplate(item, activeStep)">
+                                            <el-button link size="small"
+                                                @click="applyApiRequestTemplate(item, activeStep)">
                                                 使用
                                             </el-button>
                                         </div>
@@ -386,43 +877,29 @@
                             </div>
                             <!-- 统一的字段分组显示 -->
                             <template v-if="schemaFields.length > 0">
-                                <div 
-                                    v-for="group in getFieldGroups()" 
-                                    :key="group.key" 
-                                    class="field-group"
-                                >
+                                <div v-for="group in getFieldGroups()" :key="group.key" class="field-group">
                                     <div class="group-header">
                                         <span class="group-title">{{ group.title }}</span>
                                         <!-- 定位类分组显示选择按钮 -->
-                                        <el-button 
-                                            v-if="group.key !== 'other'"
-                                            type="primary" 
-                                            size="small" 
-                                            @click="openElementSelector(group.key)"
-                                        >
-                                            <el-icon><Link /></el-icon>
+                                        <el-button v-if="group.key !== 'other'" type="primary" size="small"
+                                            @click="openElementSelector(group.key)">
+                                            <el-icon>
+                                                <Link />
+                                            </el-icon>
                                             {{ linkedElements[group.key] ? '更换元素' : '选择元素' }}
                                         </el-button>
                                     </div>
-                                    
+
                                     <!-- 关联状态提示 -->
-                                    <el-alert 
-                                        v-if="linkedElements[group.key]" 
-                                        type="success" 
-                                        :closable="false" 
-                                        class="element-linked-alert"
-                                    >
+                                    <el-alert v-if="linkedElements[group.key]" type="success" :closable="false"
+                                        class="element-linked-alert">
                                         已关联: {{ linkedElements[group.key].name }} ({{ linkedElements[group.key].type }})
-                                        <el-button 
-                                            link 
-                                            type="danger" 
-                                            @click="clearLinkedElement(group.key)" 
-                                            style="margin-left: 10px;"
-                                        >
+                                        <el-button link type="danger" @click="clearLinkedElement(group.key)"
+                                            style="margin-left: 10px;">
                                             清除
                                         </el-button>
                                     </el-alert>
-                                    
+
                                     <!-- 字段列表 -->
                                     <el-form-item
                                         v-for="field in group.fields"
@@ -430,8 +907,47 @@
                                         :label="getFieldLabel(field)"
                                         :required="schemaRequired.includes(field)"
                                     >
+                                        <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                            <el-input
+                                                v-if="field === 'expected_list'"
+                                                type="textarea"
+                                                :rows="4"
+                                                :model-value="getExpectedListValue(activeStep && activeStep.config)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @update:model-value="updateExpectedList(activeStep.config, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else-if="isJsonField(field)"
+                                                type="textarea"
+                                                :rows="getJsonFieldRows(field)"
+                                                :value="getJsonFieldValue(activeStep && activeStep.config, field)"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @input="updateJsonField(activeStep.config, field, $event)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-input
+                                                v-else
+                                                v-model.trim="activeStep.config[field]"
+                                                :placeholder="getFieldPlaceholder(field)"
+                                                @focus="onInputFocus"
+                                                style="flex: 1;"
+                                            />
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                <el-button size="small" @click="openDataFactorySelector(activeStep, field)" class="data-factory-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                            <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                <el-button size="small" @click="openVariableHelper(activeStep, field)" class="variable-helper-btn">
+                                                    <el-icon><MagicStick /></el-icon>
+                                                </el-button>
+                                            </el-tooltip>
+                                        </div>
                                         <el-input
-                                            v-if="field === 'expected_list'"
+                                            v-else-if="field === 'expected_list'"
                                             type="textarea"
                                             :rows="4"
                                             :model-value="getExpectedListValue(activeStep && activeStep.config)"
@@ -444,42 +960,25 @@
                                             :rows="getJsonFieldRows(field)"
                                             :value="getJsonFieldValue(activeStep && activeStep.config, field)"
                                             :placeholder="getFieldPlaceholder(field)"
-                                            @input="updateJsonField(activeStep.config, field, $event)"
-                                        />
-                                        <el-select
-                                            v-else-if="getFieldOptions(field).length"
-                                            v-model="activeStep.config[field]"
-                                            placeholder="请选择"
-                                            :filterable="isImageScopeField(field)"
-                                        >
-                                            <el-option
-                                                v-for="option in getFieldOptions(field)"
-                                                :key="option.value"
-                                                :label="option.label"
-                                                :value="option.value"
-                                            />
+                                            @input="updateJsonField(activeStep.config, field, $event)" />
+                                        <el-select v-else-if="getFieldOptions(field).length"
+                                            v-model="activeStep.config[field]" placeholder="请选择"
+                                            :filterable="isImageScopeField(field)">
+                                            <el-option v-for="option in getFieldOptions(field)" :key="option.value"
+                                                :label="option.label" :value="option.value" />
                                         </el-select>
-                                        <el-switch
-                                            v-else-if="getFieldType(field) === 'boolean'"
-                                            v-model="activeStep.config[field]"
-                                        />
-                                        <el-input-number
-                                            v-else-if="getFieldType(field) === 'number'"
-                                            v-model="activeStep.config[field]"
-                                            :min="getFieldNumberRule(field).min"
-                                            :max="getFieldNumberRule(field).max"
-                                            :step="getFieldNumberRule(field).step"
-                                            controls-position="right"
-                                        />
-                                        <el-input
-                                            v-else
-                                            v-model.trim="activeStep.config[field]"
-                                            :placeholder="getFieldPlaceholder(field)"
-                                        />
+                                        <el-switch v-else-if="getFieldType(field) === 'boolean'"
+                                            v-model="activeStep.config[field]" />
+                                        <el-input-number v-else-if="getFieldType(field) === 'number'"
+                                            v-model="activeStep.config[field]" :min="getFieldNumberRule(field).min"
+                                            :max="getFieldNumberRule(field).max" :step="getFieldNumberRule(field).step"
+                                            controls-position="right" />
+                                        <el-input v-else v-model.trim="activeStep.config[field]"
+                                            :placeholder="getFieldPlaceholder(field)" />
                                     </el-form-item>
                                 </div>
                             </template>
-                            
+
                             <!-- 无配置字段 -->
                             <div v-else class="config-empty">该组件未配置 schema</div>
                         </el-form>
@@ -489,28 +988,16 @@
         </el-row>
 
         <!-- 从设备创建元素对话框 -->
-        <CaptureElementDialog 
-            v-model="captureElementDialogVisible"
-            @success="handleElementCreated"
-        />
+        <CaptureElementDialog v-model="captureElementDialogVisible" @success="handleElementCreated" />
 
-        <el-dialog
-            :title="t('appAutomation.sceneBuilder.importPackage')"
-            v-model="packageDialogVisible"
-            width="520px"
-            :close-on-click-modal="false"
-            @close="resetPackageDialog"
-        >
+        <el-dialog :title="t('appAutomation.sceneBuilder.importPackage')" v-model="packageDialogVisible" width="520px"
+            :close-on-click-modal="false" @close="resetPackageDialog">
             <el-form label-width="110px" size="small">
                 <el-form-item :label="t('appAutomation.sceneBuilder.overwriteExistingComponents')">
                     <el-switch v-model="packageOverwrite" />
                 </el-form-item>
                 <el-form-item :label="t('appAutomation.sceneBuilder.selectFile')">
-                    <el-upload
-                        :show-file-list="false"
-                        :http-request="handlePackageUpload"
-                        accept=".json,.yaml,.yml"
-                    >
+                    <el-upload :show-file-list="false" :http-request="handlePackageUpload" accept=".json,.yaml,.yml">
                         <el-button size="small" type="primary" :loading="packageUploading">
                             {{ t('appAutomation.sceneBuilder.selectPackage') }}
                         </el-button>
@@ -539,13 +1026,8 @@
             </template>
         </el-dialog>
 
-        <el-dialog
-            :title="t('appAutomation.sceneBuilder.exportPackage')"
-            v-model="exportDialogVisible"
-            width="420px"
-            :close-on-click-modal="false"
-            @close="resetExportDialog"
-        >
+        <el-dialog :title="t('appAutomation.sceneBuilder.exportPackage')" v-model="exportDialogVisible" width="420px"
+            :close-on-click-modal="false" @close="resetExportDialog">
             <el-form label-width="110px" size="small">
                 <el-form-item :label="t('appAutomation.sceneBuilder.exportIncludeDisabled')">
                     <el-switch v-model="packageIncludeDisabled" />
@@ -553,20 +1035,18 @@
             </el-form>
             <template #footer>
                 <div class="dialog-footer">
-                    <el-button type="primary" plain @click="exportPackage('yaml')">{{ t('appAutomation.sceneBuilder.exportYAML') }}</el-button>
-                    <el-button type="primary" plain @click="exportPackage('json')">{{ t('appAutomation.sceneBuilder.exportJSON') }}</el-button>
-                    <el-button @click="exportDialogVisible = false">{{ t('appAutomation.sceneBuilder.close') }}</el-button>
+                    <el-button type="primary" plain @click="exportPackage('yaml')">{{
+                        t('appAutomation.sceneBuilder.exportYAML') }}</el-button>
+                    <el-button type="primary" plain @click="exportPackage('json')">{{
+                        t('appAutomation.sceneBuilder.exportJSON') }}</el-button>
+                    <el-button @click="exportDialogVisible = false">{{ t('appAutomation.sceneBuilder.close')
+                        }}</el-button>
                 </div>
             </template>
         </el-dialog>
 
-        <el-dialog
-            :title="customDialogTitle"
-            v-model="customDialogVisible"
-            width="50vw"
-            :close-on-click-modal="false"
-            @close="resetCustomDialog"
-        >
+        <el-dialog :title="customDialogTitle" v-model="customDialogVisible" width="50vw" :close-on-click-modal="false"
+            @close="resetCustomDialog">
             <el-form ref="customFormRef" :model="customForm" :rules="customRules" label-width="110px">
                 <el-form-item label="组件名称" prop="name">
                     <el-input v-model.trim="customForm.name" placeholder="请输入组件名称" />
@@ -641,8 +1121,7 @@
                                     <el-form-item label="步骤名称">
                                         <el-input v-model.trim="editingActiveStep.name" />
                                     </el-form-item>
-                                    <div class="variable-hint" v-pre>
-                                        支持变量：{{local.xxx}} / {{global.xxx}}
+                                    <div class="variable-hint" v-text="fixI18nBraces(t('appAutomation.sceneBuilder.variableSupport'))">
                                     </div>
                                     <div v-if="editingActiveStep && editingActiveStep.type === 'api_request'" class="api-template-block">
                                         <div class="tool-hint">API 示例模板</div>
@@ -699,8 +1178,47 @@
                                                 :label="getFieldLabel(field)"
                                                 :required="editingSchemaRequired.includes(field)"
                                             >
+                                                <div v-if="needsHelperButtons(field)" style="display: flex; gap: 5px; flex: 1;">
+                                                    <el-input
+                                                        v-if="field === 'expected_list'"
+                                                        type="textarea"
+                                                        :rows="4"
+                                                        :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @update:model-value="updateExpectedList(editingActiveStep.config, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else-if="isJsonField(field)"
+                                                        type="textarea"
+                                                        :rows="getJsonFieldRows(field)"
+                                                        :value="getJsonFieldValue(editingActiveStep && editingActiveStep.config, field)"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @input="updateJsonField(editingActiveStep.config, field, $event)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-input
+                                                        v-else
+                                                        v-model.trim="editingActiveStep.config[field]"
+                                                        :placeholder="getFieldPlaceholder(field)"
+                                                        @focus="onInputFocus"
+                                                        style="flex: 1;"
+                                                    />
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.referenceDataFactory')" placement="top">
+                                                        <el-button size="small" @click="openDataFactorySelector(editingActiveStep, field, true)" class="data-factory-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                    <el-tooltip :content="t('appAutomation.sceneBuilder.insertVariable')" placement="top">
+                                                        <el-button size="small" @click="openVariableHelper(editingActiveStep, field, true)" class="variable-helper-btn">
+                                                            <el-icon><MagicStick /></el-icon>
+                                                        </el-button>
+                                                    </el-tooltip>
+                                                </div>
                                                 <el-input
-                                                    v-if="field === 'expected_list'"
+                                                    v-else-if="field === 'expected_list'"
                                                     type="textarea"
                                                     :rows="4"
                                                     :model-value="getExpectedListValue(editingActiveStep && editingActiveStep.config)"
@@ -763,12 +1281,7 @@
         </el-dialog>
 
         <!-- 元素选择对话框 -->
-        <el-dialog
-            v-model="elementSelectorVisible"
-            title="选择元素"
-            width="1200px"
-            destroy-on-close
-        >
+        <el-dialog v-model="elementSelectorVisible" title="选择元素" width="1200px" destroy-on-close>
             <div class="element-selector-container">
                 <!-- 筛选条件 -->
                 <div class="element-selector-filter">
@@ -779,36 +1292,27 @@
                             <el-radio-button value="pos">坐标</el-radio-button>
                             <el-radio-button value="region">区域</el-radio-button>
                         </el-radio-group>
-                        
-                        <el-input
-                            v-model="elementSearchKeyword"
-                            placeholder="搜索元素"
-                            style="width: 250px"
-                            clearable
-                            @change="loadElementsForSelector"
-                        >
+
+                        <el-input v-model="elementSearchKeyword" placeholder="搜索元素" style="width: 250px" clearable
+                            @change="loadElementsForSelector">
                             <template #prefix>
-                                <el-icon><Search /></el-icon>
+                                <el-icon>
+                                    <Search />
+                                </el-icon>
                             </template>
                         </el-input>
                     </el-space>
                 </div>
 
                 <!-- 元素列表 -->
-                <el-table
-                    :data="selectorElements"
-                    border
-                    v-loading="elementSelectorLoading"
-                    max-height="450px"
-                    highlight-current-row
-                    @row-click="handleElementRowClick"
-                >
+                <el-table :data="selectorElements" border v-loading="elementSelectorLoading" max-height="450px"
+                    highlight-current-row @row-click="handleElementRowClick">
                     <el-table-column prop="name" label="元素名称" width="200">
                         <template #default="{ row }">
                             <el-link type="primary">{{ row.name }}</el-link>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column prop="element_type" label="类型" width="100">
                         <template #default="{ row }">
                             <el-tag :type="getTypeTagColor(row.element_type)">
@@ -816,37 +1320,29 @@
                             </el-tag>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column label="图片分类" width="120">
                         <template #default="{ row }">
-                            <el-tag v-if="row.element_type === 'image' && row.config?.image_category" type="info" size="small">
+                            <el-tag v-if="row.element_type === 'image' && row.config?.image_category" type="info"
+                                size="small">
                                 {{ row.config.image_category }}
                             </el-tag>
                             <span v-else style="color: #909399;">-</span>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column prop="tags" label="标签" width="180">
                         <template #default="{ row }">
-                            <el-tag
-                                v-for="tag in row.tags"
-                                :key="tag"
-                                size="small"
-                                style="margin-right: 5px"
-                            >
+                            <el-tag v-for="tag in row.tags" :key="tag" size="small" style="margin-right: 5px">
                                 {{ tag }}
                             </el-tag>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column label="预览" width="200" align="center">
                         <template #default="{ row }">
                             <div v-if="row.element_type === 'image'" class="preview-image">
-                                <el-image
-                                    :src="row.preview_url"
-                                    fit="contain"
-                                    style="width: 150px; height: 60px"
-                                />
+                                <el-image :src="row.preview_url" fit="contain" style="width: 150px; height: 60px" />
                             </div>
                             <div v-else-if="row.element_type === 'pos'" class="preview-pos">
                                 <el-space :size="4">
@@ -868,7 +1364,7 @@
                             </div>
                         </template>
                     </el-table-column>
-                    
+
                     <el-table-column label="操作" width="100" fixed="right">
                         <template #default="{ row }">
                             <el-button size="small" type="primary" @click.stop="applyElement(row)">
@@ -877,23 +1373,60 @@
                         </template>
                     </el-table-column>
                 </el-table>
-                
+
                 <!-- 分页 -->
-                <el-pagination
-                    v-model:current-page="elementCurrentPage"
-                    v-model:page-size="elementPageSize"
-                    :total="elementTotal"
-                    :page-sizes="[10, 20, 50]"
-                    layout="total, sizes, prev, pager, next"
-                    @current-change="loadElementsForSelector"
-                    @size-change="loadElementsForSelector"
-                    style="margin-top: 15px; justify-content: flex-end"
-                />
+                <el-pagination v-model:current-page="elementCurrentPage" v-model:page-size="elementPageSize"
+                    :total="elementTotal" :page-sizes="[10, 20, 50]" layout="total, sizes, prev, pager, next"
+                    @current-change="loadElementsForSelector" @size-change="loadElementsForSelector"
+                    style="margin-top: 15px; justify-content: flex-end" />
             </div>
-            
+
             <template #footer>
                 <el-button @click="elementSelectorVisible = false">关闭</el-button>
             </template>
+        </el-dialog>
+
+        <!-- 数据工厂选择器对话框 -->
+        <DataFactorySelector
+            v-model="showDataFactorySelector"
+            @select="handleDataFactorySelect"
+        />
+
+        <!-- 变量助手对话框 -->
+        <el-dialog
+            :close-on-press-escape="false"
+            :modal="true"
+            :destroy-on-close="false"
+            v-model="showVariableHelper"
+            :title="t('appAutomation.sceneBuilder.variableHelper')"
+            :close-on-click-modal="false"
+            width="900px"
+        >
+            <el-tabs tab-position="left" style="height: 450px">
+                <el-tab-pane
+                    v-for="(category, index) in variableCategories"
+                    :key="index"
+                    :label="category.label"
+                >
+                    <div style="height: 450px; overflow-y: auto; padding: 10px;">
+                        <el-table :data="category.variables" style="width: 100%" @row-click="insertVariable" highlight-current-row>
+                            <el-table-column prop="name" :label="t('appAutomation.sceneBuilder.functionName')" width="150" show-overflow-tooltip>
+                                <template #default="{ row }">
+                                    <el-tag size="small">{{ row.name }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="desc" :label="t('appAutomation.sceneBuilder.description')" min-width="150" />
+                            <el-table-column prop="syntax" :label="t('appAutomation.sceneBuilder.syntax')" min-width="200" show-overflow-tooltip />
+                            <el-table-column prop="example" :label="t('appAutomation.sceneBuilder.example')" min-width="200" show-overflow-tooltip />
+                            <el-table-column :label="t('appAutomation.sceneBuilder.operation')" width="80" fixed="right">
+                                <template #default="{ row }">
+                                    <el-button link type="primary" size="small">{{ t('appAutomation.sceneBuilder.insert') }}</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
         </el-dialog>
     </div>
 </template>
@@ -903,25 +1436,27 @@ import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera } from '@element-plus/icons-vue'
+import { Upload, Download, FolderAdd, DocumentCopy, Check, Search, Link, Refresh, Camera, MagicStick } from '@element-plus/icons-vue'
 import draggable from "vuedraggable"
 import CaptureElementDialog from '../elements/components/CaptureElementDialog.vue'
+import DataFactorySelector from '@/components/DataFactorySelector.vue'
 import {
-  getComponents,
-  getCustomComponents,
-  createCustomComponent as apiCreateCustomComponent,
-  updateCustomComponent as apiUpdateCustomComponent,
-  deleteCustomComponent as apiDeleteCustomComponent,
-  importComponentPackage,
-  exportComponentPackage,
-  getTestCaseDetail,
-  createTestCase,
-  updateTestCase,
-  getAppElementList,
-  getAppImageCategories,
-  getDeviceList,
-  getAppProjects
+    getComponents,
+    getCustomComponents,
+    createCustomComponent as apiCreateCustomComponent,
+    updateCustomComponent as apiUpdateCustomComponent,
+    deleteCustomComponent as apiDeleteCustomComponent,
+    importComponentPackage,
+    exportComponentPackage,
+    getTestCaseDetail,
+    createTestCase,
+    updateTestCase,
+    getAppElementList,
+    getAppImageCategories,
+    getDeviceList,
+    getAppProjects
 } from '@/api/app-automation'
+import { getVariableFunctions } from '@/api/data-factory'
 
 // Route
 const route = useRoute()
@@ -953,6 +1488,10 @@ const defaultCustomPalette = ref([])
 const scenarioSteps = ref([])
 const selectedIndex = ref(null)
 const selectedSubIndex = ref(null)    // 当前选中的子步骤索引（展开编辑用）
+const selectedNestedIndex = ref(null) // 当前选中的嵌套子步骤索引（子步骤的子步骤，第二层）
+const selectedThirdLevelIndex = ref(null) // 当前选中的第三层子步骤索引（第三层）
+const selectedIfBranchType = ref(null) // 'then' | 'elseif' | 'else'
+const selectedElseIfIndex = ref(null)  // else if 分支索引
 const componentDefinitions = ref({})
 const customComponentDefinitions = ref({})
 const editingCaseId = ref(null)
@@ -1029,6 +1568,14 @@ const linkedElements = ref({
 // Refs
 const customFormRef = ref(null)
 
+// 数据工厂选择器和变量助手相关状态
+const showDataFactorySelector = ref(false)
+const showVariableHelper = ref(false)
+const currentFocusedInput = ref(null)
+const currentDataFactoryTarget = ref(null)  // { step, field, isEditing }
+const variableCategories = ref([])
+const variableLoading = ref(false)
+
 // Computed properties
 const activeStep = computed(() => {
     if (selectedIndex.value === null) {
@@ -1036,10 +1583,112 @@ const activeStep = computed(() => {
     }
     const parentStep = scenarioSteps.value[selectedIndex.value]
     if (!parentStep) return null
-    
+
+    // 如果选中了第三层子步骤（最内层），返回第三层子步骤
+    if (selectedSubIndex.value !== null && selectedNestedIndex.value !== null && selectedThirdLevelIndex.value !== null) {
+        let subStep
+        if (parentStep.type === 'loop') {
+            subStep = parentStep.config?.steps?.[selectedSubIndex.value]
+        } else if (parentStep.kind === 'custom') {
+            subStep = parentStep.steps?.[selectedSubIndex.value]
+        } else if (parentStep.type === 'if') {
+            // IF 分支的情况
+            if (selectedIfBranchType.value === 'then') {
+                subStep = parentStep.config.then_steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value !== null) {
+                const branch = parentStep.config.elseif_branches?.[selectedElseIfIndex.value]
+                subStep = branch?.steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                subStep = parentStep.config.else_steps?.[selectedSubIndex.value]
+            }
+        }
+
+        if (!subStep) return null
+
+        let nestedStep
+        if (subStep.type === 'loop') {
+            nestedStep = subStep.config?.steps?.[selectedNestedIndex.value]
+        } else if (subStep.kind === 'custom') {
+            nestedStep = subStep.steps?.[selectedNestedIndex.value]
+        } else if (subStep.type === 'if') {
+            // 嵌套的 IF 分支
+            if (selectedIfBranchType.value === 'then') {
+                nestedStep = subStep.config.then_steps?.[selectedNestedIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                nestedStep = subStep.config.else_steps?.[selectedNestedIndex.value]
+            }
+        }
+
+        if (nestedStep) {
+            if (nestedStep.type === 'loop') {
+                return nestedStep.config?.steps?.[selectedThirdLevelIndex.value] || null
+            } else if (nestedStep.kind === 'custom') {
+                return nestedStep.steps?.[selectedThirdLevelIndex.value] || null
+            } else if (nestedStep.type === 'if') {
+                // 嵌套的 IF 分支的第三层
+                if (selectedIfBranchType.value === 'then') {
+                    return nestedStep.config.then_steps?.[selectedThirdLevelIndex.value] || null
+                } else if (selectedIfBranchType.value === 'else') {
+                    return nestedStep.config.else_steps?.[selectedThirdLevelIndex.value] || null
+                }
+            }
+        }
+    }
+
+    // 如果选中了嵌套子步骤，返回嵌套子步骤
+    if (selectedSubIndex.value !== null && selectedNestedIndex.value !== null) {
+        let subStep
+        if (parentStep.type === 'loop') {
+            subStep = parentStep.config?.steps?.[selectedSubIndex.value]
+        } else if (parentStep.kind === 'custom') {
+            subStep = parentStep.steps?.[selectedSubIndex.value]
+        } else if (parentStep.type === 'if') {
+            // IF 分支的情况
+            if (selectedIfBranchType.value === 'then') {
+                subStep = parentStep.config.then_steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value !== null) {
+                const branch = parentStep.config.elseif_branches?.[selectedElseIfIndex.value]
+                subStep = branch?.steps?.[selectedSubIndex.value]
+            } else if (selectedIfBranchType.value === 'else') {
+                subStep = parentStep.config.else_steps?.[selectedSubIndex.value]
+            }
+        }
+
+        if (subStep) {
+            if (subStep.type === 'loop') {
+                return subStep.config?.steps?.[selectedNestedIndex.value] || null
+            } else if (subStep.kind === 'custom') {
+                return subStep.steps?.[selectedNestedIndex.value] || null
+            } else if (subStep.type === 'if') {
+                // 嵌套的 IF 分支
+                if (selectedIfBranchType.value === 'then') {
+                    return subStep.config.then_steps?.[selectedNestedIndex.value] || null
+                } else if (selectedIfBranchType.value === 'else') {
+                    return subStep.config.else_steps?.[selectedNestedIndex.value] || null
+                }
+            }
+        }
+    }
+
     // 如果选中了子步骤，返回子步骤
-    if (selectedSubIndex.value !== null && parentStep.steps) {
-        return parentStep.steps[selectedSubIndex.value] || null
+    if (selectedSubIndex.value !== null) {
+        if (parentStep.type === 'if' && parentStep.config) {
+            if (selectedIfBranchType.value === 'then') {
+                return parentStep.config.then_steps?.[selectedSubIndex.value] || null
+            }
+            if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value !== null) {
+                const branch = parentStep.config.elseif_branches?.[selectedElseIfIndex.value]
+                return branch?.steps?.[selectedSubIndex.value] || null
+            }
+            if (selectedIfBranchType.value === 'else') {
+                return parentStep.config.else_steps?.[selectedSubIndex.value] || null
+            }
+        }
+        if (parentStep.type === 'loop' && parentStep.config?.steps) {
+            return parentStep.config.steps[selectedSubIndex.value] || null
+        } else if (parentStep.steps) {
+            return parentStep.steps[selectedSubIndex.value] || null
+        }
     }
     return parentStep
 })
@@ -1125,6 +1774,12 @@ const schemaRequired = computed(() => {
     return activeComponentDef.value.schema.required || []
 })
 
+// 修复 i18n 翻译中的占位符（将 __OPEN__ 和 __CLOSE__ 替换为 {{ 和 }}）
+const fixI18nBraces = (text) => {
+    if (!text) return text
+    return text.replace(/__OPEN__/g, '{{').replace(/__CLOSE__/g, '}}')
+}
+
 watch(() => activeStep.value?.config?.assert_type, (value) => {
     if (!activeStep.value || !activeStep.value.config) {
         return
@@ -1139,7 +1794,7 @@ onMounted(async () => {
     // console.log('UiTestSceneBuilder mounted, $api:', $api)
     try {
         await Promise.all([
-            loadComponentPalette(), 
+            loadComponentPalette(),
             loadCustomComponentPalette(),
             loadImageCategoryOptions(),  // 加载图片分类选项
             getAppProjects({ page_size: 100 }).then(res => { projectList.value = res.data.results || res.data || [] })
@@ -1429,12 +2084,25 @@ const cloneComponent = (item) => {
         }))
         cloned._expanded = false  // 展开/收起状态
     }
+    if (cloned.type === "if") {
+        ensureIfConfig(cloned)
+        delete cloned.config.else_steps
+        delete cloned.config.else_steps_input
+        cloned._expanded = false
+    }
+    if (cloned.type === "loop") {
+        if (!cloned.config) cloned.config = {}
+        if (!cloned.config.steps) cloned.config.steps = []
+        cloned._expanded = false
+    }
     return cloned
 }
 
 const selectStep = (index) => {
     selectedIndex.value = index
     selectedSubIndex.value = null  // 切换主步骤时清除子步骤选中
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
     const step = scenarioSteps.value[index]
     if (step) {
         applyDefaultConfig(step)
@@ -1455,10 +2123,24 @@ const selectStep = (index) => {
 const selectSubStep = (parentIndex, subIndex) => {
     selectedIndex.value = parentIndex
     selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
     const parentStep = scenarioSteps.value[parentIndex]
-    if (parentStep && parentStep.steps && parentStep.steps[subIndex]) {
-        applyDefaultConfig(parentStep.steps[subIndex])
+    
+    let subStep = null
+    if (parentStep) {
+        // 根据步骤类型获取子步骤
+        if (parentStep.type === 'loop') {
+            subStep = parentStep.config?.steps?.[subIndex]
+        } else if (parentStep.kind === 'custom') {
+            subStep = parentStep.steps?.[subIndex]
+        }
+        
+        if (subStep) {
+            applyDefaultConfig(subStep)
+        }
     }
+    
     linkedElements.value = {
         selector: null, fallback: null, click: null, ocr: null,
         start: null, end: null, target: null, expected: null
@@ -1473,45 +2155,971 @@ const toggleExpandCustomStep = (index) => {
             // 收起时清除子步骤选中
             if (selectedIndex.value === index && selectedSubIndex.value !== null) {
                 selectedSubIndex.value = null
+                selectedNestedIndex.value = null
+            }
+        } else {
+            // 展开时确保 steps 数组存在
+            if (step.type === 'loop') {
+                if (!step.config) step.config = {}
+                if (!step.config.steps) step.config.steps = []
+            } else if (step.type === 'if') {
+                ensureIfConfig(step)
+            } else if (step.kind === 'custom' && !step.steps) {
+                step.steps = []
             }
         }
     }
 }
 
+// 切换子步骤的展开/收起状态（用于嵌套的控制组件）
+const toggleExpandSubStep = (parentIndex, subIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 根据父步骤类型获取子步骤
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    subStep._expanded = !subStep._expanded
+    
+    if (!subStep._expanded) {
+        // 收起时清除选中
+        if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex) {
+            selectedNestedIndex.value = null
+        }
+    } else {
+        // 展开时确保子步骤的 steps 数组存在
+        if (subStep.type === 'loop') {
+            if (!subStep.config) subStep.config = {}
+            if (!subStep.config.steps) subStep.config.steps = []
+        } else if (subStep.type === 'if') {
+            ensureIfConfig(subStep)
+        } else if (subStep.kind === 'custom' && !subStep.steps) {
+            subStep.steps = []
+        }
+    }
+}
+
+// 计算控制组件的嵌套层级
+const getControlNestingLevel = (step, currentLevel = 1) => {
+    if (!step) return currentLevel
+    
+    let maxLevel = currentLevel
+    
+    // 检查当前步骤是否是控制组件
+    const isControlComponent = step.type === 'loop' || step.type === 'if'
+    
+    if (isControlComponent) {
+        // 获取子步骤
+        let subSteps = []
+        if (step.type === 'loop') {
+            subSteps = step.config?.steps || []
+        } else if (step.type === 'if') {
+            subSteps = [
+                ...(step.config?.then_steps || []),
+                ...(step.config?.else_steps || []),
+                ...(step.config?.elseif_branches || []).flatMap(branch => branch.steps || [])
+            ]
+        }
+        
+        // 递归检查子步骤中的控制组件
+        for (const subStep of subSteps) {
+            if (subStep.type === 'loop' || subStep.type === 'if') {
+                const level = getControlNestingLevel(subStep, currentLevel + 1)
+                maxLevel = Math.max(maxLevel, level)
+            }
+        }
+    }
+    
+    return maxLevel
+}
+
+// 检查是否可以添加控制组件（不超过3层嵌套）
+const canAddControlComponent = (parentStep, newStepType) => {
+    if (newStepType !== 'loop' && newStepType !== 'if') {
+        return { allowed: true, message: '' }
+    }
+    
+    const currentLevel = getControlNestingLevel(parentStep, 1)
+    if (currentLevel >= 3) {
+        return { 
+            allowed: false, 
+            message: '控制组件（循环/条件）嵌套不能超过3层' 
+        }
+    }
+    
+    return { allowed: true, message: '' }
+}
+
 const addSubStep = (parentIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    // 弹出选择基础组件的提示，这里简化为添加一个 click 步骤
+    if (!parentStep) return
+    
+    // 根据步骤类型确定子步骤数组的位置
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        // loop 类型的子步骤在 config.steps 中
+        if (!parentStep.config) parentStep.config = {}
+        if (!parentStep.config.steps) parentStep.config.steps = []
+        stepsArray = parentStep.config.steps
+    } else if (parentStep.kind === 'custom') {
+        // 自定义组件的子步骤在 steps 中
+        if (!parentStep.steps) parentStep.steps = []
+        stepsArray = parentStep.steps
+    } else {
+        // 其他类型不支持添加子步骤
+        return
+    }
+    
+    // 创建新的点击步骤
     const newStep = {
         id: generateStepId(),
         type: 'click',
         name: '点击',
         config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
     }
-    parentStep.steps.push(newStep)
-    selectSubStep(parentIndex, parentStep.steps.length - 1)
+    
+    stepsArray.push(newStep)
+    
+    // 选中新添加的子步骤
+    if (parentStep.type === 'loop') {
+        selectSubStep(parentIndex, stepsArray.length - 1)
+    } else if (parentStep.kind === 'custom') {
+        selectSubStep(parentIndex, stepsArray.length - 1)
+    }
+}
+
+// 添加控制组件子步骤（带嵌套层级检查）
+const addControlSubStep = (parentIndex, stepType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 检查嵌套层级
+    const check = canAddControlComponent(parentStep, stepType)
+    if (!check.allowed) {
+        ElMessage.warning(check.message)
+        return
+    }
+    
+    // 根据步骤类型确定子步骤数组的位置
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        if (!parentStep.config) parentStep.config = {}
+        if (!parentStep.config.steps) parentStep.config.steps = []
+        stepsArray = parentStep.config.steps
+    } else if (parentStep.kind === 'custom') {
+        if (!parentStep.steps) parentStep.steps = []
+        stepsArray = parentStep.steps
+    } else {
+        return
+    }
+    
+    // 创建新的控制组件步骤
+    const componentDef = componentDefinitions.value[stepType]
+    const newStep = {
+        id: generateStepId(),
+        type: stepType,
+        name: componentDef?.name || stepType,
+        config: { ...(componentDef?.default_config || {}) },
+        _expanded: false
+    }
+    
+    // 初始化控制组件的配置
+    if (stepType === 'loop') {
+        if (!newStep.config.steps) newStep.config.steps = []
+    } else if (stepType === 'if') {
+        ensureIfConfig(newStep)
+    }
+    
+    stepsArray.push(newStep)
+    selectSubStep(parentIndex, stepsArray.length - 1)
+}
+
+// 处理拖拽添加子步骤事件（检查嵌套层级）
+const handleSubStepAdd = (parentIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    // 获取被拖入的元素
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 检查是否是控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        const check = canAddControlComponent(parentStep, addedStep.type)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            // 移除刚添加的步骤
+            stepsArray.splice(newIndex, 1)
+        }
+    }
+}
+
+// 处理拖拽添加主步骤事件（检查嵌套层级）
+const handleMainStepAdd = (evt) => {
+    const newIndex = evt.newIndex
+    if (!scenarioSteps.value[newIndex]) return
+    
+    const addedStep = scenarioSteps.value[newIndex]
+    
+    // 主步骤没有父级，所以嵌套层级始终为1，不需要检查
+    // 这里只是为了完整性保留
+}
+
+// 处理拖拽添加嵌套子步骤事件
+const handleNestedSubStepAdd = (parentIndex, subIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 检查是否是控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        const check = canAddControlComponent(subStep, addedStep.type)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            stepsArray.splice(newIndex, 1)
+        }
+    }
+}
+
+// 选择嵌套子步骤
+const selectNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    selectedIndex.value = parentIndex
+    selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = nestedIndex
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
+    
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (nestedStep) {
+        applyDefaultConfig(nestedStep)
+    }
+    
+    linkedElements.value = {
+        selector: null, fallback: null, click: null, ocr: null,
+        start: null, end: null, target: null, expected: null
+    }
+}
+
+// 选择第三层子步骤
+const selectThirdLevelStep = (parentIndex, subIndex, nestedIndex, thirdIndex) => {
+    // 先保存 IF 分支状态（用于导航）
+    const savedIfBranchType = selectedIfBranchType.value
+    const savedElseIfIndex = selectedElseIfIndex.value
+    
+    // 设置选择索引
+    selectedIndex.value = parentIndex
+    selectedSubIndex.value = subIndex
+    selectedNestedIndex.value = nestedIndex
+    selectedThirdLevelIndex.value = thirdIndex
+    
+    // 清除 IF 分支状态（避免与主步骤 IF 分支混淆）
+    selectedIfBranchType.value = null
+    selectedElseIfIndex.value = null
+    
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    } else if (parentStep.type === 'if') {
+        // IF 分支的情况 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            subStep = parentStep.config.then_steps?.[subIndex]
+        } else if (savedIfBranchType === 'elseif' && savedElseIfIndex !== null) {
+            const branch = parentStep.config.elseif_branches?.[savedElseIfIndex]
+            subStep = branch?.steps?.[subIndex]
+        } else if (savedIfBranchType === 'else') {
+            subStep = parentStep.config.else_steps?.[subIndex]
+        }
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    } else if (subStep.type === 'if') {
+        // 嵌套的 IF 分支 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            nestedStep = subStep.config.then_steps?.[nestedIndex]
+        } else if (savedIfBranchType === 'else') {
+            nestedStep = subStep.config.else_steps?.[nestedIndex]
+        }
+    }
+    
+    if (!nestedStep) return
+    
+    // 获取第三层子步骤
+    let thirdStep = null
+    if (nestedStep.type === 'loop') {
+        thirdStep = nestedStep.config?.steps?.[thirdIndex]
+    } else if (nestedStep.kind === 'custom') {
+        thirdStep = nestedStep.steps?.[thirdIndex]
+    } else if (nestedStep.type === 'if') {
+        // 嵌套的 IF 分支 - 使用保存的分支类型
+        if (savedIfBranchType === 'then') {
+            thirdStep = nestedStep.config.then_steps?.[thirdIndex]
+        } else if (savedIfBranchType === 'else') {
+            thirdStep = nestedStep.config.else_steps?.[thirdIndex]
+        }
+    }
+    
+    if (thirdStep) {
+        applyDefaultConfig(thirdStep)
+    }
+    
+    linkedElements.value = {
+        selector: null, fallback: null, click: null, ocr: null,
+        start: null, end: null, target: null, expected: null
+    }
+}
+
+// 添加嵌套子步骤
+const addNestedSubStep = (parentIndex, subIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        if (!subStep.config) subStep.config = {}
+        if (!subStep.config.steps) subStep.config.steps = []
+        stepsArray = subStep.config.steps
+    } else if (subStep.kind === 'custom') {
+        if (!subStep.steps) subStep.steps = []
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    const newStep = {
+        id: generateStepId(),
+        type: 'click',
+        name: '点击',
+        config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+    }
+    
+    stepsArray.push(newStep)
+    selectNestedSubStep(parentIndex, subIndex, stepsArray.length - 1)
+}
+
+// 删除嵌套子步骤
+const removeNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(nestedIndex, 1)
+    
+    if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value === nestedIndex) {
+        selectedNestedIndex.value = null
+    } else if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value > nestedIndex) {
+        selectedNestedIndex.value -= 1
+    }
+}
+
+// 添加嵌套 IF 分支步骤
+const addNestedIfBranchStep = (parentIndex, subIndex, branchType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep || subStep.type !== 'if') return
+    
+    // 复用现有的 addIfBranchStep 函数
+    // 需要临时将 subStep 放入一个虚拟数组中
+    const virtualSteps = [subStep]
+    scenarioSteps.value[parentIndex] = subStep  // 临时替换
+    
+    addIfBranchStep(0, branchType, null, null, 'click')
+    
+    scenarioSteps.value[parentIndex] = parentStep  // 恢复
+}
+
+// 切换第三层嵌套子步骤的展开/收起
+const toggleExpandNestedStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    nestedStep._expanded = !nestedStep._expanded
+    
+    if (!nestedStep._expanded) {
+        // 收起时清除选中
+        if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex && selectedNestedIndex.value === nestedIndex) {
+            // 保持选中状态，但清除更深层的选择（如果有）
+        }
+    } else {
+        // 展开时确保子步骤的 steps 数组存在
+        if (nestedStep.type === 'loop') {
+            if (!nestedStep.config) nestedStep.config = {}
+            if (!nestedStep.config.steps) nestedStep.config.steps = []
+        } else if (nestedStep.kind === 'custom' && !nestedStep.steps) {
+            nestedStep.steps = []
+        }
+    }
+}
+
+// 复制第三层嵌套子步骤
+const duplicateNestedSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let stepsArray = null
+    if (subStep.type === 'loop') {
+        stepsArray = subStep.config?.steps
+    } else if (subStep.kind === 'custom') {
+        stepsArray = subStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[nestedIndex]) return
+    
+    const originalStep = stepsArray[nestedIndex]
+    const duplicatedStep = JSON.parse(JSON.stringify(originalStep))
+    duplicatedStep.id = generateStepId()
+    duplicatedStep._expanded = false
+    
+    stepsArray.splice(nestedIndex + 1, 0, duplicatedStep)
+    selectNestedSubStep(parentIndex, subIndex, nestedIndex + 1)
+}
+
+// 处理第三层拖拽添加子步骤（只允许基础组件）
+const handleThirdLevelSubStepAdd = (parentIndex, subIndex, nestedIndex, evt) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    const newIndex = evt.newIndex
+    let stepsArray = null
+    
+    if (nestedStep.type === 'loop') {
+        stepsArray = nestedStep.config?.steps
+    } else if (nestedStep.kind === 'custom') {
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[newIndex]) return
+    
+    const addedStep = stepsArray[newIndex]
+    
+    // 第三层只允许基础组件，不允许控制组件
+    if (addedStep.type === 'loop' || addedStep.type === 'if') {
+        ElMessage.warning('第三层嵌套只支持添加基础组件，不支持控制组件')
+        stepsArray.splice(newIndex, 1)
+    }
+}
+
+// 添加第三层子步骤（只允许基础组件）
+const addThirdLevelSubStep = (parentIndex, subIndex, nestedIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    let stepsArray = null
+    if (nestedStep.type === 'loop') {
+        if (!nestedStep.config) nestedStep.config = {}
+        if (!nestedStep.config.steps) nestedStep.config.steps = []
+        stepsArray = nestedStep.config.steps
+    } else if (nestedStep.kind === 'custom') {
+        if (!nestedStep.steps) nestedStep.steps = []
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    const newStep = {
+        id: generateStepId(),
+        type: 'click',
+        name: '点击',
+        config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+    }
+    
+    stepsArray.push(newStep)
+    // Select the newly added third-level step
+    selectThirdLevelStep(parentIndex, subIndex, nestedIndex, stepsArray.length - 1)
+}
+
+// 删除第三层子步骤
+const removeThirdLevelSubStep = (parentIndex, subIndex, nestedIndex, thirdIndex) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep) return
+    
+    let stepsArray = null
+    if (nestedStep.type === 'loop') {
+        stepsArray = nestedStep.config?.steps
+    } else if (nestedStep.kind === 'custom') {
+        stepsArray = nestedStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(thirdIndex, 1)
+}
+
+// 添加第三层 IF 分支步骤（只允许基础组件）
+const addThirdLevelIfBranchStep = (parentIndex, subIndex, nestedIndex, branchType) => {
+    const parentStep = scenarioSteps.value[parentIndex]
+    if (!parentStep) return
+    
+    let subStep = null
+    if (parentStep.type === 'loop') {
+        subStep = parentStep.config?.steps?.[subIndex]
+    } else if (parentStep.kind === 'custom') {
+        subStep = parentStep.steps?.[subIndex]
+    }
+    
+    if (!subStep) return
+    
+    let nestedStep = null
+    if (subStep.type === 'loop') {
+        nestedStep = subStep.config?.steps?.[nestedIndex]
+    } else if (subStep.kind === 'custom') {
+        nestedStep = subStep.steps?.[nestedIndex]
+    }
+    
+    if (!nestedStep || nestedStep.type !== 'if') return
+    
+    // 直接操作 nestedStep 的分支
+    if (branchType === 'then') {
+        if (!nestedStep.config) nestedStep.config = {}
+        if (!Array.isArray(nestedStep.config.then_steps)) nestedStep.config.then_steps = []
+        
+        const newStep = {
+            id: generateStepId(),
+            type: 'click',
+            name: '点击',
+            config: { ...(componentDefinitions.value['click']?.default_config || { selector_type: 'image', timeout: 5 }) }
+        }
+        
+        nestedStep.config.then_steps.push(newStep)
+    }
 }
 
 const duplicateSubStep = (parentIndex, subIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    const source = parentStep.steps[subIndex]
-    if (!source) return
+    if (!parentStep) return
+    
+    // 根据步骤类型获取子步骤数组
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray || !stepsArray[subIndex]) return
+    
+    const source = stepsArray[subIndex]
     const copy = JSON.parse(JSON.stringify(source))
     copy.id = generateStepId()
     copy.name = `${source.name || source.type}-复制`
-    parentStep.steps.splice(subIndex + 1, 0, copy)
+    stepsArray.splice(subIndex + 1, 0, copy)
 }
 
 const removeSubStep = (parentIndex, subIndex) => {
     const parentStep = scenarioSteps.value[parentIndex]
-    if (!parentStep || !parentStep.steps) return
-    parentStep.steps.splice(subIndex, 1)
+    if (!parentStep) return
+    
+    // 根据步骤类型获取子步骤数组
+    let stepsArray = null
+    if (parentStep.type === 'loop') {
+        stepsArray = parentStep.config?.steps
+    } else if (parentStep.kind === 'custom') {
+        stepsArray = parentStep.steps
+    }
+    
+    if (!stepsArray) return
+    
+    stepsArray.splice(subIndex, 1)
+    
     // 调整选中状态
     if (selectedIndex.value === parentIndex && selectedSubIndex.value === subIndex) {
         selectedSubIndex.value = null
+        selectedNestedIndex.value = null
     } else if (selectedIndex.value === parentIndex && selectedSubIndex.value > subIndex) {
-        selectedSubIndex.value--
+        selectedSubIndex.value -= 1
+    }
+}
+
+// IF 组件相关方法
+const ensureIfConfig = (step) => {
+    if (!step.config) step.config = {}
+    if (!Array.isArray(step.config.then_steps)) step.config.then_steps = []
+    if (!Array.isArray(step.config.conditions_input)) {
+        step.config.conditions_input = [{ field: '', operator: 'equals', value: '' }]
+    }
+}
+
+const addIfCondition = (index) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    ensureIfConfig(step)
+    step.config.conditions_input.push({ field: '', operator: 'equals', value: '' })
+}
+
+const removeIfCondition = (index, cIdx) => {
+    const step = scenarioSteps.value[index]
+    if (!step || !step.config?.conditions_input) return
+    if (step.config.conditions_input.length > 1) {
+        step.config.conditions_input.splice(cIdx, 1)
+    } else {
+        ElMessage.warning('至少保留一个条件')
+    }
+}
+
+const addElseIfBranch = (index) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    ensureIfConfig(step)
+    if (!Array.isArray(step.config.elseif_branches)) {
+        step.config.elseif_branches = []
+    }
+    step.config.elseif_branches.push({
+        conditions_input: [{ field: '', operator: 'equals', value: '' }],
+        steps: []
+    })
+}
+
+const removeElseIfBranch = (index, branchIndex) => {
+    const step = scenarioSteps.value[index]
+    if (!step || !step.config?.elseif_branches) return
+    step.config.elseif_branches.splice(branchIndex, 1)
+    if (selectedIfBranchType.value === 'elseif' && selectedElseIfIndex.value === branchIndex) {
+        selectedIfBranchType.value = null
+        selectedElseIfIndex.value = null
+    }
+}
+
+const addElseIfCondition = (index, branchIndex) => {
+    const step = scenarioSteps.value[index]
+    if (!step || !step.config?.elseif_branches?.[branchIndex]) return
+    step.config.elseif_branches[branchIndex].conditions_input.push({ field: '', operator: 'equals', value: '' })
+}
+
+const removeElseIfCondition = (index, branchIndex, cIdx) => {
+    const step = scenarioSteps.value[index]
+    if (!step || !step.config?.elseif_branches?.[branchIndex]) return
+    const branch = step.config.elseif_branches[branchIndex]
+    if (branch.conditions_input.length > 1) {
+        branch.conditions_input.splice(cIdx, 1)
+    } else {
+        ElMessage.warning('至少保留一个条件')
+    }
+}
+
+const enableElseBranch = (index) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    ensureIfConfig(step)
+    step.config.else_steps = []
+}
+
+const disableElseBranch = (index) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    if (selectedIfBranchType.value === 'else') {
+        selectedIfBranchType.value = null
+    }
+    step.config.else_steps = null
+}
+
+const addIfBranchStep = (index, branchType, subIdx = null, branchIndex = null, stepType = 'click') => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    
+    // 如果是控制组件，检查嵌套层级
+    if (stepType === 'loop' || stepType === 'if') {
+        const check = canAddControlComponent(step, stepType)
+        if (!check.allowed) {
+            ElMessage.warning(check.message)
+            return
+        }
+    }
+    
+    const componentDef = componentDefinitions.value[stepType]
+    const newStep = {
+        id: generateStepId(),
+        type: stepType,
+        name: componentDef?.name || stepType,
+        config: { ...(componentDef?.default_config || {}) },
+        _expanded: false
+    }
+    
+    // 初始化控制组件的配置
+    if (stepType === 'loop') {
+        if (!newStep.config.steps) newStep.config.steps = []
+    } else if (stepType === 'if') {
+        ensureIfConfig(newStep)
+    }
+    
+    if (branchType === 'then') {
+        ensureIfConfig(step)
+        step.config.then_steps.push(newStep)
+        selectIfBranchStep(index, 'then', step.config.then_steps.length - 1)
+    } else if (branchType === 'elseif' && branchIndex !== null) {
+        if (step.config.elseif_branches?.[branchIndex]) {
+            step.config.elseif_branches[branchIndex].steps.push(newStep)
+            selectIfBranchStep(index, 'elseif', step.config.elseif_branches[branchIndex].steps.length - 1, branchIndex)
+        }
+    } else if (branchType === 'else') {
+        ensureIfConfig(step)
+        if (Array.isArray(step.config.else_steps)) {
+            step.config.else_steps.push(newStep)
+            selectIfBranchStep(index, 'else', step.config.else_steps.length - 1)
+        }
+    }
+}
+
+const duplicateIfBranchStep = (index, branchType, subIdx, branchIndex = null) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    
+    let source = null
+    let targetArray = null
+    
+    if (branchType === 'then') {
+        source = step.config.then_steps?.[subIdx]
+        targetArray = step.config.then_steps
+    } else if (branchType === 'elseif' && branchIndex !== null) {
+        source = step.config.elseif_branches?.[branchIndex]?.steps?.[subIdx]
+        targetArray = step.config.elseif_branches?.[branchIndex]?.steps
+    } else if (branchType === 'else') {
+        source = step.config.else_steps?.[subIdx]
+        targetArray = step.config.else_steps
+    }
+    
+    if (!source || !targetArray) return
+    
+    const copy = JSON.parse(JSON.stringify(source))
+    copy.id = generateStepId()
+    copy.name = `${source.name || source.type}-复制`
+    targetArray.splice(subIdx + 1, 0, copy)
+}
+
+const removeIfBranchStep = (index, branchType, subIdx, branchIndex = null) => {
+    const step = scenarioSteps.value[index]
+    if (!step || step.type !== 'if') return
+    
+    let targetArray = null
+    
+    if (branchType === 'then') {
+        targetArray = step.config.then_steps
+    } else if (branchType === 'elseif' && branchIndex !== null) {
+        targetArray = step.config.elseif_branches?.[branchIndex]?.steps
+    } else if (branchType === 'else') {
+        targetArray = step.config.else_steps
+    }
+    
+    if (!targetArray) return
+    
+    targetArray.splice(subIdx, 1)
+    
+    // 调整选中状态
+    if (selectedIndex.value === index && selectedSubIndex.value === subIdx && selectedIfBranchType.value === branchType) {
+        if (branchType === 'elseif' && selectedElseIfIndex.value === branchIndex) {
+            selectedIfBranchType.value = null
+            selectedElseIfIndex.value = null
+        } else if (branchType !== 'elseif') {
+            selectedIfBranchType.value = null
+        }
+    }
+}
+
+const selectIfBranchStep = (index, branchType, subIdx, branchIndex = null) => {
+    selectedIndex.value = index
+    selectedSubIndex.value = subIdx
+    selectedIfBranchType.value = branchType
+    selectedElseIfIndex.value = branchIndex
+    selectedNestedIndex.value = null  // 清除嵌套层选中状态
+    selectedThirdLevelIndex.value = null  // 清除第三层选中状态
+    
+    const parentStep = scenarioSteps.value[index]
+    if (!parentStep || parentStep.type !== 'if') return
+    
+    let subStep = null
+    if (branchType === 'then') {
+        subStep = parentStep.config.then_steps?.[subIdx]
+    } else if (branchType === 'elseif' && branchIndex !== null) {
+        subStep = parentStep.config.elseif_branches?.[branchIndex]?.steps?.[subIdx]
+    } else if (branchType === 'else') {
+        subStep = parentStep.config.else_steps?.[subIdx]
+    }
+    
+    if (subStep) {
+        applyDefaultConfig(subStep)
+    }
+    linkedElements.value = {
+        selector: null, fallback: null, click: null, ocr: null,
+        start: null, end: null, target: null, expected: null
     }
 }
 
@@ -1555,12 +3163,12 @@ const resetScene = () => {
 
 const openCustomComponentDialog = () => {
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请先选择要保存的步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepsFirst'))
         return
     }
     const hasCustomStep = scenarioSteps.value.some(step => step.kind === "custom")
     if (hasCustomStep) {
-        ElMessage.warning("自定义组件中不支持嵌套自定义组件")
+        ElMessage.warning(t('appAutomation.messages.noNestedCustomComponent'))
         return
     }
     customDialogVisible.value = true
@@ -1614,12 +3222,12 @@ const selectEditStep = (index) => {
 
 const addEditStep = () => {
     if (!editStepType.value) {
-        ElMessage.warning("请选择基础组件")
+        ElMessage.warning(t('appAutomation.messages.selectBaseComponent'))
         return
     }
     const item = componentPalette.value.find(component => component.type === editStepType.value)
     if (!item) {
-        ElMessage.warning("基础组件不存在")
+        ElMessage.warning(t('appAutomation.messages.baseComponentNotExist'))
         return
     }
     const step = {
@@ -1658,9 +3266,9 @@ const duplicateEditStep = (index) => {
 
 const deleteCustomComponent = async (item) => {
     try {
-        await ElMessageBox.confirm(`确定删除自定义组件 ${item.name} 吗？`, "提示", {
-            confirmButtonText: "确定",
-            cancelButtonText: "取消",
+        await ElMessageBox.confirm(t('appAutomation.messages.deleteCustomComponentConfirm', { name: item.name }), t('appAutomation.messages.tip'), {
+            confirmButtonText: t('appAutomation.messages.confirm'),
+            cancelButtonText: t('appAutomation.messages.cancel'),
             type: "warning"
         })
     } catch (error) {
@@ -1668,7 +3276,7 @@ const deleteCustomComponent = async (item) => {
     }
     try {
         await apiDeleteCustomComponent(item.id)
-        ElMessage.success("删除成功")
+        ElMessage.success(t('appAutomation.messages.deleteSuccess'))
         customComponentPalette.value = customComponentPalette.value.filter(
             component => component.id !== item.id
         )
@@ -1676,7 +3284,7 @@ const deleteCustomComponent = async (item) => {
         paletteTab.value = "custom"
     } catch (error) {
         console.error("删除自定义组件失败:", error)
-        ElMessage.error("删除失败")
+        ElMessage.error(t('appAutomation.messages.deleteFailed'))
     }
 }
 
@@ -1686,11 +3294,11 @@ const saveCustomComponent = () => {
             return
         }
         if (customDialogMode.value === "create" && scenarioSteps.value.length === 0) {
-            ElMessage.warning("请先添加场景步骤")
+            ElMessage.warning(t('appAutomation.messages.addSceneStepsFirst'))
             return
         }
         if (customDialogMode.value === "edit" && editingCustomSteps.value.length === 0) {
-            ElMessage.warning("请先添加组件步骤")
+            ElMessage.warning(t('appAutomation.messages.addComponentStepsFirst'))
             return
         }
         customSaving.value = true
@@ -1723,17 +3331,17 @@ const saveCustomComponent = () => {
                 : await apiCreateCustomComponent(payload)
             const data = response?.data || response
             if (data && (data.success || data.id)) {
-                ElMessage.success(customDialogMode.value === "edit" ? "自定义组件已更新" : "自定义组件已保存")
+                ElMessage.success(customDialogMode.value === "edit" ? t('appAutomation.messages.customComponentUpdated') : t('appAutomation.messages.customComponentSaved'))
                 customDialogVisible.value = false
                 await loadCustomComponentPalette()
                 paletteTab.value = "custom"
             } else {
-                ElMessage.error(response.data?.message || "保存失败")
+                ElMessage.error(response.data?.message || t('appAutomation.messages.saveFailed'))
             }
         } catch (error) {
             console.error("保存自定义组件失败:", error)
             const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-            ElMessage.error(`保存失败: ${errorMsg}`)
+            ElMessage.error(`${t('appAutomation.messages.saveFailed')}: ${errorMsg}`)
         } finally {
             customSaving.value = false
         }
@@ -1743,9 +3351,9 @@ const saveCustomComponent = () => {
 const loadComponentPalette = async () => {
     try {
         const response = await getComponents({ enabled: 1 })
-        
+
         const list = response.data?.data || response.data || []
-        
+
         if (list.length > 0) {
             const mergedList = list.map(item => ({
                 type: item.type,
@@ -1771,11 +3379,11 @@ const loadComponentPalette = async () => {
         } else {
             componentPalette.value = []
             componentDefinitions.value = {}
-            ElMessage.warning('暂无组件定义，请先初始化组件库（后端运行：python manage.py init_components）')
+            ElMessage.warning(t('appAutomation.messages.initComponentsHint'))
         }
     } catch (error) {
         console.error("加载组件库失败:", error)
-        ElMessage.error('加载组件库失败: ' + (error.message || '未知错误'))
+        ElMessage.error(t('appAutomation.messages.loadComponentsFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
         componentPalette.value = []
         componentDefinitions.value = {}
     }
@@ -1785,9 +3393,9 @@ const loadCustomComponentPalette = async () => {
     defaultCustomPalette.value = JSON.parse(JSON.stringify(customComponentPalette.value))
     try {
         const response = await getCustomComponents({ enabled: 1 })
-        
+
         const list = response.data?.data || response.data || []
-        
+
         if (list.length > 0) {
             customComponentPalette.value = list.map(item => ({
                 id: item.id || `custom_${item.type}_${Date.now()}_${Math.random()}`,
@@ -1862,7 +3470,7 @@ const loadCaseDetail = async (caseId) => {
         }
     } catch (error) {
         console.error("加载用例失败:", error)
-        ElMessage.error("加载用例失败")
+        ElMessage.error(t('appAutomation.messages.loadCaseFailed'))
     }
 }
 
@@ -1890,7 +3498,7 @@ const getFieldGroups = (fieldsOverride = null) => {
     const allFields = fieldsOverride || schemaFields.value
     if (!allFields || allFields.length === 0) return []
     const usedFields = new Set()
-    
+
     // 定义字段组规则
     const groupRules = [
         {
@@ -1942,7 +3550,7 @@ const getFieldGroups = (fieldsOverride = null) => {
             hasFields: () => allFields.includes('assert_type') || allFields.includes('expected')
         }
     ]
-    
+
     // 检测每个组是否存在
     groupRules.forEach(rule => {
         if (rule.hasFields()) {
@@ -1957,23 +3565,23 @@ const getFieldGroups = (fieldsOverride = null) => {
             }
         }
     })
-    
+
     // 其他字段
     const otherFields = allFields.filter(f => !usedFields.has(f))
     if (otherFields.length > 0) {
         // 计算定位类分组的数量（排除 'other'）
         const selectorGroupCount = groups.length
-        
+
         // 如果没有定位类分组，标题为"配置"；否则为"其他配置"
         const otherTitle = selectorGroupCount === 0 ? '配置' : '其他配置'
-        
+
         groups.push({
             key: 'other',
             title: otherTitle,
             fields: otherFields
         })
     }
-    
+
     return groups
 }
 
@@ -2051,7 +3659,9 @@ const getFieldLabel = (field) => {
         min: "最小值",
         max: "最大值",
         retry_times: "重试次数",
-        retry_interval: "重试间隔(秒)"
+        retry_interval: "重试间隔(秒)",
+        key_event: "按键",
+        repeat: "重复次数"
     }
     const config = getActiveConfigForField()
     const currentStep = activeStep.value || editingActiveStep.value
@@ -2070,85 +3680,87 @@ const getFieldLabel = (field) => {
 }
 
 const getFieldPlaceholder = (field) => {
-            const config = getActiveConfigForField()
-            
-            // 动态占位符：根据定位方式返回不同提示
-            const getDynamicPlaceholder = (selectorField, typeField) => {
-                if (!config) return null
-                const type = config[typeField] || 'image'
-                if (type === 'image') return 'image: 文件名'
-                if (type === 'pos') return 'pos: x,y'
-                if (type === 'region') return 'region: x1,y1,x2,y2'
-                return null
-            }
-            
-            if (field === 'selector') {
-                return getDynamicPlaceholder('selector', 'selector_type') || "image: 文件名 | pos: x,y | region: x1,y1,x2,y2"
-            }
-            if (field === 'fallback_selector') {
-                return getDynamicPlaceholder('fallback_selector', 'fallback_selector_type') || "image: 文件名 | pos: x,y | region: x1,y1,x2,y2"
-            }
-            if (field === 'click_selector') {
-                return getDynamicPlaceholder('click_selector', 'click_selector_type') || "image: 文件名 | pos: x,y"
-            }
-            if (field === 'start_selector') {
-                return getDynamicPlaceholder('start_selector', 'start_selector_type') || "image: 文件名 | pos: x,y"
-            }
-            if (field === 'end_selector') {
-                return getDynamicPlaceholder('end_selector', 'end_selector_type') || "image: 文件名 | pos: x,y"
-            }
-            if (field === 'target_selector') {
-                return getDynamicPlaceholder('target_selector', 'target_selector_type') || "image: 文件名"
-            }
-            if (field === 'ocr_selector') {
-                return getDynamicPlaceholder('ocr_selector', 'ocr_selector_type') || "region: x1,y1,x2,y2 | pos: x,y"
-            }
-            
-            const placeholders = {
-                selector: "image: 文件名 | pos: x,y | region: x1,y1,x2,y2",
-                fallback_selector: "image: 文件名 | pos: x,y | region: x1,y1,x2,y2",
-                start_selector: "image: 文件名 | pos: x,y",
-                end_selector: "image: 文件名 | pos: x,y",
-                target_selector: "image: 文件名",
-                click_selector: "image: 文件名 | pos: x,y",
-                ocr_selector: "region: x1,y1,x2,y2 | pos: x,y",
-                value: "请输入内容",
-                expected: "期望文本，如是数字匹配：格式为1,000,000",
-                note: "备注",
-                image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
-                expected_image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
-                fallback_image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
-                image_threshold: "0.7 ~ 1.0",
-                fallback_image_threshold: "0.7 ~ 1.0",
-                expected_list: "例如 100,200,300 或多行",
-                name: "例如 token 或 user.id",
-                value_type: "string/number/boolean/array/object",
-                scope: "local 或 global",
-                source: "例如 outputs.last 或 steps.step_id",
-                path: "例如 data.id",
-                method: "GET/POST/PUT/PATCH/DELETE",
-                url: "例如 https://api.example.com/login",
-                headers: "JSON 对象，如 {\"Authorization\": \"Bearer ...\"}",
-                params: "JSON 对象，如 {\"page\":1}",
-                data: "JSON 对象或字符串",
-                json: "JSON 对象",
-                expected_status: "例如 200",
-                response_type: "auto/json/text",
-                save_as: "变量名，如 login_response",
-                extracts: "[{\"name\":\"token\",\"path\":\"data.token\"}]",
-                left: "支持变量表达式",
-                operator: "== != > >= < <= contains regex truthy",
-                right: "支持变量表达式",
-                items: "JSON 数组，如 [\"a\",\"b\"]",
-                item_var: "默认 item",
-                item_scope: "local 或 global",
-                steps: "JSON 数组，填入子步骤",
-                then_steps: "JSON 数组，填入子步骤",
-                else_steps: "JSON 数组，填入子步骤",
-                branches: "JSON 数组，形如 [[...],[...]]",
-                try_steps: "JSON 数组，填入子步骤",
-                catch_steps: "JSON 数组，填入子步骤",
-                finally_steps: "JSON 数组，填入子步骤"
+    const config = getActiveConfigForField()
+
+    // 动态占位符：根据定位方式返回不同提示
+    const getDynamicPlaceholder = (selectorField, typeField) => {
+        if (!config) return null
+        const type = config[typeField] || 'image'
+        if (type === 'image') return 'image: 文件名'
+        if (type === 'pos') return 'pos: x,y'
+        if (type === 'region') return 'region: x1,y1,x2,y2'
+        return null
+    }
+
+    if (field === 'selector') {
+        return getDynamicPlaceholder('selector', 'selector_type') || "image: 文件名 | pos: x,y | region: x1,y1,x2,y2"
+    }
+    if (field === 'fallback_selector') {
+        return getDynamicPlaceholder('fallback_selector', 'fallback_selector_type') || "image: 文件名 | pos: x,y | region: x1,y1,x2,y2"
+    }
+    if (field === 'click_selector') {
+        return getDynamicPlaceholder('click_selector', 'click_selector_type') || "image: 文件名 | pos: x,y"
+    }
+    if (field === 'start_selector') {
+        return getDynamicPlaceholder('start_selector', 'start_selector_type') || "image: 文件名 | pos: x,y"
+    }
+    if (field === 'end_selector') {
+        return getDynamicPlaceholder('end_selector', 'end_selector_type') || "image: 文件名 | pos: x,y"
+    }
+    if (field === 'target_selector') {
+        return getDynamicPlaceholder('target_selector', 'target_selector_type') || "image: 文件名"
+    }
+    if (field === 'ocr_selector') {
+        return getDynamicPlaceholder('ocr_selector', 'ocr_selector_type') || "region: x1,y1,x2,y2 | pos: x,y"
+    }
+
+    const placeholders = {
+        selector: "image: 文件名 | pos: x,y | region: x1,y1,x2,y2",
+        fallback_selector: "image: 文件名 | pos: x,y | region: x1,y1,x2,y2",
+        start_selector: "image: 文件名 | pos: x,y",
+        end_selector: "image: 文件名 | pos: x,y",
+        target_selector: "image: 文件名",
+        click_selector: "image: 文件名 | pos: x,y",
+        ocr_selector: "region: x1,y1,x2,y2 | pos: x,y",
+        value: "请输入内容",
+        expected: "期望文本，如是数字匹配：格式为1,000,000",
+        note: "备注",
+        image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
+        expected_image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
+        fallback_image_scope: "图片目录名（位于 Template/ 下），默认 common 或输入自定义目录名",
+        image_threshold: "0.7 ~ 1.0",
+        fallback_image_threshold: "0.7 ~ 1.0",
+        expected_list: "例如 100,200,300 或多行",
+        name: "例如 token 或 user.id",
+        value_type: "string/number/boolean/array/object",
+        scope: "local 或 global",
+        source: "例如 outputs.last 或 steps.step_id",
+        path: "例如 data.id",
+        method: "GET/POST/PUT/PATCH/DELETE",
+        url: "例如 https://api.example.com/login",
+        headers: "JSON 对象，如 {\"Authorization\": \"Bearer ...\"}",
+        params: "JSON 对象，如 {\"page\":1}",
+        data: "JSON 对象或字符串",
+        json: "JSON 对象",
+        expected_status: "例如 200",
+        response_type: "auto/json/text",
+        save_as: "变量名，如 login_response",
+        extracts: "[{\"name\":\"token\",\"path\":\"data.token\"}]",
+        left: "支持变量表达式",
+        operator: "== != > >= < <= contains regex truthy",
+        right: "支持变量表达式",
+        items: "JSON 数组，如 [\"a\",\"b\"]",
+        item_var: "默认 item",
+        item_scope: "local 或 global",
+        steps: "JSON 数组，填入子步骤",
+        then_steps: "JSON 数组，填入子步骤",
+        else_steps: "JSON 数组，填入子步骤",
+        branches: "JSON 数组，形如 [[...],[...]]",
+        try_steps: "JSON 数组，填入子步骤",
+        catch_steps: "JSON 数组，填入子步骤",
+        finally_steps: "JSON 数组，填入子步骤",
+        key_event: "按键,如 backspace,enter,delete,home,end,back",
+        repeat: "重复次数"
     }
     const currentStep = activeStep.value || editingActiveStep.value
     if (field === "value" && currentStep && currentStep.type === "set_variable") {
@@ -2168,7 +3780,7 @@ const getFieldPlaceholder = (field) => {
 const applyApiRequestTemplate = (template, targetStep) => {
     const step = targetStep || activeStep.value || editingActiveStep.value
     if (!step || !step.config) {
-        ElMessage.warning("请先选择步骤")
+        ElMessage.warning(t('appAutomation.messages.selectStepFirst'))
         return
     }
     const config = template && template.config
@@ -2177,7 +3789,7 @@ const applyApiRequestTemplate = (template, targetStep) => {
     Object.keys(config).forEach(key => {
         step.config[key] = config[key]
     })
-    ElMessage.success(`已应用模板：${template.name}`)
+    ElMessage.success(t('appAutomation.messages.templateApplied', { name: template.name }))
 }
 
 // 判断是否是图片分类相关字段
@@ -2202,110 +3814,117 @@ const getFieldTypeForDef = (def, field) => {
 }
 
 const getFieldOptions = (field) => {
-            const optionsMap = {
-                image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
-                expected_image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
-                fallback_image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
-                selector_type: [
-                    { label: "image", value: "image" },
-                    { label: "pos", value: "pos" },
-                    { label: "region", value: "region" },
-                    { label: "text", value: "text" }
-                ],
-                fallback_selector_type: [
-                    { label: "image", value: "image" },
-                    { label: "pos", value: "pos" },
-                    { label: "region", value: "region" }
-                ],
-                assert_type: [
-                    { label: "number", value: "number" },
-                    { label: "text", value: "text" },
-                    { label: "regex", value: "regex" },
-                    { label: "range", value: "range" },
-                    { label: "exists", value: "exists" },
-                    { label: "image", value: "image" }
-                ],
-                start_selector_type: [
-                    { label: "image", value: "image" },
-                    { label: "pos", value: "pos" }
-                ],
-                end_selector_type: [
-                    { label: "image", value: "image" },
-                    { label: "pos", value: "pos" }
-                ],
-                target_selector_type: [
-                    { label: "image", value: "image" }
-                ],
-                click_selector_type: [
-                    { label: "image", value: "image" },
-                    { label: "pos", value: "pos" }
-                ],
-                ocr_selector_type: [
-                    { label: "region", value: "region" },
-                    { label: "pos", value: "pos" }
-                ],
-                direction: [
-                    { label: "up", value: "up" },
-                    { label: "down", value: "down" },
-                    { label: "left", value: "left" },
-                    { label: "right", value: "right" }
-                ],
-                match_mode: [
-                    { label: "contains", value: "contains" },
-                    { label: "exact", value: "exact" }
-                ],
-                operator: [
-                    { label: "==", value: "==" },
-                    { label: "!=", value: "!=" },
-                    { label: ">", value: ">" },
-                    { label: ">=", value: ">=" },
-                    { label: "<", value: "<" },
-                    { label: "<=", value: "<=" },
-                    { label: "contains", value: "contains" },
-                    { label: "regex", value: "regex" },
-                    { label: "truthy", value: "truthy" },
-                    { label: "falsy", value: "falsy" }
-                ],
-                scope: [
-                    { label: "local", value: "local" },
-                    { label: "global", value: "global" }
-                ],
-                item_scope: [
-                    { label: "local", value: "local" },
-                    { label: "global", value: "global" }
-                ],
-                error_scope: [
-                    { label: "local", value: "local" },
-                    { label: "global", value: "global" }
-                ],
-                value_type: [
-                    { label: "string", value: "string" },
-                    { label: "number", value: "number" },
-                    { label: "boolean", value: "boolean" },
-                    { label: "array", value: "array" },
-                    { label: "object", value: "object" }
-                ],
-                mode: [
-                    { label: "count", value: "count" },
-                    { label: "condition", value: "condition" },
-                    { label: "foreach", value: "foreach" }
-                ],
-                method: [
-                    { label: "GET", value: "GET" },
-                    { label: "POST", value: "POST" },
-                    { label: "PUT", value: "PUT" },
-                    { label: "PATCH", value: "PATCH" },
-                    { label: "DELETE", value: "DELETE" }
-                ],
-                response_type: [
-                    { label: "auto", value: "auto" },
-                    { label: "json", value: "json" },
-                    { label: "text", value: "text" }
-                ],
-                merge_strategy: [
-                    { label: "last", value: "last" },
-                    { label: "first", value: "first" }
-                ]
+    const optionsMap = {
+        image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
+        expected_image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
+        fallback_image_scope: imageCategoryOptions.value,  // 动态加载的图片分类选项
+        selector_type: [
+            { label: "image", value: "image" },
+            { label: "pos", value: "pos" },
+            { label: "region", value: "region" },
+            { label: "text", value: "text" }
+        ],
+        fallback_selector_type: [
+            { label: "image", value: "image" },
+            { label: "pos", value: "pos" },
+            { label: "region", value: "region" }
+        ],
+        assert_type: [
+            { label: "number", value: "number" },
+            { label: "text", value: "text" },
+            { label: "regex", value: "regex" },
+            { label: "range", value: "range" },
+            { label: "exists", value: "exists" },
+            { label: "image", value: "image" }
+        ],
+        start_selector_type: [
+            { label: "image", value: "image" },
+            { label: "pos", value: "pos" }
+        ],
+        end_selector_type: [
+            { label: "image", value: "image" },
+            { label: "pos", value: "pos" }
+        ],
+        target_selector_type: [
+            { label: "image", value: "image" }
+        ],
+        click_selector_type: [
+            { label: "image", value: "image" },
+            { label: "pos", value: "pos" }
+        ],
+        ocr_selector_type: [
+            { label: "region", value: "region" },
+            { label: "pos", value: "pos" }
+        ],
+        direction: [
+            { label: "up", value: "up" },
+            { label: "down", value: "down" },
+            { label: "left", value: "left" },
+            { label: "right", value: "right" }
+        ],
+        match_mode: [
+            { label: "contains", value: "contains" },
+            { label: "exact", value: "exact" }
+        ],
+        operator: [
+            { label: "==", value: "==" },
+            { label: "!=", value: "!=" },
+            { label: ">", value: ">" },
+            { label: ">=", value: ">=" },
+            { label: "<", value: "<" },
+            { label: "<=", value: "<=" },
+            { label: "contains", value: "contains" },
+            { label: "regex", value: "regex" },
+            { label: "truthy", value: "truthy" },
+            { label: "falsy", value: "falsy" }
+        ],
+        scope: [
+            { label: "local", value: "local" },
+            { label: "global", value: "global" }
+        ],
+        item_scope: [
+            { label: "local", value: "local" },
+            { label: "global", value: "global" }
+        ],
+        error_scope: [
+            { label: "local", value: "local" },
+            { label: "global", value: "global" }
+        ],
+        value_type: [
+            { label: "string", value: "string" },
+            { label: "number", value: "number" },
+            { label: "boolean", value: "boolean" },
+            { label: "array", value: "array" },
+            { label: "object", value: "object" }
+        ],
+        mode: [
+            { label: "count", value: "count" },
+            { label: "condition", value: "condition" },
+            { label: "foreach", value: "foreach" }
+        ],
+        method: [
+            { label: "GET", value: "GET" },
+            { label: "POST", value: "POST" },
+            { label: "PUT", value: "PUT" },
+            { label: "PATCH", value: "PATCH" },
+            { label: "DELETE", value: "DELETE" }
+        ],
+        response_type: [
+            { label: "auto", value: "auto" },
+            { label: "json", value: "json" },
+            { label: "text", value: "text" }
+        ],
+        merge_strategy: [
+            { label: "last", value: "last" },
+            { label: "first", value: "first" }
+        ],
+        key_event: [
+            { label: "backspace", value: "backspace" },
+            { label: "enter", value: "enter" },
+            { label: "delete", value: "delete" },
+            { label: "home", value: "home" },
+            { label: "back", value: "back" }
+        ]
     }
     if (field === "assert_type") {
         const currentStep = activeStep.value || editingActiveStep.value
@@ -2327,71 +3946,71 @@ const getFieldOptions = (field) => {
 }
 
 const getFieldOrder = (fields) => {
-            const baseOrder = [
-                "expected_list",
-                "expected",
-                "assert_type",
-                "match_mode",
-                "min",
-                "max",
-                "click_selector_type",
-                "image_scope",
-                "image_threshold",
-                "click_selector",
-                "ocr_selector_type",
-                "ocr_selector",
-                "max_loops",
-                "interval",
-                "selector_type",
-                "selector",
-                "value",
-                "direction",
-                "duration",
-                "expected_exists",
-                "start_selector_type",
-                "start_selector",
-                "end_selector_type",
-                "end_selector",
-                "target_selector_type",
-                "target_selector",
-                "max_swipes",
-                "note",
-                "name",
-                "value_type",
-                "scope",
-                "source",
-                "path",
-                "method",
-                "url",
-                "headers",
-                "params",
-                "data",
-                "json",
-                "expected_status",
-                "response_type",
-                "save_as",
-                "extracts",
-                "left",
-                "operator",
-                "right",
-                "then_steps",
-                "else_steps",
-                "mode",
-                "times",
-                "items",
-                "item_var",
-                "item_scope",
-                "steps",
-                "branches",
-                "merge_strategy",
-                "try_steps",
-                "catch_steps",
-                "finally_steps",
-                "error_var",
-                "error_scope",
-                "retry_times",
-                "retry_interval",
-                "timeout"
+    const baseOrder = [
+        "expected_list",
+        "expected",
+        "assert_type",
+        "match_mode",
+        "min",
+        "max",
+        "click_selector_type",
+        "image_scope",
+        "image_threshold",
+        "click_selector",
+        "ocr_selector_type",
+        "ocr_selector",
+        "max_loops",
+        "interval",
+        "selector_type",
+        "selector",
+        "value",
+        "direction",
+        "duration",
+        "expected_exists",
+        "start_selector_type",
+        "start_selector",
+        "end_selector_type",
+        "end_selector",
+        "target_selector_type",
+        "target_selector",
+        "max_swipes",
+        "note",
+        "name",
+        "value_type",
+        "scope",
+        "source",
+        "path",
+        "method",
+        "url",
+        "headers",
+        "params",
+        "data",
+        "json",
+        "expected_status",
+        "response_type",
+        "save_as",
+        "extracts",
+        "left",
+        "operator",
+        "right",
+        "then_steps",
+        "else_steps",
+        "mode",
+        "times",
+        "items",
+        "item_var",
+        "item_scope",
+        "steps",
+        "branches",
+        "merge_strategy",
+        "try_steps",
+        "catch_steps",
+        "finally_steps",
+        "error_var",
+        "error_scope",
+        "retry_times",
+        "retry_interval",
+        "timeout"
     ]
     const orderIndex = baseOrder.reduce((acc, item, index) => {
         acc[item] = index
@@ -2486,7 +4105,7 @@ const openCaptureElementDialog = () => {
 }
 
 const handleElementCreated = () => {
-    ElMessage.success('元素创建成功')
+    ElMessage.success(t('appAutomation.messages.elementCreateSuccess'))
     // 如果元素选择器对话框打开，可以刷新元素列表
     if (elementSelectorVisible.value) {
         loadElementsForSelector()
@@ -2518,16 +4137,16 @@ const handlePackageUpload = async (option) => {
         const response = await importComponentPackage(formData)
         const data = response.data || response
         if (data.success || data.data) {
-            ElMessage.success("组件包已导入")
+            ElMessage.success(t('appAutomation.messages.componentPackageImported'))
             await loadComponentPalette()
             await loadPackageList()
         } else {
-            ElMessage.error(data.message || "导入失败")
+            ElMessage.error(data.message || t('appAutomation.messages.importFailed'))
         }
     } catch (error) {
         console.error("导入组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导入失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.importFailed'))
     } finally {
         packageUploading.value = false
     }
@@ -2543,12 +4162,12 @@ const exportPackage = async (format) => {
         const filename = getDownloadFilename(response.headers["content-disposition"])
             || `ui-component-pack.${format === "json" ? "json" : "yaml"}`
         downloadBlob(blob, filename)
-        ElMessage.success("组件包已导出")
+        ElMessage.success(t('appAutomation.messages.componentPackageExported'))
         exportDialogVisible.value = false
     } catch (error) {
         console.error("导出组件包失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(errorMsg || "导出失败")
+        ElMessage.error(errorMsg || t('appAutomation.messages.exportFailed'))
     }
 }
 
@@ -2576,11 +4195,11 @@ const downloadBlob = (blob, filename) => {
 
 const saveScene = async () => {
     if (!sceneForm.value.name) {
-        ElMessage.warning("请输入场景名称")
+        ElMessage.warning(t('appAutomation.messages.enterSceneName'))
         return
     }
     if (scenarioSteps.value.length === 0) {
-        ElMessage.warning("请至少添加一个场景步骤")
+        ElMessage.warning(t('appAutomation.messages.addAtLeastOneStep'))
         return
     }
 
@@ -2609,17 +4228,17 @@ const saveScene = async () => {
 
         const responseData = caseResponse.data || caseResponse
         if (responseData && (responseData.id || responseData.success)) {
-            ElMessage.success(editingCaseId.value ? "场景更新成功" : "场景保存成功")
+            ElMessage.success(editingCaseId.value ? t('appAutomation.messages.sceneUpdateSuccess') : t('appAutomation.messages.sceneSaveSuccess'))
             if (responseData.id && !editingCaseId.value) {
                 editingCaseId.value = responseData.id
             }
         } else {
-            ElMessage.success("场景已提交保存")
+            ElMessage.success(t('appAutomation.messages.sceneSubmitted'))
         }
     } catch (error) {
         console.error("保存场景失败:", error)
         const errorMsg = (error.response && error.response.data && error.response.data.msg) || error.message
-        ElMessage.error(`保存场景失败: ${errorMsg}`)
+        ElMessage.error(`${t('appAutomation.messages.saveSceneFailed')}: ${errorMsg}`)
     } finally {
         saving.value = false
     }
@@ -2641,14 +4260,14 @@ const loadElementsForSelector = async () => {
             element_type: elementFilterType.value,
             keyword: elementSearchKeyword.value
         }
-        
+
         const response = await getAppElementList(params)
         const data = response.data?.data || response.data
         selectorElements.value = data?.results || data || []
         elementTotal.value = data?.count || selectorElements.value.length
     } catch (error) {
         console.error('加载元素列表失败:', error)
-        ElMessage.error('加载元素列表失败')
+        ElMessage.error(t('appAutomation.messages.loadElementsFailed'))
     } finally {
         elementSelectorLoading.value = false
     }
@@ -2660,10 +4279,10 @@ const loadImageCategoryOptions = async () => {
         console.log('=== 开始加载图片分类选项（从Template目录） ===')
         const response = await getAppImageCategories()
         console.log('API响应:', response)
-        
+
         const categories = response.data?.data || response.data || []
         console.log('获取到的分类:', categories)
-        
+
         // 转换为选项格式
         // 如果 categories 是对象数组（包含 name 字段），则使用 name；否则直接使用值
         imageCategoryOptions.value = categories.map(cat => {
@@ -2673,7 +4292,7 @@ const loadImageCategoryOptions = async () => {
                 value: categoryName
             }
         })
-        
+
         console.log('最终选项:', imageCategoryOptions.value)
     } catch (error) {
         console.error('加载图片分类失败:', error)
@@ -2689,7 +4308,7 @@ const handleElementRowClick = (row) => {
 // 统一的字段填充函数
 const fillFieldsByTarget = (element, config, target) => {
     console.log(`填充 ${target} 字段组`)
-    
+
     // 映射：target -> 字段前缀
     const prefixMap = {
         selector: '',       // 通用定位没有前缀
@@ -2701,12 +4320,12 @@ const fillFieldsByTarget = (element, config, target) => {
         target: 'target_',
         expected: ''        // 断言字段特殊处理
     }
-    
+
     const prefix = prefixMap[target] || ''
     const typeField = prefix ? `${prefix}selector_type` : 'selector_type'
     const valueField = prefix ? `${prefix}selector` : 'selector'
     const scopeField = prefix ? `${prefix}image_scope` : 'image_scope'
-    
+
     // 保存 element_id 到步骤配置（runner 优先通过 element_id 从数据库解析）
     const elementIdField = prefix ? `${prefix}element_id` : 'element_id'
     config[elementIdField] = element.id
@@ -2715,7 +4334,7 @@ const fillFieldsByTarget = (element, config, target) => {
     if (element.element_type === 'image') {
         if (element.config && element.config.image_path) {
             const fileName = element.config.image_path.split('/').pop()
-            
+
             // 设置定位类型和值
             if (target === 'expected') {
                 // 断言字段特殊处理
@@ -2735,34 +4354,34 @@ const fillFieldsByTarget = (element, config, target) => {
                 }
             }
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (图片)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedImage', { target: getTargetTitle(target), name: element.name }))
         } else {
-            ElMessage.warning('该图片元素缺少文件路径')
+            ElMessage.warning(t('appAutomation.messages.imageElementNoPath'))
         }
     } else if (element.element_type === 'pos') {
         if (element.config && element.config.x !== undefined && element.config.y !== undefined) {
             const posValue = `${element.config.x}, ${element.config.y}`
-            
+
             config[typeField] = 'pos'
             config[valueField] = posValue
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (坐标)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedPos', { target: getTargetTitle(target), name: element.name }))
         }
     } else if (element.element_type === 'region') {
-        if (element.config && 
-            element.config.x1 !== undefined && 
+        if (element.config &&
+            element.config.x1 !== undefined &&
             element.config.y1 !== undefined &&
-            element.config.x2 !== undefined && 
+            element.config.x2 !== undefined &&
             element.config.y2 !== undefined) {
             const regionValue = `${element.config.x1}, ${element.config.y1}, ${element.config.x2}, ${element.config.y2}`
-            
+
             config[typeField] = 'region'
             config[valueField] = regionValue
             
-            ElMessage.success(`已关联 ${getTargetTitle(target)}: ${element.name} (区域)`)
+            ElMessage.success(t('appAutomation.messages.elementLinkedRegion', { target: getTargetTitle(target), name: element.name }))
         }
     } else {
-        ElMessage.warning(`元素类型 ${element.element_type} 不适用于 ${getTargetTitle(target)}`)
+        ElMessage.warning(t('appAutomation.messages.elementTypeNotApplicable', { type: element.element_type, target: getTargetTitle(target) }))
     }
 }
 
@@ -2786,39 +4405,39 @@ const applyElement = (element) => {
     const targetStep = (customDialogVisible.value && editingActiveStep.value)
         ? editingActiveStep.value
         : activeStep.value
-    
+
     if (!targetStep) {
-        ElMessage.warning('请先选择一个步骤')
+        ElMessage.warning(t('appAutomation.messages.selectStepForElement'))
         return
     }
-    
+
     // 根据元素类型自动填充配置
     if (!targetStep.config) {
         targetStep.config = {}
     }
-    
+
     const config = targetStep.config
     const target = elementSelectorTarget.value
     console.log('config before:', JSON.stringify(config))
-    
+
     // 保存关联信息
     const elementInfo = {
         id: element.id,
         name: element.name,
         type: element.element_type
     }
-    
+
     if (target && linkedElements.value[target] !== undefined) {
         linkedElements.value[target] = elementInfo
         // 填充对应的字段
         fillFieldsByTarget(element, config, target)
     } else {
-        ElMessage.warning('未指定有效的字段组')
+        ElMessage.warning(t('appAutomation.messages.noValidFieldGroup'))
     }
-    
+
     console.log('config after:', JSON.stringify(config))
     console.log('=== applyElement 完成 ===')
-    
+
     // 关闭选择器
     elementSelectorVisible.value = false
 }
@@ -2826,14 +4445,14 @@ const applyElement = (element) => {
 // 统一的清除关联函数
 const clearLinkedElement = (target) => {
     linkedElements.value[target] = null
-    
+
     const targetStep = (customDialogVisible.value && editingActiveStep.value)
         ? editingActiveStep.value
         : activeStep.value
-    
+
     if (targetStep && targetStep.config) {
         const config = targetStep.config
-        
+
         // 映射：target -> 字段前缀
         const prefixMap = {
             selector: '',
@@ -2845,12 +4464,12 @@ const clearLinkedElement = (target) => {
             target: 'target_',
             expected: ''
         }
-        
+
         const prefix = prefixMap[target] || ''
         const typeField = prefix ? `${prefix}selector_type` : 'selector_type'
         const valueField = prefix ? `${prefix}selector` : 'selector'
         const scopeField = prefix ? `${prefix}image_scope` : 'image_scope'
-        
+
         // 清空 element_id
         const elementIdField = prefix ? `${prefix}element_id` : 'element_id'
         delete config[elementIdField]
@@ -2873,7 +4492,7 @@ const clearLinkedElement = (target) => {
         }
     }
     
-    ElMessage.info(`已清除 ${getTargetTitle(target)} 关联`)
+    ElMessage.info(t('appAutomation.messages.elementLinkCleared', { target: getTargetTitle(target) }))
 }
 
 const getTypeTagColor = (type) => {
@@ -2883,6 +4502,247 @@ const getTypeTagColor = (type) => {
         'region': 'warning'
     }
     return colorMap[type] || ''
+}
+
+// 判断字段是否需要显示数据工厂和变量助手按钮
+const needsHelperButtons = (field) => {
+    const helperFields = [
+        'value', 'expected', 'selector', 'fallback_selector',
+        'click_selector', 'ocr_selector', 'start_selector', 'end_selector', 'target_selector',
+        'url', 'json', 'data', 'headers', 'params', 'left', 'right',
+        'expected_list', 'items', 'then_steps', 'else_steps', 'steps',
+        'try_steps', 'catch_steps', 'finally_steps', 'branches', 'extracts'
+    ]
+    return helperFields.includes(field)
+}
+
+// 数据工厂选择器相关方法
+const openDataFactorySelector = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    showDataFactorySelector.value = true
+}
+
+const onInputFocus = (event) => {
+    let target = event.target
+    if (!target) return
+    
+    if (target.classList.contains('el-input') || target.classList.contains('el-textarea')) {
+        const innerInput = target.querySelector('.el-input__inner') || target.querySelector('textarea')
+        if (innerInput) {
+            currentFocusedInput.value = innerInput
+            return
+        }
+    }
+    
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'DIV') {
+        currentFocusedInput.value = target
+    }
+}
+
+const getInputElement = () => {
+    let element = currentFocusedInput.value
+    if (!element) return null
+    
+    if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
+        return element
+    }
+    
+    if (element.classList.contains('el-input') || element.classList.contains('el-textarea')) {
+        return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+    }
+    
+    return element.querySelector('.el-input__inner') || element.querySelector('textarea')
+}
+
+const handleDataFactorySelect = (record) => {
+    if (!record || !record.output_data || !currentDataFactoryTarget.value) {
+        showDataFactorySelector.value = false
+        return
+    }
+    
+    const { step, field } = currentDataFactoryTarget.value
+    
+    let valueToSet = ''
+    if (typeof record.output_data === 'string') {
+        valueToSet = record.output_data
+    } else if (record.output_data.result) {
+        valueToSet = record.output_data.result
+    } else if (record.output_data.output_data) {
+        valueToSet = record.output_data.output_data
+    } else {
+        valueToSet = JSON.stringify(record.output_data)
+    }
+    
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + valueToSet + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + valueToSet.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = valueToSet
+        } else {
+            step.config[field] = currentValue + valueToSet
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.dataFactorySelected', { toolName: record.tool_name }))
+    showDataFactorySelector.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
+}
+
+// 变量助手相关方法
+const openVariableHelper = (step, field, isEditing = false) => {
+    currentDataFactoryTarget.value = { step, field, isEditing }
+    if (variableCategories.value.length === 0) {
+        loadVariableFunctions()
+    }
+    showVariableHelper.value = true
+}
+
+const loadVariableFunctions = async () => {
+    try {
+        variableLoading.value = true
+        const apiResponse = await getVariableFunctions()
+        
+        let functionsData = []
+        if (apiResponse && apiResponse.data) {
+            if (Array.isArray(apiResponse.data)) {
+                functionsData = apiResponse.data
+            } else if (apiResponse.data.functions) {
+                functionsData = apiResponse.data.functions
+            } else if (typeof apiResponse.data === 'object') {
+                functionsData = apiResponse.data
+            }
+        }
+        
+        const grouped = {}
+        
+        if (Array.isArray(functionsData)) {
+            functionsData.forEach(func => {
+                const category = func.category || t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+                if (!grouped[category]) {
+                    grouped[category] = []
+                }
+                grouped[category].push({
+                    name: func.name,
+                    syntax: func.syntax,
+                    desc: func.description || func.desc || '',
+                    example: func.example
+                })
+            })
+        } else if (typeof functionsData === 'object') {
+            for (const [category, funcs] of Object.entries(functionsData)) {
+                if (Array.isArray(funcs)) {
+                    grouped[category] = funcs.map(func => ({
+                        name: func.name,
+                        syntax: func.syntax,
+                        desc: func.description || func.desc || '',
+                        example: func.example
+                    }))
+                }
+            }
+        }
+        
+        const categoryOrder = [
+            t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            t('appAutomation.sceneBuilder.variableCategory.testData'),
+            t('appAutomation.sceneBuilder.variableCategory.string'),
+            t('appAutomation.sceneBuilder.variableCategory.encoding'),
+            t('appAutomation.sceneBuilder.variableCategory.encryption'),
+            t('appAutomation.sceneBuilder.variableCategory.dateTime'),
+            'Crontab',
+            t('appAutomation.sceneBuilder.variableCategory.uncategorized')
+        ]
+        
+        const orderedCategories = []
+        categoryOrder.forEach(category => {
+            if (grouped[category]) {
+                orderedCategories.push({
+                    label: category,
+                    variables: grouped[category]
+                })
+                delete grouped[category]
+            }
+        })
+        
+        for (const [category, funcs] of Object.entries(grouped)) {
+            orderedCategories.push({
+                label: category,
+                variables: funcs
+            })
+        }
+        
+        variableCategories.value = orderedCategories
+    } catch (error) {
+        console.error('加载变量函数失败:', error)
+        useLocalVariableCategories()
+    } finally {
+        variableLoading.value = false
+    }
+}
+
+const useLocalVariableCategories = () => {
+    variableCategories.value = [
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomNumber'),
+            variables: [
+                { name: 'random_int', syntax: '${random_int(min, max, count)}', desc: t('appAutomation.sceneBuilder.variable.randomInt.desc'), example: '${random_int(100, 999, 1)}' },
+                { name: 'random_float', syntax: '${random_float(min, max, precision, count)}', desc: t('appAutomation.sceneBuilder.variable.randomFloat.desc'), example: '${random_float(0, 1, 2, 1)}' }
+            ]
+        },
+        {
+            label: t('appAutomation.sceneBuilder.variableCategory.randomString'),
+            variables: [
+                { name: 'random_string', syntax: '${random_string(length, char_type, count)}', desc: t('appAutomation.sceneBuilder.variable.randomString.desc'), example: '${random_string(8, "all", 1)}' }
+            ]
+        }
+    ]
+}
+
+const insertVariable = (variable) => {
+    if (!currentDataFactoryTarget.value) return
+    
+    const { step, field } = currentDataFactoryTarget.value
+    const example = variable.example
+    const currentValue = step.config[field] || ''
+    
+    let inputElement = getInputElement()
+    
+    if (inputElement && (inputElement.tagName === 'INPUT' || inputElement.tagName === 'TEXTAREA')) {
+        const cursorPosition = inputElement.selectionStart || 0
+        const newValue = currentValue.substring(0, cursorPosition) + example + currentValue.substring(cursorPosition)
+        step.config[field] = newValue
+        
+        const newCursorPosition = cursorPosition + example.length
+        setTimeout(() => {
+            inputElement.focus()
+            inputElement.selectionStart = newCursorPosition
+            inputElement.selectionEnd = newCursorPosition
+        }, 50)
+    } else {
+        if (!currentValue) {
+            step.config[field] = example
+        } else {
+            step.config[field] = currentValue + example
+        }
+    }
+    
+    ElMessage.success(t('appAutomation.messages.variableInserted', { name: variable.name }))
+    showVariableHelper.value = false
+    currentDataFactoryTarget.value = null
+    currentFocusedInput.value = null
 }
 
 // Template refs assignment
@@ -2963,7 +4823,7 @@ defineExpose({
     border-radius: 4px;
     margin-bottom: 8px;
     cursor: grab;
-    background: #fafafa;
+    background: var(--th-color-surface-muted);
 }
 
 .palette-left {
@@ -3095,12 +4955,12 @@ defineExpose({
     border: 1px solid #ebeef5;
     border-radius: 6px;
     cursor: pointer;
-    background: #fff;
+    background: var(--th-color-surface);
 }
 
 .scene-item.active {
-    border-color: #409eff;
-    background: #ecf5ff;
+    border-color: var(--th-color-primary);
+    background: var(--th-color-info-soft);
 }
 
 .scene-item-main {
@@ -3110,8 +4970,8 @@ defineExpose({
 }
 
 .scene-index {
-    background: #409eff;
-    color: #fff;
+    background: var(--th-color-primary);
+    color: var(--th-color-surface);
     font-size: 12px;
     padding: 2px 6px;
     border-radius: 10px;
@@ -3130,7 +4990,7 @@ defineExpose({
     margin-bottom: 8px;
 }
 
-.scene-item-wrapper > .scene-item {
+.scene-item-wrapper>.scene-item {
     margin-bottom: 0;
 }
 
@@ -3145,8 +5005,70 @@ defineExpose({
     border: 1px solid #e6a23c;
     border-top: none;
     border-radius: 0 0 6px 6px;
-    background: #fdf6ec;
+    background: var(--th-color-warning-soft);
     padding: 6px 6px 4px 6px;
+}
+
+.tree-node {
+    position: relative;
+}
+
+.tree-node::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: #e8e8e8;
+}
+
+.sub-steps-list {
+    margin-bottom: 10px;
+}
+
+.sub-steps-list .sub-step-item {
+    margin-bottom: 8px;
+    cursor: move;
+}
+
+.sub-steps-list .sub-step-item:hover {
+    background-color: #f5f7fa;
+}
+
+.if-branches {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.if-branch-block {
+    border: 1px dashed #dcdfe6;
+    border-radius: 6px;
+    padding: 10px;
+    background: #fafafa;
+}
+
+.if-branch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: #606266;
+    margin-bottom: 8px;
+}
+
+.if-condition-row {
+    display: grid;
+    grid-template-columns: 1fr 120px 1fr auto;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.if-conditions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .sub-step-item {
@@ -3154,7 +5076,7 @@ defineExpose({
     padding: 7px 10px !important;
     margin-left: 16px !important;
     border-color: #dcdfe6 !important;
-    background: #fff !important;
+    background: var(--th-color-surface) !important;
     font-size: 13px;
 }
 
@@ -3241,7 +5163,7 @@ defineExpose({
 
 .element-selector-filter {
     padding: 10px;
-    background-color: #f5f7fa;
+    background-color: var(--th-color-surface-muted);
     border-radius: 4px;
 }
 
@@ -3260,7 +5182,7 @@ defineExpose({
 .field-group {
     margin-bottom: 20px;
     padding: 16px;
-    background: #f5f7fa;
+    background: var(--th-color-surface-muted);
     border-radius: 4px;
     border: 1px solid #e4e7ed;
 }
@@ -3288,8 +5210,48 @@ defineExpose({
     margin-bottom: 12px;
 }
 
+.field-group :deep(.el-form-item__label) {
+    width: 80px !important;
+    text-align: left;
+    padding-right: 4px;
+    justify-content: flex-start;
+}
+
+.field-group :deep(.el-form-item__content) {
+    flex: 1;
+    min-width: 0;
+}
+
+.field-group :deep(.el-form-item__content > .el-input),
+.field-group :deep(.el-form-item__content > .el-select),
+.field-group :deep(.el-form-item__content > div) {
+    width: 100%;
+    max-width: none;
+}
+
 .field-group:last-child {
     margin-bottom: 0;
 }
-</style>
 
+.data-factory-btn {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+    color: white !important;
+}
+
+.data-factory-btn:hover {
+    background-color: var(--th-color-primary) !important;
+    border-color: var(--th-color-primary) !important;
+}
+
+.variable-helper-btn {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
+    color: white;
+}
+
+.variable-helper-btn:hover {
+    background-color: var(--th-color-success);
+    border-color: var(--th-color-success);
+}
+</style>

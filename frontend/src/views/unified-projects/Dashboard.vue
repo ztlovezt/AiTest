@@ -12,7 +12,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-blue">
-            <el-icon :size="24"><Folder /></el-icon>
+            <el-icon :size="28"><Folder /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.totalProjects }}</div>
@@ -23,7 +23,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-purple" style="background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);">
-            <el-icon :size="24"><Tickets /></el-icon>
+            <el-icon :size="28"><Tickets /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiProjects }}</div>
@@ -34,7 +34,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card ai-test-card">
           <div class="stat-icon bg-cyan">
-            <el-icon :size="24"><MagicStick /></el-icon>
+            <el-icon :size="28"><MagicStick /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.aiTestProjects }}</div>
@@ -45,7 +45,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-green">
-            <el-icon :size="24"><Link /></el-icon>
+            <el-icon :size="28"><Link /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.apiProjects }}</div>
@@ -56,7 +56,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-purple">
-            <el-icon :size="24"><Monitor /></el-icon>
+            <el-icon :size="28"><Monitor /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.uiProjects }}</div>
@@ -67,7 +67,7 @@
       <el-col :xs="12" :sm="8" :md="4" :lg="4">
         <div class="stat-card">
           <div class="stat-icon bg-orange">
-            <el-icon :size="24"><Cellphone /></el-icon>
+            <el-icon :size="28"><Cellphone /></el-icon>
           </div>
           <div class="stat-info">
             <div class="stat-value">{{ stats.appProjects }}</div>
@@ -406,27 +406,27 @@ onMounted(() => {
   width: 100%;
   min-height: 88px;
   padding: 16px;
-  background: #fff;
+  background: var(--th-color-surface);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: white;
   flex-shrink: 0;
 }
 
-.stat-icon.bg-blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+.stat-icon.bg-blue { background: linear-gradient(135deg, var(--th-color-primary) 0%, var(--th-color-primary-strong) 100%); }
 .stat-icon.bg-cyan { background: linear-gradient(135deg, #00bcd4 0%, #80deea 100%); }
 .stat-icon.bg-green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
 .stat-icon.bg-purple { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-.stat-icon.bg-orange { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+.stat-icon.bg-orange { background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%); }
 
 .stat-info {
   flex: 1;

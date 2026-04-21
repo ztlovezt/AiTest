@@ -9,7 +9,6 @@ export default {
   recentDays: 'Last 7 Days',
   recent14Days: 'Last 14 Days',
   recent30Days: 'Last 30 Days',
-  recent90Days: 'Last 90 Days',
   customRange: 'Custom Range',
   exportReport: 'Export Report',
 
@@ -57,5 +56,61 @@ export default {
   failureCount: 'Failure Count',
   exportInDevelopment: 'Report export feature under development...',
   fetchProjectsFailed: 'Failed to fetch projects',
-  fetchDashboardFailed: 'Failed to fetch dashboard data'
+  fetchDashboardFailed: 'Failed to fetch dashboard data',
+
+  // Schedule Report Page
+  scheduleReport: {
+    basicInfo: 'Basic Info',
+    taskName: 'Task Name',
+    taskType: 'Task Type',
+    module: 'Module',
+    status: 'Status',
+    createdBy: 'Created By',
+    createdAt: 'Created At',
+    executionHistory: 'Execution History',
+    executionDetail: 'Execution Detail',
+    allureReport: 'Allure Report',
+    viewReport: 'View Report',
+    allureReportAvailable: 'Allure test report has been generated, click the button above to view the detailed report',
+    noHistory: 'No execution history',
+    fetchError: 'Failed to fetch execution detail',
+    
+    // Status
+    passed: 'Passed',
+    failed: 'Failed',
+    
+    // API Request Detail
+    requestName: 'Request Name',
+    requestMethod: 'Request Method',
+    requestUrl: 'Request URL',
+    statusCode: 'Status Code',
+    responseTime: 'Response Time',
+    duration: 'Duration',
+    environment: 'Environment',
+    assertions: 'Assertions',
+    assertionName: 'Assertion Name',
+    assertionType: 'Assertion Type',
+    result: 'Result',
+    error: 'Error',
+    executionError: 'Execution Error',
+    
+    // Test Case Detail
+    passedCases: 'Passed',
+    skippedCases: 'Skipped',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    success: 'Success',
+    
+    // Assertion Types
+    assertionTypes: {
+      statusCode: 'Status Code',
+      responseTime: 'Response Time',
+      contains: 'Contains',
+      jsonPath: 'JSON Path',
+      header: 'Header',
+      equals: 'Equals',
+      notEmpty: 'Not Empty',
+      jsonSchema: 'JSON Schema'
+    }
+  }
 }

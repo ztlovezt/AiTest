@@ -324,7 +324,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { Search, Refresh, Plus } from '@element-plus/icons-vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const activeTab = ref('list')
 const loading = ref(false)
 const showDetailDialog = ref(false)
@@ -422,7 +422,8 @@ const showNotificationDetail = (notification) => {
 // 格式化日期时间
 const formatDateTime = (dateString) => {
   const date = new Date(dateString)
-  return date.toLocaleString('zh-CN')
+  const loc = locale.value === 'zh-cn' ? 'zh-CN' : 'en-US'
+  return date.toLocaleString(loc)
 }
 
 // 保存邮箱配置
@@ -591,7 +592,7 @@ onMounted(() => {
 <style scoped>
 .notification-management {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   min-height: 100%;
 }
 
@@ -645,7 +646,7 @@ onMounted(() => {
 .notification-detail .content-pre {
   white-space: pre-wrap;
   word-wrap: break-word;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   padding: 12px;
   border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;

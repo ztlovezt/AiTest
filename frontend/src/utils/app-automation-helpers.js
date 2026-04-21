@@ -18,9 +18,10 @@ const EXECUTION_STATUS_MAP = {
 // ========== 测试结果映射（用例通过/失败） ==========
 
 const EXECUTION_RESULT_MAP = {
-  'passed':  { type: 'success', text: '通过' },
-  'failed':  { type: 'danger',  text: '失败' },
-  'skipped': { type: 'warning', text: '跳过' },
+  'passed':          { type: 'success', text: '通过' },
+  'failed':          { type: 'danger',  text: '失败' },
+  'partial_failed':  { type: 'warning', text: '部分失败' },
+  'skipped':         { type: 'warning', text: '跳过' },
 }
 
 const DEVICE_STATUS_MAP = {

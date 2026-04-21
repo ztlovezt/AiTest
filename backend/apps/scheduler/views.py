@@ -100,6 +100,8 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                 config.task_type = data['task_type']
             if 'target_id' in data:
                 config.target_id = data['target_id']
+            if 'project_id' in data:
+                config.project_id = data['project_id']
             if 'environment_id' in data:
                 config.environment_id = data['environment_id']
             if 'description' in data:
@@ -132,8 +134,13 @@ class ScheduleViewSet(viewsets.ModelViewSet):
                     )
             
             # 处理通知配置
-            if 'notification_config_ids' in data:
+            # 由于序列化器中 source='notification_configs'，数据在 notification_configs 键下
+            if 'notification_configs' in data:
+                config.notification_configs.set(data['notification_configs'])
+                logger.info(f"更新通知配置: {[c.id for c in data['notification_configs']]}")
+            elif 'notification_config_ids' in data:
                 config.notification_configs.set(data['notification_config_ids'])
+                logger.info(f"更新通知配置 (ids): {data['notification_config_ids']}")
             
             config.save()
             
@@ -175,11 +182,15 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             
             # 处理通知配置
             notification_config_ids = []
-            if 'notification_config_ids' in data and data['notification_config_ids']:
+            # 由于序列化器中 source='notification_configs'，数据在 notification_configs 键下
+            if 'notification_configs' in data and data['notification_configs']:
+                notification_config_ids = [config.id for config in data['notification_configs']]
+                logger.info(f"从 validated_data 获取 notification_configs: {notification_config_ids}")
+            elif 'notification_config_ids' in data and data['notification_config_ids']:
                 notification_config_ids = data['notification_config_ids']
                 logger.info(f"从 validated_data 获取 notification_config_ids: {notification_config_ids}")
             else:
-                logger.info(f"validated_data 中没有 notification_config_ids, data keys: {data.keys()}")
+                logger.info(f"validated_data 中没有通知配置, data keys: {data.keys()}")
             
             schedule, config = create_scheduled_task(
                 name=data['name'],
@@ -206,7 +217,7 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             # 设置通知配置
             if notification_config_ids:
                 try:
-                    from core.models import UnifiedNotificationConfig
+                    from apps.core.models import UnifiedNotificationConfig
                     configs = UnifiedNotificationConfig.objects.filter(id__in=notification_config_ids)
                     logger.info(f"找到 {configs.count()} 个通知配置")
                     config.notification_configs.set(configs)
@@ -407,6 +418,166 @@ class ScheduleViewSet(viewsets.ModelViewSet):
             'failure_count': failure_total,
             'success_rate': round(success_total / (success_total + failure_total) * 100, 2) if (success_total + failure_total) > 0 else 0,
         })
+
+    @action(detail=True, methods=['get'])
+    def execution_detail(self, request, pk=None):
+        """获取定时任务执行详情（用于单接口/单用例执行报告）"""
+        from django.utils import timezone as tz
+        
+        schedule = self.get_object()
+        
+        try:
+            config = ScheduleConfig.objects.get(schedule=schedule)
+        except ScheduleConfig.DoesNotExist:
+            return Response({'error': '任务配置不存在'}, status=status.HTTP_404_NOT_FOUND)
+        
+        task_type = config.task_type
+        
+        success_records = []
+        for record in Success.objects.filter(func=schedule.func).order_by('-stopped')[:10]:
+            if record.kwargs and isinstance(record.kwargs, dict) and record.kwargs.get('schedule_id') == schedule.id:
+                success_records.append(record)
+        
+        failure_records = []
+        for record in Failure.objects.filter(func=schedule.func).order_by('-stopped')[:10]:
+            if record.kwargs and isinstance(record.kwargs, dict) and record.kwargs.get('schedule_id') == schedule.id:
+                failure_records.append(record)
+        
+        all_records = []
+        for r in success_records:
+            all_records.append({
+                'id': r.id,
+                'type': 'success',
+                'name': r.name,
+                'started': tz.localtime(r.started).strftime('%Y-%m-%d %H:%M:%S') if r.started else None,
+                'stopped': tz.localtime(r.stopped).strftime('%Y-%m-%d %H:%M:%S') if r.stopped else None,
+                'result': r.result if r.result else None,
+            })
+        for r in failure_records:
+            all_records.append({
+                'id': r.id,
+                'type': 'failure',
+                'name': r.name,
+                'started': tz.localtime(r.started).strftime('%Y-%m-%d %H:%M:%S') if r.started else None,
+                'stopped': tz.localtime(r.stopped).strftime('%Y-%m-%d %H:%M:%S') if r.stopped else None,
+                'result': {'error': str(r.result)} if r.result else None,
+            })
+        
+        all_records.sort(key=lambda x: x['started'] or '', reverse=True)
+        
+        latest_record = all_records[0] if all_records else None
+        latest_result = latest_record.get('result') if latest_record else None
+        
+        detail_data = {
+            'schedule_id': schedule.id,
+            'schedule_name': schedule.name,
+            'task_type': task_type,
+            'task_type_display': config.get_task_type_display(),
+            'module': config.module,
+            'module_display': config.get_module_display(),
+            'status': config.status,
+            'status_display': config.get_status_display(),
+            'created_by': config.created_by.username if config.created_by else None,
+            'created_at': tz.localtime(config.created_at).strftime('%Y-%m-%d %H:%M:%S') if config.created_at else None,
+            'execution_history': all_records[:20],
+            'latest_execution': latest_record,
+        }
+        
+        if latest_result and isinstance(latest_result, dict):
+            if task_type == 'API_REQUEST':
+                detail_data['execution_detail'] = self._build_api_request_detail(latest_result, config)
+            elif task_type == 'UI_TEST_CASE':
+                detail_data['execution_detail'] = self._build_ui_test_case_detail(latest_result, config)
+            elif task_type == 'APP_TEST_CASE':
+                detail_data['execution_detail'] = self._build_app_test_case_detail(latest_result, config)
+            elif task_type == 'API_TEST_SUITE':
+                execution_id = latest_result.get('execution_id')
+                if execution_id:
+                    detail_data['allure_report_url'] = f'/api/api-testing-reports/execution_{execution_id}/index.html'
+            elif task_type == 'UI_TEST_SUITE':
+                execution_id = latest_result.get('execution_id')
+                if execution_id:
+                    detail_data['allure_report_url'] = f'/api/ui-testing-reports/execution_{execution_id}/index.html'
+            elif task_type == 'APP_TEST_SUITE':
+                execution_id = latest_result.get('execution_id')
+                if execution_id:
+                    detail_data['allure_report_url'] = f'/api/app-automation-reports/execution_{execution_id}/index.html'
+        
+        return Response(detail_data)
+    
+    def _build_api_request_detail(self, result, config):
+        """构建 API 单接口执行详情"""
+        from apps.api_testing.models import ApiRequest, Environment
+        
+        detail = {
+            'success': result.get('success', False),
+            'status_code': result.get('status_code'),
+            'response_time': result.get('response_time'),
+            'duration': result.get('duration'),
+            'start_time': result.get('start_time'),
+            'end_time': result.get('end_time'),
+            'assertions_results': result.get('assertions_results', []),
+            'error': result.get('error'),
+        }
+        
+        try:
+            api_request = ApiRequest.objects.get(id=config.target_id)
+            detail['request_info'] = {
+                'id': api_request.id,
+                'name': api_request.name,
+                'method': api_request.method,
+                'url': api_request.url,
+                'description': api_request.description,
+            }
+        except ApiRequest.DoesNotExist:
+            detail['request_info'] = None
+        
+        if config.environment_id:
+            try:
+                env = Environment.objects.get(id=config.environment_id)
+                detail['environment'] = {
+                    'id': env.id,
+                    'name': env.name,
+                }
+            except Environment.DoesNotExist:
+                detail['environment'] = None
+        
+        if 'response_data' in result:
+            detail['response_data'] = result['response_data']
+        
+        return detail
+    
+    def _build_ui_test_case_detail(self, result, config):
+        """构建 UI 单用例执行详情"""
+        detail = {
+            'success': result.get('success', False),
+            'total_count': result.get('total_count', 0),
+            'passed_count': result.get('passed_count', 0),
+            'failed_count': result.get('failed_count', 0),
+            'skipped_count': result.get('skipped_count', 0),
+            'duration': result.get('duration'),
+            'start_time': result.get('start_time'),
+            'end_time': result.get('end_time'),
+            'error': result.get('error'),
+        }
+        
+        return detail
+    
+    def _build_app_test_case_detail(self, result, config):
+        """构建 APP 单用例执行详情"""
+        detail = {
+            'success': result.get('success', False),
+            'total_count': result.get('total_count', 0),
+            'passed_count': result.get('passed_count', 0),
+            'failed_count': result.get('failed_count', 0),
+            'skipped_count': result.get('skipped_count', 0),
+            'duration': result.get('duration'),
+            'start_time': result.get('start_time'),
+            'end_time': result.get('end_time'),
+            'error': result.get('error'),
+        }
+        
+        return detail
 
 
 class ScheduleConfigViewSet(viewsets.ReadOnlyModelViewSet):

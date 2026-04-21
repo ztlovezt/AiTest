@@ -111,6 +111,10 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
         execution.total_steps = test_results.get('total', 0)
         execution.passed_steps = test_results.get('passed', 0)
         execution.failed_steps = test_results.get('failed', 0)
+        execution.skipped_steps = test_results.get('skipped', 0)
+        
+        if report_result.get('result_data'):
+            execution.result_data = report_result['result_data']
         
         execution.progress = 95
         execution.save()
@@ -280,6 +284,10 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
                 execution.total_steps = test_results.get('total', 0)
                 execution.passed_steps = test_results.get('passed', 0)
                 execution.failed_steps = test_results.get('failed', 0)
+                execution.skipped_steps = test_results.get('skipped', 0)
+                
+                if report_result.get('result_data'):
+                    execution.result_data = report_result['result_data']
 
                 execution.status = 'completed'
                 if execution.total_steps == 0:

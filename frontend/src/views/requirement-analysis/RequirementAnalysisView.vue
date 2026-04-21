@@ -121,7 +121,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'manual' }"
             @click="activePanel = 'manual'">
-            <div class="panel-icon manual-icon">✏️</div>
+            <div class="panel-icon manual-icon"><el-icon><Edit /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.manualInputTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.manualInputDesc') }}</div>
@@ -131,7 +131,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'upload' }"
             @click="activePanel = 'upload'">
-            <div class="panel-icon upload-icon">📄</div>
+            <div class="panel-icon upload-icon"><el-icon><Document /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.uploadTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.uploadDesc') }}</div>
@@ -141,7 +141,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'knowledge' }"
             @click="handleKnowledgePanelClick">
-            <div class="panel-icon knowledge-icon">📚</div>
+            <div class="panel-icon knowledge-icon"><el-icon><Collection /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.knowledgeBaseTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.knowledgeBaseDesc') }}</div>
@@ -151,7 +151,7 @@
             class="panel-tab"
             :class="{ active: activePanel === 'axure' }"
             @click="handleAxurePanelClick">
-            <div class="panel-icon axure-icon">🎨</div>
+            <div class="panel-icon axure-icon"><el-icon><Brush /></el-icon></div>
             <div class="panel-content-wrapper">
               <div class="panel-label">{{ $t('requirementAnalysis.axureTitle') }}</div>
               <div class="panel-desc">{{ $t('requirementAnalysis.axureDesc') }}</div>
@@ -215,7 +215,7 @@
                :class="{ 'drag-over': isDragOver }"
                @dragenter="isDragOver = true"
                @dragleave="isDragOver = false">
-            <div v-if="!selectedFile" class="upload-placeholder">
+            <div v-if="selectedFiles.length === 0" class="upload-placeholder">
               <i class="upload-icon">📁</i>
               <p>{{ $t('requirementAnalysis.dragDropText') }}</p>
               <p class="upload-hint">{{ $t('requirementAnalysis.supportedFormats') }}</p>
@@ -223,7 +223,7 @@
                 type="file"
                 ref="fileInput"
                 @change="handleFileSelect"
-                accept=".pdf,.doc,.docx,.txt,.md"
+                multiple
                 style="display: none;">
               <button class="select-file-btn" @click="$refs.fileInput.click()">
                 {{ $t('requirementAnalysis.selectFile') }}
@@ -231,18 +231,18 @@
             </div>
 
             <div v-else class="file-selected">
-              <div class="file-info">
-                <i class="file-icon">📄</i>
+              <div class="file-info" v-for="(file, index) in selectedFiles" :key="index">
+                <el-icon class="file-icon"><Document /></el-icon>
                 <div class="file-details">
-                  <p class="file-name">{{ selectedFile.name }}</p>
-                  <p class="file-size">{{ formatFileSize(selectedFile.size) }}</p>
+                  <p class="file-name">{{ file.name }}</p>
+                  <p class="file-size">{{ formatFileSize(file.size) }}</p>
                 </div>
-                <button class="remove-file" @click="removeFile">❌</button>
+                <button class="remove-file" @click="removeFile(index)"><el-icon><Close /></el-icon></button>
               </div>
             </div>
           </div>
 
-          <div v-if="selectedFile" class="document-info">
+          <div v-if="selectedFiles.length > 0" class="document-info">
             <div class="form-group">
               <label>{{ $t('requirementAnalysis.documentTitle') }}</label>
               <input
@@ -262,13 +262,39 @@
               </select>
             </div>
 
+            <div v-if="!hasOnlyNonImageFiles" class="form-group">
+              <label>{{ $t('requirementAnalysis.ocrConfig') }}</label>
+              <select v-model="selectedOcrConfig" class="form-select">
+                <option value="">{{ $t('requirementAnalysis.defaultOcr') }}</option>
+                <option v-for="config in ocrConfigs" :key="config.id" :value="config.id">
+                  {{ config.name }} ({{ getOcrProviderLabel(config.provider) }})
+                </option>
+              </select>
+              <small class="form-hint">{{ $t('requirementAnalysis.ocrConfigHint') }}</small>
+            </div>
+
             <button
               class="generate-btn"
               @click="generateFromDocument"
-              :disabled="!documentTitle || isGenerating">
-              <span v-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
+              :disabled="!documentTitle || isGenerating || isExtracting">
+              <span v-if="isExtracting">
+                {{ $t('requirementAnalysis.extractingProgressPercent', { percent: Math.round(extractingProgress.fakeProgress) }) }}
+              </span>
+              <span v-else-if="isGenerating">{{ $t('requirementAnalysis.generating') }}</span>
               <span v-else>{{ $t('requirementAnalysis.generateButton') }}</span>
             </button>
+            
+            <!-- 提取进度提示 -->
+            <div v-if="isExtracting" class="extraction-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${extractingProgress.fakeProgress}%` }"></div>
+                <span class="progress-percent">{{ Math.round(extractingProgress.fakeProgress) }}%</span>
+              </div>
+              <p class="progress-text">
+                {{ $t('requirementAnalysis.extractingFileProgress', { current: extractingProgress.current, total: extractingProgress.total }) }}
+              </p>
+              <p class="progress-file">{{ extractingProgress.fileName }}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -609,13 +635,13 @@
           <!-- 任务完成后的操作按钮 -->
           <div v-if="showResults" class="completion-actions">
             <button class="download-btn" @click="downloadTestCases">
-              <span>📥 {{ $t('requirementAnalysis.downloadExcel') }}</span>
+              <span><el-icon><Download /></el-icon> {{ $t('requirementAnalysis.downloadExcel') }}</span>
             </button>
             <button class="save-btn" @click="saveToTestCaseRecords">
-              <span>💾 {{ $t('requirementAnalysis.saveToRecords') }}</span>
+              <span><el-icon><FolderChecked /></el-icon> {{ $t('requirementAnalysis.saveToRecords') }}</span>
             </button>
             <button class="new-generation-btn" @click="resetGeneration">
-              <span>📝 {{ $t('requirementAnalysis.newGeneration') }}</span>
+              <span><el-icon><EditPen /></el-icon> {{ $t('requirementAnalysis.newGeneration') }}</span>
             </button>
           </div>
           <button v-else class="cancel-generation-btn" @click="cancelGeneration">
@@ -646,6 +672,7 @@
 <script>
 import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
+import { Edit, Document, Collection, Brush, Download, FolderChecked, EditPen, Close, Notebook } from '@element-plus/icons-vue'
 import * as XLSX from 'xlsx'
 import { useUserStore } from '@/stores/user'
 import { hybridSearch, semanticSearch, getKnowledgeBaseList } from '@/api/knowledge-base'
@@ -653,6 +680,17 @@ import { marked } from 'marked'
 
 export default {
   name: 'RequirementAnalysisView',
+  components: {
+    Edit,
+    Document,
+    Collection,
+    Brush,
+    Download,
+    FolderChecked,
+    EditPen,
+    Close,
+    Notebook,
+  },
   data() {
     return {
       // 面板选择
@@ -669,7 +707,7 @@ export default {
       },
 
       // 文件上传
-      selectedFile: null,
+      selectedFiles: [],
       documentTitle: '',
       selectedProject: '',
       projects: [],
@@ -712,6 +750,7 @@ export default {
       finalTestCases: '',  // 最终版用例
       hasShownCompletionMessage: false,  // 是否已经显示过完成消息
       showReviewStep: true,  // 是否显示评审步骤（根据生成配置决定）
+      sseDoneReceived: false,  // SSE是否已收到done信号
 
       // 生成结果
       showResults: false,
@@ -761,7 +800,22 @@ export default {
       },
       showConfigGuide: false,
       checkingConfig: true,
-      modalKey: 0  // 用于强制重新渲染弹窗
+      modalKey: 0,  // 用于强制重新渲染弹窗
+      
+      // OCR 配置相关
+      ocrConfigs: [],
+      selectedOcrConfig: '',
+      
+      // 文档提取进度
+      isExtracting: false,
+      extractingProgress: {
+        current: 0,
+        total: 0,
+        fileName: '',
+        fakeProgress: 0,
+        realProgress: 0
+      },
+      progressTimer: null
     }
   },
 
@@ -770,6 +824,20 @@ export default {
       return this.manualInput.title.trim() &&
              this.manualInput.description.trim() &&
              this.manualInput.description.length <= 2000
+    },
+    hasImageFiles() {
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']
+      return this.selectedFiles.some(file => {
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+        return imageExtensions.includes(ext)
+      })
+    },
+    hasOnlyNonImageFiles() {
+      const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.tiff', '.webp']
+      return this.selectedFiles.every(file => {
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+        return !imageExtensions.includes(ext)
+      })
     }
   },
 
@@ -777,6 +845,7 @@ export default {
     this.progressText = this.$t('requirementAnalysis.preparing')
     this.loadProjects()
     this.loadKnowledgeBases()
+    this.loadOcrConfigs()
     this.checkConfigStatus()
   },
 
@@ -797,7 +866,13 @@ export default {
     if (this.pollInterval) {
       clearInterval(this.pollInterval)
     }
-    // 停止token自动刷新定时器
+    if (this.progressTimer) {
+      clearInterval(this.progressTimer)
+    }
+    if (this.eventSource) {
+      this.eventSource.close()
+      this.eventSource = null
+    }
     const userStore = useUserStore()
     userStore.stopAutoRefresh()
   },
@@ -875,6 +950,29 @@ export default {
       } catch (error) {
         console.error('Failed to load knowledge bases:', error)
       }
+    },
+
+    async loadOcrConfigs() {
+      try {
+        const response = await api.get('/ocr/configs/active/')
+        this.ocrConfigs = response.data.results || response.data || []
+      } catch (error) {
+        console.error('Failed to load OCR configs:', error)
+        this.ocrConfigs = []
+      }
+    },
+
+    getOcrProviderLabel(provider) {
+      const labels = {
+        tesseract: this.$t('configuration.ocr.providers.tesseract'),
+        openai: this.$t('configuration.ocr.providers.openai'),
+        zhipu: this.$t('configuration.ocr.providers.zhipu'),
+        baidu: this.$t('configuration.ocr.providers.baidu'),
+        tencent: this.$t('configuration.ocr.providers.tencent'),
+        aliyun: this.$t('configuration.ocr.providers.aliyun'),
+        custom: this.$t('configuration.ocr.providers.custom')
+      }
+      return labels[provider] || provider
     },
 
     async handleKnowledgeSearch() {
@@ -1223,31 +1321,23 @@ export default {
     },
 
     handleFileSelect(event) {
-      const file = event.target.files[0]
-      if (file) {
-        const allowedTypes = [
-          'application/pdf',
-          'application/msword',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'text/plain',
-          'text/markdown',
-          'text/x-markdown'
-        ]
-
-        if (allowedTypes.includes(file.type) ||
-            file.name.match(/\.(pdf|doc|docx|txt|md)$/i)) {
-          this.selectedFile = file
-          this.documentTitle = file.name.replace(/\.[^/.]+$/, "")
-        } else {
-          ElMessage.error(this.$t('requirementAnalysis.invalidFileFormatDetail'))
+      const files = Array.from(event.target.files)
+      if (files.length > 0) {
+        this.selectedFiles = [...this.selectedFiles, ...files]
+        if (!this.documentTitle && files.length === 1) {
+          this.documentTitle = files[0].name.replace(/\.[^/.]+$/, "")
         }
       }
     },
 
-    removeFile() {
-      this.selectedFile = null
-      this.documentTitle = ''
-      this.$refs.fileInput.value = ''
+    removeFile(index) {
+      this.selectedFiles.splice(index, 1)
+      if (this.selectedFiles.length === 0) {
+        this.documentTitle = ''
+      }
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
     },
 
     formatFileSize(bytes) {
@@ -1275,46 +1365,134 @@ export default {
     },
 
     async generateFromDocument() {
-      if (!this.selectedFile || !this.documentTitle) {
+      if (this.selectedFiles.length === 0 || !this.documentTitle) {
         ElMessage.error(this.$t('requirementAnalysis.selectFileAndTitle'))
         return
       }
 
+      this.isExtracting = true
+      this.extractingProgress = {
+        current: 0,
+        total: this.selectedFiles.length,
+        fileName: '',
+        fakeProgress: 0,
+        realProgress: 0
+      }
+
+      const startFakeProgress = () => {
+        if (this.progressTimer) {
+          clearInterval(this.progressTimer)
+        }
+        
+        this.extractingProgress.fakeProgress = 0
+        
+        this.progressTimer = setInterval(() => {
+          if (this.extractingProgress.fakeProgress < 99) {
+            const increment = Math.random() * 3 + 1
+            this.extractingProgress.fakeProgress = Math.min(
+              99,
+              this.extractingProgress.fakeProgress + increment
+            )
+          }
+        }, 200)
+      }
+
+      const stopFakeProgress = () => {
+        if (this.progressTimer) {
+          clearInterval(this.progressTimer)
+          this.progressTimer = null
+        }
+      }
+
       try {
-        // 首先上传并提取文档内容
-        const formData = new FormData()
-        formData.append('title', this.documentTitle)
-        formData.append('file', this.selectedFile)
-        if (this.selectedProject) {
-          formData.append('project', this.selectedProject)
+        let allExtractedText = ''
+
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+          const file = this.selectedFiles[i]
+          
+          this.extractingProgress.current = i + 1
+          this.extractingProgress.fileName = file.name
+          
+          startFakeProgress()
+
+          const formData = new FormData()
+          formData.append('title', this.documentTitle + (this.selectedFiles.length > 1 ? ` (${i + 1})` : ''))
+          formData.append('file', file)
+          if (this.selectedProject) {
+            formData.append('project', this.selectedProject)
+          }
+
+          const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+
+          if (!uploadResponse.data || !uploadResponse.data.id) {
+            console.error('文档上传失败: 响应数据无效', uploadResponse.data)
+            throw new Error('文档上传失败：响应数据无效')
+          }
+
+          const documentId = uploadResponse.data.id
+          console.log(`文档上传成功: ${file.name}, document_id=${documentId}`)
+          
+          const extractParams = new URLSearchParams()
+          if (this.selectedOcrConfig) {
+            extractParams.append('ocr_config_id', this.selectedOcrConfig)
+          }
+          
+          const extractResponse = await api.get(
+            `/requirement-analysis/documents/${documentId}/extract_text/?${extractParams.toString()}`,
+            { timeout: 300000 }
+          )
+          
+          if (!extractResponse.data || !extractResponse.data.extracted_text) {
+            console.error('文本提取失败:', extractResponse.data)
+            throw new Error(extractResponse.data?.error || '文本提取失败')
+          }
+          
+          const extractedText = extractResponse.data.extracted_text
+          const warningMessage = extractResponse.data.warning
+          console.log(`文档 ${documentId} 文本提取完成, 长度: ${extractedText.length}`)
+
+          stopFakeProgress()
+          this.extractingProgress.fakeProgress = 100
+
+          if (warningMessage) {
+            ElMessage({
+              message: warningMessage,
+              type: 'warning',
+              duration: 5000
+            })
+          }
+
+          if (extractedText && extractedText.trim().length > 0) {
+            allExtractedText += `\n\n===== ${file.name} =====\n\n${extractedText}`
+          }
+          
+          this.extractingProgress.realProgress = Math.round(((i + 1) / this.selectedFiles.length) * 100)
         }
 
-        ElMessage.info(this.$t('requirementAnalysis.extractingContent'))
-        const uploadResponse = await api.post('/requirement-analysis/documents/', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        })
-
-        // 提取文档内容
-        const extractResponse = await api.get(`/requirement-analysis/documents/${uploadResponse.data.id}/extract_text/`)
-        const extractedText = extractResponse.data.extracted_text
-
-        if (!extractedText || extractedText.trim().length === 0) {
+        if (!allExtractedText || allExtractedText.trim().length === 0) {
           ElMessage.error(this.$t('requirementAnalysis.extractionFailed'))
+          this.isExtracting = false
           return
         }
 
-        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${extractedText}`
+        const requirementText = `${this.$t('requirementAnalysis.documentTitle')}: ${this.documentTitle}\n\n${this.$t('requirementAnalysis.documentContent')}:\n${allExtractedText}`
 
+        this.isExtracting = false
+        
         await this.startGeneration(
           this.documentTitle,
           requirementText,
           this.selectedProject,
-          this.globalOutputMode  // 使用全局输出模式
+          this.globalOutputMode
         )
 
       } catch (error) {
+        stopFakeProgress()
+        this.isExtracting = false
         console.error(this.$t('requirementAnalysis.documentProcessingFailed'), error)
         ElMessage.error(this.$t('requirementAnalysis.documentProcessingFailed') + ': ' + (error.response?.data?.error || error.message))
       }
@@ -1383,6 +1561,9 @@ export default {
     },
 
     startStreamingProgress() {
+      // 重置SSE状态标志
+      this.sseDoneReceived = false
+
       // 使用SSE进行流式进度获取
       // 注意：EventSource不使用axios代理，需要直接指向后端服务器
       // 完整的URL路径: /api/requirement-analysis/testcase-generation/{task_id}/stream_progress/
@@ -1400,11 +1581,26 @@ export default {
 
       // 监听连接打开事件
       this.eventSource.onopen = (event) => {
+        // 如果已收到done信号，立即关闭新连接
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，关闭新建立的SSE连接')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
         console.log('✅ SSE连接已打开', event)
       }
 
       this.eventSource.onmessage = (event) => {
         console.log('📨 收到SSE消息:', event.data)
+
+        // 如果已收到done信号，忽略后续所有消息
+        if (this.sseDoneReceived) {
+          console.log('⚠️ 已收到done信号，忽略后续消息')
+          return
+        }
 
         try {
           const data = JSON.parse(event.data)
@@ -1439,7 +1635,7 @@ export default {
             console.log('🎯 Received final cases content:', data.content.length, 'characters', 'Total length:', this.finalTestCases.length + data.content.length)
             this.finalTestCases += data.content
             this.currentStep = 3
-            this.progressText = '🎯 ' + this.$t('requirementAnalysis.statusRevising')
+            this.progressText = this.$t('requirementAnalysis.statusRevising')
           } else if (data.type === 'status') {
             // Final status
             console.log('📊 Received status update:', data.status)
@@ -1454,6 +1650,7 @@ export default {
           } else if (data.type === 'done') {
             // 流式结束，立即关闭EventSource，获取最终结果
             console.log('✅ 流式传输完成')
+            this.sseDoneReceived = true  // 先设置标志，防止重复处理
             if (this.eventSource) {
               console.log('🔒 关闭SSE连接')
               this.eventSource.close()
@@ -1468,6 +1665,16 @@ export default {
 
       this.eventSource.onerror = (error) => {
         console.log('⚠️ SSE连接事件:', error)
+
+        // 如果已收到done信号，不做任何处理
+        if (this.sseDoneReceived) {
+          console.log('ℹ️ 已收到done信号，忽略错误事件')
+          if (this.eventSource) {
+            this.eventSource.close()
+            this.eventSource = null
+          }
+          return
+        }
 
         // 如果EventSource已经被关闭（在onmessage中关闭的），不做任何处理
         if (!this.eventSource) {
@@ -1566,7 +1773,7 @@ export default {
       }
     },
 
-    handleGenerationError() {
+    async handleGenerationError() {
       this.isGenerating = false
       if (this.eventSource) {
         this.eventSource.close()
@@ -1575,6 +1782,17 @@ export default {
       if (this.pollInterval) {
         clearInterval(this.pollInterval)
         this.pollInterval = null
+      }
+
+      // 获取错误消息并显示
+      try {
+        const response = await api.get(`/requirement-analysis/testcase-generation/${this.currentTaskId}/progress/`)
+        const task = response.data
+        const errorMessage = task.error_message || this.$t('requirementAnalysis.unknownError')
+        ElMessage.error(this.$t('requirementAnalysis.generateFailed') + ': ' + errorMessage)
+      } catch (error) {
+        console.error('获取错误信息失败:', error)
+        ElMessage.error(this.$t('requirementAnalysis.generateFailed'))
       }
     },
 
@@ -2136,7 +2354,7 @@ export default {
 }
 
 .output-mode-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%);
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -2186,7 +2404,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px;
@@ -2208,7 +2426,7 @@ export default {
   left: 0;
   right: 0;
   height: 5px;
-  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(90deg, var(--th-color-info) 0%, #00f2fe 100%);
   border-radius: 24px 24px 0 0;
 }
 
@@ -2388,7 +2606,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
@@ -2470,14 +2688,16 @@ export default {
 }
 
 .mode-option:hover .mode-content {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 10%, transparent);
 }
 
 .mode-option.active .mode-content {
-  border-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  border-color: var(--th-color-primary);
+  background: var(--th-color-primary-soft);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--th-color-primary) 20%, transparent);
 }
 
 .mode-title {
@@ -2494,7 +2714,7 @@ export default {
 }
 
 .mode-option.active .mode-title {
-  color: #2563eb;
+  color: var(--th-color-primary-strong);
 }
 
 .mode-option.active .mode-desc {
@@ -2550,20 +2770,21 @@ export default {
 }
 
 .panel-tab.active {
-  background: white;
-  border-color: #3b82f6;
-  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.15), 0 8px 10px -6px rgba(59, 130, 246, 0.1);
+  background: transparent;
+  border-color: var(--th-color-primary);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--th-color-primary) 15%, transparent);
 }
 
 .panel-tab.active::before {
-  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  background: linear-gradient(90deg, var(--th-color-primary), var(--th-color-primary-strong));
+  height: 4px;
 }
 
 .panel-icon {
   position: absolute;
   top: 24px;
   left: 24px;
-  font-size: 2.2rem;
+  font-size: 1.6rem;
   line-height: 56px;
   display: flex;
   align-items: center;
@@ -2571,17 +2792,37 @@ export default {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: #f8fafc;
+  background: var(--icon-bg, #f8fafc);
+  color: var(--icon-color, #64748b);
   transition: all 0.3s ease;
-  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
   text-align: center;
   margin: 0;
   overflow: hidden;
   box-sizing: border-box;
 }
 
+.panel-icon.manual-icon {
+  --icon-bg: #ede9fe;
+  --icon-color: #7c3aed;
+}
+
+.panel-icon.upload-icon {
+  --icon-bg: #e0f2fe;
+  --icon-color: #0284c7;
+}
+
+.panel-icon.knowledge-icon {
+  --icon-bg: #fef3c7;
+  --icon-color: #d97706;
+}
+
+.panel-icon.axure-icon {
+  --icon-bg: #fce7f3;
+  --icon-color: #db2777;
+}
+
 .panel-tab.active .panel-icon {
-  background: #eff6ff;
+  background: color-mix(in srgb, var(--th-color-primary) 10%, white);
   transform: scale(1.05);
 }
 
@@ -2608,7 +2849,7 @@ export default {
 }
 
 .panel-tab.active .panel-label {
-  color: #1d4ed8;
+  color: var(--th-color-primary);
 }
 
 .panel-desc {
@@ -2670,7 +2911,7 @@ export default {
 
 .search-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2681,7 +2922,7 @@ export default {
 }
 
 .search-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .search-btn:disabled {
@@ -2728,7 +2969,7 @@ export default {
 .param-value{
   min-width: 40px;
   font-size: 14px;
-  color: #409eff;
+  color: var(--th-color-primary);
   font-weight: 500;
 }
 
@@ -2754,7 +2995,7 @@ export default {
 .search-type-btn {
   padding: 8px 16px;
   border: 1px solid #dcdfe6;
-  background: #f5f7fa;
+  background: var(--th-color-surface-muted);
   color: #606266;
   cursor: pointer;
   border-radius: 4px;
@@ -2763,14 +3004,14 @@ export default {
 }
 
 .search-type-btn:hover {
-  border-color: #409eff;
-  color: #409eff;
+  border-color: var(--th-color-primary);
+  color: var(--th-color-primary);
 }
 
 .search-type-btn.active {
-  background: #409eff;
+  background: var(--th-color-primary);
   color: white;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
 }
 
 .search-type-btn.active:hover {
@@ -2800,7 +3041,7 @@ export default {
   background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 12px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .result-header {
@@ -2812,7 +3053,7 @@ export default {
 
 .result-index {
   font-weight: 600;
-  color: #3b82f6;
+  color: var(--th-color-primary);
 }
 
 .result-score {
@@ -2875,7 +3116,7 @@ export default {
 
 .parse-btn {
   padding: 12px 24px;
-  background: #3b82f6;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -2886,7 +3127,7 @@ export default {
 }
 
 .parse-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--th-color-primary-strong);
 }
 
 .parse-btn:disabled {
@@ -3003,7 +3244,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   color: #333;
   transition: all 0.2s;
 }
@@ -3014,12 +3255,12 @@ export default {
 
 .view-toggle-btn.active {
   background: #4CAF50;
-  color: #fff;
+  color: var(--th-color-surface);
   border-color: #4CAF50;
 }
 
 .markdown-preview {
-  background: #fff;
+  background: var(--th-color-surface);
   border: 1px solid #ddd;
   border-radius: 4px;
   padding: 15px;
@@ -3089,13 +3330,13 @@ export default {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   line-height: 1.6;
   resize: vertical;
-  background: #fafafa;
+  background: var(--th-color-surface-muted);
   color: #333;
 }
 
 .edit-textarea:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3107,7 +3348,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3122,7 +3363,7 @@ export default {
   padding: 15px;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  background: #fff;
+  background: var(--th-color-surface);
   cursor: text;
   transition: border-color 0.3s;
 }
@@ -3132,7 +3373,7 @@ export default {
 }
 
 .editable-preview:focus {
-  border-color: #409eff;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -3157,14 +3398,14 @@ export default {
 }
 
 .markdown-preview pre {
-  background: #f5f5f5;
+  background: var(--th-color-surface-muted);
   padding: 10px;
   border-radius: 4px;
   overflow-x: auto;
 }
 
 .markdown-preview code {
-  background: #f0f0f0;
+  background: var(--th-color-surface-muted);
   padding: 2px 4px;
   border-radius: 3px;
   font-family: monospace;
@@ -3276,7 +3517,7 @@ export default {
 
 .form-input:focus, .form-select:focus, .form-textarea:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
 }
 
@@ -3351,7 +3592,7 @@ export default {
 }
 
 .upload-area.drag-over {
-  border-color: #3498db;
+  border-color: var(--th-color-primary);
   background: #f8f9fa;
 }
 
@@ -3372,7 +3613,7 @@ export default {
 }
 
 .select-file-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3395,6 +3636,7 @@ export default {
 
 .file-icon {
   font-size: 2rem;
+  color: #0284c7;
 }
 
 .file-details {
@@ -3417,6 +3659,13 @@ export default {
   border: none;
   cursor: pointer;
   font-size: 1.2rem;
+  color: #f56c6c;
+  display: flex;
+  align-items: center;
+}
+
+.remove-file:hover {
+  color: #f23c3c;
 }
 
 .generation-progress {
@@ -3444,7 +3693,7 @@ export default {
 
 .current-mode-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -3569,7 +3818,7 @@ export default {
 }
 
 .stream-content.final-testcases::before {
-  content: '📋 最终版本';
+  content: '\2611  最终版本';
   display: block;
   font-weight: 600;
   color: #2196F3;
@@ -3662,7 +3911,7 @@ export default {
 }
 
 .step.active .step-number {
-  background: #3498db;
+  background: var(--th-color-primary);
 }
 
 .step-text {
@@ -3684,6 +3933,12 @@ export default {
   gap: 12px;
   margin-top: 20px;
   flex-wrap: wrap;
+}
+
+.completion-actions button .el-icon {
+  margin-right: 6px;
+  font-size: 1.1em;
+  vertical-align: middle;
 }
 
 .completion-actions button {
@@ -3771,7 +4026,7 @@ export default {
 }
 
 .new-generation-btn {
-  background: #3498db;
+  background: var(--th-color-primary);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -3797,7 +4052,7 @@ export default {
   background: #f8f9fa;
   border-radius: 6px;
   padding: 20px;
-  border-left: 4px solid #3498db;
+  border-left: 4px solid var(--th-color-primary);
 }
 
 .testcase-content pre, .review-content pre {
@@ -3847,21 +4102,21 @@ export default {
 }
 
 .download-btn {
-  background-color: #1abc9c;
+  background-color: var(--th-color-success);
   color: white;
 }
 
 .download-btn:hover {
-  background-color: #16a085;
+  background-color: var(--th-color-success);
 }
 
 .save-btn {
-  background-color: #3498db;
+  background-color: var(--th-color-primary);
   color: white;
 }
 
 .save-btn:hover {
-  background-color: #2980b9;
+  background-color: var(--th-color-primary);
 }
 
 @media (max-width: 768px) {
@@ -3875,6 +4130,58 @@ export default {
     max-width: 300px;
     justify-content: center;
   }
+}
+
+/* 提取进度样式 */
+.extraction-progress {
+  margin-top: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  border-radius: 12px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-percent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e40af;
+  z-index: 1;
+}
+
+.progress-text {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.progress-file {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  word-break: break-all;
 }
 </style>
 
@@ -3903,7 +4210,7 @@ export default {
 }
 
 .guide-config-modal {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-surface) 0%, #f8f9fa 100%) !important;
   border-radius: 24px;
   padding: 36px;
   max-width: 850px !important;
@@ -3949,7 +4256,7 @@ export default {
 }
 
 .guide-actions .generate-manual-btn {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+  background: linear-gradient(135deg, var(--th-color-info) 0%, #00f2fe 100%) !important;
   color: white !important;
   border: 2px solid transparent !important;
   box-shadow: 0 2px 10px rgba(79, 172, 254, 0.3);
