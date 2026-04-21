@@ -133,11 +133,15 @@ const formatDate = (dateString) => {
 const loadConfig = async () => {
   try {
     const response = await api.get('/assistant/config/dify/')
-    currentConfig.value = response.data
-    form.value = {
-      api_url: response.data.api_url,
-      api_key: '', // Don't populate API key for security
-      is_active: response.data.is_active
+    if (response.data && response.data.configured) {
+      currentConfig.value = response.data
+      form.value = {
+        api_url: response.data.api_url,
+        api_key: '', // Don't populate API key for security
+        is_active: response.data.is_active
+      }
+    } else {
+      currentConfig.value = null // 确保未配置时置为 null
     }
   } catch (error) {
     if (error.response?.status !== 404) {
