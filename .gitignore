@@ -52,6 +52,8 @@ expand/media/api_testing/allure-reports/*
 !expand/media/api_testing/allure-reports/.gitkeep
 expand/media/api_testing/allure-static/*
 !expand/media/api_testing/allure-static/.gitkeep
+expand/media/api_testing/allure-single-file/*
+!expand/media/api_testing/allure-single-file/.gitkeep
 
 # 忽略 APP 自动化运行时产生的文件，但保留.gitkeep文件
 app-automation/*

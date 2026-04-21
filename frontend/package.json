@@ -2,6 +2,7 @@
   "name": "testhub-frontend",
   "version": "1.0.3",
   "description": "TestHub前端应用",
+  "license": "GPL-3.0",
   "scripts": {
     "dev": "node scripts/sync-config.js && vite",
     "build": "node scripts/sync-config.js && vite build",
