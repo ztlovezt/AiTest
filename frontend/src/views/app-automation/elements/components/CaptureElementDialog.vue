@@ -394,7 +394,8 @@ const captureScreen = async () => {
 
   capturing.value = true
   try {
-    const { data } = await captureDeviceScreenshot(selectedDevice.value)
+    // 传递设备列表，让 API 函数查找对应的 device_id
+    const { data } = await captureDeviceScreenshot(selectedDevice.value, devices.value)
     
     if (data.success && data.data) {
       capturedImage.value = data.data.content || data.content || ''

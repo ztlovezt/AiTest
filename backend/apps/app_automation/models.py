@@ -368,6 +368,38 @@ class AppPackage(models.Model):
         help_text='Android包名，如：com.android.settings'
     )
     
+    apk_file = models.FileField(
+        upload_to='app_automation/packages/',
+        blank=True,
+        null=True,
+        verbose_name='APK文件',
+        help_text='上传的APK安装包（可选）'
+    )
+    
+    apk_filepath = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='APK文件路径',
+        help_text='APK文件的完整存储路径'
+    )
+    
+    apk_filename = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='APK文件名',
+        help_text='APK文件的唯一文件名'
+    )
+    
+    remarks = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        verbose_name='备注',
+        help_text='最多30个字符，可选字段'
+    )
+    
     created_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

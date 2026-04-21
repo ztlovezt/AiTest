@@ -1,22 +1,29 @@
 # -*- coding: utf-8 -*-
 """
-测试执行器 - pytest + Allure 集成
+APP测试执行器 - 继承 BaseTestExecutor
+复用基类的 Allure 报告生成和 pytest 执行逻辑
 """
 import os
 import sys
 import subprocess
 import glob
 import json
+# import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from django.conf import settings
+from django.utils import timezone
 from loguru import logger
 
+from apps.common.executors.base_executor import BaseTestExecutor
 
-class AppTestExecutor:
-    """APP测试执行器，封装 pytest 执行逻辑"""
+
+class AppTestExecutor(BaseTestExecutor):
+    """APP测试执行器，继承 BaseTestExecutor，复用报告生成逻辑"""
+
+    MODULE_NAME = 'APP'
 
     def __init__(self, base_path: Optional[str] = None):
         """
@@ -25,6 +32,8 @@ class AppTestExecutor:
         Args:
             base_path: 基础路径，默认使用 Django BASE_DIR
         """
+        super().__init__()
+        
         if base_path is None:
             self.base_path = settings.BASE_DIR
         else:
@@ -34,8 +43,367 @@ class AppTestExecutor:
             raise ValueError(f"测试项目路径不存在: {self.base_path}")
 
         self._current_process: Optional[subprocess.Popen] = None
+        self.execution = None
+        # self._tesseract_cmd: Optional[str] = None
 
         logger.info(f"初始化 AppTestExecutor，基础路径: {self.base_path}")
+
+    def _get_allure_results_dir(self, execution_id=None) -> str:
+        base_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_RESULTS_DIR)
+        if execution_id:
+            return os.path.join(base_dir, f'execution_{execution_id}')
+        return base_dir
+
+    def _get_allure_report_dir(self, execution_id=None) -> str:
+        base_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_REPORTS_DIR)
+        if execution_id:
+            return os.path.join(base_dir, f'execution_{execution_id}')
+        return base_dir
+
+    def _get_allure_single_file_dir(self, execution_id=None) -> str:
+        base_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_SINGLE_FILE_DIR)
+        if execution_id:
+            return os.path.join(base_dir, f'execution_{execution_id}')
+        return base_dir
+
+    def _get_report_url(self, execution_id: int) -> str:
+        return f'/api/app-automation-reports/execution_{execution_id}/index.html'
+
+    # def _build_tesseract_candidates(self) -> List[str]:
+    #     """收集可能的 tesseract 可执行文件路径（环境变量优先）"""
+    #     candidates: List[str] = []
+
+    #     # 1) 环境变量显式指定（优先）
+    #     for key in ('TESSERACT_CMD', 'TESSERACT_PATH', 'OCR_TESSERACT_CMD'):
+    #         raw = os.environ.get(key, '')
+    #         if raw:
+    #             candidates.append(raw.strip().strip('"'))
+
+    #     # 2) 系统 PATH
+    #     which_cmd = shutil.which('tesseract')
+    #     if which_cmd:
+    #         candidates.append(which_cmd)
+
+    #     # 3) Windows 常见安装目录
+    #     if sys.platform.startswith('win'):
+    #         possible_paths = [
+    #             r'C:\Program Files\Tesseract-OCR\tesseract.exe',
+    #             r'C:\Program Files (x86)\Tesseract-OCR\tesseract.exe',
+    #         ]
+
+    #         local_appdata = os.environ.get('LOCALAPPDATA')
+    #         if local_appdata:
+    #             possible_paths.append(
+    #                 os.path.join(local_appdata, 'Programs', 'Tesseract-OCR', 'tesseract.exe')
+    #             )
+
+    #         candidates.extend(possible_paths)
+
+    #     # 去重并保序
+    #     seen = set()
+    #     unique_candidates: List[str] = []
+    #     for path in candidates:
+    #         norm = os.path.normcase(os.path.normpath(path))
+    #         if norm not in seen:
+    #             seen.add(norm)
+    #             unique_candidates.append(path)
+    #     return unique_candidates
+
+    # def _resolve_tesseract_cmd(self) -> Optional[str]:
+    #     """解析可用的 tesseract 可执行文件路径"""
+    #     if self._tesseract_cmd and os.path.isfile(self._tesseract_cmd):
+    #         return self._tesseract_cmd
+
+    #     for candidate in self._build_tesseract_candidates():
+    #         if not candidate:
+    #             continue
+
+    #         normalized = os.path.expandvars(os.path.expanduser(candidate))
+    #         # 允许传目录：自动拼接 tesseract(.exe)
+    #         if os.path.isdir(normalized):
+    #             executable = 'tesseract.exe' if sys.platform.startswith('win') else 'tesseract'
+    #             normalized = os.path.join(normalized, executable)
+
+    #         if os.path.isfile(normalized):
+    #             self._tesseract_cmd = normalized
+    #             return normalized
+
+    #     return None
+
+    # def _apply_tesseract_runtime_env(self, target_env: Optional[Dict[str, str]] = None) -> Optional[str]:
+    #     """
+    #     将 tesseract 路径注入当前进程或子进程环境变量，避免依赖系统 PATH 是否生效
+    #     """
+    #     cmd = self._resolve_tesseract_cmd()
+    #     if not cmd:
+    #         return None
+
+    #     env_obj = target_env if target_env is not None else os.environ
+    #     env_obj['TESSERACT_CMD'] = cmd
+
+    #     cmd_dir = os.path.dirname(cmd)
+    #     path_value = env_obj.get('PATH', '')
+    #     path_items = [item for item in path_value.split(os.pathsep) if item]
+    #     normalized_items = {os.path.normcase(os.path.normpath(item)) for item in path_items}
+    #     normalized_cmd_dir = os.path.normcase(os.path.normpath(cmd_dir))
+    #     if normalized_cmd_dir not in normalized_items:
+    #         env_obj['PATH'] = f"{cmd_dir}{os.pathsep}{path_value}" if path_value else cmd_dir
+
+    #     # 默认注入 tessdata 目录（如果存在且未显式配置）
+    #     tessdata_dir = os.path.join(cmd_dir, 'tessdata')
+    #     if os.path.isdir(tessdata_dir) and not env_obj.get('TESSDATA_PREFIX'):
+    #         env_obj['TESSDATA_PREFIX'] = tessdata_dir
+
+    #     return cmd
+
+    def _check_ocr_config(self) -> Dict[str, Any]:
+        """
+        检查 OCR 配置是否有效
+        
+        Returns:
+            包含 valid 和 message 的字典
+        """
+        try:
+            from apps.app_automation.models import AppTestConfig
+            
+            config = AppTestConfig.objects.first()
+            
+            if not config:
+                return {
+                    'valid': False,
+                    'message': '请前往设置中心/APP环境配置中配置 OCR 后再使用'
+                }
+            
+            if not config.ocr_engine:
+                return {
+                    'valid': False,
+                    'message': '请前往设置中心/APP环境配置中配置 OCR 后再使用'
+                }
+            
+            if config.ocr_engine == 'tesseract':
+                try:
+                    import pytesseract
+                    # resolved_cmd = self._apply_tesseract_runtime_env()
+                    # if resolved_cmd:
+                    #     pytesseract.pytesseract.tesseract_cmd = resolved_cmd
+                    # else:
+                    #     return {
+                    #         'valid': False,
+                    #         'message': (
+                    #             '未找到 Tesseract 可执行文件。请安装 Tesseract OCR，'
+                    #             '并配置环境变量 TESSERACT_CMD 或将安装目录加入 PATH。'
+                    #         )
+                    #     }
+                    pytesseract.get_tesseract_version()
+                    logger.info(f"OCR 配置校验通过: Tesseract OCR ({pytesseract.pytesseract.tesseract_cmd})")
+                    return {'valid': True, 'message': 'OK'}
+                except Exception as e:
+                    logger.warning(f"Tesseract OCR 不可用: {e}")
+                    return {
+                        'valid': False,
+                        'message': f'Tesseract OCR 未正确安装或配置，请检查安装。错误: {str(e)}'
+                    }
+            
+            return {'valid': True, 'message': 'OK'}
+            
+        except Exception as e:
+            logger.error(f"检查 OCR 配置时发生错误: {e}")
+            return {
+                'valid': False,
+                'message': f'检查 OCR 配置时发生错误: {str(e)}'
+            }
+
+    def _get_env_info(self) -> Dict[str, str]:
+        return {
+            'Module': 'APP Automation',
+            'Platform': 'TestHub',
+        }
+
+    def _get_executor_info(self, execution_id: int) -> Dict[str, Any]:
+        return {
+            'name': 'TestHub',
+            'type': 'TestHub',
+            'buildName': f'APP Test - Execution {execution_id}',
+            'reportUrl': self._get_report_url(execution_id),
+        }
+
+    def execute_suite(
+            self,
+            test_suite,
+            device_id: str = None,
+            package_name: str = '',
+            user=None,
+            execution_id: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        执行APP测试套件
+
+        Args:
+            test_suite: 测试套件实例
+            device_id: 设备ID
+            package_name: 应用包名
+            user: 执行用户
+            execution_id: 已存在的执行记录ID
+
+        Returns:
+            执行结果字典
+        """
+        from apps.app_automation.models import AppTestExecution, AppTestSuiteCase, AppDevice
+
+        logger.info(f"[AppTestExecutor] 开始执行套件: {test_suite.name}")
+
+        try:
+            os.environ['DJANGO_ALLOW_ASYNC_UNSAFE'] = 'true'
+
+            device = None
+            if device_id:
+                try:
+                    device = AppDevice.objects.get(device_id=device_id)
+                except AppDevice.DoesNotExist:
+                    logger.warning(f"设备不存在: {device_id}")
+
+            if execution_id:
+                self.execution = AppTestExecution.objects.get(id=execution_id)
+            else:
+                self.execution = AppTestExecution.objects.create(
+                    test_suite=test_suite,
+                    device=device,
+                    user=user,
+                    status='running',
+                    started_at=timezone.now()
+                )
+
+            execution_id = self.execution.id
+            start_time = datetime.now()
+
+            suite_cases = AppTestSuiteCase.objects.filter(test_suite=test_suite).select_related('test_case')
+            if not suite_cases.exists():
+                logger.warning(f"测试套件 {test_suite.name} 没有关联的测试用例")
+                self.execution.status = 'completed'
+                self.execution.result = 'skipped'
+                self.execution.finished_at = timezone.now()
+                self.execution.save()
+                return {
+                    'success': True,
+                    'execution_id': execution_id,
+                    'total_count': 0,
+                    'passed_count': 0,
+                    'failed_count': 0,
+                    'skipped_count': 0,
+                }
+
+            total_passed = 0
+            total_failed = 0
+            total_skipped = 0
+            all_test_cases = []
+
+            for suite_case in suite_cases:
+                test_case = suite_case.test_case
+
+                case_package = package_name or (test_case.app_package.package_name if test_case.app_package else '')
+
+                case_result = self.run_tests(
+                    test_case_id=test_case.id,
+                    device_id=device_id,
+                    package_name=case_package,
+                    execution_id=execution_id,
+                    username=user.username if user else 'unknown',
+                    generate_report_flag=False
+                )
+
+                if case_result.get('success'):
+                    total_passed += 1
+                else:
+                    total_failed += 1
+
+                all_test_cases.append({
+                    'test_case_name': test_case.name,
+                    'test_case_id': test_case.id,
+                    'status': 'passed' if case_result.get('success') else 'failed',
+                    'duration': case_result.get('result_data', {}).get('duration', 0),
+                    'error': case_result.get('error', ''),
+                })
+
+            duration = (datetime.now() - start_time).total_seconds()
+
+            if total_failed == 0 and total_passed > 0:
+                status = 'completed'
+                result = 'passed'
+            elif total_failed > 0 and total_passed == 0:
+                status = 'completed'
+                result = 'failed'
+            elif total_failed > 0 and total_passed > 0:
+                status = 'completed'
+                result = 'partial_failed'
+            else:
+                status = 'completed'
+                result = 'skipped'
+
+            result_data = {
+                'total': total_passed + total_failed + total_skipped,
+                'passed': total_passed,
+                'failed': total_failed,
+                'skipped': total_skipped,
+                'duration': duration,
+                'test_cases': all_test_cases,
+                'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'end_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            }
+
+            self.execution.status = status
+            self.execution.result = result
+            self.execution.finished_at = timezone.now()
+            self.execution.duration = duration
+            self.execution.passed_steps = total_passed
+            self.execution.failed_steps = total_failed
+            self.execution.skipped_steps = total_skipped
+            self.execution.total_steps = total_passed + total_failed + total_skipped
+            self.execution.result_data = result_data
+            self.execution.report_path = self._get_allure_report_dir(execution_id)
+            self.execution.report_url = self._get_report_url(execution_id)
+            self.execution.save()
+
+            # 生成 Allure 报告
+            logger.info(f"[AppTestExecutor] 开始生成报告: execution_{execution_id}")
+            try:
+                report_success = self.generate_report(execution_id)
+                if report_success:
+                    logger.info(f"[AppTestExecutor] 报告生成成功: execution_{execution_id}")
+                else:
+                    logger.warning(f"[AppTestExecutor] 报告生成失败: execution_{execution_id}")
+            except Exception as report_error:
+                logger.error(f"[AppTestExecutor] 报告生成异常: {report_error}", exc_info=True)
+
+            logger.info(f"[AppTestExecutor] 套件执行完成: {test_suite.name}")
+
+            # 从测试套件直接获取项目名称
+            project_name = test_suite.project.name if test_suite.project else ''
+
+            return {
+                'success': total_failed == 0,
+                'execution_id': execution_id,
+                'report_path': self._get_allure_report_dir(execution_id),
+                'report_url': self._get_report_url(execution_id),
+                'total_count': total_passed + total_failed + total_skipped,
+                'passed_count': total_passed,
+                'failed_count': total_failed,
+                'skipped_count': total_skipped,
+                'duration': duration,
+                'result_data': result_data,
+                'project_name': project_name,
+            }
+
+        except Exception as e:
+            logger.error(f"[AppTestExecutor] 执行套件失败: {str(e)}", exc_info=True)
+            if self.execution:
+                self.execution.status = 'error'
+                self.execution.error_message = str(e)
+                self.execution.finished_at = timezone.now()
+                self.execution.save()
+            return {
+                'success': False,
+                'error': str(e),
+            }
 
     def run_tests(
             self,
@@ -44,6 +412,7 @@ class AppTestExecutor:
             package_name: str,
             execution_id: Optional[int] = None,
             username: Optional[str] = None,
+            generate_report_flag: bool = True,
     ) -> Dict[str, Any]:
         """
         运行APP测试用例并生成报告
@@ -54,29 +423,36 @@ class AppTestExecutor:
             package_name: 应用包名
             execution_id: 执行记录ID
             username: 执行用户名，用于日志目录分组
+            generate_report_flag: 是否生成报告（被execute_suite调用时设为False）
             
         Returns:
             执行结果字典
         """
         logger.info(f"开始执行APP测试: test_case_id={test_case_id}, device={device_id}")
 
+        ocr_check_result = self._check_ocr_config()
+        if not ocr_check_result['valid']:
+            logger.error(f"OCR 配置校验失败: {ocr_check_result['message']}")
+            return {
+                'success': False,
+                'error': ocr_check_result['message'],
+                'result_data': {}
+            }
+
         original_cwd = os.getcwd()
         start_time = datetime.now()
         start_time_str = start_time.strftime('%Y-%m-%d %H:%M:%S')
 
         try:
-            # 切换到项目根目录
             os.chdir(self.base_path)
 
-            # 准备环境变量
             env = os.environ.copy()
             env['PYTHONPATH'] = self._build_pythonpath()
             env['DJANGO_SETTINGS_MODULE'] = 'backend.settings'
-            # 强制子进程使用 UTF-8，避免 Windows 下 gbk 解码错误
             env['PYTHONUTF8'] = '1'
             env['PYTHONIOENCODING'] = 'utf-8'
+            # self._apply_tesseract_runtime_env(env)
 
-            # 传递执行参数到 pytest（确保所有值都是字符串）
             env['APP_TEST_CASE_ID'] = str(test_case_id)
             env['APP_DEVICE_ID'] = str(device_id) if device_id else '1'
             env['APP_PACKAGE_NAME'] = str(package_name) if package_name else ''
@@ -85,24 +461,67 @@ class AppTestExecutor:
             if username:
                 env['APP_USERNAME'] = str(username)
 
-            # Allure 结果目录
             allure_results_dir = self._get_allure_results_dir(execution_id)
             os.makedirs(allure_results_dir, exist_ok=True)
 
-            # 构建 pytest 参数
+            # 验证测试目录是否存在
+            test_dir = os.path.join(self.base_path, 'apps', 'app_automation', 'tests')
+            if not os.path.exists(test_dir):
+                logger.error(f"测试目录不存在: {test_dir}")
+                return {
+                    'success': False,
+                    'error': f'测试目录不存在: {test_dir}',
+                }
+
+            # 首先验证pytest能否收集测试
+            logger.info("验证pytest测试收集...")
+            collect_args = [
+                sys.executable, '-m', 'pytest',
+                'apps/app_automation/tests/',
+                '--collect-only',
+                '-q',
+            ]
+            
+            collect_result = subprocess.run(
+                collect_args,
+                cwd=self.base_path,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                env=env,
+                timeout=30
+            )
+            
+            logger.info(f"测试收集输出:\n{collect_result.stdout}")
+            if collect_result.stderr:
+                logger.warning(f"测试收集错误:\n{collect_result.stderr}")
+            
+            if collect_result.returncode != 0 and 'collected' not in collect_result.stdout:
+                logger.error(f"pytest 无法收集测试，退出码: {collect_result.returncode}")
+                logger.error(f"stdout: {collect_result.stdout}")
+                logger.error(f"stderr: {collect_result.stderr}")
+                return {
+                    'success': False,
+                    'error': f'pytest 无法收集测试。Stdout: {collect_result.stdout[:500]}, Stderr: {collect_result.stderr[:500]}',
+                }
+
             pytest_args = [
                 sys.executable, '-m', 'pytest',
-                'apps/app_automation/tests/',  # 测试目录
+                'apps/app_automation/tests/',
                 '-s', '-v',
                 '--alluredir', allure_results_dir,
-                '--tb=short',
+                '--tb=long',
+                '--capture=no',
             ]
 
             logger.info(f"执行命令: {' '.join(pytest_args)}")
             logger.info(f"工作目录: {os.getcwd()}")
             logger.info(f"PYTHONPATH: {env['PYTHONPATH']}")
+            logger.info(f"测试目录: {test_dir}")
+            logger.info(f"环境变量 APP_TEST_CASE_ID: {env.get('APP_TEST_CASE_ID')}")
+            logger.info(f"环境变量 APP_DEVICE_ID: {env.get('APP_DEVICE_ID')}")
 
-            # 执行 pytest
             process = subprocess.Popen(
                 pytest_args,
                 cwd=self.base_path,
@@ -110,19 +529,17 @@ class AppTestExecutor:
                 stderr=subprocess.STDOUT,
                 text=True,
                 encoding='utf-8',
-                errors='ignore',
+                errors='replace',
                 bufsize=1,
                 env=env
             )
 
             self._current_process = process
 
-            # 准备日志文件
             log_file_path = self._get_log_file_path(username or 'unknown')
 
-            # 收集输出并写入日志文件
             output_lines = []
-            important_patterns = ['PASSED', 'FAILED', 'ERROR', 'SKIPPED', 'collected', 'passed', 'failed']
+            important_patterns = ['PASSED', 'FAILED', 'ERROR', 'SKIPPED', 'collected', 'passed', 'failed', 'ImportError', 'ModuleNotFoundError']
 
             log_file = open(log_file_path, 'a', encoding='utf-8')
             try:
@@ -138,6 +555,7 @@ class AppTestExecutor:
                         if line:
                             output_lines.append(line)
                             log_file.write(line + '\n')
+                            logger.debug(f"[pytest] {line}")
                             if any(pattern in line for pattern in important_patterns):
                                 logger.info(f"[pytest] {line}")
 
@@ -147,31 +565,74 @@ class AppTestExecutor:
 
             logger.info(f"执行日志已保存: {log_file_path}")
 
-            # 等待执行完成
             exit_code = process.wait()
             self._current_process = None
 
             logger.info(f"pytest 执行完成，退出码: {exit_code}")
+            
+            # 如果退出码非零，记录完整输出以便调试
+            if exit_code != 0:
+                logger.error(f"pytest 执行失败，退出码: {exit_code}")
+                joined_output = '\n'.join(output_lines)
+                logger.error(f"完整输出:\n{joined_output}")
 
-            # 解析测试结果
             test_results = self._parse_allure_results(allure_results_dir)
 
-            # 生成 Allure 报告
-            report_path = self._generate_allure_report(execution_id)
+            if execution_id and generate_report_flag:
+                self.generate_report(execution_id)
 
             end_time = datetime.now()
             end_time_str = end_time.strftime('%Y-%m-%d %H:%M:%S')
 
-            return {
-                'success': exit_code == 0,
-                'exit_code': exit_code,
-                'report_path': report_path,
-                'test_results': test_results,
-                'output': '\n'.join(output_lines[-50:]),  # 保留最后50行输出
+            test_cases = []
+            for tr in test_results.get('test_results', []):
+                test_cases.append({
+                    'test_case_name': tr.get('name', 'Unknown'),
+                    'status': tr.get('status', 'unknown'),
+                    'duration': tr.get('duration', 0),
+                    'error': tr.get('error_message', ''),
+                    'start_time': tr.get('start_time', ''),
+                    'end_time': tr.get('end_time', ''),
+                })
+
+            result_data = {
+                'total': test_results.get('total', 0),
+                'passed': test_results.get('passed', 0),
+                'failed': test_results.get('failed', 0),
+                'skipped': test_results.get('skipped', 0),
+                'duration': (end_time - start_time).total_seconds(),
+                'test_cases': test_cases,
                 'start_time': start_time_str,
                 'end_time': end_time_str,
             }
 
+            return {
+                'success': exit_code == 0,
+                'exit_code': exit_code,
+                'execution_id': execution_id,
+                'report_path': self._get_allure_report_dir(execution_id),
+                'test_results': test_results,
+                'result_data': result_data,
+                'total_count': test_results.get('passed', 0) + test_results.get('failed', 0) + test_results.get('skipped', 0),
+                'passed_count': test_results.get('passed', 0),
+                'failed_count': test_results.get('failed', 0),
+                'skipped_count': test_results.get('skipped', 0),
+                'output': '\n'.join(output_lines[-50:]),
+                'full_output': '\n'.join(output_lines),
+                'start_time': start_time_str,
+                'end_time': end_time_str,
+                'report_url': self._get_report_url(execution_id) if execution_id else '',
+            }
+
+        except subprocess.TimeoutExpired:
+            logger.error("pytest 执行超时")
+            if self._current_process:
+                self._current_process.kill()
+                self._current_process = None
+            return {
+                'success': False,
+                'error': 'pytest 执行超时',
+            }
         except Exception as e:
             logger.error(f"执行测试失败: {str(e)}", exc_info=True)
             return {
@@ -182,7 +643,7 @@ class AppTestExecutor:
             os.chdir(original_cwd)
 
     def _get_log_file_path(self, username: str) -> str:
-        """生成日志文件路径: logs/app_automation/{username}/{日期}.log"""
+        """生成日志文件路径"""
         today = datetime.now().strftime('%Y-%m-%d')
         log_dir = os.path.join(
             str(self.base_path), 'logs', 'app_automation', username
@@ -197,7 +658,6 @@ class AppTestExecutor:
             os.path.join(str(self.base_path), 'apps'),
         ]
 
-        # 添加 sys.path 中的路径
         for p in sys.path:
             if p and os.path.exists(str(p)) and str(p) not in python_path_parts:
                 p_str = str(p)
@@ -206,119 +666,17 @@ class AppTestExecutor:
 
         return os.pathsep.join(python_path_parts)
 
-    def _get_allure_results_dir(self, execution_id: Optional[int] = None) -> str:
-        """获取 Allure 结果目录: 使用配置项"""
-        base_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_RESULTS_DIR)
-
-        if execution_id:
-            return os.path.join(base_dir, f'execution_{execution_id}')
-
-        return base_dir
-
-    def _get_allure_report_dir(self, execution_id: Optional[int] = None) -> str:
-        """获取 Allure 报告目录: 使用配置项"""
-        base_dir = os.path.join(settings.MEDIA_ROOT, settings.ALLURE_APP_AUTOMATION, settings.ALLURE_REPORTS_DIR)
-
-        if execution_id:
-            return os.path.join(base_dir, f'execution_{execution_id}')
-
-        return base_dir
-
-    def _generate_allure_report(self, execution_id: Optional[int] = None) -> Optional[str]:
-        """
-        生成 Allure 报告
-        
-        Args:
-            execution_id: 执行记录ID
-            
-        Returns:
-            报告目录路径，失败返回 None
-        """
-        try:
-            allure_results_dir = self._get_allure_results_dir(execution_id)
-            report_dir = self._get_allure_report_dir(execution_id)
-
-            # 确保目录存在
-            os.makedirs(report_dir, exist_ok=True)
-
-            # 查找 allure 命令
-            allure_path = self._find_allure_command()
-
-            if not allure_path:
-                logger.warning("未找到 Allure 命令，跳过报告生成")
-                return None
-
-            # 生成报告
-            cmd = [allure_path, 'generate', allure_results_dir, '-o', report_dir, '--clean']
-
-            logger.info(f"生成 Allure 报告: {' '.join(cmd)}")
-
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=settings.TIMEOUTS_TEST_EXECUTION
-            )
-
-            if result.returncode == 0:
-                logger.info(f"Allure 报告生成成功: {report_dir}")
-                return report_dir
-            else:
-                logger.error(f"Allure 报告生成失败: {result.stderr}")
-                return None
-
-        except subprocess.TimeoutExpired:
-            logger.error("Allure 报告生成超时")
-            return None
-        except Exception as e:
-            logger.error(f"生成 Allure 报告失败: {str(e)}", exc_info=True)
-            return None
-
-    def _find_allure_command(self) -> Optional[str]:
-        """查找项目内置的 Allure 命令 - 使用配置项"""
-        import platform
-
-        project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
-        allure_bin_path = settings.ALLURE_BIN_PATH
-
-        if platform.system() == 'Windows':
-            allure_executable = 'allure.bat'
-        else:
-            allure_executable = 'allure'
-
-        # 使用配置项中的 Allure 路径
-        if os.path.isabs(allure_bin_path):
-            builtin_allure = Path(allure_bin_path) / allure_executable
-        else:
-            builtin_allure = project_root / allure_bin_path / allure_executable
-
-        logger.info(f"查找 Allure 命令: {builtin_allure}, exists: {builtin_allure.exists()}")
-        
-        if builtin_allure.exists():
-            logger.info(f"使用项目内置 Allure: {builtin_allure}")
-            return str(builtin_allure)
-
-        logger.warning(f"未找到项目内置 Allure，请确认 allure 目录存在: {builtin_allure}")
-        return None
-
     def _parse_allure_results(self, results_dir: str) -> Dict[str, Any]:
-        """
-        解析 Allure 测试结果
-        
-        Args:
-            results_dir: Allure 结果目录
-            
-        Returns:
-            测试结果统计
-        """
+        """解析 Allure 测试结果"""
         try:
-            # 查找所有测试结果文件
             result_files = glob.glob(os.path.join(results_dir, '*-result.json'))
 
             total = 0
             passed = 0
             failed = 0
+            broken = 0
             skipped = 0
+            test_results = []
 
             for result_file in result_files:
                 try:
@@ -332,19 +690,45 @@ class AppTestExecutor:
                             passed += 1
                         elif status == 'failed':
                             failed += 1
+                        elif status == 'broken':
+                            broken += 1
                         elif status == 'skipped':
                             skipped += 1
+
+                        # 从statusDetails获取错误信息
+                        error_message = ''
+                        status_details = data.get('statusDetails', {})
+                        if status_details:
+                            error_message = status_details.get('message', '')
+                            if not error_message and status_details.get('trace'):
+                                # 如果没有消息，提取追溯信息的第一行
+                                trace = status_details.get('trace', '')
+                                error_message = trace.split('\n')[0] if trace else ''
+
+                        test_results.append({
+                            'name': data.get('name', 'Unknown'),
+                            'status': status,
+                            'duration': data.get('time', {}).get('duration', 0) / 1000 if data.get('time') else 0,
+                            'error_message': error_message,
+                            'start_time': data.get('time', {}).get('start', 0),
+                            'end_time': data.get('time', {}).get('stop', 0),
+                        })
 
                 except Exception as e:
                     logger.warning(f"解析结果文件失败: {result_file}, 错误: {e}")
 
-            logger.info(f"测试结果统计: 总数={total}, 通过={passed}, 失败={failed}, 跳过={skipped}")
+            # 总失败数包括'failed'和'broken'
+            total_failed = failed + broken
+            
+            logger.info(f"测试结果统计: 总数={total}, 通过={passed}, 失败={failed}, 异常={broken}, 跳过={skipped}")
 
             return {
                 'total': total,
                 'passed': passed,
-                'failed': failed,
+                'failed': total_failed,  # 包括failed和broken
+                'broken': broken,
                 'skipped': skipped,
+                'test_results': test_results,
             }
 
         except Exception as e:
@@ -353,19 +737,13 @@ class AppTestExecutor:
                 'total': 0,
                 'passed': 0,
                 'failed': 0,
+                'broken': 0,
                 'skipped': 0,
+                'test_results': [],
             }
 
     def calculate_progress(self, execution_id: Optional[int] = None) -> int:
-        """
-        计算测试进度
-        
-        Args:
-            execution_id: 执行记录ID
-            
-        Returns:
-            进度百分比 (0-100)
-        """
+        """计算测试进度"""
         try:
             results_dir = self._get_allure_results_dir(execution_id)
 
@@ -377,10 +755,8 @@ class AppTestExecutor:
             if not result_files:
                 return 0
 
-            # 简单估算：每有一个结果文件，进度增加
-            # 实际应用中可以根据总步骤数来计算
             file_count = len(result_files)
-            progress = min(file_count * 10, 100)  # 假设有10个步骤
+            progress = min(file_count * 10, 100)
 
             return progress
 
@@ -393,7 +769,6 @@ class AppTestExecutor:
         if self._current_process:
             try:
                 self._current_process.terminate()
-                # 使用配置文件中的进程等待超时时间
                 self._current_process.wait(timeout=settings.TIMEOUTS_PROCESS_WAIT)
                 logger.info("测试执行已停止")
             except subprocess.TimeoutExpired:

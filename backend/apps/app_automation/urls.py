@@ -36,8 +36,13 @@ router.register(r'test-suites', AppTestSuiteViewSet, basename='app-test-suite')
 router.register(r'notification-logs', AppNotificationLogViewSet, basename='app-notification-log')
 router.register(r'executions', AppTestExecutionViewSet, basename='app-execution')
 
+# 显式添加 upload_apk 路由
+from .views.test_case_views import AppPackageViewSet
+upload_apk_view = AppPackageViewSet.as_view({'post': 'upload_apk'})
+
 urlpatterns = [
     path('', include(router.urls)),
+    path('packages/upload_apk/', upload_apk_view, name='app-package-upload-apk'),
     path('executions/<int:execution_id>/report/', serve_report_file, name='app-execution-report'),
     path('executions/<int:execution_id>/report/<path:file_path>', serve_report_file, name='app-execution-report-file'),
 ]
