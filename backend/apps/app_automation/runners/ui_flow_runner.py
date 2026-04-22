@@ -470,7 +470,8 @@ class UiFlowRunner:
         if selector_type == 'image':
             # 图片选择器
             if not selector:
-                logger.warning(f"图片选择器的 selector 为空，请检查步骤配置: {step.get('name', step.get('type', 'unknown'))}")
+                step_name = step.get('name', step.get('type', 'unknown'))
+                logger.error(f"❌ 图片选择器的 selector 为空！步骤名: '{step_name}'，请检查步骤配置")
                 return None
             
             image_scope = step.get('image_scope', 'common')
@@ -481,7 +482,9 @@ class UiFlowRunner:
                 return None
             
             threshold = step.get('image_threshold', 0.7)
-            return Template(image_path, threshold=threshold)
+            template = Template(image_path, threshold=threshold)
+            logger.debug(f"创建图片模板: {selector}, 阈值: {threshold}, 路径: {image_path}")
+            return template
         
         elif selector_type == 'pos':
             # 坐标选择器
@@ -561,7 +564,13 @@ class UiFlowRunner:
         if target is None:
             step_name = step.get('name', step.get('type', 'unknown'))
             raise ValueError(f"步骤 '{step_name}' 无法解析选择器，请检查元素配置（selector 或 element_id）")
-        logger.info(f"执行点击: {target}")
+        
+        # 记录详细的点击信息
+        selector_info = step.get('selector', 'N/A')
+        selector_type = step.get('selector_type', 'N/A')
+        logger.info(f"执行点击操作 - 步骤名: {step.get('name', 'unknown')}, 选择器类型: {selector_type}, 选择器: {selector_info}")
+        logger.info(f"点击目标: {target}")
+        
         touch(target)
         sleep(1)
         sleep(1)
@@ -729,7 +738,6 @@ class UiFlowRunner:
         """文本断言：OCR 识别文本，支持 exact/contains/regex 匹配"""
         if not OCR_AVAILABLE:
             raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
-            raise RuntimeError("文本断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         expected = step.get('expected', '')
@@ -754,7 +762,6 @@ class UiFlowRunner:
     def _assert_number(self, step: Dict[str, Any]):
         """数值断言：OCR 识别数字（去逗号），与期望值精确匹配"""
         if not OCR_AVAILABLE:
-            raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
             raise RuntimeError("数值断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
@@ -796,7 +803,6 @@ class UiFlowRunner:
         """范围断言：OCR 识别数字，判断是否在 [min, max] 范围内"""
         if not OCR_AVAILABLE:
             raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
-            raise RuntimeError("范围断言需要 OCR 支持，请安装 pytesseract")
         
         region = self._parse_ocr_region(step)
         
@@ -829,6 +835,12 @@ class UiFlowRunner:
     def _assert_exists(self, step: Dict[str, Any]):
         """存在性断言：判断图片元素是否存在于屏幕上"""
         target = self._resolve_selector(step)
+        
+        # 关键修复：如果选择器解析失败，直接抛出异常
+        if target is None:
+            step_name = step.get('name', step.get('type', 'unknown'))
+            raise ValueError(f"断言步骤 '{step_name}' 无法解析选择器，请检查元素配置（selector 或 element_id）")
+        
         expected_exists = step.get('expected_exists', True)
         
         result = exists(target) is not None
@@ -872,14 +884,19 @@ class UiFlowRunner:
         """输入文本"""
         target = self._resolve_selector(step)
         value = step.get('value', '')
-        
+        # 增加等待时间，确保键盘完全弹出且输入框获得焦点
+        wait_time = step.get('input_wait_time', 1)  # 默认1.5秒，可通过配置调整
+        logger.info(f"等待 {wait_time} 秒以确保输入框获得焦点")
+        time.sleep(wait_time)
         if target:
+            logger.info(f"点击输入框目标: {target}")
             touch(target)
-            time.sleep(1)
+        else:
+            logger.warning("未找到输入框目标，直接输入文本（可能导致输入到错误的输入框）")
         
         logger.info(f"输入文本: {value}")
         airtest_text(value)
-        time.sleep(0.5)
+        time.sleep(wait_time)
 
     def _action_key_event(self, step: Dict[str, Any]):
         """键盘事件：模拟键盘按键"""
@@ -1453,9 +1470,7 @@ class UiFlowRunner:
     def _action_foreach_assert(self, step: Dict[str, Any]):
         """循环点击断言（OCR）"""
         if not OCR_AVAILABLE:
-            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
-            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
-            return
+            raise RuntimeError("foreach_assert 需要 OCR 支持，请安装 pytesseract")
         
         try:
             # 从 config 中获取配置

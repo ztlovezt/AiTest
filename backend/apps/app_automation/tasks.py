@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-APP自动化测试 Celery 任务
+APP自动化测试任务
 
 注意：定时任务通知功能已迁移到 apps.scheduler.task_executor 模块统一处理
 """
-from celery import shared_task
 from django.utils import timezone
 import logging
 import os
@@ -38,7 +37,6 @@ def send_execution_update(execution_id, status=None, progress=None, message=None
         logger.debug(f"发送执行状态更新失败: {e}")
 
 
-@shared_task
 def execute_app_test_task(execution_id, package_name: str = None, scheduled_task_id: int = None):
     """
     异步执行APP测试任务
@@ -189,7 +187,6 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
             logger.error(f"释放设备失败: {str(e)}")
 
 
-@shared_task
 def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled_task_id=None):
     """
     异步执行APP测试套件（顺序执行多个用例）
@@ -372,7 +369,6 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
             logger.error(f"释放设备失败: {str(e)}")
 
 
-@shared_task
 def check_and_release_expired_devices():
     """
     检查并释放过期锁定的设备
@@ -395,7 +391,6 @@ def check_and_release_expired_devices():
         logger.error(f"检查设备锁定失败: {str(e)}", exc_info=True)
 
 
-@shared_task
 def check_device_status_task():
     """
     定期检查设备状态并更新数据库
