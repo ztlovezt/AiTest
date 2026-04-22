@@ -34,6 +34,13 @@ class Command(BaseCommand):
                 'minutes': 30,
                 'repeats': -1,
             },
+            {
+                'name': 'APP设备状态检查',
+                'func': 'apps.app_automation.tasks.check_device_status_task',
+                'schedule_type': Schedule.MINUTES,
+                'minutes': 10,  # 每10分钟检查一次设备状态
+                'repeats': -1,  # 无限重复
+            },
         ]
 
         for task_config in tasks:

@@ -513,7 +513,7 @@ const routes = [
         component: () => import('@/views/app-automation/devices/RealDeviceManagement.vue')
       },
       {
-        path: 'remote-connection/:device_id',
+        path: 'remote-connection/:id',
         name: 'AppRemoteConnection',
         component: () => import('@/views/app-automation/devices/RemoteConnection.vue'),
         meta: { requiresAuth: true }

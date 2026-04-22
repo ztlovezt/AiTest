@@ -75,21 +75,11 @@ export function getDeviceList(params) {
 
 /**
  * 获取设备截图
- * @param {number|string} id - 设备ID（可以是数字ID或设备序列号）
- * @param {Array} devicesList - 可选的设备列表，用于查找 device_id
+ * @param {number} id - 设备ID（数字主键）
  */
-export function captureDeviceScreenshot(id, devicesList = null) {
-  // 如果提供了设备列表且 id 是数字，则查找对应的 device_id
-  let deviceId = id
-  if (devicesList && typeof id === 'number') {
-    const device = devicesList.find(d => d.id === id)
-    if (device) {
-      deviceId = device.device_id
-    }
-  }
-  
+export function captureDeviceScreenshot(id) {
   return request({
-    url: `/app-automation/devices/${deviceId}/screenshot/`,
+    url: `/app-automation/devices/${id}/screenshot/`,
     method: 'post',
     timeout: 15000 // 截图可能需要较长时间
   })

@@ -582,11 +582,12 @@ const isRemoteDevice = (type) => {
 
 // 跳转到远程连接页面
 const goToRemoteConnection = (row) => {
-  if (!row || !row.device_id) {
+  if (!row || !row.id) {
     ElMessage.warning('设备信息不完整')
     return
   }
-  router.push(`/app-automation/remote-connection/${row.device_id}`)
+  // 使用数字 ID 而不是 device_id，避免 URL 编码问题
+  router.push(`/app-automation/remote-connection/${row.id}`)
 }
 
 // 生命周期

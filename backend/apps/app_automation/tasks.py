@@ -393,3 +393,91 @@ def check_and_release_expired_devices():
         
     except Exception as e:
         logger.error(f"检查设备锁定失败: {str(e)}", exc_info=True)
+
+
+@shared_task
+def check_device_status_task():
+    """
+    定期检查设备状态并更新数据库
+    
+    功能：
+    1. 通过 ADB 获取当前连接的设备列表
+    2. 更新在线设备状态为 available（如果未被锁定）
+    3. 将不在 ADB 列表中的设备标记为 offline（保持 locked 状态不变）
+    
+    建议配置：每 5-10 分钟执行一次
+    """
+    from .models import AppDevice
+    from .managers.device_manager import DeviceManager
+    
+    logger.info("开始检查设备状态...")
+    
+    try:
+        # 获取 ADB 路径
+        try:
+            from .models import AppTestConfig
+            config = AppTestConfig.objects.first()
+            adb_path = config.adb_path if config else 'adb'
+        except Exception as e:
+            logger.warning(f"获取 ADB 配置失败，使用默认路径: {e}")
+            adb_path = 'adb'
+        
+        # 创建 DeviceManager 实例
+        manager = DeviceManager(adb_path=adb_path)
+        
+        # 获取当前通过 ADB 连接的设备列表
+        try:
+            devices_info = manager.list_devices()
+            connected_device_ids = [info['device_id'] for info in devices_info]
+            logger.info(f"当前 ADB 连接的设备: {connected_device_ids}")
+        except Exception as e:
+            logger.error(f"ADB 命令执行失败: {str(e)}")
+            # 如果 ADB 不可用，将所有非锁定设备标记为离线
+            offline_count = AppDevice.objects.exclude(
+                status='locked'
+            ).update(status='offline')
+            logger.info(f"ADB 不可用，将 {offline_count} 个设备标记为离线")
+            return {
+                'success': False,
+                'message': f'ADB 命令执行失败: {str(e)}',
+                'offline_count': offline_count
+            }
+        
+        # 更新在线设备的状态
+        online_count = 0
+        for device_info in devices_info:
+            device_id = device_info['device_id']
+            try:
+                device = AppDevice.objects.get(device_id=device_id)
+                # 只有当设备未被锁定时，才更新状态为 available
+                if device.status != 'locked':
+                    device.status = 'available'
+                    device.save(update_fields=['status', 'updated_at'])
+                    online_count += 1
+                    logger.debug(f"更新设备 {device_id} 状态为 available")
+            except AppDevice.DoesNotExist:
+                logger.debug(f"设备 {device_id} 不在数据库中，跳过")
+        
+        # 将不在 ADB 列表中的设备标记为离线（但保持 locked 状态）
+        offline_count = AppDevice.objects.exclude(
+            device_id__in=connected_device_ids
+        ).exclude(
+            status='locked'  # 保持锁定设备的状态
+        ).update(status='offline')
+        
+        logger.info(f"设备状态检查完成: {online_count} 个在线, {offline_count} 个离线")
+        
+        return {
+            'success': True,
+            'message': f'设备状态检查完成',
+            'online_count': online_count,
+            'offline_count': offline_count,
+            'total_connected': len(connected_device_ids)
+        }
+        
+    except Exception as e:
+        logger.error(f"检查设备状态失败: {str(e)}", exc_info=True)
+        return {
+            'success': False,
+            'message': f'检查设备状态失败: {str(e)}'
+        }

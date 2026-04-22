@@ -40,11 +40,12 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['status', 'connection_type']
     search_fields = ['device_id', 'name']
-    lookup_field = 'device_id'  # 使用 device_id 而不是默认的 pk
+    # 使用数字 ID (pk) 作为查找字段，避免 device_id 中的特殊字符导致 URL 问题
+    # 例如: 127.0.0.1:7555 在 URL 中会被编码，导致路由匹配失败
     
     @action(detail=False, methods=['get'])
     def discover(self, request):
-        """发现ADB设备"""
+        """发现ADB设备并更新所有设备状态"""
         try:
             adb_path = get_adb_path()
             logger.info(f"使用 ADB 路径: {adb_path}")
@@ -52,7 +53,11 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             manager = DeviceManager(adb_path=adb_path)
             devices_info = manager.list_devices()
             
-            # 更新或创建设备记录
+            # 获取当前通过 ADB 连接的设备 ID 列表
+            connected_device_ids = [info['device_id'] for info in devices_info]
+            logger.info(f"当前 ADB 连接的设备: {connected_device_ids}")
+            
+            # 更新或创建设备记录（仅针对当前连接的设备）
             db_devices = []
             for device_info in devices_info:
                 # 判断连接类型和 IP 地址
@@ -70,11 +75,24 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
                     connection_type = 'usb'
                     ip_address = device_info.get('ip_address') or ''
                 
+                # 确定设备状态：如果设备被锁定，保持 locked 状态；否则设置为 available
+                current_status = device_info.get('status') or 'offline'
+                if current_status == 'online':
+                    # 检查数据库中该设备是否被锁定
+                    try:
+                        existing_device = AppDevice.objects.get(device_id=device_id)
+                        if existing_device.status == 'locked':
+                            current_status = 'locked'  # 保持锁定状态
+                        else:
+                            current_status = 'available'  # 在线且未锁定设为 available
+                    except AppDevice.DoesNotExist:
+                        current_status = 'available'  # 新设备设为 available
+                
                 device, created = AppDevice.objects.update_or_create(
                     device_id=device_info['device_id'],
                     defaults={
                         'name': device_info.get('name') or '',
-                        'status': device_info.get('status') or 'offline',
+                        'status': current_status,
                         'android_version': device_info.get('android_version') or '',
                         'ip_address': ip_address,
                         'port': device_info.get('port') or 5555,
@@ -82,22 +100,37 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
                     }
                 )
                 db_devices.append(device)
+                action_type = "创建" if created else "更新"
+                logger.info(f"{action_type}设备: {device_id}, 状态: {current_status}")
             
-            # 返回序列化后的数据库对象
+            # 将数据库中不在当前 ADB 连接列表中的设备标记为离线
+            # 但不包括已被锁定的设备（保持 locked 状态以便用户知道谁在使用）
+            offline_count = AppDevice.objects.exclude(
+                device_id__in=connected_device_ids
+            ).exclude(
+                status='locked'  # 保持锁定设备的状态
+            ).update(status='offline')
+            
+            if offline_count > 0:
+                logger.info(f"将 {offline_count} 个设备标记为离线")
+            
+            # 返回所有设备（包括在线和离线）
+            all_devices = AppDevice.objects.all().order_by('-updated_at')
+            
             return Response({
                 'success': True,
-                'message': f'发现 {len(db_devices)} 个设备',
-                'devices': AppDeviceSerializer(db_devices, many=True).data
+                'message': f'发现 {len(db_devices)} 个在线设备，{offline_count} 个设备标记为离线',
+                'devices': AppDeviceSerializer(all_devices, many=True).data
             })
         except Exception as e:
-            logger.error(f"发现设备失败: {str(e)}")
+            logger.error(f"发现设备失败: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
                 'message': f'发现设备失败: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['post'])
-    def lock(self, request, device_id=None):
+    def lock(self, request, pk=None):
         """锁定设备"""
         device = self.get_object()
         
@@ -116,7 +149,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
         })
     
     @action(detail=True, methods=['post'])
-    def unlock(self, request, device_id=None):
+    def unlock(self, request, pk=None):
         """释放设备"""
         device = self.get_object()
         
@@ -135,7 +168,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
         })
     
     @action(detail=True, methods=['post'])
-    def disconnect(self, request, device_id=None):
+    def disconnect(self, request, pk=None):
         """断开远程设备连接"""
         device = self.get_object()
         
@@ -216,7 +249,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=True, methods=['post'], url_path='screenshot')
-    def screenshot(self, request, device_id=None):
+    def screenshot(self, request, pk=None):
         """
         获取设备实时截图
         
