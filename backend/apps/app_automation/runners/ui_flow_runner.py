@@ -61,9 +61,7 @@ class UiFlowRunner:
             self.image_base_dir = os.path.join(settings.BASE_DIR, settings.PATHS_APP_AUTOMATION_TEMPLATE)
         
         # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
-        # 截图保存目录: 直接使用配置文件中的路径（已经是绝对路径）
         self.screenshots_dir = os.path.join(
-            settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
             settings.PATHS_APP_AUTOMATION_SCREENSHOTS, username or 'unknown'
         )
         
@@ -1447,8 +1445,6 @@ class UiFlowRunner:
         """获取或创建 OCR Helper 实例"""
         if self._ocr_helper is None:
             if not OCR_AVAILABLE:
-                raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
-            self._ocr_helper = get_ocr_helper(languages=['en'])
                 raise RuntimeError("OCR 功能不可用，请安装: pip install pytesseract")
             self._ocr_helper = get_ocr_helper(languages=['en'])
         return self._ocr_helper
