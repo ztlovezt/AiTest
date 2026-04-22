@@ -75,7 +75,6 @@ LOCAL_APPS = [
     'apps.data_factory',
     'apps.unified_projects.apps.UnifiedProjectsConfig',
     'apps.ocr_service',
-    'apps.ocr_service',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS

@@ -1087,7 +1087,6 @@ export default {
     cancel: '取消',
     tip: '提示'
   },
-
   settings: {
     title: 'APP 自动化配置',
     adbConfig: 'ADB 配置',
