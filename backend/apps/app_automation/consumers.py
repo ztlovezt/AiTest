@@ -48,23 +48,26 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
     
     async def connect(self):
         try:
-            # 从 URL 获取 device_id
-            self.device_id = self.scope["url_route"]["kwargs"]["device_id"]
+            # 从 URL 获取设备标识符（可能是数字 ID 或 device_id）
+            device_identifier = self.scope["url_route"]["kwargs"]["device_id"]
             self.user = self.scope["user"]
             
             if not self.user.is_authenticated:
-                logger.warning(f"未认证用户尝试连接设备 {self.device_id}")
+                logger.warning(f"未认证用户尝试连接设备 {device_identifier}")
                 await self.close()
                 return
             
-            logger.info(f"WebSocket 连接请求: device_id={self.device_id}, user={self.user.username}")
+            logger.info(f"WebSocket 连接请求: device_identifier={device_identifier}, user={self.user.username}")
             
-            # 检查设备是否存在
-            device = await self.get_device(self.device_id)
+            # 检查设备是否存在（支持数字 ID 和 device_id）
+            device = await self.get_device(device_identifier)
             if not device:
-                logger.error(f"设备不存在: {self.device_id}")
+                logger.error(f"设备不存在: {device_identifier}")
                 await self.close()
                 return
+            
+            # 保存设备的 device_id（用于 scrcpy）
+            self.device_id = device.device_id
             
             # 锁定设备
             await self.lock_device(device)
@@ -73,7 +76,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             await self.accept()
             self.session_start_time = timezone.now()
             
-            logger.info(f"WebSocket 连接成功: device_id={self.device_id}")
+            logger.info(f"WebSocket 连接成功: device_id={self.device_id} (identifier={device_identifier})")
             
             # 发送连接成功消息
             await self.send(text_data=json.dumps({
@@ -173,10 +176,26 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             logger.error(f"发送视频帧异常: {e}")
     
     @database_sync_to_async
-    def get_device(self, device_id):
-        """获取设备对象"""
+    def get_device(self, identifier):
+        """
+        获取设备对象（支持数字 ID 和 device_id）
+        
+        Args:
+            identifier: 可以是数字 ID (pk) 或设备序列号 (device_id)
+        
+        Returns:
+            AppDevice 对象或 None
+        """
         try:
-            return AppDevice.objects.get(device_id=device_id)
+            # 首先尝试作为数字 ID (pk) 查找
+            if identifier.isdigit():
+                try:
+                    return AppDevice.objects.get(pk=int(identifier))
+                except (AppDevice.DoesNotExist, ValueError):
+                    pass
+            
+            # 然后尝试作为 device_id 查找
+            return AppDevice.objects.get(device_id=identifier)
         except AppDevice.DoesNotExist:
             return None
     

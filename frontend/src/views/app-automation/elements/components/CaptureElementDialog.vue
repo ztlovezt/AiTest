@@ -394,6 +394,7 @@ const captureScreen = async () => {
 
   capturing.value = true
   try {
+    // 使用数字 ID 进行截图
     const { data } = await captureDeviceScreenshot(selectedDevice.value)
     
     if (data.success && data.data) {

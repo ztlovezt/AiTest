@@ -202,7 +202,16 @@ export default {
     createTime: '创建时间',
     updateTime: '更新时间',
     uploadFile: '上传文件',
-    selectFile: '选择文件'
+    selectFile: '选择文件',
+    apkFile: 'APK文件',
+    dragApkHere: '拖拽 APK 文件到此处，或',
+    clickToUpload: '点击上传',
+    apkTip: '支持 .apk 格式，最大 500MB。上传后将自动提取包名和应用名称。',
+    extract: '提取',
+    uploadApkOption: '上传应用包',
+    downloadApk: '下载APK',
+    remarks: '备注',
+    remarksPlaceholder: '请输入备注（最多30个字符）'
   },
 
   // 元素管理
@@ -957,7 +966,22 @@ export default {
     createSuccess: '创建成功',
     saveFailed: '保存失败',
     deletePackageConfirm: '确认删除应用包名「{name}」吗？',
+    deleteApkWarning: '⚠️ 警告：此操作将同时删除关联的 APK 文件，删除后无法恢复！',
     deleteSuccess: '删除成功',
+    invalidApkFile: '无效的文件类型，请选择 .apk 文件',
+    apkFileTooLarge: 'APK 文件大小超过限制（500MB）',
+    noApkFile: '请先上传 APK 文件',
+    apkExtracted: 'APK 信息提取成功！',
+    apkExtractedAuto: 'APK 信息已自动提取',
+    apkWillBeExtracted: '提交表单时将自动从 APK 提取包名和应用名称',
+    extractFailed: '提取 APK 信息失败，请手动输入',
+    extractFailedManual: '提取失败，请手动填写包名和应用名称',
+    uploading: '正在上传...',
+    extracting: '正在提取信息...',
+    uploadSuccess: '上传成功',
+    uploadFailed: '上传失败',
+    apkInfoExtracted: 'APK 信息已提取，请检查并保存',
+    downloadStarted: '开始下载',
 
     // 项目管理
     loadProjectListFailed: '加载项目列表失败',
@@ -1063,7 +1087,6 @@ export default {
     cancel: '取消',
     tip: '提示'
   },
-
   settings: {
     title: 'APP 自动化配置',
     adbConfig: 'ADB 配置',

@@ -156,8 +156,8 @@ let videoParser = null
 let jmuxer = null
 let timerInterval = null
 
-// 设备ID
-const deviceId = computed(() => route.params.device_id)
+// 设备ID（数字 ID）
+const deviceId = computed(() => route.params.id)
 
 // 格式化时间
 const formatTime = (seconds) => {

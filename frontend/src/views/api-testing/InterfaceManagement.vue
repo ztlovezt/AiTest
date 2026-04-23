@@ -1913,7 +1913,71 @@ const saveRequest = async () => {
       response = await api.post('/api-testing/requests/', requestData)
     }
 
-    selectedRequest.value = response.data
+    const savedData = response.data
+
+    // 将 params 从字典格式转换为数组格式
+    if (savedData.params && typeof savedData.params === 'object' && !Array.isArray(savedData.params)) {
+      const paramsArray = []
+      Object.keys(savedData.params).forEach(key => {
+        if (key && savedData.params[key] !== undefined) {
+          paramsArray.push({
+            enabled: true,
+            key,
+            value: savedData.params[key],
+            description: '',
+            type: 'text'
+          })
+        }
+      })
+      savedData.params = paramsArray
+    }
+
+    // 将 headers 从字典格式转换为数组格式
+    if (savedData.headers && typeof savedData.headers === 'object' && !Array.isArray(savedData.headers)) {
+      const headersArray = []
+      Object.keys(savedData.headers).forEach(key => {
+        if (key && savedData.headers[key] !== undefined) {
+          headersArray.push({
+            enabled: true,
+            key,
+            value: savedData.headers[key],
+            description: '',
+            type: 'text'
+          })
+        }
+      })
+      savedData.headers = headersArray
+    }
+
+    // 解析body数据，更新响应式变量
+    if (savedData.body && savedData.body.type) {
+      if (savedData.body.type === 'json' && savedData.body.data) {
+        bodyType.value = 'raw'
+        rawType.value = 'json'
+        rawBody.value = typeof savedData.body.data === 'string' ? savedData.body.data : JSON.stringify(savedData.body.data, null, 2)
+      } else if (savedData.body.type === 'raw' && savedData.body.data) {
+        bodyType.value = 'raw'
+        rawType.value = 'text'
+        rawBody.value = savedData.body.data
+      } else if (savedData.body.type === 'form-data') {
+        bodyType.value = 'form-data'
+        formData.value = savedData.body.data || []
+      } else if (savedData.body.type === 'x-www-form-urlencoded') {
+        bodyType.value = 'x-www-form-urlencoded'
+        formUrlEncoded.value = savedData.body.data || []
+      } else if (savedData.body.type === 'binary') {
+        bodyType.value = 'binary'
+      } else {
+        bodyType.value = 'none'
+        rawBody.value = ''
+      }
+    } else {
+      bodyType.value = 'none'
+      rawBody.value = ''
+    }
+
+    selectedRequest.value = savedData
+    currentHeaders.value = savedData.headers || []
     await loadCollections(selectedProject.value)
     ElMessage.success(t('apiTesting.messages.success.save'))
   } catch (error) {

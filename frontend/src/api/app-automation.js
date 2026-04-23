@@ -75,6 +75,7 @@ export function getDeviceList(params) {
 
 /**
  * 获取设备截图
+ * @param {number} id - 设备ID（数字主键）
  */
 export function captureDeviceScreenshot(id) {
   return request({
@@ -191,6 +192,18 @@ export function deleteAppElement(id) {
 }
 
 /**
+ * 获取元素预览图（Blob，携带鉴权头）
+ */
+export function getAppElementPreviewBlob(id, params = {}) {
+  return request({
+    url: `/app-automation/elements/${id}/preview/`,
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}
+
+/**
  * 上传元素图片
  * @param {File} file - 图片文件
  * @param {string} category - 分类名称，默认 'common'
@@ -264,10 +277,34 @@ export function getPackageList(params) {
  * 创建应用包名
  */
 export function createPackage(data) {
+  // 如果是 FormData，设置 Content-Type
+  const isFormData = data instanceof FormData
   return request({
     url: '/app-automation/packages/',
     method: 'post',
-    data
+    data,
+    headers: isFormData ? {
+      'Content-Type': 'multipart/form-data'
+    } : {}
+  })
+}
+
+/**
+ * 上传 APK 并提取信息
+ */
+export function uploadAndExtractApk(file, onUploadProgress) {
+  const formData = new FormData()
+  formData.append('apk_file', file)
+  
+  return request({
+    url: '/app-automation/packages/upload_apk/',
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    },
+    timeout: 60000, // 60秒超时
+    onUploadProgress // 进度回调
   })
 }
 
@@ -275,10 +312,15 @@ export function createPackage(data) {
  * 更新应用包名
  */
 export function updatePackage(id, data) {
+  // 如果是 FormData，设置 Content-Type
+  const isFormData = data instanceof FormData
   return request({
     url: `/app-automation/packages/${id}/`,
     method: 'put',
-    data
+    data,
+    headers: isFormData ? {
+      'Content-Type': 'multipart/form-data'
+    } : {}
   })
 }
 

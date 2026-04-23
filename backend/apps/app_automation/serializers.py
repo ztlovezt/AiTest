@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 from rest_framework import serializers
 from django.utils import timezone
 from .models import (
@@ -260,6 +261,7 @@ class AppElementSerializer(serializers.ModelSerializer):
 class AppPackageSerializer(serializers.ModelSerializer):
     """APP应用包名序列化器"""
     created_by_name = serializers.SerializerMethodField()
+    apk_file_url = serializers.SerializerMethodField()
     
     class Meta:
         model = AppPackage
@@ -268,6 +270,79 @@ class AppPackageSerializer(serializers.ModelSerializer):
     
     def get_created_by_name(self, obj):
         return obj.created_by.username if obj.created_by else None
+    
+    def get_apk_file_url(self, obj):
+        """获取 APK 文件的下载 URL"""
+        if obj.apk_file:
+            # 如果使用的是 FileField，返回 Django 的媒体 URL
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.apk_file.url)
+            return obj.apk_file.url
+        elif hasattr(obj, 'apk_filepath') and obj.apk_filepath:
+            # 如果是直接存储的文件路径，构造下载 URL
+            from django.conf import settings
+            import os
+            filename = os.path.basename(obj.apk_filepath)
+            request = self.context.get('request')
+            if request:
+                base_url = request.build_absolute_uri('/media/app_automation/packages/')
+                return f"{base_url}{filename}"
+            return f"/media/app_automation/packages/{filename}"
+        return None
+    
+    def validate_apk_file(self, value):
+        """验证 APK 文件"""
+        if value:
+            from .utils.apk_parser import validate_apk_file
+            # 处理不同类型的文件对象
+            if hasattr(value, 'path'):
+                # FileField 上传的文件
+                file_path = value.path
+            elif hasattr(value, 'temporary_file_path'):
+                # TemporaryUploadedFile
+                file_path = value.temporary_file_path()
+            else:
+                # 其他情况，跳过验证（因为文件已经在 upload_apk 接口中验证过了）
+                return value
+            
+            is_valid, error_msg = validate_apk_file(file_path)
+            if not is_valid:
+                raise serializers.ValidationError(f"APK 文件无效: {error_msg}")
+        return value
+    
+    def create(self, validated_data):
+        """创建时处理 APK 文件"""
+        # 注意：APK 文件已经在上一步上传接口中保存
+        # 这里只需要保存文件路径信息
+        apk_filepath = validated_data.pop('apk_filepath', None)
+        apk_filename = validated_data.pop('apk_filename', None)
+        
+        instance = super().create(validated_data)
+        
+        # 如果有文件路径，更新到数据库
+        if apk_filepath:
+            instance.apk_filepath = apk_filepath
+            instance.apk_filename = apk_filename
+            instance.save()
+        
+        return instance
+    
+    def update(self, instance, validated_data):
+        """更新时处理 APK 文件"""
+        apk_filepath = validated_data.pop('apk_filepath', None)
+        apk_filename = validated_data.pop('apk_filename', None)
+        
+        # 更新其他字段
+        instance = super().update(instance, validated_data)
+        
+        # 如果有新的文件路径，更新
+        if apk_filepath:
+            instance.apk_filepath = apk_filepath
+            instance.apk_filename = apk_filename
+            instance.save()
+        
+        return instance
 
 
 class AppTestCaseSerializer(serializers.ModelSerializer):

@@ -8,9 +8,10 @@ import sys
 import subprocess
 import glob
 import json
+# import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from django.conf import settings
 from django.utils import timezone
@@ -351,6 +352,7 @@ class AppTestExecutor(BaseTestExecutor):
             env['DJANGO_SETTINGS_MODULE'] = 'backend.settings'
             env['PYTHONUTF8'] = '1'
             env['PYTHONIOENCODING'] = 'utf-8'
+            # self._apply_tesseract_runtime_env(env)
 
             env['APP_TEST_CASE_ID'] = str(test_case_id)
             env['APP_DEVICE_ID'] = str(device_id) if device_id else '1'

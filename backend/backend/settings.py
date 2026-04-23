@@ -115,6 +115,7 @@ ASGI_APPLICATION = 'backend.asgi.application'
 
 db_config = config_loader.get_database_config()
 
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -128,6 +129,9 @@ DATABASES = {
         'OPTIONS': {
             'charset': db_config.get('charset', 'utf8mb4'),
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES', time_zone='+08:00'",
+            'connect_timeout': 30,
+            'read_timeout': 60,
+            'write_timeout': 60,
             'connect_timeout': 30,
             'read_timeout': 60,
             'write_timeout': 60,
@@ -193,9 +197,11 @@ ALLURE_STATIC_DIR = allure_config.get('static_dir', 'static')
 ALLURE_REPORTS_DIR = allure_config.get('reports_dir', 'allure-reports')
 ALLURE_RESULTS_DIR = allure_config.get('results_dir', 'allure-results')
 ALLURE_SINGLE_FILE_DIR = allure_config.get('single_file_dir', 'allure-single-file')
+ALLURE_SINGLE_FILE_DIR = allure_config.get('single_file_dir', 'allure-single-file')
 ALLURE_AI_RECORDING = allure_config.get('ai_recording', 'ai_recording')
 ALLURE_API_TESTING = allure_config.get('api_testing', 'api_testing')
 ALLURE_APP_AUTOMATION = allure_config.get('app_automation', 'app_automation')
+ALLURE_UI_AUTOMATION = allure_config.get('ui_automation', 'ui_automation')
 ALLURE_UI_AUTOMATION = allure_config.get('ui_automation', 'ui_automation')
 
 # 路径配置
@@ -208,10 +214,12 @@ PATHS_APP_AUTOMATION_TEMPLATE = os.path.join(BASE_DIR, paths_config.get('app_aut
 PATHS_UI_COMPONENT_PACK = os.path.join(BASE_DIR, paths_config.get('ui_component_pack', 'apps/core/management/commands/ui-component-pack.yaml'))
 # 数据工厂静态图片目录（相对于backend目录）
 PATHS_DATA_FACTORY_STATIC_IMG = os.path.join(BASE_DIR, paths_config.get('data_factory_static_img', 'static_files/img'))
-# APP 自动化截图目录（相对于项目根目录）
-PATHS_APP_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('app_automation_screenshots', 'app-automation/screenshots'))
+# APP 自动化截图目录（统一到 media 目录下，相对于项目根目录）
+PATHS_APP_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('app_automation_screenshots', 'expand/media/app_automation/screenshots'))
+# APP 自动化 APK 包存储目录（相对于项目根目录）
+PATHS_APP_AUTOMATION_PACKAGES = os.path.join(BASE_DIR.parent, paths_config.get('app_automation_packages', 'expand/media/app_automation/packages'))
 # UI 自动化截图目录（相对于项目根目录）
-PATHS_UI_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('ui_automation_screenshots', 'ui_automation/screenshots'))
+PATHS_UI_AUTOMATION_SCREENSHOTS = os.path.join(BASE_DIR.parent, paths_config.get('ui_automation_screenshots', 'expand/media/ui_automation/screenshots'))
 # 向量数据库chroma（相对于项目根目录）
 PATHS_CHROMA_DB = os.path.join(BASE_DIR.parent, paths_config.get('chroma_db', 'expand/chroma_db'))
 
@@ -232,6 +240,13 @@ TIMEOUTS_SCREENSHOT = timeouts_config.get('screenshot', 5000)
 
 # 缓存配置
 cache_config = config_loader.get_cache_config()
+
+# OCR 配置（统一管理）
+ocr_config = config_loader.get_ocr_config()
+OCR_TIMEOUT = ocr_config.get('timeout', 300)
+OCR_MAX_CONCURRENT_TASKS = ocr_config.get('max_concurrent_tasks', 3)
+OCR_MAX_IMAGE_SIZE = ocr_config.get('max_image_size', 50)
+PATHS_OCR_CORRECTION = os.path.join(BASE_DIR.parent, ocr_config.get('correction_file', 'expand/ocr_correct/ocr_corrections.json'))
 
 # OCR 配置（统一管理）
 ocr_config = config_loader.get_ocr_config()
@@ -348,6 +363,7 @@ if DEBUG:
         *parsed_cors_origins,  # config.yaml 配置的地址优先
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://192.168.3.208:3000",  # 局域网IP
         "http://192.168.3.208:3000",  # 局域网IP
         "http://localhost:8080",
         "http://127.0.0.1:8080",
@@ -497,6 +513,29 @@ except Exception:
             'BACKEND': 'channels.layers.InMemoryChannelLayer',
         },
     }
+# 如果 Redis 不可用，可以使用内存后端（仅用于开发测试）
+try:
+    import redis
+    # 测试 Redis 连接
+    r = redis.Redis(host='127.0.0.1', port=6379, db=0)
+    r.ping()
+    
+    # Redis 可用，使用 RedisChannelLayer
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                'hosts': [f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}"],
+            },
+        },
+    }
+except Exception:
+    # Redis 不可用时使用内存后端（仅用于开发）
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        },
+    }
 
 # Cache配置，使用 Redis 缓存（生产环境推荐）
 cache_config = config_loader.get_cache_config()
@@ -505,6 +544,8 @@ cache_config = config_loader.get_cache_config()
 Q_CLUSTER = {
     'name': 'testhub',
     'workers': 1,  # 工作进程数，根据服务器配置做调整
+    'timeout': 600,  # 任务超时时间（秒），OCR任务可能需要较长时间
+    'retry': 1200,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
     'timeout': 600,  # 任务超时时间（秒），OCR任务可能需要较长时间
     'retry': 1200,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
     'queue_limit': 50,  # 队列限制
@@ -580,7 +621,14 @@ EMAIL_TIMEOUT = email_config.get('timeout', 30)
 logging_config = config_loader.get_logging_config()
 debug_enabled = logging_config.get('debug_enabled', False)
 log_sql_queries = logging_config.get('log_sql_queries', True)
+log_sql_queries = logging_config.get('log_sql_queries', True)
 console_level = 'DEBUG' if debug_enabled else 'INFO'
+
+# 强制启用 SQL 查询记录（即使 DEBUG=False）
+# 这样可以通过 log_sql_queries 配置控制是否记录 SQL 查询
+if log_sql_queries and not DEBUG:
+    from django.db.backends.mysql import base
+    base.DatabaseWrapper.force_debug_cursor = True
 
 # 强制启用 SQL 查询记录（即使 DEBUG=False）
 # 这样可以通过 log_sql_queries 配置控制是否记录 SQL 查询

@@ -55,9 +55,9 @@ components:
   enabled: true
   sort_order: 10
 - type: input
-  name: 输入文本
+  name: 输入文本并回车
   category: action
-  description: 输入文本
+  description: 输入文本并回车
   schema:
     required:
     - selector_type

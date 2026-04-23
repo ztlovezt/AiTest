@@ -202,7 +202,16 @@ export default {
     createTime: 'Created At',
     updateTime: 'Updated At',
     uploadFile: 'Upload File',
-    selectFile: 'Select File'
+    selectFile: 'Select File',
+    apkFile: 'APK File',
+    dragApkHere: 'Drag APK file here, or ',
+    clickToUpload: 'click to upload',
+    apkTip: 'Supports .apk format, max 500MB. Package name and app name will be auto-extracted after upload.',
+    extract: 'Extract',
+    uploadApkOption: 'Upload APK',
+    downloadApk: 'Download APK',
+    remarks: 'Remarks',
+    remarksPlaceholder: 'Enter remarks (max 30 characters)'
   },
 
   // Element Management
@@ -957,7 +966,22 @@ export default {
     createSuccess: 'Created successfully',
     saveFailed: 'Save failed',
     deletePackageConfirm: 'Are you sure to delete package "{name}"?',
+    deleteApkWarning: '⚠️ Warning: This will also delete the associated APK file. This action cannot be undone!',
     deleteSuccess: 'Deleted successfully',
+    invalidApkFile: 'Invalid file type, please select .apk file',
+    apkFileTooLarge: 'APK file size exceeds limit (500MB)',
+    noApkFile: 'Please upload APK file first',
+    apkExtracted: 'APK info extracted successfully!',
+    apkExtractedAuto: 'APK info auto-extracted',
+    apkWillBeExtracted: 'Package name and app name will be auto-extracted when submitting form',
+    extractFailed: 'Failed to extract APK info, please enter manually',
+    extractFailedManual: 'Extraction failed, please fill in package name and app name manually',
+    uploading: 'Uploading...',
+    extracting: 'Extracting info...',
+    uploadSuccess: 'Upload successful',
+    uploadFailed: 'Upload failed',
+    apkInfoExtracted: 'APK info extracted, please check and save',
+    downloadStarted: 'Download started',
 
     // Project management
     loadProjectListFailed: 'Failed to load project list',

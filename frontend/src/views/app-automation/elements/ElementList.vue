@@ -113,7 +113,7 @@
                 :src="getImageUrl(row)"
                 fit="contain"
                 style="width: 150px; height: 80px; cursor: pointer"
-                :preview-src-list="[getImageUrl(row)]"
+                :preview-src-list="getImageUrl(row) ? [getImageUrl(row)] : []"
                 preview-teleported
               />
             </div>
@@ -232,14 +232,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAppElementList,
   createAppElement,
   deleteAppElement as apiDeleteAppElement,
-  getAppProjects
+  getAppProjects,
+  getAppElementPreviewBlob
 } from '@/api/app-automation'
 import { Search, Plus, Camera } from '@element-plus/icons-vue'
 import { formatDateTime } from '@/utils/app-automation-helpers'
@@ -268,6 +269,43 @@ const captureDialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const editElement = ref(null)
 const viewingElement = ref(null)
+const previewImageMap = ref({})
+
+const buildPreviewKey = (element) => {
+  if (!element?.id) return ''
+  const timestamp = element.updated_at ? new Date(element.updated_at).getTime() : 0
+  return `${element.id}_${timestamp}`
+}
+
+const clearPreviewImageMap = () => {
+  Object.values(previewImageMap.value).forEach((url) => {
+    if (typeof url === 'string' && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url)
+    }
+  })
+  previewImageMap.value = {}
+}
+
+const loadImagePreviewBlobUrl = async (element) => {
+  if (!element?.id || element.element_type !== 'image') return
+
+  const key = buildPreviewKey(element)
+  if (!key || previewImageMap.value[key]) return
+
+  const timestamp = element.updated_at ? new Date(element.updated_at).getTime() : Date.now()
+  try {
+    const res = await getAppElementPreviewBlob(element.id, { t: timestamp })
+    const blob = res?.data instanceof Blob ? res.data : new Blob([res?.data])
+    previewImageMap.value[key] = URL.createObjectURL(blob)
+  } catch (error) {
+    console.error(`加载元素预览失败: id=${element.id}`, error)
+  }
+}
+
+const loadPreviewImages = async (list = []) => {
+  const imageElements = (list || []).filter((item) => item?.element_type === 'image' && item?.id)
+  await Promise.allSettled(imageElements.map((item) => loadImagePreviewBlobUrl(item)))
+}
 
 const loadElements = async () => {
   loading.value = true
@@ -285,8 +323,10 @@ const loadElements = async () => {
     }
     
     const res = await getAppElementList(params)
+    clearPreviewImageMap()
     elements.value = res.data.results || []
     total.value = res.data.count || 0
+    await loadPreviewImages(elements.value)
   } catch (error) {
     ElMessage.error(t('appAutomation.messages.loadElementListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
@@ -441,10 +481,8 @@ const handleDelete = async (element) => {
 
 // 获取图片URL
 const getImageUrl = (element) => {
-  if (!element?.id) return ''
-  // 使用 updated_at 作为版本号，确保图片更新后能刷新
-  const timestamp = element.updated_at ? new Date(element.updated_at).getTime() : Date.now()
-  return `/api/app-automation/elements/${element.id}/preview/?t=${timestamp}`
+  const key = buildPreviewKey(element)
+  return key ? (previewImageMap.value[key] || '') : ''
 }
 
 const getTypeColor = (type) => {
@@ -471,6 +509,10 @@ onMounted(() => {
   getAppProjects({ page_size: 100 }).then(res => { projectList.value = res.data.results || res.data || [] }).catch(() => {console.error('加载项目失败')})
   loadElements()
   console.log('项目列表:', projectList.value)
+})
+
+onUnmounted(() => {
+  clearPreviewImageMap()
 })
 </script>
 

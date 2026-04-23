@@ -191,7 +191,7 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 ### 前端技术栈
 
 - **框架**: Vue 3.3.4 + Composition API
-- **构建工具**: Vite 5.4.21
+- **构建工具**: Vite 7.3.1
 - **UI 组件**: Element Plus 2.3.9
 - **状态管理**: Pinia 2.1.6
 - **路由**: Vue Router 4.2.4
@@ -625,9 +625,9 @@ chmod +x start.sh
 
 ```bash
 # 启动 Django 开发服务器
-python manage.py runserver
-或
-python manage.py start_backend.py
+# python manage.py runserver  需要使用websocket，所以不支持该方式启动了，使用下方方式启动
+# 或
+python start_backend.py
 
 # 如果需要启动app远程控制则使用：
 start_with_websocket.bat
