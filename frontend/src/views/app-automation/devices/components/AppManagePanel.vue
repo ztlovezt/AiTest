@@ -2,442 +2,933 @@
   <div class="app-manage-panel">
     <div class="panel-header">
       <div>
-        <h4>应用管理</h4>
-        <p>管理当前设备上的应用安装、启动、停止和卸载。</p>
+        <h4>{{ t("appAutomation.workbench.appManage.title") }}</h4>
+        <p>{{ t("appAutomation.workbench.appManage.description") }}</p>
       </div>
-      <el-button :loading="loadingCurrentApp" @click="loadCurrentApp">刷新前台应用</el-button>
+      <div class="panel-actions">
+        <el-button :loading="loadingCurrentApp" @click="loadCurrentApp">{{
+          t("appAutomation.workbench.appManage.refreshCurrentApp")
+        }}</el-button>
+        <el-button :loading="installedLoading" @click="loadInstalledPackages">{{
+          t("appAutomation.workbench.appManage.refreshInstalledApps")
+        }}</el-button>
+      </div>
     </div>
 
     <div class="panel-grid">
       <el-card shadow="never" class="summary-card">
         <template #header>
-          <span>当前前台应用</span>
+          <span>{{
+            t("appAutomation.workbench.appManage.currentForegroundApp")
+          }}</span>
         </template>
         <div class="summary-item">
-          <span class="label">包名</span>
-          <span class="value">{{ currentApp.package_name || '-' }}</span>
+          <span class="label">{{
+            t("appAutomation.workbench.appManage.packageName")
+          }}</span>
+          <span class="value">{{ currentApp.package_name || "-" }}</span>
         </div>
         <div class="summary-item">
-          <span class="label">Activity</span>
-          <span class="value">{{ currentApp.activity || '-' }}</span>
+          <span class="label">{{
+            t("appAutomation.workbench.appManage.activity")
+          }}</span>
+          <span class="value">{{ currentApp.activity || "-" }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">{{
+            t("appAutomation.workbench.appManage.installedCount")
+          }}</span>
+          <span class="value">{{ installedPackages.length }}</span>
         </div>
       </el-card>
 
-      <el-card shadow="never" class="library-card">
+      <el-card shadow="never" class="install-card">
         <template #header>
-          <span>应用库操作</span>
+          <span>{{
+            t("appAutomation.workbench.appManage.installActions")
+          }}</span>
         </template>
 
-        <el-form label-width="88px" size="small">
-          <el-form-item label="应用包">
-            <el-select v-model="selectedPackageId" filterable placeholder="请选择应用包" style="width: 100%" @change="handlePackageChange">
-              <el-option v-for="pkg in packages" :key="pkg.id" :label="`${pkg.name} (${pkg.package_name})`" :value="pkg.id" />
-            </el-select>
-          </el-form-item>
+        <el-tabs v-model="installMode" class="install-tabs">
+          <el-tab-pane
+            :label="t('appAutomation.workbench.appManage.libraryInstall')"
+            name="library"
+          >
+            <el-form label-width="88px" size="small">
+              <el-form-item
+                :label="t('appAutomation.workbench.appManage.packageLabel')"
+              >
+                <el-select
+                  v-model="selectedPackageId"
+                  filterable
+                  :placeholder="
+                    t(
+                      'appAutomation.workbench.appManage.selectPackagePlaceholder',
+                    )
+                  "
+                  style="width: 100%"
+                >
+                  <el-option
+                    v-for="pkg in packages"
+                    :key="pkg.id"
+                    :label="`${pkg.name} (${pkg.package_name})`"
+                    :value="pkg.id"
+                  />
+                </el-select>
+              </el-form-item>
 
-          <el-form-item label="应用名称">
-            <el-input :model-value="selectedPackage?.name || ''" disabled />
-          </el-form-item>
+              <el-form-item
+                :label="t('appAutomation.workbench.appManage.appName')"
+              >
+                <el-input :model-value="selectedPackage?.name || ''" disabled />
+              </el-form-item>
 
-          <el-form-item label="包名">
-            <el-input :model-value="selectedPackage?.package_name || ''" disabled />
-          </el-form-item>
+              <el-form-item
+                :label="t('appAutomation.workbench.appManage.packageName')"
+              >
+                <el-input
+                  :model-value="selectedPackage?.package_name || ''"
+                  disabled
+                />
+              </el-form-item>
 
-          <el-form-item label="APK文件">
-            <el-tag :type="selectedPackageHasApk ? 'success' : 'info'" effect="plain">
-              {{ selectedPackageHasApk ? '已上传' : '未上传' }}
-            </el-tag>
-          </el-form-item>
+              <el-form-item
+                :label="t('appAutomation.workbench.appManage.apkStatus')"
+              >
+                <el-tag
+                  :type="selectedPackageHasApk ? 'success' : 'info'"
+                  effect="plain"
+                >
+                  {{
+                    selectedPackageHasApk
+                      ? t("appAutomation.workbench.appManage.apkUploaded")
+                      : t("appAutomation.workbench.appManage.apkMissing")
+                  }}
+                </el-tag>
+              </el-form-item>
 
-          <div class="action-row">
-            <el-button type="primary" :disabled="!selectedPackageHasApk" :loading="installingFromLibrary" @click="installFromLibrary">安装到设备</el-button>
-            <el-button :disabled="!selectedPackage" :loading="actionLoading.launch" @click="launchSelectedApp">启动</el-button>
-            <el-button :disabled="!selectedPackage" :loading="actionLoading.stop" @click="stopSelectedApp">停止</el-button>
-            <el-button :disabled="!selectedPackage" :loading="actionLoading.clear" @click="clearSelectedApp">清数据</el-button>
-            <el-button type="danger" plain :disabled="!selectedPackage" :loading="actionLoading.uninstall" @click="uninstallSelectedApp">卸载</el-button>
-          </div>
-        </el-form>
+              <div class="action-row">
+                <el-button
+                  type="primary"
+                  :disabled="!selectedPackageHasApk"
+                  :loading="installingFromLibrary"
+                  @click="installFromLibrary"
+                  >{{
+                    t("appAutomation.workbench.appManage.installToDevice")
+                  }}</el-button
+                >
+                <el-button
+                  :disabled="!selectedPackage?.package_name"
+                  :loading="actionLoading.launchLibrary"
+                  @click="launchSelectedLibraryApp"
+                  >{{
+                    t("appAutomation.workbench.appManage.launch")
+                  }}</el-button
+                >
+              </div>
+            </el-form>
+          </el-tab-pane>
+
+          <el-tab-pane
+            :label="t('appAutomation.workbench.appManage.uploadInstall')"
+            name="upload"
+          >
+            <el-upload
+              ref="uploadRef"
+              :auto-upload="false"
+              :limit="1"
+              drag
+              accept=".apk"
+              :on-change="handleApkChange"
+              :on-remove="handleApkRemove"
+            >
+              <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+              <div class="el-upload__text">
+                {{ t("appAutomation.workbench.appManage.dragUploadText") }}
+                <em>{{
+                  t("appAutomation.workbench.appManage.clickUpload")
+                }}</em>
+              </div>
+              <template #tip>
+                <div class="el-upload__tip">
+                  {{ t("appAutomation.workbench.appManage.uploadTip") }}
+                </div>
+              </template>
+            </el-upload>
+
+            <div v-if="isUploading" class="upload-progress">
+              <el-progress
+                :percentage="uploadProgress"
+                :status="uploadStatus"
+              />
+              <div class="upload-message">{{ uploadMessage }}</div>
+            </div>
+
+            <div v-if="tempApk.apk_filepath" class="temp-apk-summary">
+              <div class="summary-item">
+                <span class="label">{{
+                  t("appAutomation.workbench.appManage.appName")
+                }}</span>
+                <span class="value">{{ tempApk.app_name || "-" }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">{{
+                  t("appAutomation.workbench.appManage.packageName")
+                }}</span>
+                <span class="value">{{ tempApk.package_name || "-" }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="label">{{
+                  t("appAutomation.workbench.appManage.file")
+                }}</span>
+                <el-tooltip
+                  :content="tempApk.apk_filename || '-'"
+                  placement="top-start"
+                >
+                  <span class="value file-value">{{
+                    tempApk.apk_filename || "-"
+                  }}</span>
+                </el-tooltip>
+              </div>
+              <div class="action-row compact">
+                <el-button
+                  type="primary"
+                  :loading="installingTempApk"
+                  @click="installTempApk()"
+                  >{{
+                    t("appAutomation.workbench.appManage.installToDevice")
+                  }}</el-button
+                >
+                <el-button
+                  :disabled="!tempApk.package_name"
+                  :loading="actionLoading.launchTemp"
+                  @click="launchTempApp"
+                  >{{
+                    t("appAutomation.workbench.appManage.launchAfterInstall")
+                  }}</el-button
+                >
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </el-card>
 
-      <el-card shadow="never" class="upload-card">
+      <el-card shadow="never" class="device-package-card">
         <template #header>
-          <span>临时上传并安装</span>
+          <div class="device-package-header">
+            <span>{{
+              t("appAutomation.workbench.appManage.devicePackageManagement")
+            }}</span>
+            <div class="device-package-tools">
+              <el-input
+                v-model="packageKeyword"
+                clearable
+                size="small"
+                :placeholder="
+                  t(
+                    'appAutomation.workbench.appManage.searchPackagePlaceholder',
+                  )
+                "
+                style="width: 220px"
+              />
+            </div>
+          </div>
         </template>
 
-        <el-upload
-          ref="uploadRef"
-          :auto-upload="false"
-          :limit="1"
-          drag
-          accept=".apk"
-          :on-change="handleApkChange"
-          :on-remove="handleApkRemove"
-        >
-          <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
-          <div class="el-upload__text">拖拽 APK 到此处，或 <em>点击上传</em></div>
-          <template #tip>
-            <div class="el-upload__tip">支持 .apk，上传后会先提取信息再安装到当前设备。</div>
-          </template>
-        </el-upload>
-
-        <div v-if="isUploading" class="upload-progress">
-          <el-progress :percentage="uploadProgress" :status="uploadStatus" />
-          <div class="upload-message">{{ uploadMessage }}</div>
-        </div>
-
-        <div v-if="tempApk.apk_filepath" class="temp-apk-summary">
-          <div class="summary-item">
-            <span class="label">应用名称</span>
-            <span class="value">{{ tempApk.app_name || '-' }}</span>
+        <div class="package-list">
+          <div
+            v-if="installedPackagesFiltered.length"
+            class="package-list-inner"
+          >
+            <div
+              v-for="packageName in installedPackagesFiltered"
+              :key="packageName"
+              class="package-row"
+            >
+              <div class="package-meta">
+                <div class="package-name">{{ packageName }}</div>
+                <el-tag
+                  v-if="packageName === currentApp.package_name"
+                  size="small"
+                  type="success"
+                  effect="plain"
+                  >{{
+                    t("appAutomation.workbench.appManage.runningForeground")
+                  }}</el-tag
+                >
+              </div>
+              <div class="package-actions">
+                <el-button
+                  link
+                  size="small"
+                  :loading="actionLoading.launchPackage === packageName"
+                  @click="launchDevicePackage(packageName)"
+                  >{{
+                    t("appAutomation.workbench.appManage.launch")
+                  }}</el-button
+                >
+                <el-button
+                  link
+                  size="small"
+                  :loading="actionLoading.stopPackage === packageName"
+                  @click="stopDevicePackageAction(packageName)"
+                  >{{ t("appAutomation.workbench.appManage.stop") }}</el-button
+                >
+                <el-button
+                  link
+                  size="small"
+                  :loading="actionLoading.clearPackage === packageName"
+                  @click="clearDevicePackageAction(packageName)"
+                  >{{
+                    t("appAutomation.workbench.appManage.clearDataCache")
+                  }}</el-button
+                >
+                <el-button
+                  link
+                  size="small"
+                  type="danger"
+                  :loading="actionLoading.uninstallPackage === packageName"
+                  @click="uninstallDevicePackageAction(packageName)"
+                  >{{
+                    t("appAutomation.workbench.appManage.uninstall")
+                  }}</el-button
+                >
+              </div>
+            </div>
           </div>
-          <div class="summary-item">
-            <span class="label">包名</span>
-            <span class="value">{{ tempApk.package_name || '-' }}</span>
-          </div>
-          <div class="summary-item">
-            <span class="label">文件</span>
-            <span class="value ellipsis">{{ tempApk.apk_filename }}</span>
-          </div>
-          <div class="action-row compact">
-            <el-button type="primary" :loading="installingTempApk" @click="installTempApk">安装到设备</el-button>
-            <el-button :disabled="!tempApk.package_name" :loading="actionLoading.launchTemp" @click="launchTempApp">安装后启动</el-button>
-          </div>
+          <el-empty
+            v-else
+            :description="
+              t('appAutomation.workbench.appManage.noInstalledPackages')
+            "
+          />
         </div>
       </el-card>
 
       <el-card shadow="never" class="output-card">
         <template #header>
-          <span>最近操作输出</span>
+          <span>{{ t("appAutomation.workbench.appManage.recentOutput") }}</span>
         </template>
-        <pre>{{ lastOutput || '暂无输出' }}</pre>
+        <pre>{{
+          lastOutput || t("appAutomation.workbench.appManage.noOutput")
+        }}</pre>
       </el-card>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { UploadFilled } from '@element-plus/icons-vue'
+import { computed, onMounted, reactive, ref } from "vue";
+import { ElMessage, ElMessageBox } from "element-plus";
+import { UploadFilled } from "@element-plus/icons-vue";
+import { useI18n } from "vue-i18n";
 import {
   clearDeviceAppData,
   getDeviceCurrentApp,
+  getInstalledDevicePackages,
   getPackageList,
   installApkToDevice,
   launchDeviceApp,
   stopDeviceApp,
   uninstallDeviceApp,
   uploadAndExtractApk,
-} from '@/api/app-automation'
+} from "@/api/app-automation";
 
 const props = defineProps({
   deviceId: {
     type: String,
     required: true,
   },
-})
+});
 
-const emit = defineEmits(['current-app-change', 'operation'])
+const emit = defineEmits(["current-app-change", "operation"]);
+const { t } = useI18n();
 
-const loadingCurrentApp = ref(false)
-const installingFromLibrary = ref(false)
-const installingTempApk = ref(false)
-const packages = ref([])
-const selectedPackageId = ref(null)
-const currentApp = ref({ package_name: '', activity: '' })
-const lastOutput = ref('')
-const uploadRef = ref(null)
-const isUploading = ref(false)
-const uploadProgress = ref(0)
-const uploadStatus = ref('')
-const uploadMessage = ref('')
+const installMode = ref("library");
+const loadingCurrentApp = ref(false);
+const installedLoading = ref(false);
+const installingFromLibrary = ref(false);
+const installingTempApk = ref(false);
+const packages = ref([]);
+const installedPackages = ref([]);
+const selectedPackageId = ref(null);
+const currentApp = ref({ package_name: "", activity: "" });
+const packageKeyword = ref("");
+const lastOutput = ref("");
+const uploadRef = ref(null);
+const isUploading = ref(false);
+const uploadProgress = ref(0);
+const uploadStatus = ref("");
+const uploadMessage = ref("");
 const tempApk = reactive({
-  package_name: '',
-  app_name: '',
-  apk_filepath: '',
-  apk_filename: '',
-})
+  package_name: "",
+  app_name: "",
+  apk_filepath: "",
+  apk_filename: "",
+});
 const actionLoading = reactive({
-  launch: false,
-  stop: false,
-  clear: false,
-  uninstall: false,
+  launchLibrary: false,
   launchTemp: false,
-})
+  launchPackage: "",
+  stopPackage: "",
+  clearPackage: "",
+  uninstallPackage: "",
+});
 
-const selectedPackage = computed(() => packages.value.find((item) => item.id === selectedPackageId.value) || null)
-const selectedPackageHasApk = computed(() => Boolean(selectedPackage.value?.apk_filepath || selectedPackage.value?.apk_file_url))
+// 应用库安装和设备已装应用都依赖同一份包数据，这里统一做派生状态。
+const selectedPackage = computed(
+  () =>
+    packages.value.find((item) => item.id === selectedPackageId.value) || null,
+);
+const selectedPackageHasApk = computed(() =>
+  Boolean(
+    selectedPackage.value?.apk_filepath || selectedPackage.value?.apk_file_url,
+  ),
+);
+const installedPackagesFiltered = computed(() => {
+  const keyword = packageKeyword.value.trim().toLowerCase();
+  if (!keyword) {
+    return installedPackages.value;
+  }
+  return installedPackages.value.filter((item) =>
+    item.toLowerCase().includes(keyword),
+  );
+});
 
-const logOperation = (message, level = 'info', extra = null) => {
-  emit('operation', {
-    source: 'apps',
+const logOperation = (message, level = "info", extra = null) => {
+  emit("operation", {
+    source: "apps",
     level,
     message,
     extra,
     timestamp: Date.now(),
-  })
-}
+  });
+};
 
 const setOutput = (message, payload = null) => {
-  lastOutput.value = [message, payload ? JSON.stringify(payload, null, 2) : ''].filter(Boolean).join('\n\n')
-}
+  // 最近一次操作的原始输出统一落在右侧面板，便于排查设备侧返回结果。
+  lastOutput.value = [message, payload ? JSON.stringify(payload, null, 2) : ""]
+    .filter(Boolean)
+    .join("\n\n");
+};
 
 const loadPackages = async () => {
   try {
-    const response = await getPackageList({ page: 1, page_size: 1000 })
-    const payload = response.data?.success !== undefined ? response.data?.data : response.data
-    packages.value = payload?.results || payload || []
+    const response = await getPackageList({ page: 1, page_size: 1000 });
+    const payload =
+      response.data?.success !== undefined
+        ? response.data?.data
+        : response.data;
+    packages.value = payload?.results || payload || [];
   } catch (error) {
-    console.error('Failed to load package list:', error)
-    ElMessage.error('加载应用包列表失败')
-    logOperation('加载应用包列表失败', 'error', error?.response?.data || error?.message)
+    console.error("Failed to load package list:", error);
+    ElMessage.error(
+      t("appAutomation.workbench.appManage.loadPackageListFailed"),
+    );
+    logOperation(
+      t("appAutomation.workbench.appManage.loadPackageListFailed"),
+      "error",
+      error?.response?.data || error?.message,
+    );
   }
-}
+};
+
+const loadInstalledPackages = async () => {
+  installedLoading.value = true;
+  try {
+    const response = await getInstalledDevicePackages(props.deviceId);
+    installedPackages.value = response.data?.data || [];
+  } catch (error) {
+    console.error("Failed to load installed packages:", error);
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.loadInstalledFailed"),
+    );
+    logOperation(
+      t("appAutomation.workbench.appManage.loadInstalledFailed"),
+      "error",
+      error?.response?.data || error?.message,
+    );
+  } finally {
+    installedLoading.value = false;
+  }
+};
 
 const loadCurrentApp = async () => {
-  loadingCurrentApp.value = true
+  loadingCurrentApp.value = true;
   try {
-    const response = await getDeviceCurrentApp(props.deviceId)
-    currentApp.value = response.data?.data || { package_name: '', activity: '' }
-    emit('current-app-change', currentApp.value)
+    const response = await getDeviceCurrentApp(props.deviceId);
+    currentApp.value = response.data?.data || {
+      package_name: "",
+      activity: "",
+    };
+    emit("current-app-change", currentApp.value);
   } catch (error) {
-    console.error('Failed to load current app:', error)
-    ElMessage.error(error?.response?.data?.message || error.message || '加载前台应用失败')
-    logOperation('加载前台应用失败', 'error', error?.response?.data || error?.message)
+    console.error("Failed to load current app:", error);
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.loadCurrentAppFailed"),
+    );
+    logOperation(
+      t("appAutomation.workbench.appManage.loadCurrentAppFailed"),
+      "error",
+      error?.response?.data || error?.message,
+    );
   } finally {
-    loadingCurrentApp.value = false
+    loadingCurrentApp.value = false;
   }
-}
-
-const handlePackageChange = async () => {
-  if (!selectedPackage.value) {
-    return
-  }
-  if (selectedPackage.value.package_name) {
-    currentApp.value.package_name = currentApp.value.package_name || ''
-  }
-}
+};
 
 const installFromLibrary = async () => {
   if (!selectedPackageId.value) {
-    ElMessage.warning('请先选择应用包')
-    return
+    ElMessage.warning(
+      t("appAutomation.workbench.appManage.selectPackageFirst"),
+    );
+    return;
   }
-  installingFromLibrary.value = true
+  installingFromLibrary.value = true;
   try {
-    const response = await installApkToDevice(props.deviceId, { package_id: selectedPackageId.value })
-    setOutput('应用库安装成功', response.data?.data)
-    ElMessage.success(response.data?.message || '安装成功')
-    logOperation(`应用库安装成功: ${selectedPackage.value?.package_name || selectedPackageId.value}`, 'success', response.data?.data)
-    await loadCurrentApp()
+    const response = await installApkToDevice(props.deviceId, {
+      package_id: selectedPackageId.value,
+    });
+    setOutput(
+      t("appAutomation.workbench.appManage.installFromLibrarySuccess"),
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.installSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.installFromLibrarySuccess")}: ${selectedPackage.value?.package_name || selectedPackageId.value}`,
+      "success",
+      response.data?.data,
+    );
+    await Promise.all([loadCurrentApp(), loadInstalledPackages()]);
   } catch (error) {
-    console.error('Install from library failed:', error)
-    ElMessage.error(error?.response?.data?.message || error.message || '安装失败')
-    logOperation(`应用库安装失败: ${selectedPackage.value?.package_name || selectedPackageId.value}`, 'error', error?.response?.data || error?.message)
+    console.error("Install from library failed:", error);
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.installFromLibraryFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.installFromLibraryFailed")}: ${selectedPackage.value?.package_name || selectedPackageId.value}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
   } finally {
-    installingFromLibrary.value = false
+    installingFromLibrary.value = false;
   }
-}
+};
 
-const launchSelectedApp = async () => {
-  if (!selectedPackage.value) {
-    ElMessage.warning('请先选择应用包')
-    return
+const launchSelectedLibraryApp = async () => {
+  if (!selectedPackage.value?.package_name) {
+    ElMessage.warning(
+      t("appAutomation.workbench.appManage.selectPackageFirst"),
+    );
+    return;
   }
-  actionLoading.launch = true
+  actionLoading.launchLibrary = true;
   try {
-    const response = await launchDeviceApp(props.deviceId, { package_name: selectedPackage.value.package_name })
-    setOutput('应用启动成功', response.data?.data)
-    ElMessage.success(response.data?.message || '启动成功')
-    logOperation(`应用启动成功: ${selectedPackage.value.package_name}`, 'success', response.data?.data)
-    await loadCurrentApp()
+    const response = await launchDeviceApp(props.deviceId, {
+      package_name: selectedPackage.value.package_name,
+    });
+    setOutput(
+      t("appAutomation.workbench.appManage.launchSuccess"),
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.launchSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchSuccess")}: ${selectedPackage.value.package_name}`,
+      "success",
+      response.data?.data,
+    );
+    await loadCurrentApp();
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || '启动失败')
-    logOperation(`应用启动失败: ${selectedPackage.value.package_name}`, 'error', error?.response?.data || error?.message)
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.launchFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchFailed")}: ${selectedPackage.value.package_name}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
   } finally {
-    actionLoading.launch = false
+    actionLoading.launchLibrary = false;
   }
-}
-
-const stopSelectedApp = async () => {
-  if (!selectedPackage.value) {
-    ElMessage.warning('请先选择应用包')
-    return
-  }
-  actionLoading.stop = true
-  try {
-    const response = await stopDeviceApp(props.deviceId, { package_name: selectedPackage.value.package_name })
-    setOutput('应用已停止', response.data?.data)
-    ElMessage.success(response.data?.message || '应用已停止')
-    logOperation(`应用已停止: ${selectedPackage.value.package_name}`, 'success', response.data?.data)
-    await loadCurrentApp()
-  } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || '停止失败')
-    logOperation(`应用停止失败: ${selectedPackage.value.package_name}`, 'error', error?.response?.data || error?.message)
-  } finally {
-    actionLoading.stop = false
-  }
-}
-
-const clearSelectedApp = async () => {
-  if (!selectedPackage.value) {
-    ElMessage.warning('请先选择应用包')
-    return
-  }
-  actionLoading.clear = true
-  try {
-    const response = await clearDeviceAppData(props.deviceId, { package_name: selectedPackage.value.package_name })
-    setOutput('应用数据已清理', response.data?.data)
-    ElMessage.success(response.data?.message || '清理成功')
-    logOperation(`应用数据已清理: ${selectedPackage.value.package_name}`, 'success', response.data?.data)
-  } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || '清理失败')
-    logOperation(`应用清理失败: ${selectedPackage.value.package_name}`, 'error', error?.response?.data || error?.message)
-  } finally {
-    actionLoading.clear = false
-  }
-}
-
-const uninstallSelectedApp = async () => {
-  if (!selectedPackage.value) {
-    ElMessage.warning('请先选择应用包')
-    return
-  }
-  try {
-    await ElMessageBox.confirm(`确定卸载 ${selectedPackage.value.name} 吗？`, '卸载确认', {
-      type: 'warning',
-    })
-  } catch {
-    return
-  }
-
-  actionLoading.uninstall = true
-  try {
-    const response = await uninstallDeviceApp(props.deviceId, { package_name: selectedPackage.value.package_name })
-    setOutput('应用卸载成功', response.data?.data)
-    ElMessage.success(response.data?.message || '卸载成功')
-    logOperation(`应用卸载成功: ${selectedPackage.value.package_name}`, 'success', response.data?.data)
-    await loadCurrentApp()
-  } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || '卸载失败')
-    logOperation(`应用卸载失败: ${selectedPackage.value.package_name}`, 'error', error?.response?.data || error?.message)
-  } finally {
-    actionLoading.uninstall = false
-  }
-}
+};
 
 const handleApkChange = async (file) => {
-  if (!file.raw?.name?.toLowerCase().endsWith('.apk')) {
-    ElMessage.error('无效的文件类型，请选择 .apk 文件')
-    uploadRef.value?.clearFiles()
-    return
+  // 临时上传模式下，先上传并解析 APK 信息，再决定是否安装到设备。
+  if (!file.raw?.name?.toLowerCase().endsWith(".apk")) {
+    ElMessage.error(t("appAutomation.workbench.appManage.invalidApkFile"));
+    uploadRef.value?.clearFiles();
+    return;
   }
 
-  isUploading.value = true
-  uploadStatus.value = ''
-  uploadProgress.value = 0
-  uploadMessage.value = '正在上传...'
+  isUploading.value = true;
+  uploadStatus.value = "";
+  uploadProgress.value = 0;
+  uploadMessage.value = t("appAutomation.workbench.appManage.uploading");
 
   try {
     const response = await uploadAndExtractApk(file.raw, (progressEvent) => {
       if (progressEvent.total) {
-        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+        uploadProgress.value = Math.round(
+          (progressEvent.loaded * 100) / progressEvent.total,
+        );
       }
-    })
+    });
 
-    const data = response.data?.data || {}
-    tempApk.package_name = data.package_name || ''
-    tempApk.app_name = data.app_name || ''
-    tempApk.apk_filepath = data.apk_filepath || ''
-    tempApk.apk_filename = data.apk_filename || ''
-    uploadStatus.value = response.data.success ? 'success' : 'warning'
-    uploadMessage.value = response.data.success ? 'APK 提取完成' : (response.data.message || 'APK 已上传')
-    setOutput('临时 APK 上传完成', data)
+    const data = response.data?.data || {};
+    tempApk.package_name = data.package_name || "";
+    tempApk.app_name = data.app_name || "";
+    tempApk.apk_filepath = data.apk_filepath || "";
+    tempApk.apk_filename = data.apk_filename || "";
+    uploadStatus.value = response.data.success ? "success" : "warning";
+    uploadMessage.value = response.data.success
+      ? t("appAutomation.workbench.appManage.extractDone")
+      : response.data.message ||
+        t("appAutomation.workbench.appManage.uploadedOnly");
+    setOutput(t("appAutomation.workbench.appManage.uploadInstall"), data);
     if (response.data.success) {
-      ElMessage.success('APK 上传并提取成功')
-      logOperation(`临时 APK 上传并提取成功: ${data.package_name || data.apk_filename}`, 'success', data)
+      ElMessage.success(
+        t("appAutomation.workbench.appManage.uploadExtractSuccess"),
+      );
+      logOperation(
+        `${t("appAutomation.workbench.appManage.uploadExtractSuccess")}: ${data.package_name || data.apk_filename}`,
+        "success",
+        data,
+      );
     } else {
-      ElMessage.warning(response.data.message || 'APK 已上传，但信息提取不完整')
-      logOperation('临时 APK 上传成功，但提取信息不完整', 'warning', data)
+      ElMessage.warning(
+        response.data.message ||
+          t("appAutomation.workbench.appManage.uploadPartial"),
+      );
+      logOperation(
+        t("appAutomation.workbench.appManage.uploadPartial"),
+        "warning",
+        data,
+      );
     }
   } catch (error) {
-    uploadStatus.value = 'exception'
-    uploadMessage.value = error?.response?.data?.message || error.message || '上传失败'
-    ElMessage.error(uploadMessage.value)
-    logOperation('临时 APK 上传失败', 'error', error?.response?.data || error?.message)
+    uploadStatus.value = "exception";
+    uploadMessage.value =
+      error?.response?.data?.message ||
+      error.message ||
+      t("appAutomation.workbench.appManage.uploadFailed");
+    ElMessage.error(uploadMessage.value);
+    logOperation(
+      t("appAutomation.workbench.appManage.uploadFailed"),
+      "error",
+      error?.response?.data || error?.message,
+    );
   } finally {
     setTimeout(() => {
-      isUploading.value = false
-    }, 500)
+      isUploading.value = false;
+    }, 500);
   }
-}
+};
 
 const handleApkRemove = () => {
-  tempApk.package_name = ''
-  tempApk.app_name = ''
-  tempApk.apk_filepath = ''
-  tempApk.apk_filename = ''
-  uploadProgress.value = 0
-  uploadStatus.value = ''
-  uploadMessage.value = ''
-}
+  tempApk.package_name = "";
+  tempApk.app_name = "";
+  tempApk.apk_filepath = "";
+  tempApk.apk_filename = "";
+  uploadProgress.value = 0;
+  uploadStatus.value = "";
+  uploadMessage.value = "";
+};
 
 const installTempApk = async ({ silent = false } = {}) => {
+  // “安装后启动”会复用这个方法，因此支持 silent 模式避免重复弹成功提示。
   if (!tempApk.apk_filepath) {
     if (!silent) {
-      ElMessage.warning('请先上传 APK')
+      ElMessage.warning(t("appAutomation.workbench.appManage.uploadApkFirst"));
     }
-    return false
+    return false;
   }
-  installingTempApk.value = true
+  installingTempApk.value = true;
   try {
-    const response = await installApkToDevice(props.deviceId, { apk_filepath: tempApk.apk_filepath })
-    setOutput('临时 APK 安装成功', response.data?.data)
+    const response = await installApkToDevice(props.deviceId, {
+      apk_filepath: tempApk.apk_filepath,
+    });
+    setOutput(
+      t("appAutomation.workbench.appManage.installSuccess"),
+      response.data?.data,
+    );
     if (!silent) {
-      ElMessage.success(response.data?.message || '安装成功')
+      ElMessage.success(
+        response.data?.message ||
+          t("appAutomation.workbench.appManage.installSuccess"),
+      );
     }
-    logOperation(`临时 APK 安装成功: ${tempApk.package_name || tempApk.apk_filename}`, 'success', response.data?.data)
-    await loadCurrentApp()
-    return true
+    logOperation(
+      `${t("appAutomation.workbench.appManage.installSuccess")}: ${tempApk.package_name || tempApk.apk_filename}`,
+      "success",
+      response.data?.data,
+    );
+    await Promise.all([loadCurrentApp(), loadInstalledPackages()]);
+    return true;
   } catch (error) {
     if (!silent) {
-      ElMessage.error(error?.response?.data?.message || error.message || '安装失败')
+      ElMessage.error(
+        error?.response?.data?.message ||
+          error.message ||
+          t("appAutomation.workbench.appManage.installFailed"),
+      );
     }
-    logOperation(`临时 APK 安装失败: ${tempApk.package_name || tempApk.apk_filename}`, 'error', error?.response?.data || error?.message)
-    return false
+    logOperation(
+      `${t("appAutomation.workbench.appManage.installFailed")}: ${tempApk.package_name || tempApk.apk_filename}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
+    return false;
   } finally {
-    installingTempApk.value = false
+    installingTempApk.value = false;
   }
-}
+};
 
 const launchTempApp = async () => {
   if (!tempApk.package_name) {
-    ElMessage.warning('当前临时 APK 缺少包名')
-    return
+    ElMessage.warning(
+      t("appAutomation.workbench.appManage.tempPackageMissing"),
+    );
+    return;
   }
-  actionLoading.launchTemp = true
+  actionLoading.launchTemp = true;
   try {
-    const installed = await installTempApk({ silent: true })
+    const installed = await installTempApk({ silent: true });
     if (!installed) {
-      ElMessage.error('安装失败，无法继续启动应用')
-      return
+      ElMessage.error(
+        t("appAutomation.workbench.appManage.installFailedCannotLaunch"),
+      );
+      return;
     }
-    const response = await launchDeviceApp(props.deviceId, { package_name: tempApk.package_name })
-    setOutput('临时 APK 已安装并启动', response.data?.data)
-    ElMessage.success(response.data?.message || '启动成功')
-    logOperation(`临时 APK 已安装并启动: ${tempApk.package_name}`, 'success', response.data?.data)
-    await loadCurrentApp()
+    const response = await launchDeviceApp(props.deviceId, {
+      package_name: tempApk.package_name,
+    });
+    setOutput(
+      t("appAutomation.workbench.appManage.launchAfterInstall"),
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.launchSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchAfterInstall")}: ${tempApk.package_name}`,
+      "success",
+      response.data?.data,
+    );
+    await loadCurrentApp();
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || '启动失败')
-    logOperation(`临时 APK 启动失败: ${tempApk.package_name}`, 'error', error?.response?.data || error?.message)
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.launchFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchFailed")}: ${tempApk.package_name}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
   } finally {
-    actionLoading.launchTemp = false
+    actionLoading.launchTemp = false;
   }
-}
+};
+
+const launchDevicePackage = async (packageName) => {
+  actionLoading.launchPackage = packageName;
+  try {
+    const response = await launchDeviceApp(props.deviceId, {
+      package_name: packageName,
+    });
+    setOutput(
+      `${t("appAutomation.workbench.appManage.launchSuccess")}: ${packageName}`,
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.launchSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchSuccess")}: ${packageName}`,
+      "success",
+      response.data?.data,
+    );
+    await loadCurrentApp();
+  } catch (error) {
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.launchFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.launchFailed")}: ${packageName}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
+  } finally {
+    actionLoading.launchPackage = "";
+  }
+};
+
+const stopDevicePackageAction = async (packageName) => {
+  actionLoading.stopPackage = packageName;
+  try {
+    const response = await stopDeviceApp(props.deviceId, {
+      package_name: packageName,
+    });
+    setOutput(
+      `${t("appAutomation.workbench.appManage.stopSuccess")}: ${packageName}`,
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.stopSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.stopSuccess")}: ${packageName}`,
+      "success",
+      response.data?.data,
+    );
+    await loadCurrentApp();
+  } catch (error) {
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.stopFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.stopFailed")}: ${packageName}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
+  } finally {
+    actionLoading.stopPackage = "";
+  }
+};
+
+const clearDevicePackageAction = async (packageName) => {
+  // 清理运行数据会导致应用回到初始状态，因此必须做二次确认。
+  try {
+    await ElMessageBox.confirm(
+      t("appAutomation.workbench.appManage.clearConfirmMessage", {
+        packageName,
+      }),
+      t("appAutomation.workbench.appManage.clearConfirmTitle"),
+      {
+        type: "warning",
+        confirmButtonText: t(
+          "appAutomation.workbench.appManage.clearConfirmAction",
+        ),
+        cancelButtonText: t("appAutomation.common.cancel"),
+      },
+    );
+  } catch {
+    return;
+  }
+
+  actionLoading.clearPackage = packageName;
+  try {
+    const response = await clearDeviceAppData(props.deviceId, {
+      package_name: packageName,
+    });
+    setOutput(
+      `${t("appAutomation.workbench.appManage.clearSuccess")}: ${packageName}`,
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.clearSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.clearSuccess")}: ${packageName}`,
+      "success",
+      response.data?.data,
+    );
+  } catch (error) {
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.clearFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.clearFailed")}: ${packageName}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
+  } finally {
+    actionLoading.clearPackage = "";
+  }
+};
+
+const uninstallDevicePackageAction = async (packageName) => {
+  try {
+    await ElMessageBox.confirm(
+      t("appAutomation.workbench.appManage.uninstallConfirmMessage", {
+        packageName,
+      }),
+      t("appAutomation.workbench.appManage.uninstallConfirmTitle"),
+      {
+        type: "warning",
+      },
+    );
+  } catch {
+    return;
+  }
+
+  actionLoading.uninstallPackage = packageName;
+  try {
+    const response = await uninstallDeviceApp(props.deviceId, {
+      package_name: packageName,
+    });
+    setOutput(
+      `${t("appAutomation.workbench.appManage.uninstallSuccess")}: ${packageName}`,
+      response.data?.data,
+    );
+    ElMessage.success(
+      response.data?.message ||
+        t("appAutomation.workbench.appManage.uninstallSuccess"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.uninstallSuccess")}: ${packageName}`,
+      "success",
+      response.data?.data,
+    );
+    await Promise.all([loadCurrentApp(), loadInstalledPackages()]);
+  } catch (error) {
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.appManage.uninstallFailed"),
+    );
+    logOperation(
+      `${t("appAutomation.workbench.appManage.uninstallFailed")}: ${packageName}`,
+      "error",
+      error?.response?.data || error?.message,
+    );
+  } finally {
+    actionLoading.uninstallPackage = "";
+  }
+};
 
 onMounted(async () => {
-  await Promise.all([loadPackages(), loadCurrentApp()])
-})
+  await Promise.all([
+    loadPackages(),
+    loadCurrentApp(),
+    loadInstalledPackages(),
+  ]);
+});
 </script>
 
 <style scoped>
@@ -466,28 +957,36 @@ onMounted(async () => {
   color: #6b7280;
 }
 
+.panel-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .panel-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(280px, 0.7fr) minmax(360px, 1fr);
   gap: 16px;
 }
 
 .summary-card,
-.library-card,
-.upload-card,
+.install-card,
+.device-package-card,
 .output-card {
   border-radius: 16px;
 }
 
-.action-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
+.install-card,
+.output-card {
+  min-height: 0;
 }
 
-.action-row.compact {
-  margin-top: 16px;
+.device-package-card {
+  grid-column: 1 / -1;
+}
+
+.output-card {
+  grid-column: 1 / -1;
 }
 
 .summary-item {
@@ -513,11 +1012,15 @@ onMounted(async () => {
   word-break: break-all;
 }
 
-.ellipsis {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 260px;
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.action-row.compact {
+  margin-top: 16px;
 }
 
 .upload-progress {
@@ -534,6 +1037,70 @@ onMounted(async () => {
   margin-top: 16px;
 }
 
+.file-value {
+  max-width: 420px;
+  text-align: right;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.device-package-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.device-package-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.package-list {
+  min-height: 280px;
+}
+
+.package-list-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 420px;
+  overflow: auto;
+}
+
+.package-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.package-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.package-name {
+  color: #111827;
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.package-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
 .output-card pre {
   margin: 0;
   min-height: 180px;
@@ -547,6 +1114,20 @@ onMounted(async () => {
 @media (max-width: 1200px) {
   .panel-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .panel-header,
+  .device-package-header,
+  .package-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .package-actions,
+  .panel-actions {
+    justify-content: flex-end;
   }
 }
 </style>

@@ -1,53 +1,117 @@
-﻿<template>
+<template>
   <div class="debug-log-panel">
     <div class="panel-header">
       <div>
-        <h4>Debug Logs</h4>
-        <p>Review workbench events and device logcat side by side.</p>
+        <h4>{{ t("appAutomation.workbench.logs.panelTitle") }}</h4>
+        <p>{{ t("appAutomation.workbench.logs.panelDescription") }}</p>
       </div>
       <div class="header-actions">
-        <el-switch v-model="autoRefresh" active-text="Auto" />
-        <el-select v-model="intervalMs" style="width: 110px">
+        <el-tag :type="streamTagType" effect="plain">
+          {{ streamStatusText }}
+        </el-tag>
+        <el-switch
+          v-model="autoRefresh"
+          :active-text="t('appAutomation.workbench.logs.autoRefresh')"
+        />
+        <el-select v-model="intervalMs" style="width: 120px">
           <el-option :value="3000" label="3s" />
           <el-option :value="5000" label="5s" />
           <el-option :value="8000" label="8s" />
         </el-select>
-        <el-button :loading="loading" @click="loadLogs">Refresh</el-button>
+        <el-button :loading="loading" @click="loadLogs">
+          {{ t("appAutomation.workbench.logs.refreshHistory") }}
+        </el-button>
       </div>
     </div>
 
     <div class="toolbar-row">
       <el-radio-group v-model="scope">
-        <el-radio-button value="device">Device</el-radio-button>
-        <el-radio-button value="app">App</el-radio-button>
+        <el-radio-button value="device">
+          {{ t("appAutomation.workbench.logs.scopeDevice") }}
+        </el-radio-button>
+        <el-radio-button value="app">
+          {{ t("appAutomation.workbench.logs.scopeApp") }}
+        </el-radio-button>
       </el-radio-group>
       <el-select
         v-model="packageName"
         filterable
         clearable
-        placeholder="Package name"
+        :placeholder="t('appAutomation.workbench.logs.packagePlaceholder')"
         style="min-width: 260px"
         :disabled="scope === 'device'"
       >
-        <el-option v-for="pkg in installedPackages" :key="pkg" :label="pkg" :value="pkg" />
+        <el-option
+          v-for="pkg in installedPackages"
+          :key="pkg"
+          :label="pkg"
+          :value="pkg"
+        />
       </el-select>
-      <el-select v-model="level" clearable placeholder="Level" style="width: 100px">
-        <el-option label="All" value="" />
-        <el-option label="Info+" value="I" />
-        <el-option label="Warn+" value="W" />
-        <el-option label="Error+" value="E" />
+      <el-select
+        v-model="level"
+        clearable
+        :placeholder="t('appAutomation.workbench.logs.levelPlaceholder')"
+        style="width: 110px"
+      >
+        <el-option
+          :label="t('appAutomation.workbench.logs.levels.all')"
+          value=""
+        />
+        <el-option
+          :label="t('appAutomation.workbench.logs.levels.info')"
+          value="I"
+        />
+        <el-option
+          :label="t('appAutomation.workbench.logs.levels.warn')"
+          value="W"
+        />
+        <el-option
+          :label="t('appAutomation.workbench.logs.levels.error')"
+          value="E"
+        />
       </el-select>
-      <el-input v-model="keyword" clearable placeholder="Keyword" style="max-width: 220px" />
+      <el-input
+        v-model="keyword"
+        clearable
+        :placeholder="t('appAutomation.workbench.logs.keywordPlaceholder')"
+        style="max-width: 220px"
+      />
       <el-select v-model="lines" style="width: 120px">
-        <el-option :value="200" label="200 lines" />
-        <el-option :value="400" label="400 lines" />
-        <el-option :value="800" label="800 lines" />
+        <el-option
+          :value="200"
+          :label="t('appAutomation.workbench.logs.linesUnit', { count: 200 })"
+        />
+        <el-option
+          :value="400"
+          :label="t('appAutomation.workbench.logs.linesUnit', { count: 400 })"
+        />
+        <el-option
+          :value="800"
+          :label="t('appAutomation.workbench.logs.linesUnit', { count: 800 })"
+        />
       </el-select>
-      <el-button @click="copyLogs">Copy</el-button>
-      <el-button @click="exportLogs">Export</el-button>
-      <el-button type="warning" @click="clearDeviceLogs">Clear device log</el-button>
-      <el-button @click="$emit('clear-events')">Clear workbench log</el-button>
+      <el-button @click="copyLogs">
+        {{ t("appAutomation.workbench.logs.copy") }}
+      </el-button>
+      <el-button @click="exportLogs">
+        {{ t("appAutomation.workbench.logs.export") }}
+      </el-button>
+      <el-button type="warning" @click="clearDeviceLogs">
+        {{ t("appAutomation.workbench.logs.clearDeviceLogs") }}
+      </el-button>
+      <el-button @click="$emit('clear-events')">
+        {{ t("appAutomation.workbench.logs.clearEvents") }}
+      </el-button>
     </div>
+
+    <el-alert
+      v-if="streamMessage"
+      class="panel-alert"
+      type="info"
+      :closable="false"
+      :title="streamMessage"
+    />
 
     <el-alert
       v-if="errorMessage"
@@ -61,12 +125,20 @@
       <el-card shadow="never" class="log-card">
         <template #header>
           <div class="card-header">
-            <span>Workbench Events</span>
-            <span class="card-meta">{{ operationEvents.length }} items</span>
+            <span>{{ t("appAutomation.workbench.logs.eventCardTitle") }}</span>
+            <span class="card-meta">
+              {{
+                t("appAutomation.workbench.logs.itemsUnit", {
+                  count: operationEvents.length,
+                })
+              }}
+            </span>
           </div>
         </template>
         <div ref="eventListRef" class="log-list">
-          <div v-if="!operationEvents.length" class="empty-log">No workbench events</div>
+          <div v-if="!operationEvents.length" class="empty-log">
+            {{ t("appAutomation.workbench.logs.noEvents") }}
+          </div>
           <div
             v-for="event in operationEvents"
             :key="event.id"
@@ -85,15 +157,30 @@
       <el-card shadow="never" class="log-card">
         <template #header>
           <div class="card-header">
-            <span>Device Logcat</span>
-            <span class="card-meta">{{ deviceLogs.length }} lines</span>
+            <span>
+              {{
+                scope === "app"
+                  ? t("appAutomation.workbench.logs.appLogCardTitle")
+                  : t("appAutomation.workbench.logs.deviceLogCardTitle")
+              }}
+            </span>
+            <span class="card-meta">
+              {{
+                t("appAutomation.workbench.logs.lineCountWithStatus", {
+                  count: deviceLogs.length,
+                  status: streamStatusText,
+                })
+              }}
+            </span>
           </div>
         </template>
         <div ref="deviceLogListRef" class="log-list mono">
-          <div v-if="!deviceLogs.length" class="empty-log">No logcat lines</div>
+          <div v-if="!deviceLogs.length" class="empty-log">
+            {{ t("appAutomation.workbench.logs.noLogs") }}
+          </div>
           <div
             v-for="(log, index) in deviceLogs"
-            :key="`${log.time}-${log.pid}-${index}`"
+            :key="log._key || `${log.time}-${log.pid}-${index}`"
             class="device-log-row"
             :class="`priority-${(log.priority || 'I').toLowerCase()}`"
           >
@@ -109,13 +196,14 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { ElMessage } from "element-plus";
+import { useI18n } from "vue-i18n";
 import {
   clearDeviceLogcat,
   getDeviceLogcat,
   getInstalledDevicePackages,
-} from '@/api/app-automation'
+} from "@/api/app-automation";
 
 const props = defineProps({
   deviceId: {
@@ -124,7 +212,7 @@ const props = defineProps({
   },
   currentApp: {
     type: Object,
-    default: () => ({ package_name: '', activity: '' }),
+    default: () => ({ package_name: "", activity: "" }),
   },
   events: {
     type: Array,
@@ -134,206 +222,362 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-})
+  liveLogEntries: {
+    type: Array,
+    default: () => [],
+  },
+  logStreamStatus: {
+    type: Object,
+    default: () => ({}),
+  },
+  updateLogSubscription: {
+    type: Function,
+    default: null,
+  },
+});
 
-defineEmits(['clear-events'])
+defineEmits(["clear-events"]);
 
-const loading = ref(false)
-const autoRefresh = ref(true)
-const intervalMs = ref(5000)
-const scope = ref('device')
-const level = ref('')
-const keyword = ref('')
-const lines = ref(200)
-const packageName = ref('')
-const installedPackages = ref([])
-const deviceLogs = ref([])
-const errorMessage = ref('')
-const deviceLogListRef = ref(null)
-const eventListRef = ref(null)
-const pageVisible = ref(typeof document === 'undefined' ? true : !document.hidden)
+const { t, locale } = useI18n();
 
-let pollTimer = null
+const loading = ref(false);
+const autoRefresh = ref(true);
+const intervalMs = ref(5000);
+const scope = ref("device");
+const level = ref("");
+const keyword = ref("");
+const lines = ref(200);
+const packageName = ref("");
+const installedPackages = ref([]);
+const deviceLogs = ref([]);
+const errorMessage = ref("");
+const deviceLogListRef = ref(null);
+const eventListRef = ref(null);
+const pageVisible = ref(
+  typeof document === "undefined" ? true : !document.hidden,
+);
 
-const operationEvents = computed(() => props.events.slice().reverse())
+let pollTimer = null;
+let processedLiveLogCount = 0;
+
+const operationEvents = computed(() => props.events.slice().reverse());
+const streamMessage = computed(() => props.logStreamStatus?.message || "");
+const streamTagType = computed(() => {
+  const state = props.logStreamStatus?.state;
+  if (state === "streaming") return "success";
+  if (state === "error") return "danger";
+  if (state === "pending" || state === "reconnecting") return "warning";
+  return "info";
+});
+
+const streamStatusText = computed(() =>
+  t(
+    `appAutomation.workbench.logs.status.${props.logStreamStatus?.state || "idle"}`,
+  ),
+);
+
+const timeLocale = computed(() =>
+  String(locale.value || "")
+    .toLowerCase()
+    .startsWith("zh")
+    ? "zh-CN"
+    : "en-US",
+);
 
 const formatTime = (timestamp) => {
-  const value = Number(timestamp)
+  const value = Number(timestamp);
   if (!Number.isFinite(value)) {
-    return '-'
+    return "-";
   }
-  return new Date(value).toLocaleTimeString('zh-CN', { hour12: false })
-}
+  return new Date(value).toLocaleTimeString(timeLocale.value, {
+    hour12: false,
+  });
+};
 
 const sourceText = (source) => {
   const mapping = {
-    remote: 'Remote',
-    apps: 'Apps',
-    elements: 'Elements',
-    'device-metrics': 'Device Metrics',
-    'app-metrics': 'App Metrics',
-    workbench: 'Workbench',
+    remote: "remote",
+    apps: "apps",
+    elements: "elements",
+    "device-metrics": "deviceMetrics",
+    "app-metrics": "appMetrics",
+    workbench: "workbench",
+  };
+  return t(
+    `appAutomation.workbench.logs.sources.${mapping[source] || "workbench"}`,
+  );
+};
+
+const currentPackageName = () => {
+  if (scope.value !== "app") {
+    return "";
   }
-  return mapping[source] || source || 'Workbench'
-}
+  return String(
+    packageName.value || props.currentApp?.package_name || "",
+  ).trim();
+};
+
+const normalizeLogItem = (item) => {
+  if (!item) {
+    return null;
+  }
+  const normalized = {
+    ...item,
+    time: item.time || "",
+    pid: item.pid || "",
+    tid: item.tid || "",
+    priority: item.priority || "I",
+    tag: item.tag || "",
+    message: item.message || "",
+    raw:
+      item.raw ||
+      `${item.time || ""} ${item.priority || "I"} ${item.tag || ""}: ${item.message || ""}`.trim(),
+  };
+  normalized._key = [
+    normalized.time,
+    normalized.pid,
+    normalized.tid,
+    normalized.priority,
+    normalized.tag,
+    normalized.message,
+  ].join("|");
+  return normalized;
+};
+
+const mergeLogLines = (items, { replace = false } = {}) => {
+  const incoming = (items || []).map(normalizeLogItem).filter(Boolean);
+  const merged = replace ? [] : deviceLogs.value.slice();
+  const seen = new Set(merged.map((item) => item._key));
+
+  for (const item of incoming) {
+    if (seen.has(item._key)) {
+      continue;
+    }
+    merged.push(item);
+    seen.add(item._key);
+  }
+
+  deviceLogs.value = merged.slice(-Number(lines.value || 200));
+};
 
 const stopPolling = () => {
   if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+    clearInterval(pollTimer);
+    pollTimer = null;
   }
-}
+};
 
 const syncPolling = () => {
-  stopPolling()
+  stopPolling();
   if (!props.active || !autoRefresh.value || !pageVisible.value) {
-    return
+    return;
   }
   pollTimer = setInterval(() => {
-    loadLogs({ silent: true })
-  }, intervalMs.value)
-}
+    loadLogs({ silent: true });
+  }, intervalMs.value);
+};
+
+const syncStreamSubscription = () => {
+  if (typeof props.updateLogSubscription !== "function") {
+    return;
+  }
+  props.updateLogSubscription({
+    enabled: props.active && pageVisible.value,
+    scope: scope.value,
+    packageName: currentPackageName(),
+    level: level.value,
+    keyword: keyword.value,
+    lines: lines.value,
+  });
+};
 
 const handleVisibilityChange = () => {
-  pageVisible.value = !document.hidden
+  pageVisible.value = !document.hidden;
   if (!pageVisible.value) {
-    stopPolling()
-    return
+    stopPolling();
+    syncStreamSubscription();
+    return;
   }
   if (props.active) {
-    loadLogs({ silent: true })
+    loadLogs({ silent: true });
   }
-  syncPolling()
-}
+  syncPolling();
+  syncStreamSubscription();
+};
 
 const scrollToBottom = async (targetRef) => {
-  await nextTick()
-  const el = targetRef.value
+  await nextTick();
+  const el = targetRef.value;
   if (el) {
-    el.scrollTop = el.scrollHeight
+    el.scrollTop = el.scrollHeight;
   }
-}
+};
 
 const loadInstalledPackages = async () => {
   try {
-    const response = await getInstalledDevicePackages(props.deviceId)
-    installedPackages.value = response.data?.data || []
+    const response = await getInstalledDevicePackages(props.deviceId);
+    installedPackages.value = response.data?.data || [];
   } catch (error) {
-    errorMessage.value = error?.response?.data?.message || error.message || 'Failed to load installed packages'
+    errorMessage.value =
+      error?.response?.data?.message ||
+      error.message ||
+      t("appAutomation.workbench.logs.loadPackagesFailed");
   }
-}
+};
 
 const loadLogs = async ({ silent = false } = {}) => {
-  loading.value = !silent
+  loading.value = !silent;
   try {
     const response = await getDeviceLogcat(props.deviceId, {
       scope: scope.value,
-      package_name: scope.value === 'app' ? packageName.value : '',
+      package_name: currentPackageName(),
       level: level.value,
       keyword: keyword.value,
       lines: lines.value,
-    })
-    deviceLogs.value = response.data?.data?.lines || []
-    errorMessage.value = ''
+    });
+    mergeLogLines(response.data?.data?.lines || [], { replace: true });
+    errorMessage.value = "";
   } catch (error) {
-    errorMessage.value = error?.response?.data?.message || error.message || 'Failed to load logcat'
+    errorMessage.value =
+      error?.response?.data?.message ||
+      error.message ||
+      t("appAutomation.workbench.logs.loadLogsFailed");
     if (!silent) {
-      ElMessage.error(errorMessage.value)
+      ElMessage.error(errorMessage.value);
     }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const clearDeviceLogs = async () => {
   try {
-    await clearDeviceLogcat(props.deviceId)
-    deviceLogs.value = []
-    ElMessage.success('Device log cleared')
+    await clearDeviceLogcat(props.deviceId);
+    deviceLogs.value = [];
+    ElMessage.success(t("appAutomation.workbench.logs.clearSuccess"));
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || error.message || 'Failed to clear device log')
+    ElMessage.error(
+      error?.response?.data?.message ||
+        error.message ||
+        t("appAutomation.workbench.logs.clearFailed"),
+    );
   }
-}
+};
 
 const copyLogs = async () => {
-  const payload = deviceLogs.value.map((item) => item.raw || `${item.time} ${item.priority} ${item.tag}: ${item.message}`).join('\n')
+  const payload = deviceLogs.value.map((item) => item.raw).join("\n");
   if (!payload) {
-    ElMessage.warning('No logs to copy')
-    return
+    ElMessage.warning(t("appAutomation.workbench.logs.copyEmpty"));
+    return;
   }
   try {
-    await navigator.clipboard.writeText(payload)
-    ElMessage.success('Logs copied')
+    await navigator.clipboard.writeText(payload);
+    ElMessage.success(t("appAutomation.workbench.logs.copySuccess"));
   } catch (error) {
-    ElMessage.error(`Copy failed: ${error?.message || 'clipboard unavailable'}`)
+    ElMessage.error(
+      t("appAutomation.workbench.logs.copyFailed", {
+        message: error?.message || "clipboard unavailable",
+      }),
+    );
   }
-}
+};
 
 const exportLogs = () => {
-  const payload = deviceLogs.value.map((item) => item.raw || `${item.time} ${item.priority} ${item.tag}: ${item.message}`).join('\n')
-  const blob = new Blob([payload], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `device-log-${props.deviceId}-${Date.now()}.txt`
-  link.click()
-  URL.revokeObjectURL(url)
-}
+  const payload = deviceLogs.value.map((item) => item.raw).join("\n");
+  const blob = new Blob([payload], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `device-log-${props.deviceId}-${Date.now()}.txt`;
+  link.click();
+  URL.revokeObjectURL(url);
+};
 
-watch(() => props.currentApp?.package_name, (value) => {
-  if (scope.value === 'app' && value && !packageName.value) {
-    packageName.value = value
-  }
-}, { immediate: true })
+watch(
+  () => props.currentApp?.package_name,
+  (value) => {
+    if (scope.value === "app" && value && !packageName.value) {
+      packageName.value = value;
+    }
+  },
+  { immediate: true },
+);
 
-watch(scope, (value) => {
-  if (value === 'app' && !packageName.value && props.currentApp?.package_name) {
-    packageName.value = props.currentApp.package_name
+watch(scope, async (value) => {
+  if (value === "app" && !packageName.value && props.currentApp?.package_name) {
+    packageName.value = props.currentApp.package_name;
   }
   if (props.active) {
-    loadLogs({ silent: true })
+    await loadLogs({ silent: true });
   }
-})
+  syncStreamSubscription();
+});
 
-watch([autoRefresh, intervalMs], syncPolling)
-watch([level, keyword, lines, packageName], () => {
+watch([autoRefresh, intervalMs], syncPolling);
+
+watch([level, keyword, lines, packageName], async () => {
   if (props.active) {
-    loadLogs({ silent: true })
-    syncPolling()
+    await loadLogs({ silent: true });
+    syncPolling();
   }
-})
+  syncStreamSubscription();
+});
 
 watch(deviceLogs, () => {
-  scrollToBottom(deviceLogListRef)
-})
+  scrollToBottom(deviceLogListRef);
+});
 
 watch(operationEvents, () => {
-  scrollToBottom(eventListRef)
-})
+  scrollToBottom(eventListRef);
+});
 
-watch(() => props.active, async (active) => {
-  if (active) {
-    if (!installedPackages.value.length) {
-      await loadInstalledPackages()
+watch(
+  () => props.liveLogEntries.length,
+  () => {
+    if (props.liveLogEntries.length < processedLiveLogCount) {
+      processedLiveLogCount = 0;
     }
-    await loadLogs({ silent: true })
-    syncPolling()
-  } else {
-    stopPolling()
-  }
-}, { immediate: true })
+    const delta = props.liveLogEntries.slice(processedLiveLogCount);
+    processedLiveLogCount = props.liveLogEntries.length;
+    if (!delta.length) {
+      return;
+    }
+    mergeLogLines(delta);
+  },
+);
+
+watch(
+  () => props.active,
+  async (active) => {
+    if (active) {
+      if (!installedPackages.value.length) {
+        await loadInstalledPackages();
+      }
+      await loadLogs({ silent: true });
+      syncPolling();
+      syncStreamSubscription();
+    } else {
+      stopPolling();
+      syncStreamSubscription();
+    }
+  },
+  { immediate: true },
+);
 
 onMounted(() => {
   if (props.currentApp?.package_name) {
-    packageName.value = props.currentApp.package_name
+    packageName.value = props.currentApp.package_name;
   }
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-})
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+});
 
 onUnmounted(() => {
-  stopPolling()
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-})
+  stopPolling();
+  document.removeEventListener("visibilitychange", handleVisibilityChange);
+  if (typeof props.updateLogSubscription === "function") {
+    props.updateLogSubscription({ enabled: false });
+  }
+});
 </script>
 
 <style scoped>
@@ -366,6 +610,10 @@ onUnmounted(() => {
 .header-actions,
 .toolbar-row {
   flex-wrap: wrap;
+}
+
+.panel-alert {
+  margin-top: -4px;
 }
 
 .log-grid {
@@ -446,7 +694,7 @@ onUnmounted(() => {
 
 .device-log-row {
   display: grid;
-  grid-template-columns: 110px 28px 180px minmax(0, 1fr);
+  grid-template-columns: 110px 32px 180px minmax(0, 1fr);
   gap: 10px;
   padding: 8px 10px;
   border-radius: 10px;
