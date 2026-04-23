@@ -164,13 +164,19 @@
                   <span class="count-badge">{{ scope.row.assertions?.length || 0 }}</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="$t('apiTesting.common.operation')" width="110" align="center" fixed="right">
+              <el-table-column :label="$t('apiTesting.common.operation')" width="160" align="center" fixed="right">
                 <template #default="scope">
-                  <el-button link type="primary" @click="editAssertions(scope.row)" size="small">
-                    {{ $t('apiTesting.automation.configure') }}
+                  <el-button link type="primary" @click="moveRequest(scope.row, 'up')" size="small" :disabled="scope.$index === 0" title="上移">
+                    <el-icon><Top /></el-icon>
                   </el-button>
-                  <el-button link type="danger" @click="removeRequest(scope.row)" size="small">
-                    {{ $t('apiTesting.automation.remove') }}
+                  <el-button link type="primary" @click="moveRequest(scope.row, 'down')" size="small" :disabled="scope.$index === selectedSuite.suite_requests.length - 1" title="下移">
+                    <el-icon><Bottom /></el-icon>
+                  </el-button>
+                  <el-button link type="primary" @click="editAssertions(scope.row)" size="small" title="配置">
+                    <el-icon><Setting /></el-icon>
+                  </el-button>
+                  <el-button link type="danger" @click="removeRequest(scope.row)" size="small" title="移除">
+                    <el-icon><Delete /></el-icon>
                   </el-button>
                 </template>
               </el-table-column>
@@ -1119,6 +1125,19 @@ const updateRequestEnabled = async (suiteRequest) => {
   } catch (error) {
     ElMessage.error(t('apiTesting.messages.error.updateFailed'))
     suiteRequest.enabled = !suiteRequest.enabled
+  }
+}
+
+const moveRequest = async (suiteRequest, direction) => {
+  try {
+    await api.post(`/api-testing/test-suite-requests/${suiteRequest.id}/reorder/`, {
+      direction
+    })
+    ElMessage.success(t('apiTesting.messages.success.moveSuccess', '顺序调整成功'))
+    // 重新加载当前测试套件详情以更新列表
+    await reloadCurrentSuite()
+  } catch (error) {
+    ElMessage.error(t('apiTesting.messages.error.moveFailed', '顺序调整失败'))
   }
 }
 
