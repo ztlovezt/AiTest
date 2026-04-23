@@ -75,7 +75,7 @@ export function getDeviceList(params) {
 
 /**
  * 获取设备截图
- * @param {number} id - 设备ID（数字主键）
+ * @param {number|string} id - 设备ID（数字主键或 device_id）
  */
 export function captureDeviceScreenshot(id) {
   return request({
@@ -140,6 +140,53 @@ export function disconnectDevice(id) {
 export function connectDevice(data) {
   return request({
     url: '/app-automation/devices/connect/',
+    method: 'post',
+    data
+  })
+}
+
+export function getDeviceCurrentApp(id) {
+  return request({
+    url: `/app-automation/devices/${id}/current-app/`,
+    method: 'get'
+  })
+}
+
+export function installApkToDevice(id, data) {
+  return request({
+    url: `/app-automation/devices/${id}/install-apk/`,
+    method: 'post',
+    data
+  })
+}
+
+export function launchDeviceApp(id, data) {
+  return request({
+    url: `/app-automation/devices/${id}/launch-app/`,
+    method: 'post',
+    data
+  })
+}
+
+export function stopDeviceApp(id, data) {
+  return request({
+    url: `/app-automation/devices/${id}/stop-app/`,
+    method: 'post',
+    data
+  })
+}
+
+export function clearDeviceAppData(id, data) {
+  return request({
+    url: `/app-automation/devices/${id}/clear-app-data/`,
+    method: 'post',
+    data
+  })
+}
+
+export function uninstallDeviceApp(id, data) {
+  return request({
+    url: `/app-automation/devices/${id}/uninstall-app/`,
     method: 'post',
     data
   })
@@ -748,5 +795,51 @@ export function getAppUsers(params) {
     url: '/api-testing/users/',
     method: 'get',
     params
+  })
+}
+
+export function getInstalledDevicePackages(id) {
+  return request({
+    url: `/app-automation/devices/${id}/installed-packages/`,
+    method: 'get'
+  })
+}
+
+export function getDevicePerformanceSnapshot(id) {
+  return request({
+    url: `/app-automation/devices/${id}/performance/device/`,
+    method: 'get'
+  })
+}
+
+export function getAppPerformanceSnapshot(id, params) {
+  return request({
+    url: `/app-automation/devices/${id}/performance/app/`,
+    method: 'get',
+    params
+  })
+}
+
+export function resetDevicePerformance(id, data = {}) {
+  return request({
+    url: `/app-automation/devices/${id}/performance/reset/`,
+    method: 'post',
+    data
+  })
+}
+
+export function getDeviceLogcat(id, params) {
+  return request({
+    url: `/app-automation/devices/${id}/logcat/`,
+    method: 'get',
+    params,
+    timeout: 30000
+  })
+}
+
+export function clearDeviceLogcat(id) {
+  return request({
+    url: `/app-automation/devices/${id}/logcat/clear/`,
+    method: 'post'
   })
 }

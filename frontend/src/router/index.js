@@ -519,6 +519,12 @@ const routes = [
         meta: { requiresAuth: true }
       },
       {
+        path: 'workbench/:id',
+        name: 'AppRemoteWorkbench',
+        component: () => import('@/views/app-automation/devices/RemoteWorkbench.vue'),
+        meta: { requiresAuth: true }
+      },
+      {
         path: 'packages',
         name: 'AppPackageList',
         component: () => import('@/views/app-automation/packages/PackageList.vue')

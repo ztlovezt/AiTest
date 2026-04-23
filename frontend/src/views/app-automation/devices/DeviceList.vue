@@ -1,6 +1,6 @@
 <template>
   <div class="device-management">
-    <!-- 页面标题和操作按钮 -->
+    <!-- 椤甸潰鏍囬鍜屾搷浣滄寜閽?-->
     <div class="device-header">
       <h3>{{ t('appAutomation.device.title') }}</h3>
       <div class="device-actions">
@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <!-- 设备列表 -->
+    <!-- 璁惧鍒楄〃 -->
     <el-table
       v-loading="loading"
       :data="devices"
@@ -160,7 +160,7 @@
       </el-table-column>
     </el-table>
 
-    <!-- 添加远程设备对话框 -->
+    <!-- 娣诲姞杩滅▼璁惧瀵硅瘽妗?-->
     <el-dialog
       v-model="addRemoteDialogVisible"
       :title="t('appAutomation.device.newDevice')"
@@ -217,7 +217,7 @@
       </template>
     </el-dialog>
 
-    <!-- 设备详情对话框 -->
+    <!-- 璁惧璇︽儏瀵硅瘽妗?-->
     <el-dialog
       v-model="deviceInfoDialogVisible"
       :title="t('appAutomation.device.deviceName')"
@@ -302,7 +302,7 @@ const router = useRouter()
 // Refs
 const remoteDeviceFormRef = ref(null)
 
-// 响应式数据
+// 鍝嶅簲寮忔暟鎹?
 const devices = ref([])
 const loading = ref(false)
 const refreshing = ref(false)
@@ -333,7 +333,7 @@ const remoteDeviceRules = {
   ]
 }
 
-// 方法
+// 鏂规硶
 const getDevices = async () => {
   loading.value = true
   try {
@@ -343,7 +343,7 @@ const getDevices = async () => {
       emptyText.value = t('appAutomation.messages.noDevicesHint')
     }
   } catch (error) {
-    console.error('获取设备列表失败:', error)
+    console.error('鑾峰彇璁惧鍒楄〃澶辫触:', error)
     ElMessage.error(t('appAutomation.messages.getDeviceListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
     loading.value = false
@@ -361,7 +361,7 @@ const refreshDevices = async () => {
       ElMessage.error(res.data.message || t('appAutomation.messages.refreshDeviceListFailed'))
     }
   } catch (error) {
-    console.error('刷新设备列表失败:', error)
+    console.error('鍒锋柊璁惧鍒楄〃澶辫触:', error)
     ElMessage.error(t('appAutomation.messages.refreshDeviceListFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
   } finally {
     refreshing.value = false
@@ -400,7 +400,7 @@ const connectRemoteDevice = async () => {
         ElMessage.error(res.data.message || t('appAutomation.messages.connectRemoteDeviceFailed'))
       }
     } catch (error) {
-      console.error('连接远程设备失败:', error)
+      console.error('杩炴帴杩滅▼璁惧澶辫触:', error)
       ElMessage.error(t('appAutomation.messages.connectRemoteDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     } finally {
       connecting.value = false
@@ -429,7 +429,7 @@ const reconnectDevice = async (device) => {
       ElMessage.error(res.data.message || t('appAutomation.messages.deviceReconnectFailed'))
     }
   } catch (error) {
-    console.error('设备重连失败:', error)
+    console.error('璁惧閲嶈繛澶辫触:', error)
     ElMessage.error(t('appAutomation.messages.deviceReconnectFailed'))
   } finally {
     reconnectingDevices.value[device.id] = false
@@ -458,7 +458,7 @@ const disconnectDevice = async (device) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('断开设备失败:', error)
+      console.error('鏂紑璁惧澶辫触:', error)
       ElMessage.error(t('appAutomation.messages.disconnectDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
@@ -491,7 +491,7 @@ const lockDevice = async (device) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('锁定设备失败:', error)
+      console.error('閿佸畾璁惧澶辫触:', error)
       ElMessage.error(t('appAutomation.messages.lockDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
@@ -519,7 +519,7 @@ const unlockDevice = async (device) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('解锁设备失败:', error)
+      console.error('瑙ｉ攣璁惧澶辫触:', error)
       ElMessage.error(t('appAutomation.messages.unlockDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
@@ -548,7 +548,7 @@ const handleDeleteDevice = async (device) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('删除设备失败:', error)
+      console.error('鍒犻櫎璁惧澶辫触:', error)
       ElMessage.error(t('appAutomation.messages.deleteDeviceFailed') + ': ' + (error.message || t('appAutomation.messages.unknownError')))
     }
   }
@@ -559,7 +559,7 @@ const getStatusType = getDeviceStatusType
 const getStatusText = (status) => getDeviceStatusText(status, t)
 
 const getConnectionType = (type) => {
-  // emulator, remote_emulator, remote, usb 等
+  // emulator, remote_emulator, remote, usb 绛?
   if (type === 'emulator' || type === 'usb') {
     return 'local'
   }
@@ -571,7 +571,7 @@ const getConnectionTypeName = (type) => {
     'emulator': '本地模拟器',
     'remote_emulator': '远程模拟器',
     'remote': '远程设备',
-    'usb': 'USB连接'
+    'usb': 'USB设备'
   }
   return typeMap[type] || type
 }
@@ -580,21 +580,28 @@ const isRemoteDevice = (type) => {
   return type === 'remote_emulator' || type === 'remote'
 }
 
-// 跳转到远程连接页面
+// 璺宠浆鍒拌繙绋嬭繛鎺ラ〉闈?
 const goToRemoteConnection = (row) => {
   if (!row || !row.id) {
     ElMessage.warning('设备信息不完整')
     return
   }
-  // 使用数字 ID 而不是 device_id，避免 URL 编码问题
-  router.push(`/app-automation/remote-connection/${row.id}`)
+  router.push({
+    name: 'AppRemoteWorkbench',
+    params: {
+      id: row.id
+    },
+    query: {
+      name: row.name || row.device_id
+    }
+  })
 }
 
-// 生命周期
+// 鐢熷懡鍛ㄦ湡
 onMounted(() => {
   getDevices()
 
-  // 30秒自动刷新设备列表
+  // 30绉掕嚜鍔ㄥ埛鏂拌澶囧垪琛?
   refreshTimer.value = setInterval(() => {
     getDevices()
   }, 30000)
@@ -634,3 +641,4 @@ onBeforeUnmount(() => {
   text-align: right;
 }
 </style>
+
