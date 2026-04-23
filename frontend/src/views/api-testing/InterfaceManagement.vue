@@ -58,10 +58,14 @@
             node-key="id"
             :expand-on-click-node="false"
             :default-expanded-keys="expandedKeys"
+            draggable
+            :allow-drag="checkAllowDrag"
+            :allow-drop="checkAllowDrop"
             @node-click="onNodeClick"
             @node-contextmenu="onNodeRightClick"
             @node-expand="onNodeExpand"
             @node-collapse="onNodeCollapse"
+            @node-drag-end="handleDragEnd"
           >
             <template #default="{ node, data }">
               <div class="tree-node">
@@ -1307,7 +1311,22 @@ const onNodeExpand = (node) => {
 }
 
 const onNodeCollapse = (node) => {
-  expandedKeys.value = expandedKeys.value.filter(key => key !== node.id)
+  // 递归获取节点及其所有子节点的ID
+  const getAllNodeIds = (targetNode) => {
+    let ids = [targetNode.id]
+    if (targetNode.children && targetNode.children.length > 0) {
+      targetNode.children.forEach(child => {
+        ids = ids.concat(getAllNodeIds(child))
+      })
+    }
+    return ids
+  }
+  
+  // 获取当前节点及其所有子节点的ID集合
+  const idsToRemove = getAllNodeIds(node)
+  
+  // 一次性从展开的节点集合中移除它们
+  expandedKeys.value = expandedKeys.value.filter(key => !idsToRemove.includes(key))
 }
 
 const createEmptyRequest = () => {
@@ -1570,6 +1589,69 @@ const handleDeleteRequest = async (requestData) => {
     if (error !== 'cancel') {
       console.error('删除接口失败:', error)
       ElMessage.error(t('apiTesting.messages.error.deleteFailed'))
+    }
+  }
+}
+
+// 拖拽控制：只允许拖拽接口节点，不允许拖拽集合节点
+const checkAllowDrag = (node) => {
+  return node.data.type === 'request'
+}
+
+// 拖拽控制：允许接口拖拽到集合节点或其他接口节点
+const checkAllowDrop = (draggingNode, dropNode, type) => {
+  if (type === 'inner') {
+    // 只能拖入集合节点
+    return dropNode.data.type === 'collection'
+  }
+  return true
+}
+
+// 拖拽结束后保存
+const handleDragEnd = async (draggingNode, dropNode, dropType) => {
+  const updates = []
+
+  // 获取目标集合
+  let targetCollectionId = null
+
+  if (dropType === 'inner') {
+    // 拖入集合节点
+    targetCollectionId = dropNode.data.id
+  } else if (dropType === 'before' || dropType === 'after') {
+    // 拖到接口节点的前后，使用该接口所在的集合
+    if (dropNode.parent.data.type === 'collection') {
+      targetCollectionId = dropNode.parent.data.id
+    } else {
+      // 如果父节点不是集合，继续向上查找
+      let parent = dropNode.parent
+      while (parent && parent.data.type !== 'collection') {
+        parent = parent.parent
+      }
+      if (parent && parent.data.type === 'collection') {
+        targetCollectionId = parent.data.id
+      }
+    }
+  }
+
+  if (targetCollectionId) {
+    try {
+      // 通过API获取完整的请求详情
+      const response = await api.get(`/api-testing/requests/${draggingNode.data.id}/`)
+      const originalRequest = response.data
+
+      // 更新被拖拽接口的集合
+      const updateData = {
+        ...originalRequest,
+        collection: targetCollectionId
+      }
+
+      await api.put(`/api-testing/requests/${draggingNode.data.id}/`, updateData)
+      ElMessage.success(t('apiTesting.messages.success.update'))
+      await loadCollections(selectedProject.value)
+    } catch (error) {
+      ElMessage.error(t('apiTesting.messages.error.updateFailed'))
+      console.error('移动接口失败:', error)
+      await loadCollections(selectedProject.value) // 失败则重新加载
     }
   }
 }
