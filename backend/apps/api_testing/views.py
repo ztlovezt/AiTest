@@ -11,7 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.conf import settings
 import requests
@@ -795,6 +795,43 @@ class TestSuiteRequestViewSet(viewsets.ModelViewSet):
                 models.Q(owner=user) | models.Q(members=user)
             )
         ).distinct()
+
+    @action(detail=True, methods=['post'], url_path='reorder')
+    def reorder(self, request, pk=None):
+        """调整套件请求顺序"""
+        instance = self.get_object()
+        direction = request.data.get('direction')
+        
+        if direction not in ['up', 'down']:
+            return Response({'error': '无效的方向参数'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        test_suite = instance.test_suite
+        current_order = instance.order
+        
+        # 查找相邻的记录
+        if direction == 'up':
+            adjacent = TestSuiteRequest.objects.filter(
+                test_suite=test_suite, 
+                order__lt=current_order
+            ).order_by('-order').first()
+        else:
+            adjacent = TestSuiteRequest.objects.filter(
+                test_suite=test_suite, 
+                order__gt=current_order
+            ).order_by('order').first()
+            
+        if adjacent:
+            # 交换顺序
+            instance.order, adjacent.order = adjacent.order, instance.order
+            
+            # 使用事务确保数据一致性
+            with transaction.atomic():
+                instance.save(update_fields=['order'])
+                adjacent.save(update_fields=['order'])
+                
+            return Response({'message': '顺序调整成功'})
+        else:
+            return Response({'message': '已经是极限位置'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TestExecutionViewSet(viewsets.ModelViewSet):

@@ -45,8 +45,8 @@ class OpenAPIExporter:
         # 构建 paths
         for req in requests:
             path = req.url or '/'
-            # 确保 path 以 / 开头
-            if not path.startswith('/'):
+            # 如果是 http(s) 开头，则保留完整 URL，否则确保以 / 开头
+            if not path.startswith('http') and not path.startswith('/'):
                 # 尝试提取路径部分
                 from urllib.parse import urlparse
                 parsed = urlparse(path)
@@ -129,8 +129,14 @@ class OpenAPIExporter:
             if path not in spec['paths']:
                 spec['paths'][path] = {}
 
-            # 避免重复 method
-            if method not in spec['paths'][path]:
+            # 如果同一路径和方法已存在，说明有同名的 URL 和 Method（比如变量不同），可以给 operationId 或者 path 加个后缀
+            if method in spec['paths'][path]:
+                # 尝试使用 operationId 作为后缀避免覆盖
+                unique_path = f"{path}?req_id={req.id}"
+                if unique_path not in spec['paths']:
+                    spec['paths'][unique_path] = {}
+                spec['paths'][unique_path][method] = operation
+            else:
                 spec['paths'][path][method] = operation
 
         return spec
