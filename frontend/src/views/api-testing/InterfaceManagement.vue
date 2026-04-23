@@ -1387,16 +1387,16 @@ const handleExport = async () => {
     return
   }
   try {
-    const format = 'openapi'
+    const export_format = 'openapi'
     const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
-      params: { format },
+      params: { export_format },
       responseType: 'blob',
     })
     const blob = new Blob([response.data], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `export_${format}.json`
+    a.download = `export_${export_format}.json`
     a.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success(t('apiTesting.importExport.exportSuccess'))
@@ -1419,16 +1419,16 @@ const handleCollectionExport = async () => {
   const collectionId = rightClickedNode.value.id
   
   try {
-    const format = 'openapi'
+    const export_format = 'openapi'
     const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
-      params: { format, collection_id: collectionId },
+      params: { export_format, collection_id: collectionId },
       responseType: 'blob',
     })
     const blob = new Blob([response.data], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `export_collection_${collectionId}_${format}.json`
+    a.download = `export_collection_${collectionId}_${export_format}.json`
     a.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success(t('apiTesting.importExport.exportSuccess'))

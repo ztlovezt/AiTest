@@ -140,7 +140,7 @@ class ExportView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, project_id):
-        format_type = request.query_params.get('format', 'openapi')
+        format_type = request.query_params.get('export_format', 'openapi')
         collection_id = request.query_params.get('collection_id')
 
         try:
