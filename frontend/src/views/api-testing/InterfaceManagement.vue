@@ -32,21 +32,12 @@
             <el-button type="success" size="small" @click="createEmptyRequest" :title="$t('apiTesting.interface.addInterface')">
               <el-icon><Plus /></el-icon>
             </el-button>
-            <el-dropdown size="small" trigger="click" @command="handleImportExport">
-              <el-button size="small" :title="$t('apiTesting.importExport.title')">
-                <el-icon><More /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="import">
-                    <el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export" :disabled="!selectedProject">
-                    <el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button type="info" size="small" @click="handleImportExport('import')" :title="$t('apiTesting.importExport.import')">
+              <el-icon><Upload /></el-icon>
+            </el-button>
+            <el-button type="warning" size="small" @click="handleImportExport('export')" :title="$t('apiTesting.importExport.export')" :disabled="!selectedProject">
+              <el-icon><Download /></el-icon>
+            </el-button>
           </div>
         </div>
 
@@ -736,6 +727,7 @@
       v-model="showImportDialog"
       :projects="projects"
       :current-project-id="selectedProject"
+      :target-collection-id="importTargetCollectionId"
       @imported="onImported"
     />
 
@@ -795,10 +787,12 @@
 
     <!-- 右键菜单 -->
     <ul v-show="showContextMenu" class="context-menu" :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }">
-      <li @click="addRequest">{{ $t('apiTesting.interface.contextMenu.addRequest') }}</li>
-      <li @click="addCollection">{{ $t('apiTesting.interface.contextMenu.addSubCollection') }}</li>
-      <li @click="editNode">{{ $t('apiTesting.interface.contextMenu.edit') }}</li>
-      <li @click="deleteNode">{{ $t('apiTesting.interface.contextMenu.delete') }}</li>
+      <li @click="addRequest"><el-icon><Document /></el-icon> {{ $t('apiTesting.interface.contextMenu.addRequest') }}</li>
+      <li @click="addCollection"><el-icon><Folder /></el-icon> {{ $t('apiTesting.interface.contextMenu.addSubCollection') }}</li>
+      <li v-if="rightClickedNode && rightClickedNode.type === 'collection'" @click="handleCollectionImport"><el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}</li>
+      <li v-if="rightClickedNode && rightClickedNode.type === 'collection'" @click="handleCollectionExport"><el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}</li>
+      <li @click="editNode"><el-icon><Edit /></el-icon> {{ $t('apiTesting.interface.contextMenu.edit') }}</li>
+      <li @click="deleteNode"><el-icon><Delete /></el-icon> {{ $t('apiTesting.interface.contextMenu.delete') }}</li>
     </ul>
 
     <!-- 数据工厂选择器 -->
@@ -923,7 +917,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download, CopyDocument, Delete } from '@element-plus/icons-vue'
+import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download, CopyDocument, Delete, Edit } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
@@ -957,6 +951,7 @@ const responseActiveTab = ref('body')
 const showCreateCollectionDialog = ref(false)
 const showEditCollectionDialog = ref(false)
 const showImportDialog = ref(false)
+const importTargetCollectionId = ref(null)
 const showContextMenu = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
@@ -1379,6 +1374,7 @@ const closeCodeGenerateDialog = () => {
 
 const handleImportExport = (command) => {
   if (command === 'import') {
+    importTargetCollectionId.value = null
     showImportDialog.value = true
   } else if (command === 'export') {
     handleExport()
@@ -1391,10 +1387,7 @@ const handleExport = async () => {
     return
   }
   try {
-    const format = await new Promise((resolve) => {
-      // 简单使用 openapi 作为默认导出格式
-      resolve('openapi')
-    })
+    const format = 'openapi'
     const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
       params: { format },
       responseType: 'blob',
@@ -1404,6 +1397,38 @@ const handleExport = async () => {
     const a = document.createElement('a')
     a.href = url
     a.download = `export_${format}.json`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(t('apiTesting.importExport.exportSuccess'))
+  } catch (error) {
+    ElMessage.error(t('apiTesting.importExport.exportFailed'))
+  }
+}
+
+const handleCollectionImport = () => {
+  showContextMenu.value = false
+  if (!rightClickedNode.value || rightClickedNode.value.type !== 'collection') return
+  importTargetCollectionId.value = rightClickedNode.value.id
+  showImportDialog.value = true
+}
+
+const handleCollectionExport = async () => {
+  showContextMenu.value = false
+  if (!rightClickedNode.value || rightClickedNode.value.type !== 'collection') return
+  
+  const collectionId = rightClickedNode.value.id
+  
+  try {
+    const format = 'openapi'
+    const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
+      params: { format, collection_id: collectionId },
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `export_collection_${collectionId}_${format}.json`
     a.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success(t('apiTesting.importExport.exportSuccess'))
@@ -2989,7 +3014,7 @@ const useLocalVariableCategories = () => {
 
 /* 左侧边栏 */
 .sidebar {
-  width: 300px;
+  width: 340px;
   border-right: 1px solid #e4e7ed;
   background: var(--th-color-surface);
   overflow: visible;
@@ -3011,7 +3036,7 @@ const useLocalVariableCategories = () => {
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -3022,8 +3047,10 @@ const useLocalVariableCategories = () => {
 }
 
 .header-actions .el-button {
+  padding: 5px 8px; /* 减小按钮内边距使图标更紧凑 */
   border-radius: 6px;
   transition: all 0.2s ease;
+  margin-left: 0 !important; /* 覆盖 element-plus 的默认左边距 */
 }
 
 .header-actions .el-button:hover {

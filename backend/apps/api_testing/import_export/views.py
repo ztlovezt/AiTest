@@ -68,6 +68,7 @@ class ImportConfirmView(APIView):
 
     def post(self, request):
         project_id = request.data.get('project_id')
+        target_collection_id = request.data.get('target_collection_id')
         collections_data = request.data.get('collections', [])
 
         if not project_id:
@@ -77,6 +78,13 @@ class ImportConfirmView(APIView):
             project = ApiProject.objects.get(id=project_id)
         except ApiProject.DoesNotExist:
             return Response({'error': '项目不存在'}, status=404)
+
+        target_collection = None
+        if target_collection_id:
+            try:
+                target_collection = ApiCollection.objects.get(id=target_collection_id, project=project)
+            except ApiCollection.DoesNotExist:
+                return Response({'error': '目标集合不存在'}, status=404)
 
         created_collections = 0
         created_requests = 0
@@ -89,6 +97,7 @@ class ImportConfirmView(APIView):
                         name=col_data.get('name', 'Imported'),
                         description=col_data.get('description', ''),
                         project=project,
+                        parent=target_collection,
                     )
                     created_collections += 1
 
@@ -132,6 +141,7 @@ class ExportView(APIView):
 
     def get(self, request, project_id):
         format_type = request.query_params.get('format', 'openapi')
+        collection_id = request.query_params.get('collection_id')
 
         try:
             project = ApiProject.objects.get(id=project_id)
@@ -142,6 +152,10 @@ class ExportView(APIView):
         requests = ApiRequest.objects.filter(
             collection__project=project
         ).select_related('collection').order_by('collection__order', 'order')
+
+        if collection_id:
+            collections = collections.filter(id=collection_id)
+            requests = requests.filter(collection_id=collection_id)
 
         if format_type == 'openapi':
             exporter = OpenAPIExporter()
