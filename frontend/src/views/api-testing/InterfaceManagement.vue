@@ -90,6 +90,26 @@
                 <span v-if="data.type === 'request' && data.request_type !== 'WEBSOCKET'" class="method-tag" :class="(data.method || 'GET').toLowerCase()">
                   {{ data.method || 'GET' }}
                 </span>
+
+                <!-- 复制按钮（仅接口节点显示） -->
+                <el-icon
+                  v-if="data.type === 'request'"
+                  class="copy-icon"
+                  @click.stop="handleCopyRequest(data)"
+                  :title="$t('apiTesting.interface.copyRequest')"
+                >
+                  <CopyDocument />
+                </el-icon>
+
+                <!-- 删除按钮（仅接口节点显示） -->
+                <el-icon
+                  v-if="data.type === 'request'"
+                  class="delete-icon"
+                  @click.stop="handleDeleteRequest(data)"
+                  :title="$t('apiTesting.interface.deleteRequest')"
+                >
+                  <Delete />
+                </el-icon>
               </div>
             </template>
           </el-tree>
@@ -899,7 +919,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download } from '@element-plus/icons-vue'
+import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download, CopyDocument, Delete } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
@@ -1489,6 +1509,69 @@ const deleteNode = () => {
     // 取消删除
     showContextMenu.value = false
   })
+}
+
+// 复制接口（树节点图标点击）
+const handleCopyRequest = async (requestData) => {
+  try {
+    // 通过API获取完整的请求详情
+    const response = await api.get(`/api-testing/requests/${requestData.id}/`)
+    const originalRequest = response.data
+
+    // 构建复制数据
+    const copyData = {
+      ...originalRequest,
+      id: null,
+      name: `${originalRequest.name || requestData.name} - 复制`,
+      collection: originalRequest.collection
+    }
+
+    // 创建新接口
+    const createResponse = await api.post('/api-testing/requests/', copyData)
+    ElMessage.success(t('apiTesting.messages.success.copy') || '复制成功')
+
+    // 刷新集合树
+    await loadCollections(selectedProject.value)
+
+    // 展开该接口所在集合
+    if (originalRequest.collection && !expandedKeys.value.includes(originalRequest.collection)) {
+      expandedKeys.value.push(originalRequest.collection)
+    }
+  } catch (error) {
+    console.error('复制接口失败:', error)
+    ElMessage.error(t('apiTesting.messages.error.copyFailed') || '复制失败')
+  }
+}
+
+// 删除接口（树节点图标点击）
+const handleDeleteRequest = async (requestData) => {
+  try {
+    await ElMessageBox.confirm(
+      t('apiTesting.messages.confirm.deleteMessage', { type: t('apiTesting.interface.request'), name: requestData.name }),
+      t('apiTesting.messages.confirm.deleteTitle'),
+      {
+        confirmButtonText: t('apiTesting.common.confirm'),
+        cancelButtonText: t('apiTesting.common.cancel'),
+        type: 'warning'
+      }
+    )
+
+    await api.delete(`/api-testing/requests/${requestData.id}/`)
+    ElMessage.success(t('apiTesting.messages.success.delete'))
+
+    // 刷新集合树
+    await loadCollections(selectedProject.value)
+
+    // 如果删除的是当前选中的请求，清空选中状态
+    if (selectedRequest.value && selectedRequest.value.id === requestData.id) {
+      selectedRequest.value = null
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除接口失败:', error)
+      ElMessage.error(t('apiTesting.messages.error.deleteFailed'))
+    }
+  }
 }
 
 const saveCollectionName = async () => {
@@ -2815,6 +2898,7 @@ const useLocalVariableCategories = () => {
   gap: 8px;
   flex: 1;
   padding: 4px 0;
+  min-width: 0; /* 确保子元素的文本截断能生效 */
 }
 
 .tree-node .el-icon {
@@ -2827,6 +2911,9 @@ const useLocalVariableCategories = () => {
   font-size: 14px;
   color: #303133;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-node:hover .node-label {
@@ -2853,6 +2940,38 @@ const useLocalVariableCategories = () => {
   display: inline-block;
   min-width: 40px;
   text-align: center;
+  flex-shrink: 0; /* 防止标签被压缩 */
+}
+
+/* 复制和删除图标样式 */
+.tree-node .copy-icon {
+  margin-left: auto;
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s, transform 0.1s;
+  padding: 4px;
+  flex-shrink: 0; /* 防止图标被压缩 */
+}
+
+.tree-node .copy-icon:hover {
+  color: var(--th-color-primary);
+  transform: scale(1.1);
+}
+
+.tree-node .delete-icon {
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s, transform 0.1s;
+  padding: 4px;
+  margin-left: 4px;
+  flex-shrink: 0; /* 防止图标被压缩 */
+}
+
+.tree-node .delete-icon:hover {
+  color: #f56c6c;
+  transform: scale(1.1);
 }
 
 .method-tag.get {
