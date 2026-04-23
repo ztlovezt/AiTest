@@ -24,12 +24,12 @@ def get_knowledge_base_config():
     获取知识库配置
     
     Returns:
-        dict: 配置信息，包含 configured, has_embedding, has_vision, has_refiner 等状态
+        dict: 配置信息，包含 configured, has_embedding, has_tika, has_refiner 等状态
     """
     config_status = {
         'configured': False,
         'has_embedding': False,
-        'has_vision': False,
+        'has_tika': False,
         'has_refiner': False,
         'config': None,
         'message': ''
@@ -43,11 +43,11 @@ def get_knowledge_base_config():
             if db_config:
                 config_status['config'] = db_config
                 config_status['has_embedding'] = bool(db_config.embedding_api_key)
-                config_status['has_vision'] = bool(db_config.vision_api_key)
+                config_status['has_tika'] = bool(db_config.tika_server_url)
                 config_status['has_refiner'] = bool(db_config.refiner_api_key)
                 config_status['configured'] = (
                     config_status['has_embedding'] or 
-                    config_status['has_vision'] or 
+                    config_status['has_tika'] or 
                     config_status['has_refiner']
                 )
                 
@@ -65,13 +65,13 @@ def get_knowledge_base_config():
     return config_status
 
 
-def check_knowledge_base_config(require_embedding=False, require_vision=False, require_refiner=False):
+def check_knowledge_base_config(require_embedding=False, require_tika=False, require_refiner=False):
     """
     检查知识库配置是否满足要求
     
     Args:
         require_embedding: 是否需要 Embedding 配置
-        require_vision: 是否需要 Vision 配置
+        require_tika: 是否需要 Tika 配置
         require_refiner: 是否需要 Refiner 配置
         
     Returns:
@@ -85,8 +85,8 @@ def check_knowledge_base_config(require_embedding=False, require_vision=False, r
     if require_embedding and not config_status['has_embedding']:
         return False, 'Embedding API 未配置，请在设置中心配置 Embedding 相关参数'
     
-    if require_vision and not config_status['has_vision']:
-        return False, 'Vision API 未配置，请在设置中心配置 Vision 相关参数'
+    if require_tika and not config_status['has_tika']:
+        return False, 'Tika Server URL 未配置，请在设置中心配置 Tika 相关参数'
     
     if require_refiner and not config_status['has_refiner']:
         return False, 'Refiner API 未配置，请在设置中心配置 Refiner 相关参数'
@@ -94,801 +94,101 @@ def check_knowledge_base_config(require_embedding=False, require_vision=False, r
     return True, ''
 
 
-class VisionParser:
-    """视觉模型文档解析器 - 支持任意兼容 OpenAI 接口的视觉模型"""
-
-    PROVIDER_ZHIPU = 'zhipu'
-    PROVIDER_OPENAI = 'openai'
-
-    DEFAULT_BASE_URLS = {
-        'zhipu': 'https://open.bigmodel.cn/api/paas/v4',
-        'openai': 'https://api.openai.com/v1',
-    }
+class TikaParser:
+    """Tika Server 文档解析服务"""
 
     def __init__(self):
-        self.api_key = None
-        self.base_url = None
-        self.model = None
-        self.provider = None
         self._config_loaded = False
+        self.tika_server_url = None
 
     def _ensure_config(self):
-        """确保配置已加载（延迟加载）"""
+        """延迟加载配置"""
         if self._config_loaded:
             return
-        self._load_config()
-        self._config_loaded = True
-
-    def _load_config(self):
-        """加载视觉模型配置，从数据库读取"""
+        
         try:
             if connection.introspection.table_names():
                 from apps.knowledge_base.models import KnowledgeBaseConfig
                 db_config = KnowledgeBaseConfig.objects.filter(is_active=True).first()
-                
-                if db_config and db_config.vision_api_key:
-                    self.api_key = db_config.vision_api_key
-                    self.provider = db_config.vision_provider or self.PROVIDER_ZHIPU
-                    self.base_url = db_config.vision_base_url or self.DEFAULT_BASE_URLS.get(self.provider, self.DEFAULT_BASE_URLS[self.PROVIDER_ZHIPU])
-                    self.model = db_config.vision_model or 'glm-4v-flash'
-                    logger.debug(f"从数据库加载 Vision 配置成功: provider={self.provider}, model={self.model}")
-                    return
+                if db_config and db_config.tika_server_url:
+                    self.tika_server_url = db_config.tika_server_url
+                    logger.debug(f"从数据库加载 Tika 配置成功: {self.tika_server_url}")
+                else:
+                    from django.conf import settings
+                    self.tika_server_url = getattr(settings, 'DOC_PARSER_URL', 'http://localhost:9987')
         except (OperationalError, ProgrammingError, Exception) as e:
             logger.warning(f"数据库查询配置失败: {e}")
-        
-        logger.warning("Vision API 未配置，请在设置中心配置知识库相关参数")
+            from django.conf import settings
+            self.tika_server_url = getattr(settings, 'DOC_PARSER_URL', 'http://localhost:9987')
+            
+        self._config_loaded = True
 
-    def is_configured(self) -> bool:
-        """检查是否已配置视觉模型 API"""
+    def extract_text(self, file_path: str) -> str:
+        """调用 Tika Server 提取纯文本"""
         self._ensure_config()
-        return bool(self.api_key)
-
-    def get_provider(self) -> str:
-        """获取当前服务商"""
-        self._ensure_config()
-        return self.provider or self.PROVIDER_ZHIPU
-
-    def upload_file_zhipu(self, file_path: str) -> Optional[str]:
-        """
-        上传文件到智谱服务器（使用文件解析API）
-
-        Args:
-            file_path: 文件路径
-
-        Returns:
-            任务ID (task_id)，失败返回 None
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过文件上传")
-            return None
+        if not self.tika_server_url:
+            logger.error("Tika Server URL 未配置")
+            return ""
 
         try:
             import httpx
-
-            url = f"{self.base_url}/files/parser/create"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}"
-            }
-
-            filename = os.path.basename(file_path)
-            ext = os.path.splitext(file_path)[1].lower().replace('.', '')
-
-            file_type_map = {
-                'docx': 'DOCX', 'doc': 'DOC',
-                'xlsx': 'XLSX', 'xls': 'XLS',
-                'pptx': 'PPTX', 'ppt': 'PPT',
-                'pdf': 'PDF',
-                'txt': 'TXT', 'md': 'MD', 'csv': 'CSV',
-                'png': 'PNG', 'jpg': 'JPG', 'jpeg': 'JPEG',
-            }
-            file_type = file_type_map.get(ext, ext.upper())
-
+            
             with open(file_path, 'rb') as f:
-                files = {
-                    'file': (filename, f)
+                # 使用 PUT 请求 Tika 的 /tika 端点，Header Accept 为 text/plain
+                headers = {
+                    'Accept': 'text/plain'
                 }
-                data = {
-                    'file_type': file_type,
-                    'tool_type': 'lite'
-                }
-
-                with httpx.Client(timeout=120) as client:
-                    response = client.post(url, headers=headers, files=files, data=data)
-                    response.raise_for_status()
-                    result = response.json()
-
-            task_id = result.get('task_id')
-            logger.info(f"文件解析任务创建成功: {filename}, task_id: {task_id}")
-            return task_id
-
-        except Exception as e:
-            logger.error(f"文件上传/创建解析任务失败: {e}")
-            return None
-
-    def parse_document_directly_zhipu(self, file_path: str, prompt: str = None) -> str:
-        """
-        使用智谱文件解析API解析整个文档
-
-        Args:
-            file_path: 文档路径（PDF、Word、图片等）
-            prompt: 自定义提示词（此API不需要）
-
-        Returns:
-            文档内容
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过文档解析")
-            return ""
-
-        try:
-            import httpx
-            import time
-
-            task_id = self.upload_file_zhipu(file_path)
-            if not task_id:
-                logger.error("创建解析任务失败")
-                return ""
-
-            logger.info(f"开始轮询解析结果: {os.path.basename(file_path)}")
-
-            result_url = f"{self.base_url}/files/parser/result/{task_id}/text"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}"
-            }
-
-            max_retry = 60
-            interval = 3
-
-            with httpx.Client(timeout=30) as client:
-                for i in range(max_retry):
-                    response = client.get(result_url, headers=headers)
-                    response.raise_for_status()
-                    result = response.json()
-
-                    status = result.get('status', '')
-                    logger.info(f"解析任务状态: {status}, 尝试 {i + 1}/{max_retry}")
-
-                    if status == 'succeeded':
-                        content = result.get('content', '')
-                        parsing_url = result.get('parsing_result_url', '')
-
-                        # 如果有下载链接，获取更完整的内容
-                        if parsing_url and not content:
-                            try:
-                                dl_response = client.get(parsing_url, timeout=60)
-                                if dl_response.status_code == 200:
-                                    content = dl_response.text
-                            except Exception as e:
-                                logger.warning(f"下载解析结果失败: {e}")
-
-                        logger.info(f"智谱文件解析成功，内容长度: {len(content)} 字符")
-                        logger.info(f"解析内容预览: {content[:500]}...")
-                        return content
-
-                    elif status == 'failed':
-                        error_msg = result.get('message', '未知错误')
-                        logger.error(f"解析任务失败: {error_msg}")
-                        return ""
-
-                    elif status == 'processing':
-                        time.sleep(interval)
-                    else:
-                        time.sleep(interval)
-
-            logger.error("解析任务超时")
-            return ""
-
-        except Exception as e:
-            logger.error(f"智谱文件解析失败: {e}")
-            return ""
-
-    def parse_document_with_images(self, file_path: str, document_type: str, prompt: str = None) -> str:
-        """
-        对于图片型PDF或多图片文档，将每页转为图片后逐一解析
-
-        Args:
-            file_path: 文档路径
-            document_type: 文档类型
-            prompt: 自定义提示词
-
-        Returns:
-            文档内容
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过文档解析")
-            return ""
-
-        try:
-            if document_type == 'pdf':
-                import fitz
-                doc = fitz.open(file_path)
-                all_content = []
-
-                if not prompt:
-                    prompt = """请详细解析这个文档页面的所有内容，包括：
-1. 所有文字内容
-2. 图片、图表的内容描述
-3. 表格数据
-请完整提取页面中的所有信息。"""
-
-                for page_num in range(len(doc)):
-                    page = doc[page_num]
-                    pix = page.get_pixmap(dpi=150)
-                    img_data = pix.tobytes("png")
-
-                    page_content = self.parse_image_from_bytes(
-                        img_data,
-                        mime_type='image/png',
-                        prompt=prompt
+                # 设置一个较长的超时时间（180秒）处理大文件
+                with httpx.Client(timeout=180.0) as client:
+                    response = client.put(
+                        f"{self.tika_server_url.rstrip('/')}/tika",
+                        content=f,
+                        headers=headers
                     )
-
-                    if page_content:
-                        all_content.append(f"=== 第 {page_num + 1} 页 ===\n{page_content}")
-                        logger.info(f"PDF 第 {page_num + 1} 页解析完成")
-
-                doc.close()
-                return "\n\n".join(all_content)
-
-            else:
-                return self.parse_document_directly(file_path, prompt)
-
-        except ImportError:
-            logger.warning("PyMuPDF 未安装，尝试直接上传解析")
-            return self.parse_document_directly(file_path, prompt)
+                    response.raise_for_status()
+                    return response.text.strip()
         except Exception as e:
-            logger.error(f"文档解析失败: {e}")
+            logger.error(f"Tika Server 解析文件失败 {file_path}: {e}")
             return ""
 
-    def parse_document_directly(self, file_path: str, prompt: str = None) -> str:
-        """
-        直接解析文档 - 根据服务商选择解析方式
+tika_parser = TikaParser()
 
-        Args:
-            file_path: 文档路径
-            prompt: 自定义提示词
-
-        Returns:
-            文档内容
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过文档解析")
-            return ""
-
-        provider = self.get_provider()
-        
-        if provider == self.PROVIDER_ZHIPU:
-            return self.parse_document_directly_zhipu(file_path, prompt)
-        else:
-            return self.parse_document_directly_openai(file_path, prompt)
-
-    def parse_document_directly_openai(self, file_path: str, prompt: str = None) -> str:
-        """
-        使用 OpenAI 兼容的视觉模型解析文档（将文档转为图片后逐页解析）
-
-        Args:
-            file_path: 文档路径
-            prompt: 自定义提示词
-
-        Returns:
-            文档内容
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过文档解析")
-            return ""
-
-        try:
-            ext = os.path.splitext(file_path)[1].lower()
-            
-            if ext == '.pdf':
-                return self._parse_pdf_with_vision(file_path, prompt)
-            elif ext in ['.docx', '.doc']:
-                return self._parse_docx_with_vision(file_path, prompt)
-            elif ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp']:
-                return self.parse_image(file_path, prompt)
-            else:
-                logger.warning(f"不支持的文档类型: {ext}，尝试本地解析")
-                return ""
-                
-        except Exception as e:
-            logger.error(f"OpenAI 兼容视觉模型解析文档失败: {e}")
-            return ""
-
-    def _parse_pdf_with_vision(self, file_path: str, prompt: str = None) -> str:
-        """使用视觉模型解析 PDF（逐页转图片）"""
-        try:
-            import fitz
-            doc = fitz.open(file_path)
-            all_content = []
-
-            if not prompt:
-                prompt = """请详细解析这个文档页面的所有内容，包括：
-1. 所有文字内容
-2. 图片、图表的内容描述
-3. 表格数据
-请完整提取页面中的所有信息。"""
-
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-                pix = page.get_pixmap(dpi=150)
-                img_data = pix.tobytes("png")
-
-                page_content = self.parse_image_from_bytes(
-                    img_data,
-                    mime_type='image/png',
-                    prompt=prompt
-                )
-
-                if page_content:
-                    all_content.append(f"=== 第 {page_num + 1} 页 ===\n{page_content}")
-                    logger.info(f"PDF 第 {page_num + 1} 页解析完成")
-
-            doc.close()
-            return "\n\n".join(all_content)
-
-        except ImportError:
-            logger.warning("PyMuPDF 未安装，无法解析 PDF")
-            return ""
-        except Exception as e:
-            logger.error(f"PDF 解析失败: {e}")
-            return ""
-
-    def _parse_docx_with_vision(self, file_path: str, prompt: str = None) -> str:
-        """使用视觉模型解析 Word 文档（先转 PDF 再解析）"""
-        try:
-            import subprocess
-            import tempfile
-            
-            with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp:
-                tmp_pdf_path = tmp.name
-            
-            try:
-                # 检查 libreoffice 是否可用
-                try:
-                    subprocess.run(['libreoffice', '--version'], check=True, capture_output=True)
-                except (subprocess.SubprocessError, FileNotFoundError):
-                    logger.warning("libreoffice 命令不可用，回退到本地解析")
-                    # 直接回退到本地解析，提取纯文本
-                    from docx import Document
-                    doc = Document(file_path)
-                    text = []
-                    for para in doc.paragraphs:
-                        if para.text.strip():
-                            text.append(para.text)
-                    for table in doc.tables:
-                        for row in table.rows:
-                            row_text = []
-                            for cell in row.cells:
-                                if cell.text.strip():
-                                    row_text.append(cell.text.strip())
-                            if row_text:
-                                text.append(" | ".join(row_text))
-                    return "\n".join(text)
-
-                subprocess.run([
-                    'libreoffice', '--headless', '--convert-to', 'pdf',
-                    '--outdir', os.path.dirname(tmp_pdf_path),
-                    file_path
-                ], check=True, capture_output=True, timeout=60)
-                
-                pdf_path = os.path.join(
-                    os.path.dirname(tmp_pdf_path),
-                    os.path.splitext(os.path.basename(file_path))[0] + '.pdf'
-                )
-                
-                if os.path.exists(pdf_path):
-                    content = self._parse_pdf_with_vision(pdf_path, prompt)
-                    os.remove(pdf_path)
-                    return content
-            finally:
-                if os.path.exists(tmp_pdf_path):
-                    os.remove(tmp_pdf_path)
-                    
-            return ""
-            
-        except Exception as e:
-            logger.error(f"Word 文档解析失败: {e}")
-            return ""
-
-    def parse_image(self, image_path: str, prompt: str = None) -> str:
-        """
-        使用视觉模型解析图片
-
-        Args:
-            image_path: 图片路径
-            prompt: 自定义提示词
-
-        Returns:
-            图片内容描述
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过图片解析")
-            return ""
-
-        try:
-            import httpx
-
-            with open(image_path, 'rb') as f:
-                image_data = f.read()
-
-            ext = os.path.splitext(image_path)[1].lower()
-            mime_types = {
-                '.jpg': 'image/jpeg',
-                '.jpeg': 'image/jpeg',
-                '.png': 'image/png',
-                '.gif': 'image/gif',
-                '.webp': 'image/webp',
-                '.bmp': 'image/bmp'
-            }
-            mime_type = mime_types.get(ext, 'image/jpeg')
-
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
-            image_url = f"data:{mime_type};base64,{image_base64}"
-
-            if not prompt:
-                prompt = "请详细描述这张图片的内容，包括文字、图表、流程图等所有可见信息。如果是表格，请按表格格式输出。"
-
-            url = f"{self.base_url}/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": self.model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_url
-                                }
-                            }
-                        ]
-                    }
-                ],
-                "max_tokens": 2000
-            }
-
-            with httpx.Client(timeout=60) as client:
-                response = client.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                result = response.json()
-
-            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-            logger.info(f"视觉模型解析图片成功，内容长度: {len(content)} 字符")
-            return content
-
-        except Exception as e:
-            logger.error(f"视觉模型解析图片失败: {e}")
-            return ""
-
-    def parse_image_from_bytes(self, image_data: bytes, mime_type: str = 'image/png', prompt: str = None) -> str:
-        """
-        使用视觉模型解析图片字节数据
-
-        Args:
-            image_data: 图片字节数据
-            mime_type: 图片 MIME 类型
-            prompt: 自定义提示词
-
-        Returns:
-            图片内容描述
-        """
-        if not self.is_configured():
-            logger.warning("Vision API 未配置，跳过图片解析")
-            return ""
-
-        try:
-            import httpx
-
-            image_base64 = base64.b64encode(image_data).decode('utf-8')
-            image_url = f"data:{mime_type};base64,{image_base64}"
-
-            if not prompt:
-                prompt = "请详细描述这张图片的内容，包括文字、图表、流程图等所有可见信息。如果是表格，请按表格格式输出。"
-
-            url = f"{self.base_url}/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "model": self.model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "text",
-                                "text": prompt
-                            },
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": image_url
-                                }
-                            }
-                        ]
-                    }
-                ],
-                "max_tokens": 2000
-            }
-
-            with httpx.Client(timeout=60) as client:
-                response = client.post(url, headers=headers, json=payload)
-                response.raise_for_status()
-                result = response.json()
-
-            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-            return content
-
-        except Exception as e:
-            logger.error(f"视觉模型解析图片失败: {e}")
-            return ""
-
-
-vision_parser = VisionParser()
-
-
-glm_vision_parser = vision_parser
+# 为了兼容现有代码中可能使用到的变量名
+vision_parser = tika_parser
+glm_vision_parser = tika_parser
 
 
 class DocumentParser:
-    """文档解析器 - 支持PDF、Word、TXT、MD格式"""
+    """文档解析器 - 统一使用 Tika Server 解析各种文档"""
 
     @staticmethod
-    def extract_text_from_pdf(file_path: str, use_vision: bool = True) -> str:
-        """
-        从PDF文件提取文本和图片（使用 GLM 视觉模型解析图片)
-
-        Args:
-            file_path: PDF文件路径
-            use_vision: 是否使用 GLM 视觉模型解析图片
-        """
-        text_content = []
-        images_text = []
-
-        try:
-            import fitz  # PyMuPDF
-            doc = fitz.open(file_path)
-
-            for page_num in range(len(doc)):
-                page = doc[page_num]
-
-                # 提取文本
-                page_text = page.get_text()
-                if page_text:
-                    text_content.append(page_text)
-                    text_content.append("\n")
-
-                # 提取图片并使用 GLM 视觉模型解析
-                if use_vision and glm_vision_parser.is_configured():
-                    images = page.get_images(full=True)
-                    for img_index in range(len(images)):
-                        xref = images[img_index]
-                        try:
-                            base_image = doc.extract_image(xref)
-                            if base_image:
-                                # 保存临时图片
-                                temp_dir = os.path.join(settings.BASE_DIR, 'expand', 'temp_images')
-                                os.makedirs(temp_dir, exist_ok=True)
-                                ext = base_image.get("ext", "png")
-                                temp_image_path = os.path.join(temp_dir, f"page_{page_num}_img_{img_index}.{ext}")
-                                with open(temp_image_path, 'wb') as f:
-                                    f.write(base_image["image"])
-
-                                # 使用 GLM 视觉模型解析图片
-                                image_text = glm_vision_parser.parse_image(temp_image_path)
-                                if image_text:
-                                    images_text.append(f"\n[图片{page_num + 1}-{img_index + 1}]: {image_text}")
-                                    logger.info(f"PDF 第 {page_num + 1} 页，第 {img_index + 1} 张图片解析完成")
-
-                                # 删除临时图片
-                                try:
-                                    os.remove(temp_image_path)
-                                except:
-                                    pass
-                        except Exception as img_error:
-                            logger.error(f"PDF 第 {page_num + 1} 页图片 {img_index + 1} 提取/解析失败: {img_error}")
-
-                else:
-                    logger.info("GLM 视觉模型未配置，跳过图片解析")
-
-            doc.close()
-
-            # 合并文本和图片描述
-            full_text = "".join(text_content)
-            if images_text:
-                full_text += "\n\n[图片内容]:\n" + "\n".join(images_text)
-
-            return full_text.strip()
-        except ImportError:
-            logger.warning("PyMuPDF未安装，尝试使用pdfplumber")
-            try:
-                import pdfplumber
-                text = ""
-                with pdfplumber.open(file_path) as pdf:
-                    for page in pdf.pages:
-                        page_text = page.extract_text()
-                        if page_text:
-                            text += page_text + "\n"
-                return text.strip()
-            except ImportError:
-                logger.error("pdfplumber也未安装，无法解析PDF")
-                return ""
-        except Exception as e:
-            logger.error(f"PDF解析失败: {e}")
-            return ""
+    def extract_text_from_pdf(file_path: str, use_vision: bool = False) -> str:
+        return tika_parser.extract_text(file_path)
 
     @staticmethod
-    def extract_text_from_docx(file_path: str, use_vision: bool = True) -> str:
-        """从Word文件提取文本和图片（使用 GLM 视觉模型解析图片)"""
-        try:
-            from docx import Document
-            doc = Document(file_path)
-            text = []
-            images_text = []
-
-            # 提取段落文本
-            for para in doc.paragraphs:
-                if para.text.strip():
-                    text.append(para.text)
-
-            # 提取表格内容
-            for table in doc.tables:
-                for row in table.rows:
-                    row_text = []
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            row_text.append(cell.text.strip())
-                    if row_text:
-                        text.append(" | ".join(row_text))
-
-            # 提取图片并使用 GLM 视觉模型解析
-            if use_vision and glm_vision_parser.is_configured():
-                for rel in doc.part.rels.values():
-                    if "image" in rel.reltype:
-                        try:
-                            image = rel.image
-                            # 保存临时图片
-                            temp_dir = os.path.join(settings.BASE_DIR, 'expand', 'temp_images')
-                            os.makedirs(temp_dir, exist_ok=True)
-                            ext = image.ext if hasattr(image, 'ext') else 'png'
-                            temp_image_path = os.path.join(temp_dir, f"docx_img_{len(images_text)}.{ext}")
-                            with open(temp_image_path, 'wb') as f:
-                                f.write(image.blob)
-
-                            # 使用 GLM 视觉模型解析图片
-                            image_text = glm_vision_parser.parse_image(temp_image_path)
-                            if image_text:
-                                images_text.append(f"\n[图片{len(images_text) + 1}]: {image_text}")
-                                logger.info(f"Word 文档第 {len(images_text)} 张图片解析完成")
-
-                            # 删除临时图片
-                            try:
-                                os.remove(temp_image_path)
-                            except:
-                                pass
-                        except Exception as img_error:
-                            logger.error(f"Word 文档图片提取/解析失败: {img_error}")
-
-            # 合并文本和图片描述
-            full_text = "\n".join(text)
-            if images_text:
-                full_text += "\n\n[图片内容]:\n" + "\n".join(images_text)
-
-            return full_text.strip()
-        except ImportError:
-            logger.error("python-docx未安装，无法解析Word文档")
-            return ""
-        except Exception as e:
-            logger.error(f"Word解析失败: {e}")
-            return ""
+    def extract_text_from_docx(file_path: str, use_vision: bool = False) -> str:
+        return tika_parser.extract_text(file_path)
 
     @staticmethod
     def extract_text_from_txt(file_path: str) -> str:
-        """从TXT文件提取文本"""
-        try:
-            # 尝试多种编码
-            encodings = ['utf-8', 'gbk', 'gb2312', 'utf-16']
-            for encoding in encodings:
-                try:
-                    with open(file_path, 'r', encoding=encoding) as f:
-                        return f.read().strip()
-                except UnicodeDecodeError:
-                    continue
-            return ""
-        except Exception as e:
-            logger.error(f"TXT解析失败: {e}")
-            return ""
+        return tika_parser.extract_text(file_path)
 
     @staticmethod
     def extract_text_from_md(file_path: str) -> str:
-        """从Markdown文件提取文本"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            # 简单的Markdown清理，保留文本内容
-            # 移除代码块标记但保留内容
-            content = re.sub(r'```[\w]*\n?', '', content)
-            content = re.sub(r'`([^`]+)`', r'\1', content)
-            # 移除链接但保留文本
-            content = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', content)
-            # 移除图片
-            content = re.sub(r'!\[([^\]]*)\]\([^)]+\)', '', content)
-            # 移除标题标记
-            content = re.sub(r'^#{1,6}\s+', '', content, flags=re.MULTILINE)
-            # 移除粗体/斜体标记
-            content = re.sub(r'\*\*([^*]+)\*\*', r'\1', content)
-            content = re.sub(r'\*([^*]+)\*', r'\1', content)
-            content = re.sub(r'__([^_]+)__', r'\1', content)
-            content = re.sub(r'_([^_]+)_', r'\1', content)
-            return content.strip()
-        except Exception as e:
-            logger.error(f"Markdown解析失败: {e}")
+        return tika_parser.extract_text(file_path)
+
+    @classmethod
+    def extract_text(cls, file_path: str, document_type: str, use_vision: bool = False, use_vision_direct: bool = False) -> str:
+        if not os.path.exists(file_path):
+            logger.error(f"文件不存在: {file_path}")
             return ""
+
+        logger.info(f"使用 Tika 解析文档: {os.path.basename(file_path)}")
+        return tika_parser.extract_text(file_path)
 
     @classmethod
     def extract_text_with_vision(cls, file_path: str, document_type: str) -> str:
-        """
-        直接使用视觉模型解析整个文档（推荐方式）
-
-        Args:
-            file_path: 文档路径
-            document_type: 文档类型
-
-        Returns:
-            解析后的文本内容
-        """
-        if not os.path.exists(file_path):
-            logger.error(f"文件不存在: {file_path}")
-            return ""
-
-        if not vision_parser.is_configured():
-            logger.warning("Vision API 未配置，回退到本地解析")
-            return cls.extract_text(file_path, document_type, use_vision=False)
-
-        logger.info(f"使用视觉模型直接解析文档: {os.path.basename(file_path)}")
-
-        return vision_parser.parse_document_directly(file_path)
-
-    @classmethod
-    def extract_text(cls, file_path: str, document_type: str, use_vision: bool = True, use_vision_direct: bool = False) -> str:
-        """
-        根据文档类型提取文本
-
-        Args:
-            file_path: 文档路径
-            document_type: 文档类型
-            use_vision: 是否使用视觉模型解析图片（本地解析模式）
-            use_vision_direct: 是否直接使用视觉模型解析整个文档（推荐）
-
-        Returns:
-            提取的文本内容
-        """
-        if not os.path.exists(file_path):
-            logger.error(f"文件不存在: {file_path}")
-            return ""
-
-        if use_vision_direct and vision_parser.is_configured():
-            return cls.extract_text_with_vision(file_path, document_type)
-
-        if document_type == 'pdf':
-            return cls.extract_text_from_pdf(file_path, use_vision=use_vision)
-        elif document_type in ['docx', 'doc']:
-            return cls.extract_text_from_docx(file_path, use_vision=use_vision)
-        elif document_type == 'txt':
-            return cls.extract_text_from_txt(file_path)
-        elif document_type == 'md':
-            return cls.extract_text_from_md(file_path)
-        else:
-            logger.error(f"不支持的文档类型: {document_type}")
-            return ""
+        return cls.extract_text(file_path, document_type)
 
 
 class TextChunker:
@@ -1272,12 +572,12 @@ class KnowledgeBaseService:
             'chunk_count': 0,
             'vectorized': False,
             'error': None,
-            'parse_method': 'vision_direct' if use_vision_direct else 'local'
+            'parse_method': 'tika_direct'
         }
 
         try:
             if use_vision_direct:
-                is_valid, error_msg = check_knowledge_base_config(require_vision=True)
+                is_valid, error_msg = check_knowledge_base_config(require_tika=True)
                 if not is_valid:
                     result['error'] = error_msg
                     from .models import KnowledgeDocument
@@ -1300,18 +600,10 @@ class KnowledgeBaseService:
 
             # 1. 提取文本
             if document.file and os.path.exists(document.file.path):
-                if use_vision_direct:
-                    logger.info(f"使用视觉模型直接解析文档: {document.title}")
-                    text = DocumentParser.extract_text_with_vision(
-                        document.file.path,
-                        document.document_type
-                    )
-                else:
-                    text = self.parser.extract_text(
-                        document.file.path,
-                        document.document_type,
-                        use_vision=use_vision
-                    )
+                logger.info(f"使用 Tika Server 解析文档: {document.title}")
+                text = tika_parser.extract_text(
+                    document.file.path
+                )
             else:
                 text = document.content or ""
 

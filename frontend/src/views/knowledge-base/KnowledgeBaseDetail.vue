@@ -42,6 +42,60 @@
       </el-descriptions>
     </el-card>
 
+    <!-- 文档列表卡片 -->
+    <el-card class="document-list-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>{{ $t('knowledgeBase.documents') || '文档列表' }} ({{ stats.total_documents }})</span>
+          <el-button type="primary" link @click="handleUploadDocument">
+            <el-icon><Upload /></el-icon>
+            {{ $t('knowledgeBase.uploadDocument') }}
+          </el-button>
+        </div>
+      </template>
+      <div class="document-list-wrapper">
+        <el-table
+          v-loading="documentListLoading"
+          :data="documentList"
+          style="width: 100%"
+          height="280"
+          border
+        >
+          <el-table-column type="index" width="60" :label="$t('common.index') || '序号'" align="center" />
+          <el-table-column prop="title" :label="$t('knowledgeBase.documentTitle') || '文档名称'" min-width="200" show-overflow-tooltip />
+          <el-table-column prop="document_type_display" :label="$t('knowledgeBase.documentType') || '类型'" width="115" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" type="info">{{ (row.document_type_display || row.document_type || '').replace(/\.$/, '') }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="vector_status" :label="$t('knowledgeBase.vectorizationStatus') || '向量化状态'" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag size="small" :type="getVectorStatusType(row.vector_status)">
+                {{ row.vector_status_display || row.vector_status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" :label="$t('knowledgeBase.createdAt') || '上传时间'" width="160" align="center">
+            <template #default="{ row }">
+              {{ formatDateTime(row.created_at) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('common.actions') || '操作'" width="100" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button
+                type="primary"
+                link
+                size="small"
+                @click="handleViewOriginal(row)"
+              >
+                {{ $t('knowledgeBase.viewOriginal') || '查看原文' }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-card>
+
     <!-- 混合检索测试 -->
     <el-card class="search-card" shadow="never">
       <template #header>
@@ -177,7 +231,7 @@
       <div class="original-content">
         <div class="original-header">
           <h3>{{ currentOriginal.title }}</h3>
-          <el-tag size="small" type="info">{{ currentOriginal.document_type }}</el-tag>
+          <el-tag size="small" type="info">{{ (currentOriginal.document_type || '').replace(/\.$/, '') }}</el-tag>
         </div>
         <el-divider />
         <div class="original-text">
@@ -196,16 +250,13 @@
       width="500px"
     >
       <el-form ref="uploadFormRef" :model="uploadForm" :rules="uploadRules" label-width="100px">
-        <el-form-item :label="$t('knowledgeBase.documentTitle')" prop="title">
-          <el-input v-model="uploadForm.title" :placeholder="$t('knowledgeBase.documentTitlePlaceholder')" />
-        </el-form-item>
-        <el-form-item :label="$t('knowledgeBase.file')" prop="file">
+        <el-form-item :label="$t('knowledgeBase.file')" prop="fileList">
           <el-upload
             ref="uploadRef"
             :auto-upload="false"
-            :limit="1"
+            multiple
             :on-change="handleFileChange"
-            :on-exceed="handleExceed"
+            :on-remove="handleFileRemove"
             accept=".pdf,.doc,.docx,.txt,.md"
           >
             <template #trigger>
@@ -260,7 +311,8 @@ import {
   uploadDocument,
   semanticSearch,
   hybridSearch,
-  getDocumentDetail
+  getDocumentDetail,
+  getDocumentList
 } from '@/api/knowledge-base'
 
 const { t } = useI18n()
@@ -272,7 +324,9 @@ const knowledgeBaseId = route.params.id
 // 数据
 const uploadLoading = ref(false)
 const searchLoading = ref(false)
+const documentListLoading = ref(false)
 const knowledgeBase = ref({})
+const documentList = ref([])
 
 // 统计
 const stats = reactive({
@@ -300,8 +354,7 @@ const uploadFormRef = ref(null)
 const uploadRef = ref(null)
 
 const uploadForm = reactive({
-  title: '',
-  file: null,
+  fileList: [],
   tags: [],
   status: 'draft'
 })
@@ -358,6 +411,7 @@ const startPolling = () => {
       try {
         const response = await getKnowledgeBaseDetail(knowledgeBaseId)
         knowledgeBase.value = response.data
+        fetchDocuments() // 轮询期间也要刷新文档列表以显示进度
         if (knowledgeBase.value.vectorization_status !== 'processing') {
           stopPolling()
           fetchStats()
@@ -381,8 +435,7 @@ const stopPolling = () => {
 
 // 表单规则
 const uploadRules = {
-  title: [{ required: true, message: t('knowledgeBase.titleRequired'), trigger: 'blur' }],
-  file: [{ required: true, message: t('knowledgeBase.fileRequired'), trigger: 'change' }]
+  fileList: [{ required: true, message: t('knowledgeBase.fileRequired'), trigger: 'change', type: 'array' }]
 }
 
 // 获取知识库详情
@@ -405,47 +458,71 @@ const fetchStats = async () => {
   }
 }
 
-// 上传文档
-const handleUploadDocument = () => {
-  uploadForm.title = ''
-  uploadForm.file = null
-  uploadForm.tags = []
-  uploadForm.status = 'draft'
-  uploadDialogVisible.value = true
-}
-
-const handleFileChange = (file) => {
-  uploadForm.file = file.raw
-  if (!uploadForm.title) {
-    uploadForm.title = file.name.replace(/\.[^/.]+$/, '')
+// 获取文档列表
+const fetchDocuments = async () => {
+  documentListLoading.value = true
+  try {
+    const response = await getDocumentList({
+      knowledge_base_id: knowledgeBaseId,
+      page_size: 1000 // 取足够多的文档显示在列表中
+    })
+    documentList.value = response.data.results || response.data
+  } catch (error) {
+    console.error('获取文档列表失败:', error)
+  } finally {
+    documentListLoading.value = false
   }
 }
 
-const handleExceed = () => {
-  ElMessage.warning(t('knowledgeBase.onlyOneFile'))
+// 上传文档
+const handleUploadDocument = () => {
+  uploadForm.fileList = []
+  uploadForm.tags = []
+  uploadForm.status = 'draft'
+  if (uploadRef.value) {
+    uploadRef.value.clearFiles()
+  }
+  uploadDialogVisible.value = true
+}
+
+const handleFileChange = (file, fileList) => {
+  uploadForm.fileList = fileList.map(f => f.raw || f)
+}
+
+const handleFileRemove = (file, fileList) => {
+  uploadForm.fileList = fileList.map(f => f.raw || f)
 }
 
 const handleSubmitUpload = async () => {
   if (!uploadFormRef.value) return
   await uploadFormRef.value.validate(async (valid) => {
-    if (valid && uploadForm.file) {
+    if (valid && uploadForm.fileList.length > 0) {
       uploadLoading.value = true
       try {
         const formData = new FormData()
-        formData.append('title', uploadForm.title)
-        formData.append('file', uploadForm.file)
+        
+        uploadForm.fileList.forEach(file => {
+          formData.append('files', file)
+        })
+        
         formData.append('knowledge_base', knowledgeBaseId)
         formData.append('tags', JSON.stringify(uploadForm.tags))
         formData.append('status', uploadForm.status)
+        
         await uploadDocument(formData)
         ElMessage.success(t('common.uploadSuccess'))
         uploadDialogVisible.value = false
+        await fetchKnowledgeBase() // 重新获取知识库状态，触发轮询
         fetchStats()
+        fetchDocuments()
+        startPolling()
       } catch (error) {
         ElMessage.error(t('common.uploadFailed'))
       } finally {
         uploadLoading.value = false
       }
+    } else if (uploadForm.fileList.length === 0) {
+      ElMessage.warning(t('knowledgeBase.fileRequired'))
     }
   })
 }
@@ -502,7 +579,7 @@ const handleSearch = async () => {
 
 // 查看原文
 const handleViewOriginal = async (result) => {
-  const documentId = result.document_id || result.documentId
+  const documentId = result.document_id || result.documentId || result.id
   if (!documentId) {
     ElMessage.warning(t('knowledgeBase.noDocumentId'))
     return
@@ -511,7 +588,7 @@ const handleViewOriginal = async (result) => {
   try {
     if (result.full_content) {
       currentOriginal.id = documentId
-      currentOriginal.title = result.document_title || result.documentTitle
+      currentOriginal.title = result.document_title || result.documentTitle || result.title
       currentOriginal.content = result.full_content
       currentOriginal.document_type = result.document_type || 'Unknown'
       currentOriginal.file_url = result.file_url
@@ -561,9 +638,22 @@ const formatFileSize = (bytes) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
 onMounted(() => {
   fetchKnowledgeBase()
   fetchStats()
+  fetchDocuments()
   startPolling()
 })
 
@@ -601,6 +691,16 @@ onUnmounted(() => {
 
   .info-card {
     margin-bottom: 20px;
+  }
+
+  .document-list-card {
+    margin-bottom: 20px;
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   }
 
   .search-card {
