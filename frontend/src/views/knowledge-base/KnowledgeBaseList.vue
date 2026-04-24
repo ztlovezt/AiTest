@@ -265,12 +265,12 @@
               ref="uploadRef"
               class="upload-area"
               :auto-upload="false"
-              :limit="1"
               :on-change="handleFileChange"
               :on-remove="handleFileRemove"
               :file-list="fileList"
               accept=".pdf,.doc,.docx,.txt,.md"
               drag
+              multiple
             >
               <el-icon class="el-icon--upload"><upload-filled /></el-icon>
               <div class="el-upload__text">
@@ -326,7 +326,6 @@ const dialogType = ref('create')
 const formRef = ref(null)
 const uploadRef = ref(null)
 const fileList = ref([])
-const currentFile = ref(null)
 
 // 筛选表单
 const filterForm = reactive({
@@ -506,8 +505,10 @@ const handleSubmit = async () => {
           formData.append('enable_vectorization', form.enable_vectorization)
 
           // 如果有文件，添加到 FormData
-          if (currentFile.value) {
-            formData.append('file', currentFile.value.raw)
+          if (fileList.value && fileList.value.length > 0) {
+            fileList.value.forEach(file => {
+              formData.append('files', file.raw)
+            })
           }
 
           await createKnowledgeBase(formData)
@@ -535,13 +536,13 @@ const handleSubmit = async () => {
 }
 
 // 文件选择处理
-const handleFileChange = (file) => {
-  currentFile.value = file
+const handleFileChange = (file, files) => {
+  fileList.value = files
 }
 
 // 文件移除处理
-const handleFileRemove = () => {
-  currentFile.value = null
+const handleFileRemove = (file, files) => {
+  fileList.value = files
 }
 
 // 重置表单
@@ -554,7 +555,6 @@ const resetForm = () => {
   form.chunk_size = 500
   form.chunk_overlap = 50
   form.enable_vectorization = true
-  currentFile.value = null
   fileList.value = []
   if (uploadRef.value) {
     uploadRef.value.clearFiles()
@@ -596,7 +596,7 @@ const checkConfigStatus = async () => {
   try {
     const response = await api.get('/knowledge-base/check_config/')
     const config = response.data
-    if (!config.has_embedding || !config.has_vision || !config.has_refiner) {
+    if (!config.has_embedding || !config.has_tika || !config.has_refiner) {
       const buildStatusHtml = (name, isConfigured) => {
         const icon = isConfigured ? '<span style="color: #67c23a; margin-right: 8px;">✓</span>' : '<span style="color: #f56c6c; margin-right: 8px;">✗</span>'
         const color = isConfigured ? '#606266' : '#f56c6c'
@@ -604,10 +604,10 @@ const checkConfigStatus = async () => {
       }
 
       const htmlContent = `
-        <div style="margin-bottom: 16px; font-size: 14px; color: #606266;">您的知识库 AI 模型配置尚未完善，缺少以下必要配置：</div>
+        <div style="margin-bottom: 16px; font-size: 14px; color: #606266;">您的知识库配置尚未完善，缺少以下必要配置：</div>
         <div style="background-color: #f8f9fa; padding: 12px 20px; border-radius: 4px; margin-bottom: 16px;">
           ${buildStatusHtml('Embedding 模型 (用于向量化检索)', config.has_embedding)}
-          ${buildStatusHtml('Vision 模型 (用于图文解析)', config.has_vision)}
+          ${buildStatusHtml('Tika Server (用于文档解析)', config.has_tika)}
           ${buildStatusHtml('Refiner 模型 (用于内容结构化总结)', config.has_refiner)}
         </div>
         <div style="font-size: 13px; color: #909399;">建议您先前往设置中心完成配置，否则部分功能将无法正常使用。</div>

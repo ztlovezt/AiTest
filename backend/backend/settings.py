@@ -22,6 +22,9 @@ DEBUG = config('DEBUG', default=config_loader.get('server.debug', True), cast=bo
 # 后端服务端口（开发环境）
 BACKEND_PORT = config('BACKEND_PORT', default=config_loader.get('server.backend_port', 8001), cast=int)
 
+# 文档解析服务URL (Tika Server)
+DOC_PARSER_URL = config('DOC_PARSER_URL', default=config_loader.get('server.doc_parser_url', 'http://localhost:9987'))
+
 # 前端服务URL（用于生成报告链接等）
 FRONTEND_URL = config('FRONTEND_URL', default=config_loader.get('server.frontend_url', 'http://localhost:3000'))
 

@@ -37,6 +37,8 @@ class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
         """获取当前激活的配置"""
         config = self.queryset.filter(is_active=True).first()
         if not config:
+            from django.conf import settings
+            default_tika_url = getattr(settings, 'DOC_PARSER_URL', 'http://localhost:9987')
             return Response({
                 'configured': False,
                 'id': None,
@@ -44,9 +46,7 @@ class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
                 'refiner_model': 'qwen-plus',
                 'refiner_max_tokens': 8192,
                 'refiner_temperature': 0.3,
-                'vision_base_url': '',
-                'vision_model': 'glm-4v-flash',
-                'vision_provider': 'zhipu',
+                'tika_server_url': default_tika_url,
                 'message': '未找到激活的配置'
             })
         
@@ -60,7 +60,7 @@ class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
         data = request.data
         config = self.queryset.filter(is_active=True).first()
         
-        for field in ['embedding_api_key', 'refiner_api_key', 'vision_api_key']:
+        for field in ['embedding_api_key', 'refiner_api_key']:
             if data.get(field) and data[field].startswith('****') or data.get(field) and '****' in data[field]:
                 if config:
                     data[field] = getattr(config, field)
@@ -79,6 +79,17 @@ class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
 
     def perform_save(self, serializer):
         serializer.save()
+        
+        # 重新加载缓存的配置，以便新的配置立即生效
+        from .services import tika_parser, VectorStoreService
+        
+        # 重置解析器的缓存状态
+        tika_parser._config_loaded = False
+        
+        # 重置向量存储服务的 Embedding 缓存状态
+        vector_store = VectorStoreService()
+        vector_store.embedding_function = None
+        vector_store._embedding_initialized = False
 
     @action(detail=False, methods=['post'])
     def test_connection(self, request):
@@ -90,18 +101,8 @@ class KnowledgeBaseConfigViewSet(viewsets.ModelViewSet):
 def extract_text_from_file(file_path, document_type):
     """从文件中提取文本"""
     try:
-        if document_type == 'pdf':
-            from backend.apps.requirement_analysis.services import DocumentProcessor
-            return DocumentProcessor.extract_text_from_pdf(file_path)
-        elif document_type in ['doc', 'docx']:
-            from backend.apps.requirement_analysis.services import DocumentProcessor
-            return DocumentProcessor.extract_text_from_docx(file_path)
-        elif document_type == 'txt':
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
-        elif document_type == 'md':
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return f.read()
+        from .services import tika_parser
+        return tika_parser.extract_text(file_path)
     except Exception as e:
         logger.error(f"提取文本失败: {e}")
         return ""
@@ -161,11 +162,11 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                     knowledge_base.save(update_fields=['vectorization_status', 'vectorization_error'])
 
         # 如果有初始上传的文档，异步处理
-        initial_document = getattr(knowledge_base, '_initial_document', None)
-        if initial_document:
+        initial_documents = getattr(knowledge_base, '_initial_documents', [])
+        if initial_documents:
             # 保存 ID 而不是对象引用，避免跨线程问题
             kb_id = knowledge_base.pk
-            doc_id = initial_document.pk
+            doc_ids = [doc.pk for doc in initial_documents]
 
             # 使用线程异步处理文档
             def process_in_background():
@@ -176,17 +177,23 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                 try:
                     # 重新获取对象（新线程需要新的数据库连接）
                     kb = KnowledgeBase.objects.get(pk=kb_id)
-                    doc = KnowledgeDocument.objects.get(pk=doc_id)
-
-                    # 处理文档：提取文本、分块、向量化
-                    result = knowledge_base_service.process_document(
-                        document=doc,
-                        chunk_size=kb.chunk_size,
-                        chunk_overlap=kb.chunk_overlap,
-                        enable_vectorization=kb.enable_vectorization,
-                        use_vision_direct=getattr(kb, 'use_vision_direct', True)
-                    )
-                    logger.info(f"初始文档处理完成: {result}")
+                    
+                    for doc_id in doc_ids:
+                        try:
+                            doc = KnowledgeDocument.objects.get(pk=doc_id)
+                            # 处理文档：提取文本、分块、向量化
+                            result = knowledge_base_service.process_document(
+                                document=doc,
+                                chunk_size=kb.chunk_size,
+                                chunk_overlap=kb.chunk_overlap,
+                                enable_vectorization=kb.enable_vectorization,
+                                use_vision_direct=getattr(kb, 'use_vision_direct', True)
+                            )
+                            logger.info(f"初始文档 {doc_id} 处理完成: {result}")
+                        except KnowledgeDocument.DoesNotExist:
+                            logger.warning(f"文档 {doc_id} 已被删除，跳过处理")
+                        except Exception as e:
+                            logger.error(f"初始文档 {doc_id} 处理失败: {e}")
 
                     # 更新知识库向量化状态
                     if kb.enable_vectorization:
@@ -208,8 +215,6 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
                             kb.save(update_fields=['vectorization_status'])
                 except KnowledgeBase.DoesNotExist:
                     logger.warning(f"知识库 {kb_id} 已被删除，跳过文档处理")
-                except KnowledgeDocument.DoesNotExist:
-                    logger.warning(f"文档 {doc_id} 已被删除，跳过处理")
                 except Exception as e:
                     logger.error(f"初始文档处理失败: {e}")
                     logger.error(traceback.format_exc())
@@ -268,7 +273,7 @@ class KnowledgeBaseViewSet(viewsets.ModelViewSet):
         return Response({
             'configured': config_status['configured'],
             'has_embedding': config_status['has_embedding'],
-            'has_vision': config_status['has_vision'],
+            'has_tika': config_status['has_tika'],
             'has_refiner': config_status['has_refiner'],
             'message': config_status['message']
         })
@@ -506,23 +511,84 @@ class KnowledgeDocumentViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        """创建文档时自动提取文本内容"""
+        """创建文档时自动提取文本并向量化"""
+        # 使用 serializer.context 中的多文件，如果有的话
+        serializer.is_valid(raise_exception=True)
+        # 将 request 的 FILES 显式传入序列化器
+        files = self.request.FILES.getlist('files')
+        if files:
+            serializer.validated_data['files'] = files
+        
         document = serializer.save()
-        # 提取文本
-        if document.file:
+        
+        # 检查是否有多文档
+        docs_to_process = serializer.context.get('created_docs', [document])
+        
+        # 将知识库状态更新为处理中
+        kb = document.knowledge_base
+        if kb.vectorization_status != 'processing':
+            kb.vectorization_status = 'processing'
+            kb.save(update_fields=['vectorization_status'])
+
+        # 异步处理文档（解析、分块、向量化）
+        def process_in_background():
+            from django.db import connection
+            from .models import KnowledgeBase, KnowledgeDocument
             try:
-                file_path = document.file.path
-                if os.path.exists(file_path):
-                    content = extract_text_from_file(
-                        file_path,
-                        document.document_type
-                    )
-                    if content:
-                        KnowledgeDocument.objects.filter(pk=document.pk).update(
-                            content=content
+                kb_obj = KnowledgeBase.objects.get(pk=kb.pk)
+                from .services import KnowledgeBaseService
+                knowledge_base_service = KnowledgeBaseService()
+                
+                # 处理所有新上传的文档
+                for doc_instance in docs_to_process:
+                    try:
+                        # 重新获取对象
+                        doc = KnowledgeDocument.objects.get(pk=doc_instance.pk)
+                        result = knowledge_base_service.process_document(
+                            document=doc,
+                            chunk_size=kb_obj.chunk_size,
+                            chunk_overlap=kb_obj.chunk_overlap,
+                            enable_vectorization=kb_obj.enable_vectorization,
+                            use_vision_direct=getattr(kb_obj, 'use_vision_direct', True)
                         )
+                        logger.info(f"新上传文档 {doc.pk} 处理完成: {result}")
+                    except Exception as doc_error:
+                        logger.error(f"处理单份文档 {doc_instance.pk} 时失败: {doc_error}")
+                
+                # 检查该知识库下是否还有其他处理中的文档
+                pending_docs = KnowledgeDocument.objects.filter(
+                    knowledge_base_id=kb_obj.pk,
+                    vector_status__in=['pending', 'processing']
+                ).exists()
+                
+                if not pending_docs:
+                    kb_obj.vectorization_status = 'completed'
+                    kb_obj.save(update_fields=['vectorization_status'])
+                    
             except Exception as e:
-                logger.warning(f"文本提取失败: {e}")
+                logger.error(f"批量上传文档处理失败: {e}")
+                # 出现异常时也要尝试恢复知识库状态
+                try:
+                    kb_obj = KnowledgeBase.objects.get(pk=kb.pk)
+                    pending_docs = KnowledgeDocument.objects.filter(
+                        knowledge_base_id=kb_obj.pk,
+                        vector_status__in=['pending', 'processing']
+                    ).exists()
+                    if not pending_docs:
+                        kb_obj.vectorization_status = 'completed'
+                        kb_obj.save(update_fields=['vectorization_status'])
+                except:
+                    pass
+
+        from django.db import transaction
+        import threading
+
+        def start_thread():
+            thread = threading.Thread(target=process_in_background)
+            thread.daemon = True
+            thread.start()
+
+        transaction.on_commit(start_thread)
 
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):

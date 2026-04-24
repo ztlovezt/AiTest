@@ -14,6 +14,8 @@ export default {
   import: '导入',
   download: '下载',
   upload: '上传',
+  uploadSuccess: '上传成功',
+  uploadFailed: '上传失败',
   refresh: '刷新',
   close: '关闭',
   loading: '加载中...',
