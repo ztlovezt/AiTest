@@ -1,3 +1,4 @@
+﻿# -*- coding: utf-8 -*-
 import asyncio
 import json
 import logging
@@ -6,13 +7,14 @@ import subprocess
 import threading
 import time
 from urllib.parse import parse_qs
+import uuid
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer
 from django.utils import timezone
 
 from .managers.device_manager import DeviceManager
-from .models import AppDevice, AppTestConfig, DeviceStatus
+from .models import AppDevice, AppTestConfig
 from .scrcpy_service import scrcpy_service
 
 logger = logging.getLogger(__name__)
@@ -67,6 +69,9 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
         self.session_start_time = None
         self.session_options = {}
         self.adb_path = "adb"
+        self.remote_session_id = ""
+        self.heartbeat_task = None
+        self.last_pong_monotonic = 0.0
 
         self.logcat_thread = None
         self.logcat_process = None
@@ -109,16 +114,30 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
 
             self.device_id = device.device_id
             self.adb_path = await self.get_adb_path()
-            # 远控画质参数通过 websocket query 透传，整场会话固定使用这一组配置。
+            self.remote_session_id = uuid.uuid4().hex
+            # 远控画质参数通过 websocket query 透传，整场会话固定使用这组配置。
             self.session_options = self._parse_session_options()
-            await self.lock_device(device)
+            lock_result = await self.lock_device(device, self.remote_session_id)
+
+            if not lock_result["success"]:
+                await self.accept()
+                await self._send_json({
+                    "type": "error",
+                    "message": lock_result["message"],
+                })
+                await self.close(code=4003)
+                return
+
             await self.accept()
             self.session_start_time = timezone.now()
+            self.last_pong_monotonic = time.monotonic()
+            self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
 
             logger.info(
-                "WebSocket connected: id=%s, adb_device_id=%s, session_options=%s",
+                "WebSocket connected: id=%s, adb_device_id=%s, session_id=%s, session_options=%s",
                 self.device_pk,
                 self.device_id,
+                self.remote_session_id,
                 self.session_options,
             )
             await self._send_json(
@@ -127,6 +146,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
                     "message": "连接成功",
                     "device_id": device.pk,
                     "session_options": self.session_options,
+                    "lock_type": lock_result.get("lock_type", "remote_session"),
                 }
             )
 
@@ -143,11 +163,14 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
                 self.device_id,
                 close_code,
             )
+            if self.heartbeat_task:
+                self.heartbeat_task.cancel()
+                self.heartbeat_task = None
             self._stop_logcat_stream()
             if self.device_id:
                 scrcpy_service.stop_session(self.device_id)
-            if self.device_pk:
-                await self.unlock_device(self.device_pk)
+            if self.device_pk and self.remote_session_id:
+                await self.unlock_device(self.device_pk, self.remote_session_id)
         except Exception as exc:
             logger.error("WebSocket disconnect failed: %s", exc)
 
@@ -164,6 +187,13 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
 
             data = json.loads(text_data)
             command_type = str(data.get("type", "")).strip()
+            if command_type == "heartbeat_pong":
+                self.last_pong_monotonic = time.monotonic()
+                heartbeat_ok = await self.refresh_remote_heartbeat(self.device_pk, self.remote_session_id)
+                if not heartbeat_ok:
+                    await self._send_json({"type": "error", "message": "设备远控会话已失效，请重新连接"})
+                    await self.close(code=4008)
+                return
             if command_type == "logcat_subscribe":
                 await self._handle_logcat_subscribe(data)
                 return
@@ -174,6 +204,31 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             logger.info("Received websocket text command: %s", data)
         except Exception as exc:
             logger.error("Receive failed: %s", exc)
+
+    async def _heartbeat_loop(self):
+        """服务端主动发起心跳，超时后自动回收锁定与会话。"""
+        timeout_seconds = AppDevice.REMOTE_HEARTBEAT_TIMEOUT_SECONDS
+        interval_seconds = AppDevice.REMOTE_HEARTBEAT_INTERVAL_SECONDS
+
+        try:
+            while True:
+                await asyncio.sleep(interval_seconds)
+                if time.monotonic() - self.last_pong_monotonic > timeout_seconds:
+                    await self._send_json({
+                        "type": "error",
+                        "message": "远程控制心跳超时，设备已自动解锁",
+                    })
+                    await self.close(code=4008)
+                    return
+
+                await self._send_json({
+                    "type": "heartbeat_ping",
+                    "interval": interval_seconds,
+                    "timeout": timeout_seconds,
+                })
+        except asyncio.CancelledError:
+            return
+
 
     async def start_scrcpy_session(self):
         try:
@@ -205,7 +260,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
                 await self._send_json(
                     {
                         "type": "error",
-                        "message": "启动设备会话失败",
+                        "message": "鍚姩璁惧浼氳瘽澶辫触",
                     }
                 )
             else:
@@ -215,7 +270,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             await self._send_json(
                 {
                     "type": "error",
-                    "message": f"启动失败: {exc}",
+                    "message": f"鍚姩澶辫触: {exc}",
                 }
             )
 
@@ -234,17 +289,17 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
 
         if not subscription["enabled"]:
             self._stop_logcat_stream()
-            await self._send_logcat_status("idle", "日志流已关闭")
+            await self._send_logcat_status("idle", "鏃ュ織娴佸凡鍏抽棴")
             return
 
         self._ensure_logcat_stream()
-        await self._send_logcat_status("streaming", "日志流订阅已更新")
+        await self._send_logcat_status("streaming", "鏃ュ織娴佽闃呭凡鏇存柊")
 
     async def _handle_logcat_unsubscribe(self):
         with self.logcat_subscription_lock:
             self.logcat_subscription["enabled"] = False
         self._stop_logcat_stream()
-        await self._send_logcat_status("idle", "日志流已关闭")
+        await self._send_logcat_status("idle", "鏃ュ織娴佸凡鍏抽棴")
 
     def _ensure_logcat_stream(self):
         if self.logcat_thread and self.logcat_thread.is_alive():
@@ -300,7 +355,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             self.logcat_process = process
             loop.call_soon_threadsafe(
                 lambda: asyncio.create_task(
-                    self._send_logcat_status("streaming", "日志流已连接")
+                    self._send_logcat_status("streaming", "鏃ュ織娴佸凡杩炴帴")
                 )
             )
 
@@ -330,7 +385,7 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
             logger.error("Logcat stream failed: %s", exc, exc_info=True)
             loop.call_soon_threadsafe(
                 lambda: asyncio.create_task(
-                    self._send_logcat_status("error", f"日志流异常: {exc}")
+                    self._send_logcat_status("error", f"鏃ュ織娴佸紓甯? {exc}")
                 )
             )
         finally:
@@ -468,30 +523,74 @@ class RemoteDeviceConsumer(AsyncWebsocketConsumer):
         return str(adb_path).strip() or "adb"
 
     @database_sync_to_async
-    def lock_device(self, device):
-        # 远控会话建立后立即锁定设备，避免同一设备被多人同时占用。
-        device.lock(self.user)
-        device.status = DeviceStatus.LOCKED
-        device.save()
+    def lock_device(self, device, session_id):
+        """远控接入时占用设备，禁止其他用户抢占同一设备。"""
+        device.refresh_from_db()
+        if device.is_locked() and device.lock_type == device.LOCK_TYPE_AUTOMATION:
+            owner = device.locked_by.username if device.locked_by else "自动化任务"
+            return {
+                'success': False,
+                'message': f'设备当前正在由 {owner} 执行自动化任务，暂不支持远程连接',
+            }
+
+        if device.is_locked_for_user(self.user):
+            owner = device.locked_by.username if device.locked_by else "其他用户"
+            return {
+                'success': False,
+                'message': f'设备当前由 {owner} 占用，请等待释放后再连接',
+            }
+
+        try:
+            device.lock_for_remote_session(self.user, session_id)
+        except ValueError as exc:
+            return {
+                'success': False,
+                'message': str(exc),
+            }
+
         logger.info(
-            "Device locked: id=%s, adb_device_id=%s, user=%s",
+            "Device locked for remote session: id=%s, adb_device_id=%s, user=%s, session_id=%s",
             device.pk,
             device.device_id,
             self.user.username,
+            session_id,
         )
+        return {
+            'success': True,
+            'lock_type': device.lock_type,
+        }
 
     @database_sync_to_async
-    def unlock_device(self, device_pk):
+    def refresh_remote_heartbeat(self, device_pk, session_id):
         try:
             device = AppDevice.objects.get(pk=int(device_pk))
-            # websocket 断开后恢复设备为可用状态，便于列表页持续展示并支持后续会话。
-            device.unlock()
-            device.status = DeviceStatus.AVAILABLE
-            device.save()
-            logger.info(
-                "Device unlocked: id=%s, adb_device_id=%s",
-                device.pk,
-                device.device_id,
-            )
+        except (AppDevice.DoesNotExist, TypeError, ValueError):
+            return False
+
+        return device.refresh_remote_heartbeat(session_id)
+
+    @database_sync_to_async
+    def unlock_device(self, device_pk, session_id):
+        try:
+            device = AppDevice.objects.get(pk=int(device_pk))
+            unlocked = device.unlock(session_id=session_id)
+            if unlocked:
+                logger.info(
+                    "Device unlocked for remote session: id=%s, adb_device_id=%s, session_id=%s",
+                    device.pk,
+                    device.device_id,
+                    session_id,
+                )
+            else:
+                logger.info(
+                    "Skip unlock for stale remote session: id=%s, adb_device_id=%s, session_id=%s, current_session=%s",
+                    device.pk,
+                    device.device_id,
+                    session_id,
+                    device.lock_session_id,
+                )
+            return unlocked
         except (AppDevice.DoesNotExist, TypeError, ValueError):
             logger.warning("Device not found while unlocking: id=%s", device_pk)
+            return False
+

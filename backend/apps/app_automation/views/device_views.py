@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """APP 设备管理视图。"""
 import base64
 import logging
@@ -66,6 +66,9 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
     def _get_manager(self) -> DeviceManager:
         return DeviceManager(adb_path=get_adb_path())
 
+    def _serialize_device(self, device):
+        return AppDeviceSerializer(device, context={'request': self.request}).data
+
     def _resolve_package_name(self, request) -> str:
         package_name = str(request.data.get('package_name', '')).strip()
         package_id = request.data.get('package_id')
@@ -128,6 +131,9 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
                 }
 
                 existing_device = AppDevice.objects.filter(device_id=device_id).first()
+                if existing_device and existing_device.status == 'locked' and existing_device.is_lock_expired():
+                    existing_device.unlock(force=True)
+                    existing_device.refresh_from_db()
                 if current_status == 'online':
                     if existing_device and existing_device.status == 'locked':
                         defaults['status'] = 'locked'
@@ -146,17 +152,24 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             offline_devices = AppDevice.objects.exclude(device_id__in=connected_device_ids)
             offline_count = 0
             for device in offline_devices:
-                if device.status != 'locked':
-                    device.status = 'offline'
-                    device.save(update_fields=['status', 'updated_at'])
-                    offline_count += 1
+                if device.status == 'locked':
+                    if device.is_lock_expired():
+                        device.unlock(force=True)
+                        device.status = 'offline'
+                        device.save(update_fields=['status', 'updated_at'])
+                        offline_count += 1
+                    continue
+
+                device.status = 'offline'
+                device.save(update_fields=['status', 'updated_at'])
+                offline_count += 1
 
             all_devices = AppDevice.objects.all().order_by('-updated_at')
 
             return Response({
                 'success': True,
                 'message': f'发现 {len(db_devices)} 个在线设备，{offline_count} 个设备标记为离线',
-                'devices': AppDeviceSerializer(all_devices, many=True).data,
+                'devices': AppDeviceSerializer(all_devices, many=True, context={'request': request}).data,
             })
         except Exception as exc:
             logger.error(f'发现设备失败: {exc}', exc_info=True)
@@ -168,25 +181,48 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def lock(self, request, pk=None):
         device = self.get_object()
-        if device.status == 'locked':
-            return Response({'success': False, 'message': '设备已被锁定'}, status=status.HTTP_400_BAD_REQUEST)
-        device.lock(request.user)
+        if device.is_locked():
+            if device.lock_type == device.LOCK_TYPE_MANUAL and device.is_locked_by_user(request.user):
+                return Response({
+                    'success': True,
+                    'message': '设备已处于当前用户的手动锁定状态',
+                    'device': self._serialize_device(device),
+                })
+
+            lock_label = device.get_lock_type_display() or '当前会话'
+            owner = device.locked_by.username if device.locked_by else '其他用户'
+            return Response({'success': False, 'message': f'设备已被 {owner} 以{lock_label}方式占用'}, status=status.HTTP_400_BAD_REQUEST)
+
+        device.lock_for_manual(request.user)
+        device.refresh_from_db()
         return Response({
             'success': True,
             'message': '设备锁定成功',
-            'device': AppDeviceSerializer(device).data,
+            'device': self._serialize_device(device),
         })
 
     @action(detail=True, methods=['post'])
     def unlock(self, request, pk=None):
         device = self.get_object()
+        if not device.is_locked():
+            return Response({
+                'success': True,
+                'message': '设备当前未锁定',
+                'device': self._serialize_device(device),
+            })
         if device.locked_by and device.locked_by != request.user:
             return Response({'success': False, 'message': '无权解锁他人锁定的设备'}, status=status.HTTP_403_FORBIDDEN)
-        device.unlock()
+        if device.lock_type == device.LOCK_TYPE_REMOTE:
+            return Response({'success': False, 'message': '请在远程控制页面结束会话后再释放设备'}, status=status.HTTP_400_BAD_REQUEST)
+        if device.lock_type == device.LOCK_TYPE_AUTOMATION:
+            return Response({'success': False, 'message': '设备正在执行自动化任务，任务完成后会自动解锁'}, status=status.HTTP_400_BAD_REQUEST)
+        if not device.unlock(user=request.user):
+            return Response({'success': False, 'message': '设备解锁失败，请稍后重试'}, status=status.HTTP_400_BAD_REQUEST)
+        device.refresh_from_db()
         return Response({
             'success': True,
             'message': '设备解锁成功',
-            'device': AppDeviceSerializer(device).data,
+            'device': self._serialize_device(device),
         })
 
     @action(detail=True, methods=['post'])
@@ -206,7 +242,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             return Response({
                 'success': True,
                 'message': f'设备 {device.name or device.device_id} 已断开连接',
-                'device': AppDeviceSerializer(device).data,
+                'device': self._serialize_device(device),
             })
         except Exception as exc:
             return Response({'success': False, 'message': f'断开设备失败: {exc}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -235,7 +271,7 @@ class AppDeviceViewSet(viewsets.ModelViewSet):
             return Response({
                 'success': True,
                 'message': '设备连接成功',
-                'device': AppDeviceSerializer(device).data,
+                'device': self._serialize_device(device),
             })
         except Exception as exc:
             logger.error(f'连接设备失败: {exc}')

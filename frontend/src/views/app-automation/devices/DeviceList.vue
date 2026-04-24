@@ -56,11 +56,14 @@
       <el-table-column
         prop="locked_by"
         :label="t('appAutomation.device.owner')"
-        width="120"
+        width="180"
       >
         <template #default="{ row }">
           <span v-if="row.locked_by_name">
             {{ row.locked_by_name }}
+            <span v-if="row.lock_type_display">
+              / {{ row.lock_type_display }}
+            </span>
           </span>
           <span v-else>-</span>
         </template>
@@ -143,6 +146,7 @@
             link
             size="small"
             type="warning"
+            :disabled="row.can_remote_connect === false"
             @click="goToRemoteConnection(row)"
           >
             <el-icon><Monitor /></el-icon>&nbsp;
@@ -158,7 +162,7 @@
             {{ t("appAutomation.device.lock") }}
           </el-button>
           <el-button
-            v-if="row.status === 'locked'"
+            v-if="row.status === 'locked' && row.can_unlock !== false"
             link
             size="small"
             type="success"
@@ -286,7 +290,13 @@
           </el-tag>
         </el-descriptions-item>
         <el-descriptions-item :label="t('appAutomation.device.owner')">
-          {{ selectedDevice.locked_by_name || "-" }}
+          <span v-if="selectedDevice.locked_by_name">
+            {{ selectedDevice.locked_by_name }}
+            <span v-if="selectedDevice.lock_type_display">
+              / {{ selectedDevice.lock_type_display }}
+            </span>
+          </span>
+          <span v-else>-</span>
         </el-descriptions-item>
         <el-descriptions-item :label="t('appAutomation.device.lastUsed')">
           {{
@@ -710,6 +720,14 @@ const isRemoteDevice = (type) => {
 const goToRemoteConnection = (row) => {
   if (!row || !row.id) {
     ElMessage.warning(t("appAutomation.messages.deviceInfoIncomplete"));
+    return;
+  }
+  if (row.can_remote_connect === false) {
+    ElMessage.warning(
+      t("appAutomation.messages.deviceLockedByOther", {
+        name: row.locked_by_name || row.device_id,
+      }),
+    );
     return;
   }
   router.push({

@@ -176,7 +176,7 @@ class AppTestCaseViewSet(viewsets.ModelViewSet):
         try:
             # 检查设备是否可用
             device = AppDevice.objects.get(device_id=device_id)
-            if device.status == 'locked' and device.locked_by != request.user:
+            if device.is_locked_for_user(request.user):
                 return Response({
                     'success': False,
                     'message': '设备已被其他用户锁定'

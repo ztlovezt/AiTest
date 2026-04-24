@@ -517,6 +517,14 @@ const buildWsUrl = () => {
 };
 
 const handleSocketMessage = (message) => {
+  if (message.type === "heartbeat_ping") {
+    sendWsJson({
+      type: "heartbeat_pong",
+      ts: Date.now(),
+    });
+    return;
+  }
+
   if (message.type === "connected") {
     isConnected.value = true;
     connectionMessage.value = t(

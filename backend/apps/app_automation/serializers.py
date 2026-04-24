@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 import os
 from rest_framework import serializers
 from django.utils import timezone
@@ -181,6 +181,10 @@ class AppTestConfigSerializer(serializers.ModelSerializer):
 class AppDeviceSerializer(serializers.ModelSerializer):
     """APP设备序列化器"""
     locked_by_name = serializers.SerializerMethodField()
+    lock_type_display = serializers.SerializerMethodField()
+    is_locked_for_current_user = serializers.SerializerMethodField()
+    can_unlock = serializers.SerializerMethodField()
+    can_remote_connect = serializers.SerializerMethodField()
     
     class Meta:
         model = AppDevice
@@ -189,6 +193,29 @@ class AppDeviceSerializer(serializers.ModelSerializer):
     
     def get_locked_by_name(self, obj):
         return obj.locked_by.username if obj.locked_by else None
+
+    def get_lock_type_display(self, obj):
+        return obj.get_lock_type_display() if obj.lock_type else None
+
+    def _get_request_user(self):
+        request = self.context.get('request')
+        if request and getattr(request, 'user', None) and request.user.is_authenticated:
+            return request.user
+        return None
+
+    def get_is_locked_for_current_user(self, obj):
+        return obj.is_locked_for_user(self._get_request_user())
+
+    def get_can_unlock(self, obj):
+        user = self._get_request_user()
+        if not obj.is_locked():
+            return True
+        return obj.lock_type == obj.LOCK_TYPE_MANUAL and obj.is_locked_by_user(user)
+
+    def get_can_remote_connect(self, obj):
+        if obj.is_locked() and obj.lock_type == obj.LOCK_TYPE_AUTOMATION:
+            return False
+        return not obj.is_locked_for_user(self._get_request_user())
 
 
 class AppElementSerializer(serializers.ModelSerializer):

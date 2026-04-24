@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 APP自动化测试异步任务（使用 Django-Q2 替换 Celery）
 
@@ -68,11 +68,15 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
         
         logger.info(f"开始执行APP测试: {test_case.name}")
         
-        if device.status == 'locked' and device.locked_by != execution.user:
+        if device.is_locked_for_user(execution.user):
             raise RuntimeError(f"设备 {device.device_id} 已被其他用户锁定")
         
-        if device.status != 'locked':
-            device.lock(execution.user)
+        if not (
+            device.is_locked_by_user(execution.user)
+            and device.lock_type == device.LOCK_TYPE_AUTOMATION
+            and device.lock_session_id == f'automation:{execution.id}'
+        ):
+            device.lock_for_automation(execution.user, execution.id)
         
         logger.info(f"设备已锁定: {device.device_id}")
         
@@ -172,8 +176,8 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
                 pass
     finally:
         try:
-            if device and device.locked_by == execution.user:
-                device.unlock()
+            if device:
+                device.unlock(session_id=f'automation:{execution.id}')
                 logger.info(f"设备已释放: {device.device_id}")
         except Exception as e:
             logger.error(f"释放设备失败: {str(e)}")
@@ -214,8 +218,14 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
         device = executions[0].device
         user = executions[0].user
 
-        if device.status != 'locked':
-            device.lock(user)
+        if device.is_locked_for_user(user):
+            raise RuntimeError(f"设备 {device.device_id} 已被其他用户锁定")
+        if not (
+            device.is_locked_by_user(user)
+            and device.lock_type == device.LOCK_TYPE_AUTOMATION
+            and device.lock_session_id == f'automation:suite:{suite_id}'
+        ):
+            device.lock_for_automation(user, f'suite:{suite_id}')
         logger.info(f"套件执行开始: {suite.name}, 设备: {device.device_id}, 共 {len(executions)} 个用例")
 
         for idx, execution in enumerate(executions):
@@ -337,8 +347,8 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
             suite.save(update_fields=['execution_status', 'execution_result'])
     finally:
         try:
-            if device and device.status == 'locked' and device.locked_by == user:
-                device.unlock()
+            if device:
+                device.unlock(session_id=f'automation:suite:{suite_id}')
                 logger.info(f"设备已释放: {device.device_id}")
         except Exception as e:
             logger.error(f"释放设备失败: {str(e)}")

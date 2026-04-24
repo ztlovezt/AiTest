@@ -920,6 +920,8 @@ export default {
     unlockDeviceConfirm: "Are you sure to unlock device {name}?",
     deviceUnlocked: "Device unlocked",
     unlockDeviceFailed: "Failed to unlock device",
+    deviceLockedByOther:
+      "This device is currently locked by {name} and cannot be opened remotely",
     deleteDeviceConfirm:
       "Are you sure to delete device {name}? This action cannot be undone.",
     deleteDeviceTitle: "Delete Device",

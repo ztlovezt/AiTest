@@ -910,6 +910,7 @@ export default {
     unlockDeviceConfirm: "确定要解锁设备 {name} 吗？",
     deviceUnlocked: "设备已解锁",
     unlockDeviceFailed: "解锁设备失败",
+    deviceLockedByOther: "设备当前由 {name} 锁定，暂时无法远程连接",
     deleteDeviceConfirm: "确定要删除设备 {name} 吗？删除后将无法恢复。",
     deleteDeviceTitle: "删除设备",
     deviceDeleted: "设备已删除",
