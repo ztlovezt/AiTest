@@ -65,6 +65,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/agent",
+    name: "GlobalAgent",
+    component: () => import("@/views/agent/AgentWorkspace.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/reports",
     component: Layout,
     meta: { requiresAuth: true },

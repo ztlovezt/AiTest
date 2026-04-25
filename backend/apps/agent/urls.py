@@ -1,0 +1,13 @@
+from django.urls import include, path
+from rest_framework.routers import DefaultRouter
+
+from .views import AgentChatViewSet, AgentSessionViewSet, AgentStatusView
+
+router = DefaultRouter()
+router.register(r"sessions", AgentSessionViewSet, basename="agent-sessions")
+router.register(r"chat", AgentChatViewSet, basename="agent-chat")
+
+urlpatterns = [
+    path("status/", AgentStatusView.as_view(), name="agent-status"),
+    path("", include(router.urls)),
+]
