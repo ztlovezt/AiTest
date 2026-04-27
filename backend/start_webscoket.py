@@ -64,28 +64,28 @@ signal.signal(signal.SIGTERM, cleanup)
 is_windows = platform.system() == 'Windows'
 
 if is_windows:
-    # Windows 系统使用 Daphne
-    print("检测到 Windows 系统，使用 Daphne 启动...")
+    # Windows 系统使用 Uvicorn
+    print("检测到 Windows 系统，使用 Uvicorn 启动...")
     print()
     
-    # 启动 Daphne 服务器（支持 WebSocket）
+    # 启动 Uvicorn 服务器（支持 WebSocket）
     proc_server = subprocess.Popen(
-        [sys.executable, '-m', 'daphne', '-b', '0.0.0.0', '-p', str(backend_port), asgi_app],
+        [sys.executable, '-m', 'uvicorn', 'backend.asgi:application', '--host', '0.0.0.0', '--port', str(backend_port), '--reload'],
         creationflags=subprocess.CREATE_NEW_CONSOLE if is_windows else 0
     )
     processes.append(proc_server)
-    print(f"✓ Daphne 服务器已启动 (端口: {backend_port})")
+    print(f"✓ Uvicorn 服务器已启动 (端口: {backend_port})")
 else:
-    # Linux/Mac 系统也使用 Daphne（推荐）
-    print("使用 Daphne ASGI 服务器启动...")
+    # Linux/Mac 系统也使用 Uvicorn
+    print("使用 Uvicorn ASGI 服务器启动...")
     print()
     
-    # 启动 Daphne 服务器（支持 WebSocket）
+    # 启动 Uvicorn 服务器（支持 WebSocket）
     proc_server = subprocess.Popen(
-        [sys.executable, '-m', 'daphne', '-b', '0.0.0.0', '-p', str(backend_port), asgi_app]
+        [sys.executable, '-m', 'uvicorn', 'backend.asgi:application', '--host', '0.0.0.0', '--port', str(backend_port), '--reload']
     )
     processes.append(proc_server)
-    print(f"✓ Daphne 服务器已启动 (端口: {backend_port})")
+    print(f"✓ Uvicorn 服务器已启动 (端口: {backend_port})")
 
 print()
 

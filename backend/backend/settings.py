@@ -36,7 +36,6 @@ else:
                            cast=lambda v: [s.strip() for s in v.split(',')])
 
 DJANGO_APPS = [
-    'daphne',
     'simpleui',
     'django.contrib.admin',
     'django.contrib.auth',
