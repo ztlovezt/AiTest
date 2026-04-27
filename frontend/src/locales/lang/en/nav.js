@@ -16,6 +16,7 @@ export default {
     apiTesting: 'API Testing',
     uiAutomation: 'UI Automation Testing',
     appAutomation: 'APP Automation Testing',
+    opsTools: 'Ops Tools',
     aiIntelligentMode: 'AI Intelligent Mode',
     configuration: 'Configuration Center',
     unifiedProject: 'Unified Project Management'
@@ -69,6 +70,8 @@ export default {
     appTestReports: 'Report Management',
     appScheduledTasks: 'Scheduled Tasks',
     appNotificationList: 'Notification List',
+    opsEnvironmentManagement: 'Environment Management',
+    opsLogQuery: 'Log Query',
 
     // AI Intelligent Mode
     aiIntelligentTesting: 'AI Intelligent Testing',

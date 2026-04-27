@@ -210,6 +210,17 @@
             </el-menu-item>
           </template>
 
+          <template v-else-if="currentModule === 'ops-tools'">
+            <el-menu-item index="/ops-tools/environments">
+              <el-icon><Setting /></el-icon>
+              <span>{{ $t("menu.opsEnvironmentManagement") }}</span>
+            </el-menu-item>
+            <el-menu-item index="/ops-tools/logs">
+              <el-icon><DocumentCopy /></el-icon>
+              <span>{{ $t("menu.opsLogQuery") }}</span>
+            </el-menu-item>
+          </template>
+
           <!-- AI 智能模式模块菜单 -->
           <template v-else-if="currentModule === 'ai-intelligent-mode'">
             <el-menu-item index="/ai-intelligent-mode/projects">
@@ -385,10 +396,18 @@
         </el-header>
 
         <!-- 页面内容 -->
-        <el-main :class="{ 'el-main--workbench': isAppWorkbenchRoute }">
+        <el-main
+          :class="{
+            'el-main--workbench': isAppWorkbenchRoute,
+            'el-main--contained': isContainedHeightRoute,
+          }"
+        >
           <div
             class="main-view"
-            :class="{ 'main-view--workbench': isAppWorkbenchRoute }"
+            :class="{
+              'main-view--workbench': isAppWorkbenchRoute,
+              'main-view--contained': isContainedHeightRoute,
+            }"
           >
             <router-view />
           </div>
@@ -488,6 +507,7 @@ const currentModule = computed(() => {
   if (route.path.startsWith("/api-testing")) return "api-testing";
   if (route.path.startsWith("/ui-automation")) return "ui-automation";
   if (route.path.startsWith("/app-automation")) return "app-automation";
+  if (route.path.startsWith("/ops-tools")) return "ops-tools";
   if (route.path.startsWith("/ai-intelligent-mode"))
     return "ai-intelligent-mode";
   if (route.path.startsWith("/configuration")) return "configuration";
@@ -501,6 +521,7 @@ const moduleName = computed(() => {
     "api-testing": t("modules.apiTesting"),
     "ui-automation": t("modules.uiAutomation"),
     "app-automation": t("modules.appAutomation"),
+    "ops-tools": t("modules.opsTools"),
     "ai-intelligent-mode": t("modules.aiIntelligentMode"),
     configuration: t("modules.configuration"),
     "meta-projects": t("modules.unifiedProject"),
@@ -563,6 +584,10 @@ const breadcrumbTitle = computed(() => {
     "/app-automation/executions": t("menu.appExecutionRecords"),
     "/app-automation/reports": t("menu.appTestReports"),
 
+    // 运维工具
+    "/ops-tools/environments": t("menu.opsEnvironmentManagement"),
+    "/ops-tools/logs": t("menu.opsLogQuery"),
+
     // AI 智能模式
     "/ai-intelligent-mode/testing": t("menu.aiIntelligentTesting"),
     "/ai-intelligent-mode/projects": t("menu.aiProjectManagement"),
@@ -606,6 +631,10 @@ const showProjectManagement = computed(() => {
 
 const isAppWorkbenchRoute = computed(() => {
   return route.path.startsWith("/app-automation/workbench/");
+});
+
+const isContainedHeightRoute = computed(() => {
+  return route.path === "/ops-tools/logs";
 });
 
 const handleCommand = (command) => {
@@ -902,8 +931,20 @@ const handleCommand = (command) => {
   display: flex;
 }
 
+.el-main--contained {
+  overflow: hidden !important;
+  display: flex;
+}
+
 .main-view {
   min-height: 100%;
+}
+
+.main-view--contained {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
 }
 
 .main-view--workbench {

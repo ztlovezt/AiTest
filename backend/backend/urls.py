@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/knowledge-base/', include('apps.knowledge_base.urls')),
     path('api/meta-projects/', include('apps.unified_projects.urls')),
     path('api/ocr/', include('apps.ocr_service.urls')),
+    path('api/ops-tools/', include('apps.ops_tools.urls')),
 ]
 
 # 媒体文件服务（不受DEBUG限制）

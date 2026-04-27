@@ -86,6 +86,16 @@
           <p>{{ $t('home.appAutomationDesc') }}</p>
         </div>
 
+        <div class="nav-card" @click="handleNavigate('ops-tools')" role="button" tabindex="0">
+          <div class="card-icon config-icon">
+            <el-icon>
+              <Setting/>
+            </el-icon>
+          </div>
+          <h3>{{ $t('home.opsTools') }}</h3>
+          <p>{{ $t('home.opsToolsDesc') }}</p>
+        </div>
+
         <!-- 数据工厂 -->
         <div class="nav-card" @click="handleNavigate('data')" role="button" tabindex="0">
           <div class="card-icon data-icon">
@@ -199,6 +209,7 @@ const handleNavigate = (type) => {
     'api': '/api-testing/dashboard',
     'ui': '/ui-automation/dashboard',
     'app': '/app-automation/dashboard',
+    'ops-tools': '/ops-tools/environments',
     'ai-intelligent': '/ai-intelligent-mode/testing',
     'assistant': '/ai-generation/assistant',
     'config': '/configuration/project-center',

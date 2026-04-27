@@ -593,6 +593,28 @@ const routes = [
     ],
   },
   {
+    path: "/ops-tools",
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        redirect: "environments",
+      },
+      {
+        path: "environments",
+        name: "OpsEnvironmentManagement",
+        component: () =>
+          import("@/views/ops-tools/environment/EnvironmentManagement.vue"),
+      },
+      {
+        path: "logs",
+        name: "OpsLogQuery",
+        component: () => import("@/views/ops-tools/logs/LogQuery.vue"),
+      },
+    ],
+  },
+  {
     path: "/meta-projects",
     component: Layout,
     meta: { requiresAuth: true },

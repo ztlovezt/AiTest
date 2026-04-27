@@ -16,6 +16,7 @@ export default {
     apiTesting: '接口测试',
     uiAutomation: 'UI自动化测试',
     appAutomation: 'APP自动化测试',
+    opsTools: '运维工具',
     aiIntelligentMode: 'AI 智能模式',
     configuration: '配置中心',
     unifiedProject: '项目管理'
@@ -67,6 +68,8 @@ export default {
     appTestReports: '报告管理',
     appScheduledTasks: '定时任务',
     appNotificationList: '通知列表',
+    opsEnvironmentManagement: '环境管理',
+    opsLogQuery: '日志查询',
 
     // AI智能模式
     aiIntelligentTesting: 'AI 智能测试',

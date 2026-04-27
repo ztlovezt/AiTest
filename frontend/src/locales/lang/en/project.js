@@ -184,6 +184,8 @@ export default {
     uiAutomationDesc: 'Visual Web/App UI automation testing',
     appAutomation: 'APP Automation Testing',
     appAutomationDesc: 'Android APP automation testing based on Airtest',
+    opsTools: 'Ops Tools',
+    opsToolsDesc: 'Manage environment settings and inspect service logs quickly',
     dataFactory: 'Data Factory',
     dataFactoryDesc: 'Flexible test data construction and management',
     unifiedProject: 'Unified Project Management',
