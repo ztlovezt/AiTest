@@ -86,16 +86,6 @@
           <p>{{ $t('home.appAutomationDesc') }}</p>
         </div>
 
-        <div class="nav-card" @click="handleNavigate('ops-tools')" role="button" tabindex="0">
-          <div class="card-icon config-icon">
-            <el-icon>
-              <Setting/>
-            </el-icon>
-          </div>
-          <h3>{{ $t('home.opsTools') }}</h3>
-          <p>{{ $t('home.opsToolsDesc') }}</p>
-        </div>
-
         <!-- 数据工厂 -->
         <div class="nav-card" @click="handleNavigate('data')" role="button" tabindex="0">
           <div class="card-icon data-icon">
@@ -127,6 +117,21 @@
           </div>
           <h3>{{ $t('home.aiEvaluator') }}</h3>
           <p>{{ $t('home.aiEvaluatorDesc') }}</p>
+        </div>
+
+        <!-- 运维工具 -->
+        <div class="nav-card" @click="handleNavigate('ops-tools')" role="button" tabindex="0">
+          <div class="card-icon ops-icon">
+            <el-icon>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m15 12-8.373 8.373a1 1 0 1 1-3-3L12 9"/>
+                <path d="m18 15 4-4"/>
+                <path d="m21.5 11.5-1.914-1.914A2 2 0 0 1 19 8.172V7l-2.26-2.26a6 6 0 0 0-4.202-1.756L9 2l2.49 2.49A2 2 0 0 1 12 5.904V7l2 2h1.096a2 2 0 0 1 1.414.586l2.49 2.49"/>
+              </svg>
+            </el-icon>
+          </div>
+          <h3>{{ $t('home.opsTools') }}</h3>
+          <p>{{ $t('home.opsToolsDesc') }}</p>
         </div>
 
         <!-- 配置中心 -->
@@ -504,6 +509,11 @@ const handleNavigate = (type) => {
   &.ai-intelligent-icon {
     --icon-bg: var(--th-color-primary-soft);
     --icon-color: var(--th-color-primary);
+  }
+
+  &.ops-icon {
+    --icon-bg: #e0f2fe;
+    --icon-color: #0284c7;
   }
 
   &.config-icon {
