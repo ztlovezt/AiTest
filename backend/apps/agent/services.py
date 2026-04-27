@@ -1,6 +1,8 @@
 import json
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import requests
 from django.db import models
@@ -9,8 +11,20 @@ from django.utils import timezone
 from apps.data_factory.views import DataFactoryViewSet
 from apps.projects.models import Project
 from apps.testcases.models import TestCase
+from .models import AgentBuiltinChunk, AgentBuiltinDocument, AgentMessage, AgentModelConfig, AgentToolCall
 
-from .models import AgentBuiltinChunk, AgentBuiltinDocument, AgentModelConfig, AgentToolCall
+DEFAULT_MEMORY_LIMIT = 8
+MAX_PROMPT_TEXT_CHARS = 4000
+MAX_MEMORY_MESSAGE_CHARS = 260
+
+
+def _truncate_text(text: str, max_chars: int = MAX_PROMPT_TEXT_CHARS) -> str:
+    if not text:
+        return ""
+    clean = str(text).strip()
+    if len(clean) <= max_chars:
+        return clean
+    return clean[:max_chars] + "..."
 
 
 def _project_root() -> Path:
@@ -190,20 +204,238 @@ def run_data_factory(tool_name: str, tool_category: str, input_data: Dict[str, A
     return viewset.execute_tool(tool_name, tool_category, input_data)
 
 
+def _extract_project_id_from_route_context(route_context: Dict[str, Any]) -> Optional[int]:
+    if not isinstance(route_context, dict):
+        return None
+    candidates = []
+    scope = route_context.get("scope")
+    if isinstance(scope, dict):
+        candidates.append(scope.get("project_id"))
+    candidates.append(route_context.get("project_id"))
+    query = route_context.get("query")
+    if isinstance(query, dict):
+        candidates.append(query.get("project_id"))
+    params = route_context.get("params")
+    if isinstance(params, dict):
+        candidates.append(params.get("project_id"))
+    for value in candidates:
+        if value in (None, "", []):
+            continue
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _is_testcase_lookup(message: str) -> bool:
+    text = (message or "").strip().lower()
+    return text.startswith("/testcases") or "用例" in message
+
+
+def _parse_data_tool_command(message: str) -> Dict[str, Any]:
+    raw = (message or "").replace("/data", "", 1).strip()
+    if not raw:
+        return {
+            "ok": False,
+            "error": "请使用 /data tool_name|tool_category|{\"key\":\"value\"} 格式，例如 /data format_json|json|{\"json_str\":\"{\\\"a\\\":1}\"}",
+            "raw": raw,
+        }
+    parts = raw.split("|", 2)
+    if len(parts) != 3:
+        return {
+            "ok": False,
+            "error": "请使用 /data tool_name|tool_category|{\"key\":\"value\"} 格式，例如 /data format_json|json|{\"json_str\":\"{\\\"a\\\":1}\"}",
+            "raw": raw,
+        }
+    tool_name = parts[0].strip()
+    tool_category = parts[1].strip()
+    payload_raw = parts[2].strip()
+    if not tool_name or not tool_category:
+        return {
+            "ok": False,
+            "error": "请使用 /data tool_name|tool_category|{\"key\":\"value\"} 格式，例如 /data format_json|json|{\"json_str\":\"{\\\"a\\\":1}\"}",
+            "raw": raw,
+        }
+    try:
+        input_data = json.loads(payload_raw)
+        if not isinstance(input_data, dict):
+            input_data = {"value": input_data}
+    except json.JSONDecodeError:
+        input_data = {"text": payload_raw}
+    return {
+        "ok": True,
+        "tool_name": tool_name,
+        "tool_category": tool_category,
+        "input_data": input_data,
+        "raw": raw,
+    }
+
+
+class PresetRegistry:
+    def __init__(self):
+        self._system_prompts = {
+            "general_qa": "你是 TestHub 的全局助手。",
+            "platform_help_qa": "你是 TestHub 的平台文档助手。优先使用平台内置文档引用回答。",
+            "workspace_lookup": "你是 TestHub 的项目与测试资产查询助手。基于查询结果给出简洁结论。",
+            "data_tool_helper": "你是 TestHub 的数据工具助手。基于工具执行结果解释用途和下一步。",
+        }
+
+    def choose_preset(self, message: str) -> str:
+        text = (message or "").lower()
+        if text.startswith("/docs") or "readme" in text or "使用说明" in message or "怎么" in message:
+            return "platform_help_qa"
+        if text.startswith("/projects") or text.startswith("/testcases") or "项目" in message or "用例" in message:
+            return "workspace_lookup"
+        if text.startswith("/data") or "json" in text or "base64" in text:
+            return "data_tool_helper"
+        return "general_qa"
+
+    def get_system_prompt(self, preset_code: str) -> str:
+        return self._system_prompts.get(preset_code, self._system_prompts["general_qa"])
+
+
+@dataclass
+class ToolExecutionResult:
+    tool_name: str = ""
+    tool_status: str = "skipped"
+    tool_result: Dict[str, Any] = field(default_factory=dict)
+    citations: List[Dict[str, Any]] = field(default_factory=list)
+    duration_ms: int = 0
+    failure_reason: str = ""
+
+
+class ToolRegistry:
+    def execute(
+            self,
+            *,
+            preset_code: str,
+            session,
+            assistant_message,
+            user,
+            message: str,
+            route_context: Dict[str, Any],
+    ) -> ToolExecutionResult:
+        if preset_code == "platform_help_qa":
+            return self._run_platform_docs(session, assistant_message, preset_code, message)
+        if preset_code == "workspace_lookup":
+            return self._run_workspace_lookup(session, assistant_message, preset_code, user, message, route_context)
+        if preset_code == "data_tool_helper":
+            return self._run_data_tool(session, assistant_message, preset_code, message)
+        return ToolExecutionResult()
+
+    def _run_platform_docs(self, session, assistant_message, preset_code: str, message: str) -> ToolExecutionResult:
+        call, tool_result = create_tool_call(
+            session=session,
+            assistant_message=assistant_message,
+            preset_code=preset_code,
+            tool_name="search_platform_docs",
+            arguments={"query": message, "top_k": 5},
+            handler=lambda: {"results": search_platform_docs(message, top_k=5)},
+        )
+        citations = tool_result.get("results", [])
+        return ToolExecutionResult(
+            tool_name=call.tool_name,
+            tool_status=call.status,
+            tool_result=tool_result,
+            citations=citations,
+            duration_ms=_duration_ms(call.started_at, call.finished_at),
+            failure_reason=call.error_message or "",
+        )
+
+    def _run_workspace_lookup(
+            self, session, assistant_message, preset_code: str, user, message: str, route_context: Dict[str, Any]
+    ) -> ToolExecutionResult:
+        if _is_testcase_lookup(message):
+            keyword = message.replace("/testcases", "").strip()
+            kwargs = {"keyword": keyword, "limit": 10}
+            project_id = _extract_project_id_from_route_context(route_context)
+            if project_id:
+                kwargs["project_id"] = project_id
+            call, tool_result = create_tool_call(
+                session=session,
+                assistant_message=assistant_message,
+                preset_code=preset_code,
+                tool_name="search_testcases",
+                arguments=kwargs,
+                handler=lambda: search_testcases(user, **kwargs),
+            )
+        else:
+            keyword = message.replace("/projects", "").strip()
+            call, tool_result = create_tool_call(
+                session=session,
+                assistant_message=assistant_message,
+                preset_code=preset_code,
+                tool_name="list_projects",
+                arguments={"keyword": keyword, "limit": 10},
+                handler=lambda: list_projects(user, keyword=keyword, limit=10),
+            )
+        return ToolExecutionResult(
+            tool_name=call.tool_name,
+            tool_status=call.status,
+            tool_result=tool_result,
+            duration_ms=_duration_ms(call.started_at, call.finished_at),
+            failure_reason=call.error_message or "",
+        )
+
+    def _run_data_tool(self, session, assistant_message, preset_code: str, message: str) -> ToolExecutionResult:
+        parsed = _parse_data_tool_command(message)
+        if not parsed.get("ok"):
+            error_message = parsed.get("error") or "数据工具调用参数格式错误"
+            failed_call = create_failed_tool_call(
+                session=session,
+                assistant_message=assistant_message,
+                preset_code=preset_code,
+                tool_name="run_data_factory",
+                arguments={"raw": parsed.get("raw", "")},
+                error_message=error_message,
+                result={"error": error_message},
+            )
+            return ToolExecutionResult(
+                tool_name=failed_call.tool_name,
+                tool_status=failed_call.status,
+                tool_result={"error": error_message},
+                duration_ms=_duration_ms(failed_call.started_at, failed_call.finished_at),
+                failure_reason=error_message,
+            )
+        tool_name = parsed["tool_name"]
+        tool_category = parsed["tool_category"]
+        input_data = parsed["input_data"]
+        call, tool_result = create_tool_call(
+            session=session,
+            assistant_message=assistant_message,
+            preset_code=preset_code,
+            tool_name="run_data_factory",
+            arguments={"tool_name": tool_name, "tool_category": tool_category, "input_data": input_data},
+            handler=lambda: run_data_factory(tool_name, tool_category, input_data),
+        )
+        return ToolExecutionResult(
+            tool_name=call.tool_name,
+            tool_status=call.status,
+            tool_result=tool_result,
+            duration_ms=_duration_ms(call.started_at, call.finished_at),
+            failure_reason=call.error_message or "",
+        )
+
+
 def choose_preset(message: str) -> str:
-    text = message.lower()
-    if text.startswith("/docs") or "readme" in text or "使用说明" in message or "怎么" in message:
-        return "platform_help_qa"
-    if text.startswith("/projects") or text.startswith("/testcases") or "项目" in message or "用例" in message:
-        return "workspace_lookup"
-    if text.startswith("/data") or "json" in text or "base64" in text:
-        return "data_tool_helper"
-    return "general_qa"
+    return PresetRegistry().choose_preset(message)
 
 
-def _call_model(config: AgentModelConfig, system_prompt: str, user_prompt: str) -> str:
+def call_model_structured(config: AgentModelConfig, system_prompt: str, user_prompt: str) -> Dict[str, Any]:
+    result = {
+        "llm_called": False,
+        "llm_success": False,
+        "llm_model": config.model_name if config else "",
+        "duration_ms": 0,
+        "error": "",
+        "content": "",
+    }
     if not config or not config.base_url or not config.api_key or not config.model_name:
-        return ""
+        result["error"] = "model_not_configured"
+        return result
+    start = time.perf_counter()
+    result["llm_called"] = True
     base_url = config.base_url.rstrip("/")
     url = f"{base_url}/chat/completions"
     payload = {
@@ -213,41 +445,93 @@ def _call_model(config: AgentModelConfig, system_prompt: str, user_prompt: str) 
         "top_p": config.top_p,
         "max_tokens": config.max_tokens,
     }
-    resp = requests.post(
-        url,
-        headers={"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=20,
+    try:
+        resp = requests.post(
+            url,
+            headers={"Authorization": f"Bearer {config.api_key}", "Content-Type": "application/json"},
+            json=payload,
+            timeout=20,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        choices = data.get("choices") or []
+        content = ""
+        if choices:
+            content = (choices[0].get("message") or {}).get("content", "").strip()
+        result["content"] = content
+        if content:
+            result["llm_success"] = True
+        else:
+            result["error"] = "empty_response"
+    except Exception as exc:
+        result["error"] = str(exc)
+    finally:
+        result["duration_ms"] = int((time.perf_counter() - start) * 1000)
+    return result
+
+
+def get_short_term_memory(
+        session, exclude_message_ids: Optional[List[int]] = None, limit: int = DEFAULT_MEMORY_LIMIT
+) -> List[AgentMessage]:
+    queryset = AgentMessage.objects.filter(session=session, role__in=["user", "assistant"]).order_by("-created_at")
+    exclude_ids = [msg_id for msg_id in (exclude_message_ids or []) if msg_id]
+    if exclude_ids:
+        queryset = queryset.exclude(id__in=exclude_ids)
+    rows = list(queryset[:limit])
+    rows.reverse()
+    return rows
+
+
+def _format_short_term_memory(messages: List[AgentMessage]) -> str:
+    if not messages:
+        return "(无)"
+    lines: List[str] = []
+    for index, item in enumerate(messages, 1):
+        role = "用户" if item.role == "user" else "助手"
+        content = _truncate_text(item.content.replace("\n", " "), max_chars=MAX_MEMORY_MESSAGE_CHARS)
+        lines.append(f"{index}. {role}: {content}")
+    return "\n".join(lines)
+
+
+def build_user_prompt(
+        *,
+        user_message: str,
+        route_context: Dict[str, Any],
+        memory_messages: List[AgentMessage],
+        tool_result: Dict[str, Any],
+        citations: List[Dict[str, Any]],
+) -> str:
+    route_snapshot = {
+        "module": route_context.get("module") if isinstance(route_context, dict) else "",
+        "path": route_context.get("path") if isinstance(route_context, dict) else "",
+        "project_id": _extract_project_id_from_route_context(route_context or {}),
+    }
+    tool_summary = _truncate_text(json.dumps(tool_result or {}, ensure_ascii=False), max_chars=1000)
+    citation_summary = _truncate_text(json.dumps((citations or [])[:3], ensure_ascii=False), max_chars=1000)
+    memory_text = _format_short_term_memory(memory_messages)
+    return (
+        "短期记忆（最近8条）:\n"
+        f"{memory_text}\n\n"
+        "Route Context:\n"
+        f"{json.dumps(route_snapshot, ensure_ascii=False)}\n\n"
+        "本轮工具/引用摘要:\n"
+        f"tool_result={tool_summary}\n"
+        f"citations={citation_summary}\n\n"
+        "当前用户问题:\n"
+        f"{_truncate_text(user_message, max_chars=1200)}"
     )
-    resp.raise_for_status()
-    data = resp.json()
-    choices = data.get("choices") or []
-    if not choices:
-        return ""
-    return (choices[0].get("message") or {}).get("content", "").strip()
 
 
 def compose_answer(
-    user_message: str, preset: str, citations: List[Dict[str, Any]], tool_result: Dict[str, Any]
+        user_message: str,
+        preset: str,
+        citations: List[Dict[str, Any]],
+        tool_result: Dict[str, Any],
+        llm_result: Optional[Dict[str, Any]] = None,
 ) -> str:
-    config = AgentModelConfig.get_active_config()
-    summary = ""
-    if tool_result:
-        summary = json.dumps(tool_result, ensure_ascii=False)[:1600]
-    if citations:
-        summary = json.dumps(citations[:3], ensure_ascii=False)[:1600]
-    prompt = (
-        f"用户问题: {user_message}\n"
-        f"当前预设: {preset}\n"
-        f"可用上下文摘要: {summary}\n"
-        "请输出简洁中文回答，必要时给出下一步建议。"
-    )
-    try:
-        llm_answer = _call_model(config, "你是 TestHub 的全局助手。", prompt)
-    except Exception:
-        llm_answer = ""
-    if llm_answer:
-        return llm_answer
+    llm_content = (llm_result or {}).get("content", "").strip()
+    if (llm_result or {}).get("llm_success") and llm_content:
+        return llm_content
 
     if preset == "platform_help_qa":
         if citations:
@@ -278,10 +562,12 @@ def create_tool_call(session, assistant_message, preset_code, tool_name, argumen
     )
     try:
         result = handler()
-        call.result = result
-        call.status = "success"
+        call.result = result if isinstance(result, dict) else {"value": result}
+        has_error = isinstance(result, dict) and bool(result.get("error"))
+        call.status = "failed" if has_error else "success"
+        call.error_message = str(result.get("error")) if has_error else ""
         call.finished_at = timezone.now()
-        call.save(update_fields=["result", "status", "finished_at"])
+        call.save(update_fields=["result", "status", "error_message", "finished_at"])
         return call, result
     except Exception as exc:
         call.status = "failed"
@@ -289,3 +575,25 @@ def create_tool_call(session, assistant_message, preset_code, tool_name, argumen
         call.finished_at = timezone.now()
         call.save(update_fields=["status", "error_message", "finished_at"])
         return call, {"error": str(exc)}
+
+
+def create_failed_tool_call(session, assistant_message, preset_code, tool_name, arguments, error_message, result=None):
+    now = timezone.now()
+    return AgentToolCall.objects.create(
+        session=session,
+        assistant_message=assistant_message,
+        preset_code=preset_code,
+        tool_name=tool_name,
+        status="failed",
+        arguments=arguments or {},
+        result=result or {"error": error_message},
+        error_message=error_message,
+        started_at=now,
+        finished_at=now,
+    )
+
+
+def _duration_ms(started_at, finished_at) -> int:
+    if not started_at or not finished_at:
+        return 0
+    return max(0, int((finished_at - started_at).total_seconds() * 1000))

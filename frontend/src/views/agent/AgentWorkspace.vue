@@ -4,7 +4,7 @@
       <div class="header">
         <div>
           <div class="title">全局助手调试台</div>
-          <div class="sub">仅供开发调试，正式入口是全站悬浮球</div>
+          <div class="sub">内部调试入口（会话、文档同步、模型状态）</div>
         </div>
         <el-button size="small" @click="newSession">新会话</el-button>
       </div>
@@ -25,7 +25,7 @@
       <div class="chat-head">
         <div>
           <div class="chat-title">{{ activeSession?.title || '新会话' }}</div>
-          <div class="chat-sub">调试页保留文档同步和历史会话，首页不再暴露入口</div>
+          <div class="chat-sub">用于联调与排障；日常使用请走全站悬浮球</div>
         </div>
         <el-button link @click="syncDocs">同步平台文档</el-button>
       </div>
@@ -39,9 +39,25 @@
         <span v-else>平台文档未同步</span>
       </div>
       <div class="messages" ref="messagesRef">
-        <div v-if="!runtimeStatus.model_configured && messages.length === 0" class="empty-state">
+        <div v-if="loadingMessages" class="empty-state">
+          <div class="empty-title">正在加载消息</div>
+          <div class="empty-text">请稍候...</div>
+        </div>
+        <div v-else-if="messagesError" class="empty-state">
+          <div class="empty-title">消息加载失败</div>
+          <div class="empty-text">{{ messagesError }}</div>
+        </div>
+        <div v-else-if="!runtimeStatus.model_configured && messages.length === 0" class="empty-state">
           <div class="empty-title">当前调试页不可发送消息</div>
           <div class="empty-text">先在 Django Admin 中启用 Agent 模型配置，悬浮球和调试页都会恢复可用。</div>
+        </div>
+        <div v-else-if="!runtimeStatus.docs_ready && messages.length === 0" class="empty-state">
+          <div class="empty-title">平台文档未同步</div>
+          <div class="empty-text">可继续调试，但文档问答完整性受影响。点击右上角可同步文档。</div>
+        </div>
+        <div v-else-if="messages.length === 0" class="empty-state">
+          <div class="empty-title">暂无消息</div>
+          <div class="empty-text">输入问题后开始对话。</div>
         </div>
         <div v-for="item in messages" :key="item.localKey" class="msg-row" :class="item.role">
           <div class="bubble">
@@ -49,6 +65,17 @@
             <div v-if="item.tool_calls?.length" class="tools">
               <div v-for="tool in item.tool_calls" :key="tool.id || tool.created_at">
                 {{ tool.tool_name }} · {{ tool.status }}
+              </div>
+            </div>
+            <div v-if="item.metadata?.citations?.length" class="citations">
+              <div
+                  v-for="cite in item.metadata.citations"
+                  :key="`${cite.source_path}-${cite.chunk_index}`"
+                  class="cite-item"
+              >
+                <div class="cite-title">{{ cite.title }}</div>
+                <div class="cite-path">{{ cite.source_path }}</div>
+                <div class="cite-snippet">{{ cite.content || '' }}</div>
               </div>
             </div>
           </div>
@@ -63,17 +90,18 @@
           :placeholder="inputPlaceholder"
           @keydown.enter.exact.prevent="send"
         />
-        <el-button type="primary" :disabled="inputDisabled || !input.trim()" @click="send">发送</el-button>
+        <el-button type="primary" :loading="sending" :disabled="inputDisabled || !input.trim()" @click="send">发送
+        </el-button>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { agentApi } from '@/api/agent'
+import {computed, nextTick, onMounted, ref} from 'vue'
+import {useRoute} from 'vue-router'
+import {ElMessage} from 'element-plus'
+import {agentApi} from '@/api/agent'
 
 const route = useRoute()
 const sessions = ref([])
@@ -82,6 +110,8 @@ const messages = ref([])
 const input = ref('')
 const sending = ref(false)
 const messagesRef = ref(null)
+const loadingMessages = ref(false)
+const messagesError = ref('')
 const runtimeStatus = ref({
   model_configured: false,
   active_model_name: '',
@@ -118,7 +148,7 @@ const scrollBottom = async () => {
 
 const loadSessions = async () => {
   const res = await agentApi.listSessions()
-  sessions.value = res.data
+  sessions.value = res.data?.results ?? res.data
 }
 
 const loadStatus = async () => {
@@ -137,9 +167,18 @@ const loadStatus = async () => {
 
 const selectSession = async (session) => {
   activeSession.value = session
-  const res = await agentApi.getMessages(session.id)
-  messages.value = res.data.map((item, index) => ({ ...item, localKey: `${item.id || index}-${index}` }))
-  await scrollBottom()
+  loadingMessages.value = true
+  messagesError.value = ''
+  try {
+    const res = await agentApi.getMessages(session.id)
+    messages.value = res.data.map((item, index) => ({...item, localKey: `${item.id || index}-${index}`}))
+    await scrollBottom()
+  } catch (error) {
+    messages.value = []
+    messagesError.value = error.response?.data?.error || '获取消息失败'
+  } finally {
+    loadingMessages.value = false
+  }
 }
 
 const newSession = () => {
@@ -157,6 +196,7 @@ const removeSession = async (item) => {
 
 const send = async () => {
   const text = input.value.trim()
+  const draft = text
   if (!runtimeStatus.value.model_configured) {
     ElMessage.warning('请先到 Django Admin -> 全局助手 -> Agent模型配置 启用配置')
     return
@@ -177,6 +217,7 @@ const send = async () => {
     await loadSessions()
     await scrollBottom()
   } catch (error) {
+    input.value = draft
     if (error.response?.data?.code === 'MODEL_NOT_CONFIGURED') {
       runtimeStatus.value.model_configured = false
     }
@@ -337,6 +378,29 @@ onMounted(async () => {
   background: #1f7af8;
   color: #fff;
   border-color: #1f7af8;
+}
+
+.tools,
+.citations {
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.cite-item {
+  border-left: 2px solid #c7d6f7;
+  padding-left: 8px;
+  margin-bottom: 6px;
+}
+
+.cite-title {
+  font-weight: 600;
+}
+
+.cite-path,
+.cite-snippet {
+  font-size: 11px;
+  line-height: 1.45;
+  opacity: 0.86;
 }
 
 .composer {

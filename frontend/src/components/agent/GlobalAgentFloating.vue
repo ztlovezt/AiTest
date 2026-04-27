@@ -27,9 +27,25 @@
         </div>
 
         <div class="messages" ref="messagesRef">
-          <div v-if="!runtimeStatus.model_configured && messages.length === 0" class="empty-state">
+          <div v-if="loadingMessages" class="empty-state">
+            <div class="empty-title">正在加载会话消息</div>
+            <div class="empty-text">请稍候...</div>
+          </div>
+          <div v-else-if="messagesError" class="empty-state">
+            <div class="empty-title">消息加载失败</div>
+            <div class="empty-text">{{ messagesError }}</div>
+          </div>
+          <div v-else-if="!runtimeStatus.model_configured && messages.length === 0" class="empty-state">
             <div class="empty-title">全局助手还不能发送消息</div>
             <div class="empty-text">先在 Django Admin 中启用一条 Agent 模型配置，悬浮球会自动恢复可用。</div>
+          </div>
+          <div v-else-if="!runtimeStatus.docs_ready && messages.length === 0" class="empty-state">
+            <div class="empty-title">平台文档未同步</div>
+            <div class="empty-text">可继续提问，但文档问答完整性会受影响。可在调试页执行文档同步。</div>
+          </div>
+          <div v-else-if="messages.length === 0" class="empty-state">
+            <div class="empty-title">暂无消息</div>
+            <div class="empty-text">输入问题后开始新对话。</div>
           </div>
           <div v-for="item in messages" :key="item.localKey" class="msg-row" :class="item.role">
             <div class="bubble">
@@ -41,7 +57,9 @@
               </div>
               <div v-if="item.metadata?.citations?.length" class="citations">
                 <div v-for="cite in item.metadata.citations" :key="`${cite.source_path}-${cite.chunk_index}`" class="cite-item">
-                  {{ cite.title }} · {{ cite.source_path }}
+                  <div class="cite-title">{{ cite.title }}</div>
+                  <div class="cite-path">{{ cite.source_path }}</div>
+                  <div class="cite-snippet">{{ cite.content || '' }}</div>
                 </div>
               </div>
             </div>
@@ -57,7 +75,8 @@
             :placeholder="inputPlaceholder"
             @keydown.enter.exact.prevent="send"
           />
-          <el-button type="primary" :disabled="inputDisabled || !input.trim()" @click="send">发送</el-button>
+          <el-button type="primary" :loading="sending" :disabled="inputDisabled || !input.trim()" @click="send">发送
+          </el-button>
         </div>
       </div>
     </el-drawer>
@@ -65,11 +84,11 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ChatDotRound } from '@element-plus/icons-vue'
-import { agentApi } from '@/api/agent'
+import {computed, nextTick, ref, watch} from 'vue'
+import {useRoute} from 'vue-router'
+import {ElMessage} from 'element-plus'
+import {ChatDotRound} from '@element-plus/icons-vue'
+import {agentApi} from '@/api/agent'
 
 const route = useRoute()
 
@@ -79,6 +98,8 @@ const sending = ref(false)
 const session = ref(null)
 const messages = ref([])
 const messagesRef = ref(null)
+const loadingMessages = ref(false)
+const messagesError = ref('')
 const runtimeStatus = ref({
   model_configured: false,
   active_model_name: '',
@@ -131,6 +152,7 @@ const loadStatus = async () => {
 
 const send = async () => {
   const text = input.value.trim()
+  const draft = text
   if (!runtimeStatus.value.model_configured) {
     ElMessage.warning('请先到 Django Admin -> 全局助手 -> Agent模型配置 启用配置')
     return
@@ -150,6 +172,7 @@ const send = async () => {
     messages.value.push({ ...payload.assistant_message, localKey: `a-${Date.now()}` })
     await scrollBottom()
   } catch (error) {
+    input.value = draft
     if (error.response?.data?.code === 'MODEL_NOT_CONFIGURED') {
       runtimeStatus.value.model_configured = false
     }
@@ -163,12 +186,16 @@ watch(visible, async (open) => {
   if (!open) return
   await loadStatus()
   if (!session.value) return
+  loadingMessages.value = true
+  messagesError.value = ''
   try {
     const list = await agentApi.getMessages(session.value.id)
     messages.value = list.data.map((item, index) => ({ ...item, localKey: `${item.id || index}-${index}` }))
     await scrollBottom()
-  } catch (_error) {
-    // ignore
+  } catch (error) {
+    messagesError.value = error.response?.data?.error || '获取消息失败'
+  } finally {
+    loadingMessages.value = false
   }
 })
 </script>
@@ -283,6 +310,23 @@ watch(visible, async (open) => {
 
 .tool-item, .cite-item {
   opacity: 0.86;
+}
+
+.cite-item {
+  border-left: 2px solid #c7d6f7;
+  padding-left: 8px;
+  margin-bottom: 6px;
+}
+
+.cite-title {
+  font-weight: 600;
+}
+
+.cite-path,
+.cite-snippet {
+  font-size: 11px;
+  opacity: 0.86;
+  line-height: 1.45;
 }
 
 .input-area {

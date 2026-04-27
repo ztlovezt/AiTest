@@ -4,6 +4,8 @@ from .models import AgentMessage, AgentSession, AgentToolCall
 
 
 class AgentToolCallSerializer(serializers.ModelSerializer):
+    duration_ms = serializers.SerializerMethodField()
+
     class Meta:
         model = AgentToolCall
         fields = [
@@ -17,7 +19,13 @@ class AgentToolCallSerializer(serializers.ModelSerializer):
             "started_at",
             "finished_at",
             "created_at",
+            "duration_ms",
         ]
+
+    def get_duration_ms(self, obj):
+        if not obj.started_at or not obj.finished_at:
+            return 0
+        return max(0, int((obj.finished_at - obj.started_at).total_seconds() * 1000))
 
 
 class AgentMessageSerializer(serializers.ModelSerializer):

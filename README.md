@@ -762,6 +762,36 @@ npm run build
 - 前端端口：在 `frontend/.env` 文件中配置 `VITE_FRONTEND_PORT`（默认 3000）
 - 前端 API 代理：在 `frontend/.env` 文件中配置 `VITE_API_BASE_URL`（默认 http://127.0.0.1:8000）
 
+## 🤖 全局助手（V1.1）
+
+### 配置前提
+
+1. 在 Django Admin 进入 `全局助手 -> Agent模型配置`，启用 1 条可用模型配置（`base_url`、`api_key`、`model_name` 必填）。
+2. 首次使用前执行平台文档同步：
+
+```bash
+cd backend
+python manage.py sync_agent_builtin_docs
+```
+
+### 使用入口
+
+- 悬浮球：全站默认入口，适合日常问答。
+- 调试页：`/agent`，保留会话列表与文档同步按钮，用于联调排障。
+
+### 支持命令
+
+- 文档问答：自然语言或 `/docs ...`
+- 项目查询：`/projects 关键词`
+- 用例查询：`/testcases 关键词`
+- 数据工具：`/data tool_name|tool_category|{"key":"value"}`
+
+### 返回与状态说明
+
+- 模型未配置时接口返回：`409 + MODEL_NOT_CONFIGURED`
+- 助手消息 `metadata` 包含：`preset`、`tool_result`、`citations`、`route_context_snapshot`、`trace`
+- `trace` 记录每轮链路观测字段（预设、LLM 调用状态、工具状态、耗时、失败原因）
+
 ## 📄 文档
 
 - **[更新日志 (CHANGELOG)](backend/docs/docs/CHANGELOG.md)**: 查看版本更新历史和重要变更

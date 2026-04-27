@@ -12,6 +12,7 @@ venv/
 __pycache__/
 .DS_Store
 .pytest_cache
+.runlogs/
 备注笔记.txt
 docs/
 # 忽略log文件，但保留.gitkeep和子目录
