@@ -474,7 +474,8 @@ class AppTestExecutor(BaseTestExecutor):
             # 如果退出码非零，记录完整输出以便调试
             if exit_code != 0:
                 logger.error(f"pytest 执行失败，退出码: {exit_code}")
-                logger.error(f"完整输出:\n{'\n'.join(output_lines)}")
+                full_output = "\n".join(output_lines)
+                logger.error(f"\u5b8c\u6574\u8f93\u51fa:\n{full_output}")
 
             test_results = self._parse_allure_results(allure_results_dir)
 

@@ -1,4 +1,4 @@
-import { RequestModel } from './requestModel'
+import { RequestModel, RequestModelParser } from './requestModel'
 import * as curlconverter from 'curlconverter'
 
 export interface CodeTemplate {
@@ -105,7 +105,7 @@ export class CodeGenerator {
   }
 
   static async generateCode(model: RequestModel, language: string): Promise<string> {
-    const curlCommand = this.buildCurlCommand(model)
+    const curlCommand = RequestModelParser.toCurl(model)
     
     if (language === 'curl') {
       return curlCommand

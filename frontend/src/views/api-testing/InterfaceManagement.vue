@@ -304,7 +304,7 @@
 
                 <div v-else-if="bodyType === 'raw'" class="body-content">
                   <div class="raw-options">
-                    <el-select v-model="rawType" style="width: 150px;">
+                    <el-select v-model="rawType" @change="onBodyTypeChange" style="width: 150px;">
                       <el-option label="Text" value="text" />
                       <el-option label="JSON" value="json" />
                       <el-option label="HTML" value="html" />
@@ -1258,22 +1258,25 @@ const onNodeClick = async (data) => {
       }
 
       // 解析body数据
-      if (requestData.body && requestData.body.type) {
-        if (requestData.body.type === 'json' && requestData.body.data) {
+      if (requestData.body && requestData.body.type && requestData.body.type !== 'none') {
+        const type = requestData.body.type;
+        const data = requestData.body.data;
+        
+        if (type === 'json') {
           bodyType.value = 'raw'
           rawType.value = 'json'
-          rawBody.value = JSON.stringify(requestData.body.data, null, 2)
-        } else if (requestData.body.type === 'raw' && requestData.body.data) {
+          rawBody.value = typeof data === 'object' && data !== null ? JSON.stringify(data, null, 2) : (data || '')
+        } else if (['raw', 'text', 'xml', 'html'].includes(type)) {
           bodyType.value = 'raw'
-          rawType.value = 'text'
-          rawBody.value = requestData.body.data
-        } else if (requestData.body.type === 'form-data') {
+          rawType.value = type === 'raw' ? 'text' : type
+          rawBody.value = data || ''
+        } else if (type === 'form-data') {
           bodyType.value = 'form-data'
-          formData.value = requestData.body.data || []
-        } else if (requestData.body.type === 'x-www-form-urlencoded') {
+          formData.value = data || []
+        } else if (type === 'x-www-form-urlencoded') {
           bodyType.value = 'x-www-form-urlencoded'
-          formUrlEncoded.value = requestData.body.data || []
-        } else if (requestData.body.type === 'binary') {
+          formUrlEncoded.value = data || []
+        } else if (type === 'binary') {
           bodyType.value = 'binary'
         } else {
           bodyType.value = 'none'
@@ -1857,24 +1860,25 @@ const sendRequest = async () => {
     let bodyData = {}
     if (hasBody.value) {
       if (bodyType.value === 'none') {
-        bodyData = {}
-      } else if (bodyType.value === 'raw' && rawBody.value) {
+        bodyData = { type: 'none' }
+      } else if (bodyType.value === 'raw') {
         if (rawType.value === 'json') {
           try {
+            const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
             bodyData = {
               type: 'json',
-              data: JSON.parse(rawBody.value)
+              data: parsedData
             }
           } catch (e) {
             bodyData = {
-              type: 'raw',
+              type: 'json',
               data: rawBody.value
             }
           }
         } else {
           bodyData = {
-            type: 'raw',
-            data: rawBody.value
+            type: rawType.value,
+            data: rawBody.value || ''
           }
         }
       } else if (bodyType.value === 'form-data') {
@@ -1941,24 +1945,28 @@ const saveRequest = async () => {
 
     if (hasBody.value) {
       if (bodyType.value === 'none') {
-        bodyData = {}
-      } else if (bodyType.value === 'raw' && rawBody.value) {
+        bodyData = { type: 'none' }
+      } else if (bodyType.value === 'raw') {
         if (rawType.value === 'json') {
           try {
+            // 如果能解析成对象，则按对象保存；如果为空则存空字符串
+            const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
             bodyData = {
               type: 'json',
-              data: JSON.parse(rawBody.value)
+              data: parsedData
             }
           } catch (e) {
+            // 解析失败时，按原样字符串保存，但保留 json 类型
             bodyData = {
-              type: 'raw',
+              type: 'json',
               data: rawBody.value
             }
           }
         } else {
+          // 保存具体类型，如 text, xml, html
           bodyData = {
-            type: 'raw',
-            data: rawBody.value
+            type: rawType.value,
+            data: rawBody.value || ''
           }
         }
       } else if (bodyType.value === 'form-data') {
@@ -2057,22 +2065,25 @@ const saveRequest = async () => {
     }
 
     // 解析body数据，更新响应式变量
-    if (savedData.body && savedData.body.type) {
-      if (savedData.body.type === 'json' && savedData.body.data) {
+    if (savedData.body && savedData.body.type && savedData.body.type !== 'none') {
+      const type = savedData.body.type;
+      const data = savedData.body.data;
+      
+      if (type === 'json') {
         bodyType.value = 'raw'
         rawType.value = 'json'
-        rawBody.value = typeof savedData.body.data === 'string' ? savedData.body.data : JSON.stringify(savedData.body.data, null, 2)
-      } else if (savedData.body.type === 'raw' && savedData.body.data) {
+        rawBody.value = typeof data === 'object' && data !== null ? JSON.stringify(data, null, 2) : (data || '')
+      } else if (['raw', 'text', 'xml', 'html'].includes(type)) {
         bodyType.value = 'raw'
-        rawType.value = 'text'
-        rawBody.value = savedData.body.data
-      } else if (savedData.body.type === 'form-data') {
+        rawType.value = type === 'raw' ? 'text' : type
+        rawBody.value = data || ''
+      } else if (type === 'form-data') {
         bodyType.value = 'form-data'
-        formData.value = savedData.body.data || []
-      } else if (savedData.body.type === 'x-www-form-urlencoded') {
+        formData.value = data || []
+      } else if (type === 'x-www-form-urlencoded') {
         bodyType.value = 'x-www-form-urlencoded'
-        formUrlEncoded.value = savedData.body.data || []
-      } else if (savedData.body.type === 'binary') {
+        formUrlEncoded.value = data || []
+      } else if (type === 'binary') {
         bodyType.value = 'binary'
       } else {
         bodyType.value = 'none'
@@ -2098,23 +2109,24 @@ const saveRequest = async () => {
 const onBodyTypeChange = () => {
   // 保存当前body数据到selectedRequest
   if (selectedRequest.value) {
-    if (bodyType.value === 'raw' && rawBody.value) {
+    if (bodyType.value === 'raw') {
       if (rawType.value === 'json') {
         try {
+          const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
           selectedRequest.value.body = {
             type: 'json',
-            data: JSON.parse(rawBody.value)
+            data: parsedData
           }
         } catch (e) {
           selectedRequest.value.body = {
-            type: 'raw',
+            type: 'json',
             data: rawBody.value
           }
         }
       } else {
         selectedRequest.value.body = {
-          type: 'raw',
-          data: rawBody.value
+          type: rawType.value,
+          data: rawBody.value || ''
         }
       }
     } else if (bodyType.value === 'form-data') {
@@ -2373,6 +2385,17 @@ const exportRequest = () => {
       }
     }
 
+    let bodyMode = 'none'
+    if (bodyType.value === 'raw') {
+      bodyMode = rawType.value === 'json' ? 'json' : 'raw'
+    } else if (bodyType.value === 'form-data') {
+      bodyMode = 'formdata'
+    } else if (bodyType.value === 'x-www-form-urlencoded') {
+      bodyMode = 'urlencoded'
+    } else if (bodyType.value === 'binary') {
+      bodyMode = 'binary'
+    }
+
     const requestModel = {
       method: selectedRequest.value?.method || 'GET',
       baseURL: baseURL,
@@ -2380,8 +2403,11 @@ const exportRequest = () => {
       query: convertToArrayFormat(selectedRequest.value?.params),
       headers: convertToArrayFormat(selectedRequest.value?.headers),
       body: {
-        mode: 'none',
-        raw: rawBody.value || ''
+        mode: bodyMode,
+        raw: rawBody.value,
+        json: rawBody.value,
+        formdata: formData.value,
+        urlencoded: formUrlEncoded.value
       },
       timeout: 30000
     }

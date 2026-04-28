@@ -58,7 +58,7 @@ class AppTestExecutionViewSet(viewsets.ModelViewSet):
     def ws_status(self, request):
         """检查 WebSocket 是否可用"""
         try:
-            import daphne
+            import uvicorn
             from channels.layers import get_channel_layer
             channel_layer = get_channel_layer()
             ws_available = channel_layer is not None and not isinstance(
@@ -66,7 +66,7 @@ class AppTestExecutionViewSet(viewsets.ModelViewSet):
             )
             # 检查是否通过 ASGI 服务器运行（非 runserver）
             server_type = request.META.get('SERVER_SOFTWARE', '')
-            is_asgi = 'daphne' in server_type.lower() or request.META.get('asgi', False)
+            is_asgi = 'uvicorn' in server_type.lower() or request.META.get('asgi', False)
             return Response({'websocket': ws_available and is_asgi})
         except (ImportError, Exception):
             return Response({'websocket': False})

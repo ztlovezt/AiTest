@@ -17,6 +17,7 @@ import assistantModule from './assistant.js'
 import dataFactoryModule from './data-factory.js'
 import notificationModule from './notification.js'
 import knowledgeBaseModule from './knowledge-base.js'
+import opsToolsModule from './ops-tools.js'
 
 export default {
   // 模块化导出
@@ -79,6 +80,9 @@ export default {
 
   // Knowledge Base Module
   knowledgeBase: knowledgeBaseModule.knowledgeBase,
+
+  // Ops Tools Module
+  opsTools: opsToolsModule,
 
   // Element Plus 语言包
   ...elementEn
