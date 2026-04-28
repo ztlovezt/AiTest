@@ -19,4 +19,22 @@ export const agentApi = {
   syncBuiltinDocs() {
     return api.post('/agent/chat/sync_builtin_docs/')
   },
+    listConfigs() {
+        return api.get('/agent/configs/')
+    },
+    createConfig(payload) {
+        return api.post('/agent/configs/', payload)
+    },
+    updateConfig(id, payload) {
+        return api.patch(`/agent/configs/${id}/`, payload)
+    },
+    deleteConfig(id) {
+        return api.delete(`/agent/configs/${id}/`)
+    },
+    testConfigConnection(id) {
+        return api.post(`/agent/configs/${id}/test_connection/`, {}, {timeout: 90000})
+    },
+    testConfigConnectionPreview(payload) {
+        return api.post('/agent/configs/test_connection/', payload, {timeout: 90000})
+    },
 }

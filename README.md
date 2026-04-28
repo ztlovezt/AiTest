@@ -756,7 +756,8 @@ npm run build
 
 ### 配置前提
 
-1. 在 Django Admin 进入 `全局助手 -> Agent模型配置`，启用 1 条可用模型配置（`base_url`、`api_key`、`model_name` 必填）。
+1. 在配置中心进入 `全局助手配置`（`/configuration/global-agent`），启用 1 条可用模型配置（`base_url`、`api_key`、`model_name`
+   必填）。
 2. 首次使用前执行平台文档同步：
 
 ```bash

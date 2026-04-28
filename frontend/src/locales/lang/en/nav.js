@@ -89,6 +89,7 @@ export default {
     appEnvConfig: 'APP Environment',
     ocrConfig: 'OCR Service Config',
     aiModeConfig: 'AI Intelligent Mode',
+      globalAgentConfig: 'Global Agent Config',
     scheduledTaskConfig: 'Notification Configuration',
     difyConfig: 'Dify Configuration',
     themeConfig: 'Theme Configuration',

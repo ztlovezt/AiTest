@@ -1,5 +1,6 @@
 import time
 import uuid
+from types import SimpleNamespace
 
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -7,7 +8,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import AgentMessage, AgentModelConfig, AgentSession
-from .serializers import AgentMessageSerializer, AgentSessionSerializer
+from .serializers import (
+    AgentMessageSerializer,
+    AgentModelConfigPreviewSerializer,
+    AgentModelConfigSerializer,
+    AgentSessionSerializer,
+)
 from .services import (
     PresetRegistry,
     ToolRegistry,
@@ -18,6 +24,14 @@ from .services import (
     get_short_term_memory,
     sync_builtin_docs,
 )
+
+
+class IsAgentConfigAdmin(permissions.BasePermission):
+    message = "仅管理员可操作全局助手配置"
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
 
 
 class AgentStatusView(APIView):
@@ -68,7 +82,7 @@ class AgentChatViewSet(viewsets.ViewSet):
         if not runtime_status["model_configured"]:
             return Response(
                 {
-                    "error": "全局助手未配置可用模型，请到 Django Admin -> 全局助手 -> Agent模型配置 启用配置。",
+                    "error": "全局助手未配置可用模型，请到 配置中心 -> 全局助手配置 完成模型配置。",
                     "code": "MODEL_NOT_CONFIGURED",
                 },
                 status=status.HTTP_409_CONFLICT,
@@ -171,5 +185,66 @@ class AgentChatViewSet(viewsets.ViewSet):
 
     @action(detail=False, methods=["post"])
     def sync_builtin_docs(self, request):
+        if not IsAgentConfigAdmin().has_permission(request, self):
+            return Response({"error": "仅管理员可同步平台文档"}, status=status.HTTP_403_FORBIDDEN)
         result = sync_builtin_docs()
         return Response(result)
+
+
+class AgentModelConfigViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated, IsAgentConfigAdmin]
+    serializer_class = AgentModelConfigSerializer
+    queryset = AgentModelConfig.objects.all().order_by("-updated_at")
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        update_data = request.data.copy()
+        raw_api_key = update_data.get("api_key")
+        if not raw_api_key or ("*" in str(raw_api_key)):
+            update_data.pop("api_key", None)
+        serializer = self.get_serializer(instance, data=update_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["post"], url_path="test_connection")
+    def test_connection_preview(self, request):
+        serializer = AgentModelConfigPreviewSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        payload = serializer.validated_data
+        config = SimpleNamespace(
+            model_name=payload["model_name"],
+            base_url=payload["base_url"],
+            api_key=payload["api_key"],
+            temperature=payload["temperature"],
+            top_p=payload["top_p"],
+            max_tokens=payload["max_tokens"],
+        )
+        llm_result = call_model_structured(config, "你是连接测试助手。", "请只回复：连接成功")
+        if llm_result.get("llm_success"):
+            return Response(
+                {"success": True, "message": "连接测试成功", "duration_ms": llm_result.get("duration_ms", 0)})
+        return Response(
+            {
+                "success": False,
+                "message": llm_result.get("error") or "连接测试失败",
+                "duration_ms": llm_result.get("duration_ms", 0),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    @action(detail=True, methods=["post"], url_path="test_connection")
+    def test_connection(self, request, pk=None):
+        config = self.get_object()
+        llm_result = call_model_structured(config, "你是连接测试助手。", "请只回复：连接成功")
+        if llm_result.get("llm_success"):
+            return Response(
+                {"success": True, "message": "连接测试成功", "duration_ms": llm_result.get("duration_ms", 0)})
+        return Response(
+            {
+                "success": False,
+                "message": llm_result.get("error") or "连接测试失败",
+                "duration_ms": llm_result.get("duration_ms", 0),
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )

@@ -1,5 +1,5 @@
-import { createRouter, createWebHistory } from "vue-router";
-import { useUserStore } from "@/stores/user";
+import {createRouter, createWebHistory} from "vue-router";
+import {useUserStore} from "@/stores/user";
 
 // 静态导入常用组件来避免动态导入问题
 import Login from "@/views/auth/Login.vue";
@@ -482,6 +482,12 @@ const routes = [
               import("@/views/configuration/AIIntelligentModeConfig.vue"),
           },
           {
+              path: "global-agent",
+              name: "ConfigGlobalAgent",
+              component: () =>
+                  import("@/views/configuration/GlobalAgentConfig.vue"),
+          },
+            {
             path: "scheduled-task",
             name: "ConfigScheduledTask",
             component: () =>

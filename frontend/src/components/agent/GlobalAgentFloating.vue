@@ -18,7 +18,7 @@
             <span v-if="runtimeStatus.model_configured">
               模型已连接{{ runtimeStatus.active_model_name ? ` · ${runtimeStatus.active_model_name}` : '' }}
             </span>
-            <span v-else>未配置模型，请到 Django Admin -> 全局助手 -> Agent模型配置 启用配置</span>
+            <span v-else>未配置模型，请到 配置中心 -> 全局助手配置 启用配置</span>
           </div>
           <div class="status-line muted">
             <span v-if="runtimeStatus.docs_ready">平台文档已就绪 · {{ runtimeStatus.docs_count }} 篇</span>
@@ -37,7 +37,7 @@
           </div>
           <div v-else-if="!runtimeStatus.model_configured && messages.length === 0" class="empty-state">
             <div class="empty-title">全局助手还不能发送消息</div>
-            <div class="empty-text">先在 Django Admin 中启用一条 Agent 模型配置，悬浮球会自动恢复可用。</div>
+            <div class="empty-text">先在配置中心启用一条全局助手模型配置，悬浮球会自动恢复可用。</div>
           </div>
           <div v-else-if="!runtimeStatus.docs_ready && messages.length === 0" class="empty-state">
             <div class="empty-title">平台文档未同步</div>
@@ -119,7 +119,7 @@ const inputDisabled = computed(() => sending.value || !runtimeStatus.value.model
 const inputPlaceholder = computed(() => (
   runtimeStatus.value.model_configured
     ? '问我：这个平台怎么用？/projects /testcases /data ...'
-    : '请先到 Django Admin 配置全局助手模型'
+      : '请先到 配置中心 -> 全局助手配置'
 ))
 
 const renderText = (text) =>
@@ -154,7 +154,7 @@ const send = async () => {
   const text = input.value.trim()
   const draft = text
   if (!runtimeStatus.value.model_configured) {
-    ElMessage.warning('请先到 Django Admin -> 全局助手 -> Agent模型配置 启用配置')
+    ElMessage.warning('请先到 配置中心 -> 全局助手配置 启用配置')
     return
   }
   if (!text || sending.value) return
