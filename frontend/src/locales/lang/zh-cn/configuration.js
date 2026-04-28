@@ -165,6 +165,35 @@ export default {
     }
   },
 
+    globalAgent: {
+        title: '全局助手配置',
+        description: '配置全局助手对话模型，并管理平台文档同步状态',
+        runtimeTitle: '运行状态',
+        modelStatus: '模型状态',
+        activeModel: '当前启用模型',
+        docsStatus: '文档状态',
+        syncDocs: '同步平台文档',
+        goDebug: '前往调试页',
+        configList: '模型配置列表',
+        addConfig: '添加配置',
+        editConfig: '编辑配置',
+        configName: '配置名称',
+        provider: '提供商',
+        customProvider: '自定义',
+        modelName: '模型名称',
+        baseUrl: 'Base URL',
+        apiKey: 'API Key',
+        apiKeyEditTip: '保持原值不变则不会修改',
+        maxTokens: '最大Token数',
+        temperature: '温度',
+        topP: 'Top P',
+        enableConfig: '启用此配置',
+        testConnection: '测试连接',
+        empty: '暂无配置，请先添加一条模型配置',
+        forbiddenTitle: '无权限访问',
+        forbiddenDesc: '仅管理员或超级管理员可管理全局助手配置',
+    },
+
   // AI 模型配置 (测试用例生成)
   aiModel: {
     title: '🤖 AI用例生成模型配置',

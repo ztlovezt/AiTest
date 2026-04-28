@@ -165,6 +165,35 @@ export default {
     }
   },
 
+    globalAgent: {
+        title: 'Global Agent Configuration',
+        description: 'Configure conversation models for the global agent and manage built-in document sync',
+        runtimeTitle: 'Runtime Status',
+        modelStatus: 'Model Status',
+        activeModel: 'Active Model',
+        docsStatus: 'Document Status',
+        syncDocs: 'Sync Documents',
+        goDebug: 'Open Debug Page',
+        configList: 'Model Configurations',
+        addConfig: 'Add Configuration',
+        editConfig: 'Edit Configuration',
+        configName: 'Configuration Name',
+        provider: 'Provider',
+        customProvider: 'Custom',
+        modelName: 'Model Name',
+        baseUrl: 'Base URL',
+        apiKey: 'API Key',
+        apiKeyEditTip: 'Keep unchanged to preserve current API key',
+        maxTokens: 'Max Tokens',
+        temperature: 'Temperature',
+        topP: 'Top P',
+        enableConfig: 'Enable this configuration',
+        testConnection: 'Test Connection',
+        empty: 'No configuration yet. Please add one first.',
+        forbiddenTitle: 'Permission Denied',
+        forbiddenDesc: 'Only admins or superusers can manage global agent configuration',
+    },
+
   // AI Model Configuration (Test Case Generation)
   aiModel: {
     title: '🤖 AI Test Case Model Config',

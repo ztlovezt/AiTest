@@ -87,6 +87,7 @@ export default {
     appEnvConfig: 'APP环境配置',
     ocrConfig: 'OCR服务配置',
     aiModeConfig: 'AI智能模式配置',
+      globalAgentConfig: '全局助手配置',
     scheduledTaskConfig: '消息通知配置',
     difyConfig: 'AI评测师配置',
     themeConfig: '平台主题配置',

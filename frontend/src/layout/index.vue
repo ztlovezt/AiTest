@@ -287,6 +287,12 @@
               <el-icon><MagicStick /></el-icon>
               <span>{{ $t("menu.aiModeConfig") }}</span>
             </el-menu-item>
+            <el-menu-item index="/configuration/global-agent">
+              <el-icon>
+                <ChatDotRound/>
+              </el-icon>
+              <span>{{ $t("menu.globalAgentConfig") }}</span>
+            </el-menu-item>
             <el-menu-item index="/configuration/scheduled-task">
               <el-icon><Timer /></el-icon>
               <span>{{ $t("menu.scheduledTaskConfig") }}</span>
@@ -418,42 +424,42 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { useUserStore } from "@/stores/user";
-import { useAppStore } from "@/stores/app";
-import { ElMessage } from "element-plus";
-import { useI18n } from "vue-i18n";
+import {computed} from "vue";
+import {useRoute, useRouter} from "vue-router";
+import {useUserStore} from "@/stores/user";
+import {useAppStore} from "@/stores/app";
+import {ElMessage} from "element-plus";
+import {useI18n} from "vue-i18n";
 import defaultAvatar from "@/assets/images/user-avatar.svg";
 import {
-  Monitor,
-  Folder,
-  Document,
-  Flag,
+  Aim,
+  AlarmClock,
+  ArrowDown,
+  Bell,
+  Brush,
+  Cellphone,
+  ChatDotRound,
   Check,
   Collection,
-  VideoPlay,
+  Connection,
+  Cpu,
   DataAnalysis,
-  ChatDotRound,
+  Document,
   DocumentCopy,
+  Edit,
+  Flag,
+  Folder,
+  FolderOpened,
   Link,
   MagicStick,
-  Odometer,
-  Timer,
-  Setting,
-  AlarmClock,
-  Bell,
-  Aim,
-  Edit,
-  Cpu,
-  ArrowDown,
-  Cellphone,
-  Connection,
-  FolderOpened,
-  Brush,
+  Monitor,
   Moon,
-  Sunny,
+  Odometer,
   Search,
+  Setting,
+  Sunny,
+  Timer,
+  VideoPlay,
 } from "@element-plus/icons-vue";
 import logoSvg from "@/assets/images/logo.svg";
 import logoHomePng from "@/assets/images/logo_home.png";
@@ -605,6 +611,7 @@ const breadcrumbTitle = computed(() => {
     "/configuration/knowledge-base": t("menu.knowledgeBaseConfig"),
     "/configuration/ui-env": t("menu.uiEnvConfig"),
     "/configuration/ai-mode": t("menu.aiModeConfig"),
+    "/configuration/global-agent": t("menu.globalAgentConfig"),
     "/configuration/scheduled-task": t("menu.scheduledTaskConfig"),
     "/configuration/dify": t("menu.difyConfig"),
     "/configuration/theme": t("menu.themeConfig"),

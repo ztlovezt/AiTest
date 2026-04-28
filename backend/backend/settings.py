@@ -79,6 +79,7 @@ LOCAL_APPS = [
     'apps.unified_projects.apps.UnifiedProjectsConfig',
     'apps.ocr_service',
     'apps.ops_tools.apps.OpsToolsConfig',
+    'apps.agent.apps.AgentConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
