@@ -169,6 +169,9 @@ class SeleniumTestEngine:
                 options.add_experimental_option('excludeSwitches', ['enable-automation', 'enable-logging'])
                 options.add_argument('--disable-popup-blocking')  # 禁用弹窗拦截（避免某些警告）
                 options.add_argument('--disable-notifications')  # 禁用所有通知
+                # 绕过SSL证书错误
+                options.add_argument('--ignore-certificate-errors')
+                options.add_argument('--allow-insecure-localhost')
 
                 # 使用缓存优先策略
                 service = Service(ChromeDriverManager().install())
@@ -200,6 +203,9 @@ class SeleniumTestEngine:
                 options.set_preference('extensions.update.enabled', False)
                 options.set_preference('extensions.update.autoUpdateDefault', False)
 
+                # 绕过SSL证书错误
+                options.accept_insecure_certs = True
+
                 # 使用缓存优先策略
                 service = Service(GeckoDriverManager().install())
                 self.driver = webdriver.Firefox(service=service, options=options)
@@ -214,6 +220,10 @@ class SeleniumTestEngine:
                     options.add_argument('--headless')
                 options.add_argument('--disable-blink-features=AutomationControlled')
                 options.add_argument('--window-size=1920,1080')
+
+                # 绕过SSL证书错误
+                options.add_argument('--ignore-certificate-errors')
+                options.add_argument('--allow-insecure-localhost')
 
                 # 使用缓存优先策略，7天内不重新下载
                 service = Service(EdgeChromiumDriverManager().install())
@@ -273,6 +283,10 @@ class SeleniumTestEngine:
                 options.add_argument('--disable-features=PrivacySandboxSettings4')  # 禁用隐私沙盒
                 options.add_argument('--disable-features=TranslateUI')  # 禁用翻译提示
                 options.add_argument('--disable-infobars')  # 禁用信息栏
+                
+                # 绕过SSL证书错误
+                options.add_argument('--ignore-certificate-errors')
+                options.add_argument('--allow-insecure-localhost')
 
                 service = Service(ChromeDriverManager().install())
                 self.driver = webdriver.Chrome(service=service, options=options)

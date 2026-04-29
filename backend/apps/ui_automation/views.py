@@ -924,6 +924,22 @@ class TestSuiteViewSet(viewsets.ModelViewSet):
         browser = request.data.get('browser', 'chrome')
         headless = request.data.get('headless', False)
 
+        # 执行前检查浏览器是否可用
+        if engine == 'selenium':
+            from .selenium_engine import SeleniumTestEngine
+            is_available, error_msg = SeleniumTestEngine.check_browser_available(browser)
+            if not is_available:
+                return Response({
+                    'error': f'环境检查失败: {error_msg}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            from .playwright_engine import PlaywrightTestEngine
+            is_available, error_msg = PlaywrightTestEngine.check_browser_available(browser)
+            if not is_available:
+                return Response({
+                    'error': f'环境检查失败: {error_msg}'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         # 更新套件执行状态为运行中
         test_suite.execution_status = 'running'
         test_suite.save()
@@ -1422,11 +1438,11 @@ class TestCaseViewSet(viewsets.ModelViewSet):
             )
 
             # 根据引擎类型导入对应的执行引擎
+            browser_type = request.data.get('browser', 'chrome')
             if engine_type == 'selenium':
                 from .selenium_engine import SeleniumTestEngine
 
                 # Selenium 引擎需要预先检查浏览器是否可用
-                browser_type = request.data.get('browser', 'chrome')
                 is_available, error_msg = SeleniumTestEngine.check_browser_available(browser_type)
                 if not is_available:
                     # 浏览器不可用，立即返回错误
@@ -1455,6 +1471,32 @@ class TestCaseViewSet(viewsets.ModelViewSet):
                 import asyncio
                 import threading
                 from .playwright_engine import PlaywrightTestEngine
+                
+                # Playwright 引擎需要预先检查浏览器是否可用
+                is_available, error_msg = PlaywrightTestEngine.check_browser_available(browser_type)
+                if not is_available:
+                    # 浏览器不可用，立即返回错误
+                    logger.error(f"Playwright 浏览器检查失败: {error_msg}")
+                    execution.status = 'failed'
+                    execution.error_message = error_msg
+                    execution.execution_logs = f"浏览器检查失败\n\n{error_msg}\n\n建议：\n1. 请在服务器终端运行命令安装浏览器环境\n2. 或者尝试使用 Selenium 引擎"
+                    execution.finished_at = timezone.now()
+                    execution.save()
+
+                    return Response({
+                        'success': False,
+                        'logs': execution.execution_logs,
+                        'screenshots': [],
+                        'execution_time': 0,
+                        'errors': [{
+                            'message': f'Playwright {browser_type.capitalize()} 浏览器不可用',
+                            'details': error_msg,
+                            'step_number': None,
+                            'action_type': '浏览器检查',
+                            'element': '',
+                            'description': '执行前浏览器环境检查'
+                        }]
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
             start_time = time.time()
 
