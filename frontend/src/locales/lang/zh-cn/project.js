@@ -177,6 +177,8 @@ export default {
     uiAutomationDesc: '可视化的Web/App UI自动化测试',
     appAutomation: 'APP自动化测试',
     appAutomationDesc: '基于Airtest的Android APP自动化测试',
+    opsTools: '运维工具',
+    opsToolsDesc: '统一管理环境配置并快速查询服务日志',
     dataFactory: '数据工厂',
     dataFactoryDesc: '灵活的测试数据构造与管理',
     unifiedProject: '项目管理',

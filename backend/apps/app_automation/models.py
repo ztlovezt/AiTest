@@ -1,4 +1,6 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -97,7 +99,24 @@ class AppTestConfig(models.Model):
 
 
 class AppDevice(models.Model):
-    """Android 设备模型 - 整合了设备管理功能"""
+    """Android 设备模型 - 整合设备管理与锁定会话信息"""
+
+    LOCK_TYPE_MANUAL = 'manual'
+    LOCK_TYPE_REMOTE = 'remote_session'
+    LOCK_TYPE_AUTOMATION = 'automation'
+    LOCK_TYPE_CHOICES = [
+        (LOCK_TYPE_MANUAL, '手动锁定'),
+        (LOCK_TYPE_REMOTE, '远程会话'),
+        (LOCK_TYPE_AUTOMATION, '自动化执行'),
+    ]
+
+    MANUAL_LOCK_EXPIRE_SECONDS = 24 * 60 * 60
+    REMOTE_HEARTBEAT_INTERVAL_SECONDS = 10
+    REMOTE_HEARTBEAT_RETRY_LIMIT = 3
+    REMOTE_HEARTBEAT_TIMEOUT_SECONDS = (
+        REMOTE_HEARTBEAT_INTERVAL_SECONDS * REMOTE_HEARTBEAT_RETRY_LIMIT
+    )
+
     STATUS_CHOICES = [
         (DeviceStatus.AVAILABLE, '可用'),
         (DeviceStatus.LOCKED, '已锁定'),
@@ -130,6 +149,16 @@ class AppDevice(models.Model):
     )
     locked_at = models.DateTimeField(null=True, blank=True, verbose_name='锁定时间')
     max_allocation_time = models.IntegerField(default=28800, verbose_name='最大分配时间(秒)', help_text='默认8小时')
+    lock_type = models.CharField(
+        max_length=32,
+        choices=LOCK_TYPE_CHOICES,
+        blank=True,
+        default='',
+        verbose_name='锁定类型',
+    )
+    lock_session_id = models.CharField(max_length=128, blank=True, default='', verbose_name='锁定会话ID')
+    lock_heartbeat_at = models.DateTimeField(null=True, blank=True, verbose_name='最近心跳时间')
+    lock_expires_at = models.DateTimeField(null=True, blank=True, verbose_name='锁定过期时间')
     
     # 设备规格信息
     device_specs = models.JSONField(default=dict, verbose_name='设备规格', help_text='RAM, CPU, 分辨率等信息')
@@ -147,27 +176,137 @@ class AppDevice(models.Model):
         indexes = [
             models.Index(fields=['status']),
             models.Index(fields=['device_id']),
+            models.Index(fields=['lock_type']),
+            models.Index(fields=['lock_expires_at']),
         ]
     
     def __str__(self):
         return f"{self.name or self.device_id} ({self.get_status_display()})"
     
     def lock(self, user):
-        """锁定设备"""
+        """兼容旧调用，默认按手动锁定处理。"""
+        self.lock_for_manual(user=user)
+
+    def is_locked(self):
+        return self.status == DeviceStatus.LOCKED and self.locked_by_id is not None
+
+    def is_locked_by_user(self, user):
+        return bool(user and self.is_locked() and self.locked_by_id == user.id)
+
+    def is_locked_for_user(self, user):
+        return self.is_locked() and not self.is_locked_by_user(user)
+
+    def _lock_device(self, *, user, lock_type, session_id='', expires_at=None, heartbeat_at=None):
+        """统一写入锁定元数据，避免不同入口写出不一致状态。"""
         self.locked_by = user
         self.locked_at = timezone.now()
         self.status = DeviceStatus.LOCKED
-        self.save()
+        self.lock_type = lock_type
+        self.lock_session_id = session_id or ''
+        self.lock_heartbeat_at = heartbeat_at
+        self.lock_expires_at = expires_at
+        self.save(update_fields=[
+            'locked_by',
+            'locked_at',
+            'status',
+            'lock_type',
+            'lock_session_id',
+            'lock_heartbeat_at',
+            'lock_expires_at',
+            'updated_at',
+        ])
+
+    def lock_for_manual(self, user, expires_in_seconds=None):
+        """手动锁定设备，未进入远控时按 24 小时自动释放。"""
+        if self.is_locked_for_user(user):
+            raise ValueError('设备已被其他用户锁定')
+
+        now = timezone.now()
+        expire_seconds = expires_in_seconds or self.MANUAL_LOCK_EXPIRE_SECONDS
+        self._lock_device(
+            user=user,
+            lock_type=self.LOCK_TYPE_MANUAL,
+            expires_at=now + timedelta(seconds=expire_seconds),
+        )
+
+    def lock_for_remote_session(self, user, session_id):
+        """远程会话锁定设备，并开启心跳超时保护。"""
+        if self.is_locked_for_user(user):
+            raise ValueError('设备已被其他用户锁定')
+
+        now = timezone.now()
+        self._lock_device(
+            user=user,
+            lock_type=self.LOCK_TYPE_REMOTE,
+            session_id=session_id,
+            heartbeat_at=now,
+            expires_at=now + timedelta(seconds=self.REMOTE_HEARTBEAT_TIMEOUT_SECONDS),
+        )
+
+    def lock_for_automation(self, user, execution_id=None):
+        """自动化执行期间锁定设备，避免远控和其他执行抢占。"""
+        if self.is_locked_for_user(user):
+            raise ValueError('设备已被其他用户锁定')
+
+        session_id = f'automation:{execution_id}' if execution_id else 'automation'
+        now = timezone.now()
+        expire_seconds = max(int(self.max_allocation_time or 0), 60)
+        self._lock_device(
+            user=user,
+            lock_type=self.LOCK_TYPE_AUTOMATION,
+            session_id=session_id,
+            expires_at=now + timedelta(seconds=expire_seconds),
+        )
+
+    def refresh_remote_heartbeat(self, session_id):
+        """刷新远控会话心跳，仅允许当前会话续约。"""
+        if (
+            self.status != DeviceStatus.LOCKED
+            or self.lock_type != self.LOCK_TYPE_REMOTE
+            or not session_id
+            or self.lock_session_id != session_id
+        ):
+            return False
+
+        now = timezone.now()
+        self.lock_heartbeat_at = now
+        self.lock_expires_at = now + timedelta(seconds=self.REMOTE_HEARTBEAT_TIMEOUT_SECONDS)
+        self.save(update_fields=['lock_heartbeat_at', 'lock_expires_at', 'updated_at'])
+        return True
     
-    def unlock(self):
-        """释放设备"""
+    def unlock(self, *, user=None, session_id='', force=False):
+        """按所有权释放锁，默认仅允许持有者释放。"""
+        if not force:
+            if session_id and self.lock_session_id and self.lock_session_id != session_id:
+                return False
+            if user and self.locked_by_id and self.locked_by_id != user.id:
+                return False
+            if not session_id and not user and self.is_locked():
+                return False
+
         self.locked_by = None
         self.locked_at = None
+        self.lock_type = ''
+        self.lock_session_id = ''
+        self.lock_heartbeat_at = None
+        self.lock_expires_at = None
         self.status = DeviceStatus.AVAILABLE
-        self.save()
+        self.save(update_fields=[
+            'locked_by',
+            'locked_at',
+            'lock_type',
+            'lock_session_id',
+            'lock_heartbeat_at',
+            'lock_expires_at',
+            'status',
+            'updated_at',
+        ])
+        return True
     
     def is_lock_expired(self):
-        """检查锁定是否过期"""
+        """优先使用显式过期时间，兼容旧的超时字段。"""
+        if self.lock_expires_at:
+            return timezone.now() >= self.lock_expires_at
         if not self.locked_at:
             return False
         elapsed = (timezone.now() - self.locked_at).total_seconds()
@@ -390,6 +529,38 @@ class AppPackage(models.Model):
         unique=True,
         verbose_name='应用包名',
         help_text='Android包名，如：com.android.settings'
+    )
+    
+    apk_file = models.FileField(
+        upload_to='app_automation/packages/',
+        blank=True,
+        null=True,
+        verbose_name='APK文件',
+        help_text='上传的APK安装包（可选）'
+    )
+    
+    apk_filepath = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        verbose_name='APK文件路径',
+        help_text='APK文件的完整存储路径'
+    )
+    
+    apk_filename = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        verbose_name='APK文件名',
+        help_text='APK文件的唯一文件名'
+    )
+    
+    remarks = models.CharField(
+        max_length=30,
+        blank=True,
+        default='',
+        verbose_name='备注',
+        help_text='最多30个字符，可选字段'
     )
     
     created_by = models.ForeignKey(

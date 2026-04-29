@@ -133,8 +133,15 @@ def token_refresh_view(request):
         
         # 如果启用了 token 轮换，生成新的 refresh token
         if settings.SIMPLE_JWT.get('ROTATE_REFRESH_TOKENS', False):
+            # RefreshToken 对象没有 .user 属性，从 payload 取 user_id 重新加载用户
+            from django.contrib.auth import get_user_model
+            user_id = refresh.payload.get('user_id')
             refresh.blacklist()
-            new_refresh = RefreshToken.for_user(refresh.user)
+            user = get_user_model().objects.get(id=user_id)
+            new_refresh = RefreshToken.for_user(user)
+            # 用新 refresh 重新签发 access，与新 refresh 保持同一签名上下文
+            access_token = str(new_refresh.access_token)
+            response_data['access'] = access_token
             response_data['refresh'] = str(new_refresh)
         
         return Response(response_data)

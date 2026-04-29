@@ -32,21 +32,12 @@
             <el-button type="success" size="small" @click="createEmptyRequest" :title="$t('apiTesting.interface.addInterface')">
               <el-icon><Plus /></el-icon>
             </el-button>
-            <el-dropdown size="small" trigger="click" @command="handleImportExport">
-              <el-button size="small" :title="$t('apiTesting.importExport.title')">
-                <el-icon><More /></el-icon>
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="import">
-                    <el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="export" :disabled="!selectedProject">
-                    <el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button type="info" size="small" @click="handleImportExport('import')" :title="$t('apiTesting.importExport.import')">
+              <el-icon><Upload /></el-icon>
+            </el-button>
+            <el-button type="warning" size="small" @click="handleImportExport('export')" :title="$t('apiTesting.importExport.export')" :disabled="!selectedProject">
+              <el-icon><Download /></el-icon>
+            </el-button>
           </div>
         </div>
 
@@ -58,10 +49,14 @@
             node-key="id"
             :expand-on-click-node="false"
             :default-expanded-keys="expandedKeys"
+            draggable
+            :allow-drag="checkAllowDrag"
+            :allow-drop="checkAllowDrop"
             @node-click="onNodeClick"
             @node-contextmenu="onNodeRightClick"
             @node-expand="onNodeExpand"
             @node-collapse="onNodeCollapse"
+            @node-drag-end="handleDragEnd"
           >
             <template #default="{ node, data }">
               <div class="tree-node">
@@ -90,6 +85,26 @@
                 <span v-if="data.type === 'request' && data.request_type !== 'WEBSOCKET'" class="method-tag" :class="(data.method || 'GET').toLowerCase()">
                   {{ data.method || 'GET' }}
                 </span>
+
+                <!-- 复制按钮（仅接口节点显示） -->
+                <el-icon
+                  v-if="data.type === 'request'"
+                  class="copy-icon"
+                  @click.stop="handleCopyRequest(data)"
+                  :title="$t('apiTesting.interface.copyRequest')"
+                >
+                  <CopyDocument />
+                </el-icon>
+
+                <!-- 删除按钮（仅接口节点显示） -->
+                <el-icon
+                  v-if="data.type === 'request'"
+                  class="delete-icon"
+                  @click.stop="handleDeleteRequest(data)"
+                  :title="$t('apiTesting.interface.deleteRequest')"
+                >
+                  <Delete />
+                </el-icon>
               </div>
             </template>
           </el-tree>
@@ -289,7 +304,7 @@
 
                 <div v-else-if="bodyType === 'raw'" class="body-content">
                   <div class="raw-options">
-                    <el-select v-model="rawType" style="width: 150px;">
+                    <el-select v-model="rawType" @change="onBodyTypeChange" style="width: 150px;">
                       <el-option label="Text" value="text" />
                       <el-option label="JSON" value="json" />
                       <el-option label="HTML" value="html" />
@@ -712,6 +727,7 @@
       v-model="showImportDialog"
       :projects="projects"
       :current-project-id="selectedProject"
+      :target-collection-id="importTargetCollectionId"
       @imported="onImported"
     />
 
@@ -771,10 +787,12 @@
 
     <!-- 右键菜单 -->
     <ul v-show="showContextMenu" class="context-menu" :style="{ left: contextMenuX + 'px', top: contextMenuY + 'px' }">
-      <li @click="addRequest">{{ $t('apiTesting.interface.contextMenu.addRequest') }}</li>
-      <li @click="addCollection">{{ $t('apiTesting.interface.contextMenu.addSubCollection') }}</li>
-      <li @click="editNode">{{ $t('apiTesting.interface.contextMenu.edit') }}</li>
-      <li @click="deleteNode">{{ $t('apiTesting.interface.contextMenu.delete') }}</li>
+      <li @click="addRequest"><el-icon><Document /></el-icon> {{ $t('apiTesting.interface.contextMenu.addRequest') }}</li>
+      <li @click="addCollection"><el-icon><Folder /></el-icon> {{ $t('apiTesting.interface.contextMenu.addSubCollection') }}</li>
+      <li v-if="rightClickedNode && rightClickedNode.type === 'collection'" @click="handleCollectionImport"><el-icon><Upload /></el-icon> {{ $t('apiTesting.importExport.import') }}</li>
+      <li v-if="rightClickedNode && rightClickedNode.type === 'collection'" @click="handleCollectionExport"><el-icon><Download /></el-icon> {{ $t('apiTesting.importExport.export') }}</li>
+      <li @click="editNode"><el-icon><Edit /></el-icon> {{ $t('apiTesting.interface.contextMenu.edit') }}</li>
+      <li @click="deleteNode"><el-icon><Delete /></el-icon> {{ $t('apiTesting.interface.contextMenu.delete') }}</li>
     </ul>
 
     <!-- 数据工厂选择器 -->
@@ -899,7 +917,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download } from '@element-plus/icons-vue'
+import { Plus, Folder, Document, MagicStick, Search, Close, More, Upload, Download, CopyDocument, Delete, Edit } from '@element-plus/icons-vue'
 import api from '@/utils/api'
 import KeyValueEditor from './components/KeyValueEditor.vue'
 import DataFactorySelector from '@/components/DataFactorySelector.vue'
@@ -933,6 +951,7 @@ const responseActiveTab = ref('body')
 const showCreateCollectionDialog = ref(false)
 const showEditCollectionDialog = ref(false)
 const showImportDialog = ref(false)
+const importTargetCollectionId = ref(null)
 const showContextMenu = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
@@ -1239,22 +1258,25 @@ const onNodeClick = async (data) => {
       }
 
       // 解析body数据
-      if (requestData.body && requestData.body.type) {
-        if (requestData.body.type === 'json' && requestData.body.data) {
+      if (requestData.body && requestData.body.type && requestData.body.type !== 'none') {
+        const type = requestData.body.type;
+        const data = requestData.body.data;
+        
+        if (type === 'json') {
           bodyType.value = 'raw'
           rawType.value = 'json'
-          rawBody.value = JSON.stringify(requestData.body.data, null, 2)
-        } else if (requestData.body.type === 'raw' && requestData.body.data) {
+          rawBody.value = typeof data === 'object' && data !== null ? JSON.stringify(data, null, 2) : (data || '')
+        } else if (['raw', 'text', 'xml', 'html'].includes(type)) {
           bodyType.value = 'raw'
-          rawType.value = 'text'
-          rawBody.value = requestData.body.data
-        } else if (requestData.body.type === 'form-data') {
+          rawType.value = type === 'raw' ? 'text' : type
+          rawBody.value = data || ''
+        } else if (type === 'form-data') {
           bodyType.value = 'form-data'
-          formData.value = requestData.body.data || []
-        } else if (requestData.body.type === 'x-www-form-urlencoded') {
+          formData.value = data || []
+        } else if (type === 'x-www-form-urlencoded') {
           bodyType.value = 'x-www-form-urlencoded'
-          formUrlEncoded.value = requestData.body.data || []
-        } else if (requestData.body.type === 'binary') {
+          formUrlEncoded.value = data || []
+        } else if (type === 'binary') {
           bodyType.value = 'binary'
         } else {
           bodyType.value = 'none'
@@ -1287,7 +1309,22 @@ const onNodeExpand = (node) => {
 }
 
 const onNodeCollapse = (node) => {
-  expandedKeys.value = expandedKeys.value.filter(key => key !== node.id)
+  // 递归获取节点及其所有子节点的ID
+  const getAllNodeIds = (targetNode) => {
+    let ids = [targetNode.id]
+    if (targetNode.children && targetNode.children.length > 0) {
+      targetNode.children.forEach(child => {
+        ids = ids.concat(getAllNodeIds(child))
+      })
+    }
+    return ids
+  }
+  
+  // 获取当前节点及其所有子节点的ID集合
+  const idsToRemove = getAllNodeIds(node)
+  
+  // 一次性从展开的节点集合中移除它们
+  expandedKeys.value = expandedKeys.value.filter(key => !idsToRemove.includes(key))
 }
 
 const createEmptyRequest = () => {
@@ -1340,6 +1377,7 @@ const closeCodeGenerateDialog = () => {
 
 const handleImportExport = (command) => {
   if (command === 'import') {
+    importTargetCollectionId.value = null
     showImportDialog.value = true
   } else if (command === 'export') {
     handleExport()
@@ -1352,19 +1390,48 @@ const handleExport = async () => {
     return
   }
   try {
-    const format = await new Promise((resolve) => {
-      // 简单使用 openapi 作为默认导出格式
-      resolve('openapi')
-    })
+    const export_format = 'openapi'
     const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
-      params: { format },
+      params: { export_format },
       responseType: 'blob',
     })
     const blob = new Blob([response.data], { type: 'application/json' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `export_${format}.json`
+    a.download = `export_${export_format}.json`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    ElMessage.success(t('apiTesting.importExport.exportSuccess'))
+  } catch (error) {
+    ElMessage.error(t('apiTesting.importExport.exportFailed'))
+  }
+}
+
+const handleCollectionImport = () => {
+  showContextMenu.value = false
+  if (!rightClickedNode.value || rightClickedNode.value.type !== 'collection') return
+  importTargetCollectionId.value = rightClickedNode.value.id
+  showImportDialog.value = true
+}
+
+const handleCollectionExport = async () => {
+  showContextMenu.value = false
+  if (!rightClickedNode.value || rightClickedNode.value.type !== 'collection') return
+  
+  const collectionId = rightClickedNode.value.id
+  
+  try {
+    const export_format = 'openapi'
+    const response = await api.get(`/api-testing/export/${selectedProject.value}/`, {
+      params: { export_format, collection_id: collectionId },
+      responseType: 'blob',
+    })
+    const blob = new Blob([response.data], { type: 'application/json' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `export_collection_${collectionId}_${export_format}.json`
     a.click()
     window.URL.revokeObjectURL(url)
     ElMessage.success(t('apiTesting.importExport.exportSuccess'))
@@ -1489,6 +1556,132 @@ const deleteNode = () => {
     // 取消删除
     showContextMenu.value = false
   })
+}
+
+// 复制接口（树节点图标点击）
+const handleCopyRequest = async (requestData) => {
+  try {
+    // 通过API获取完整的请求详情
+    const response = await api.get(`/api-testing/requests/${requestData.id}/`)
+    const originalRequest = response.data
+
+    // 构建复制数据
+    const copyData = {
+      ...originalRequest,
+      id: null,
+      name: `${originalRequest.name || requestData.name} - 复制`,
+      collection: originalRequest.collection
+    }
+
+    // 创建新接口
+    const createResponse = await api.post('/api-testing/requests/', copyData)
+    ElMessage.success(t('apiTesting.messages.success.copy') || '复制成功')
+
+    // 刷新集合树
+    await loadCollections(selectedProject.value)
+
+    // 展开该接口所在集合
+    if (originalRequest.collection && !expandedKeys.value.includes(originalRequest.collection)) {
+      expandedKeys.value.push(originalRequest.collection)
+    }
+  } catch (error) {
+    console.error('复制接口失败:', error)
+    ElMessage.error(t('apiTesting.messages.error.copyFailed') || '复制失败')
+  }
+}
+
+// 删除接口（树节点图标点击）
+const handleDeleteRequest = async (requestData) => {
+  try {
+    await ElMessageBox.confirm(
+      t('apiTesting.messages.confirm.deleteMessage', { type: t('apiTesting.interface.request'), name: requestData.name }),
+      t('apiTesting.messages.confirm.deleteTitle'),
+      {
+        confirmButtonText: t('apiTesting.common.confirm'),
+        cancelButtonText: t('apiTesting.common.cancel'),
+        type: 'warning'
+      }
+    )
+
+    await api.delete(`/api-testing/requests/${requestData.id}/`)
+    ElMessage.success(t('apiTesting.messages.success.delete'))
+
+    // 刷新集合树
+    await loadCollections(selectedProject.value)
+
+    // 如果删除的是当前选中的请求，清空选中状态
+    if (selectedRequest.value && selectedRequest.value.id === requestData.id) {
+      selectedRequest.value = null
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除接口失败:', error)
+      ElMessage.error(t('apiTesting.messages.error.deleteFailed'))
+    }
+  }
+}
+
+// 拖拽控制：只允许拖拽接口节点，不允许拖拽集合节点
+const checkAllowDrag = (node) => {
+  return node.data.type === 'request'
+}
+
+// 拖拽控制：允许接口拖拽到集合节点或其他接口节点
+const checkAllowDrop = (draggingNode, dropNode, type) => {
+  if (type === 'inner') {
+    // 只能拖入集合节点
+    return dropNode.data.type === 'collection'
+  }
+  return true
+}
+
+// 拖拽结束后保存
+const handleDragEnd = async (draggingNode, dropNode, dropType) => {
+  const updates = []
+
+  // 获取目标集合
+  let targetCollectionId = null
+
+  if (dropType === 'inner') {
+    // 拖入集合节点
+    targetCollectionId = dropNode.data.id
+  } else if (dropType === 'before' || dropType === 'after') {
+    // 拖到接口节点的前后，使用该接口所在的集合
+    if (dropNode.parent.data.type === 'collection') {
+      targetCollectionId = dropNode.parent.data.id
+    } else {
+      // 如果父节点不是集合，继续向上查找
+      let parent = dropNode.parent
+      while (parent && parent.data.type !== 'collection') {
+        parent = parent.parent
+      }
+      if (parent && parent.data.type === 'collection') {
+        targetCollectionId = parent.data.id
+      }
+    }
+  }
+
+  if (targetCollectionId) {
+    try {
+      // 通过API获取完整的请求详情
+      const response = await api.get(`/api-testing/requests/${draggingNode.data.id}/`)
+      const originalRequest = response.data
+
+      // 更新被拖拽接口的集合
+      const updateData = {
+        ...originalRequest,
+        collection: targetCollectionId
+      }
+
+      await api.put(`/api-testing/requests/${draggingNode.data.id}/`, updateData)
+      ElMessage.success(t('apiTesting.messages.success.update'))
+      await loadCollections(selectedProject.value)
+    } catch (error) {
+      ElMessage.error(t('apiTesting.messages.error.updateFailed'))
+      console.error('移动接口失败:', error)
+      await loadCollections(selectedProject.value) // 失败则重新加载
+    }
+  }
 }
 
 const saveCollectionName = async () => {
@@ -1667,24 +1860,25 @@ const sendRequest = async () => {
     let bodyData = {}
     if (hasBody.value) {
       if (bodyType.value === 'none') {
-        bodyData = {}
-      } else if (bodyType.value === 'raw' && rawBody.value) {
+        bodyData = { type: 'none' }
+      } else if (bodyType.value === 'raw') {
         if (rawType.value === 'json') {
           try {
+            const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
             bodyData = {
               type: 'json',
-              data: JSON.parse(rawBody.value)
+              data: parsedData
             }
           } catch (e) {
             bodyData = {
-              type: 'raw',
+              type: 'json',
               data: rawBody.value
             }
           }
         } else {
           bodyData = {
-            type: 'raw',
-            data: rawBody.value
+            type: rawType.value,
+            data: rawBody.value || ''
           }
         }
       } else if (bodyType.value === 'form-data') {
@@ -1751,24 +1945,28 @@ const saveRequest = async () => {
 
     if (hasBody.value) {
       if (bodyType.value === 'none') {
-        bodyData = {}
-      } else if (bodyType.value === 'raw' && rawBody.value) {
+        bodyData = { type: 'none' }
+      } else if (bodyType.value === 'raw') {
         if (rawType.value === 'json') {
           try {
+            // 如果能解析成对象，则按对象保存；如果为空则存空字符串
+            const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
             bodyData = {
               type: 'json',
-              data: JSON.parse(rawBody.value)
+              data: parsedData
             }
           } catch (e) {
+            // 解析失败时，按原样字符串保存，但保留 json 类型
             bodyData = {
-              type: 'raw',
+              type: 'json',
               data: rawBody.value
             }
           }
         } else {
+          // 保存具体类型，如 text, xml, html
           bodyData = {
-            type: 'raw',
-            data: rawBody.value
+            type: rawType.value,
+            data: rawBody.value || ''
           }
         }
       } else if (bodyType.value === 'form-data') {
@@ -1830,7 +2028,74 @@ const saveRequest = async () => {
       response = await api.post('/api-testing/requests/', requestData)
     }
 
-    selectedRequest.value = response.data
+    const savedData = response.data
+
+    // 将 params 从字典格式转换为数组格式
+    if (savedData.params && typeof savedData.params === 'object' && !Array.isArray(savedData.params)) {
+      const paramsArray = []
+      Object.keys(savedData.params).forEach(key => {
+        if (key && savedData.params[key] !== undefined) {
+          paramsArray.push({
+            enabled: true,
+            key,
+            value: savedData.params[key],
+            description: '',
+            type: 'text'
+          })
+        }
+      })
+      savedData.params = paramsArray
+    }
+
+    // 将 headers 从字典格式转换为数组格式
+    if (savedData.headers && typeof savedData.headers === 'object' && !Array.isArray(savedData.headers)) {
+      const headersArray = []
+      Object.keys(savedData.headers).forEach(key => {
+        if (key && savedData.headers[key] !== undefined) {
+          headersArray.push({
+            enabled: true,
+            key,
+            value: savedData.headers[key],
+            description: '',
+            type: 'text'
+          })
+        }
+      })
+      savedData.headers = headersArray
+    }
+
+    // 解析body数据，更新响应式变量
+    if (savedData.body && savedData.body.type && savedData.body.type !== 'none') {
+      const type = savedData.body.type;
+      const data = savedData.body.data;
+      
+      if (type === 'json') {
+        bodyType.value = 'raw'
+        rawType.value = 'json'
+        rawBody.value = typeof data === 'object' && data !== null ? JSON.stringify(data, null, 2) : (data || '')
+      } else if (['raw', 'text', 'xml', 'html'].includes(type)) {
+        bodyType.value = 'raw'
+        rawType.value = type === 'raw' ? 'text' : type
+        rawBody.value = data || ''
+      } else if (type === 'form-data') {
+        bodyType.value = 'form-data'
+        formData.value = data || []
+      } else if (type === 'x-www-form-urlencoded') {
+        bodyType.value = 'x-www-form-urlencoded'
+        formUrlEncoded.value = data || []
+      } else if (type === 'binary') {
+        bodyType.value = 'binary'
+      } else {
+        bodyType.value = 'none'
+        rawBody.value = ''
+      }
+    } else {
+      bodyType.value = 'none'
+      rawBody.value = ''
+    }
+
+    selectedRequest.value = savedData
+    currentHeaders.value = savedData.headers || []
     await loadCollections(selectedProject.value)
     ElMessage.success(t('apiTesting.messages.success.save'))
   } catch (error) {
@@ -1844,23 +2109,24 @@ const saveRequest = async () => {
 const onBodyTypeChange = () => {
   // 保存当前body数据到selectedRequest
   if (selectedRequest.value) {
-    if (bodyType.value === 'raw' && rawBody.value) {
+    if (bodyType.value === 'raw') {
       if (rawType.value === 'json') {
         try {
+          const parsedData = rawBody.value ? JSON.parse(rawBody.value) : ''
           selectedRequest.value.body = {
             type: 'json',
-            data: JSON.parse(rawBody.value)
+            data: parsedData
           }
         } catch (e) {
           selectedRequest.value.body = {
-            type: 'raw',
+            type: 'json',
             data: rawBody.value
           }
         }
       } else {
         selectedRequest.value.body = {
-          type: 'raw',
-          data: rawBody.value
+          type: rawType.value,
+          data: rawBody.value || ''
         }
       }
     } else if (bodyType.value === 'form-data') {
@@ -2119,6 +2385,17 @@ const exportRequest = () => {
       }
     }
 
+    let bodyMode = 'none'
+    if (bodyType.value === 'raw') {
+      bodyMode = rawType.value === 'json' ? 'json' : 'raw'
+    } else if (bodyType.value === 'form-data') {
+      bodyMode = 'formdata'
+    } else if (bodyType.value === 'x-www-form-urlencoded') {
+      bodyMode = 'urlencoded'
+    } else if (bodyType.value === 'binary') {
+      bodyMode = 'binary'
+    }
+
     const requestModel = {
       method: selectedRequest.value?.method || 'GET',
       baseURL: baseURL,
@@ -2126,8 +2403,11 @@ const exportRequest = () => {
       query: convertToArrayFormat(selectedRequest.value?.params),
       headers: convertToArrayFormat(selectedRequest.value?.headers),
       body: {
-        mode: 'none',
-        raw: rawBody.value || ''
+        mode: bodyMode,
+        raw: rawBody.value,
+        json: rawBody.value,
+        formdata: formData.value,
+        urlencoded: formUrlEncoded.value
       },
       timeout: 30000
     }
@@ -2760,7 +3040,7 @@ const useLocalVariableCategories = () => {
 
 /* 左侧边栏 */
 .sidebar {
-  width: 300px;
+  width: 340px;
   border-right: 1px solid #e4e7ed;
   background: var(--th-color-surface);
   overflow: visible;
@@ -2782,7 +3062,7 @@ const useLocalVariableCategories = () => {
 
 .header-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -2793,8 +3073,10 @@ const useLocalVariableCategories = () => {
 }
 
 .header-actions .el-button {
+  padding: 5px 8px; /* 减小按钮内边距使图标更紧凑 */
   border-radius: 6px;
   transition: all 0.2s ease;
+  margin-left: 0 !important; /* 覆盖 element-plus 的默认左边距 */
 }
 
 .header-actions .el-button:hover {
@@ -2815,6 +3097,7 @@ const useLocalVariableCategories = () => {
   gap: 8px;
   flex: 1;
   padding: 4px 0;
+  min-width: 0; /* 确保子元素的文本截断能生效 */
 }
 
 .tree-node .el-icon {
@@ -2827,6 +3110,9 @@ const useLocalVariableCategories = () => {
   font-size: 14px;
   color: #303133;
   transition: color 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tree-node:hover .node-label {
@@ -2853,6 +3139,38 @@ const useLocalVariableCategories = () => {
   display: inline-block;
   min-width: 40px;
   text-align: center;
+  flex-shrink: 0; /* 防止标签被压缩 */
+}
+
+/* 复制和删除图标样式 */
+.tree-node .copy-icon {
+  margin-left: auto;
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s, transform 0.1s;
+  padding: 4px;
+  flex-shrink: 0; /* 防止图标被压缩 */
+}
+
+.tree-node .copy-icon:hover {
+  color: var(--th-color-primary);
+  transform: scale(1.1);
+}
+
+.tree-node .delete-icon {
+  cursor: pointer;
+  color: #909399;
+  font-size: 20px;
+  transition: color 0.2s, transform 0.1s;
+  padding: 4px;
+  margin-left: 4px;
+  flex-shrink: 0; /* 防止图标被压缩 */
+}
+
+.tree-node .delete-icon:hover {
+  color: #f56c6c;
+  transform: scale(1.1);
 }
 
 .method-tag.get {

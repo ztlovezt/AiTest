@@ -24,6 +24,10 @@ def get_default_tags():
     return []
 
 
+def get_default_tika_url():
+    from django.conf import settings
+    return getattr(settings, 'DOC_PARSER_URL', 'http://localhost:9987')
+
 class KnowledgeBaseConfig(models.Model):
     """知识库与大模型配置模型 (用于替代 config.yaml 中的 LLM 配置)"""
     
@@ -35,6 +39,9 @@ class KnowledgeBaseConfig(models.Model):
     embedding_base_url = models.CharField(max_length=200, verbose_name='Embedding API Base URL', blank=True, null=True)
     embedding_model = models.CharField(max_length=100, default='text-embedding-v3', verbose_name='Embedding 模型名称')
     
+    # Tika Server 配置 (替代 Vision)
+    tika_server_url = models.CharField(max_length=200, default=get_default_tika_url, verbose_name='Tika Server URL', help_text='Apache Tika 文档解析服务地址')
+    
     # Refiner (文档结构化) 模型配置
     refiner_api_key = models.CharField(max_length=200, verbose_name='Refiner API Key', blank=True, null=True)
     refiner_base_url = models.CharField(max_length=200, verbose_name='Refiner API Base URL', blank=True, null=True)
@@ -42,20 +49,21 @@ class KnowledgeBaseConfig(models.Model):
     refiner_max_tokens = models.IntegerField(default=8192, verbose_name='Refiner 最大Token数')
     refiner_temperature = models.FloatField(default=0.3, verbose_name='Refiner 温度参数')
     
+    # Vision 配置已废弃，保留字段以兼容旧数据或移除(这里直接注释掉，因为要运行makemigrations)
     # Vision (视觉模型文档解析) 配置 - 支持任意兼容 OpenAI 接口的视觉模型
-    vision_api_key = models.CharField(max_length=200, verbose_name='Vision API Key', blank=True, null=True)
-    vision_base_url = models.CharField(max_length=200, verbose_name='Vision API Base URL', blank=True, null=True, help_text='留空则使用默认值，智谱: https://open.bigmodel.cn/api/paas/v4, OpenAI: https://api.openai.com/v1')
-    vision_model = models.CharField(max_length=100, default='glm-4v-flash', verbose_name='Vision 模型名称', help_text='支持任意兼容 OpenAI 接口的视觉模型，如: gpt-4o, gpt-4-vision-preview, qwen-vl-max, glm-4v-flash 等')
-    vision_provider = models.CharField(
-        max_length=20, 
-        default='zhipu', 
-        verbose_name='Vision 服务商',
-        help_text='用于选择文档解析方式: zhipu 使用智谱文件解析API，openai 使用通用视觉模型逐页解析',
-        choices=[
-            ('zhipu', '智谱 (使用文件解析API)'),
-            ('openai', 'OpenAI兼容 (使用视觉模型逐页解析)'),
-        ]
-    )
+    # vision_api_key = models.CharField(max_length=200, verbose_name='Vision API Key', blank=True, null=True)
+    # vision_base_url = models.CharField(max_length=200, verbose_name='Vision API Base URL', blank=True, null=True, help_text='留空则使用默认值，智谱: https://open.bigmodel.cn/api/paas/v4, OpenAI: https://api.openai.com/v1')
+    # vision_model = models.CharField(max_length=100, default='glm-4v-flash', verbose_name='Vision 模型名称', help_text='支持任意兼容 OpenAI 接口的视觉模型，如: gpt-4o, gpt-4-vision-preview, qwen-vl-max, glm-4v-flash 等')
+    # vision_provider = models.CharField(
+    #     max_length=20, 
+    #     default='zhipu', 
+    #     verbose_name='Vision 服务商',
+    #     help_text='用于选择文档解析方式: zhipu 使用智谱文件解析API，openai 使用通用视觉模型逐页解析',
+    #     choices=[
+    #         ('zhipu', '智谱 (使用文件解析API)'),
+    #         ('openai', 'OpenAI兼容 (使用视觉模型逐页解析)'),
+    #     ]
+    # )
 
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='创建时间')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
