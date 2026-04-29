@@ -142,10 +142,19 @@ class ChatViewSet(viewsets.ViewSet):
                     'conversation_id': data.get('conversation_id')
                 })
             else:
+                # 尝试解析Dify返回的JSON错误信息
+                error_msg = f'Dify API错误: {response.status_code}'
+                try:
+                    error_data = response.json()
+                    if 'message' in error_data:
+                        error_msg = f"Dify报错: {error_data['message']}"
+                except:
+                    pass
+                
                 return Response({
-                    'error': f'Dify API错误: {response.status_code}',
+                    'error': error_msg,
                     'detail': response.text
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                }, status=status.HTTP_400_BAD_REQUEST)
                 
         except requests.exceptions.Timeout:
             return Response({
