@@ -2,6 +2,11 @@
   <div class="assistant-layout">
     <!-- 左侧侧边栏 -->
     <div class="sidebar">
+      <!-- Logo区域与面包屑 -->
+      <div class="logo-area-nav" @click="router.push('/home')" style="cursor: pointer">
+        <img src="@/assets/images/logo.svg" alt="TestHub" class="nav-logo" />
+      </div>
+
       <div class="new-chat-btn-wrapper">
         <el-button type="primary" class="new-chat-btn" @click="startNewChat" :icon="Plus">
           {{ $t('assistant.newChat') }}
@@ -51,12 +56,20 @@
 
     <!-- 右侧主内容区 -->
     <div class="main-content">
+      <!-- 顶部面包屑区域 -->
+      <div class="header-content">
+        <el-breadcrumb separator="/">
+          <el-breadcrumb-item :to="{ path: '/home' }">{{ $t('nav.home') || '首页' }}</el-breadcrumb-item>
+          <el-breadcrumb-item>{{ $t('assistant.title') || 'AI评测师' }}</el-breadcrumb-item>
+        </el-breadcrumb>
+      </div>
+
       <!-- 场景1：新会话（居中输入框） -->
       <div v-if="isNewChatMode" class="welcome-screen">
         <div class="welcome-content">
           <div class="logo-area">
             <div class="logo-circle">
-              <el-icon><Cpu /></el-icon>
+              <el-icon><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"><path fill="currentColor" d="M848.5 352.4h-54.7V256c0-35.3-28.7-64-64-64H294.2c-35.3 0-64 28.7-64 64v96.4h-54.7c-35.3 0-64 28.7-64 64v320c0 35.3 28.7 64 64 64h54.7V832c0 35.3 28.7 64 64 64h435.6c35.3 0 64-28.7 64-64v-31.6h54.7c35.3 0 64-28.7 64-64v-320c0-35.3-28.7-64-64-64zM294.2 256h435.6v96.4H294.2V256zm435.6 576H294.2v-31.6h435.6V832zm54.7-95.6H239.5v-320h544.9v320z"></path><path fill="currentColor" d="M375.4 512.2a64 64 0 1 0 128 0 64 64 0 1 0-128 0zm273.2 0a64 64 0 1 0 128 0 64 64 0 1 0-128 0z"></path></svg></el-icon>
             </div>
             <h1>{{ $t('assistant.title') }}</h1>
             <p>{{ $t('assistant.subtitle') }}</p>
@@ -107,7 +120,11 @@
           >
             <div class="avatar">
               <el-avatar v-if="message.role === 'user'" :size="36" :icon="User" class="user-avatar" />
-              <el-avatar v-else :size="36" :icon="Cpu" class="ai-avatar" />
+              <div v-else class="ai-avatar-wrapper">
+                <el-avatar :size="36" class="ai-avatar">
+                  <el-icon><svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"><path fill="currentColor" d="M848.5 352.4h-54.7V256c0-35.3-28.7-64-64-64H294.2c-35.3 0-64 28.7-64 64v96.4h-54.7c-35.3 0-64 28.7-64 64v320c0 35.3 28.7 64 64 64h54.7V832c0 35.3 28.7 64 64 64h435.6c35.3 0 64-28.7 64-64v-31.6h54.7c35.3 0 64-28.7 64-64v-320c0-35.3-28.7-64-64-64zM294.2 256h435.6v96.4H294.2V256zm435.6 576H294.2v-31.6h435.6V832zm54.7-95.6H239.5v-320h544.9v320z"></path><path fill="currentColor" d="M375.4 512.2a64 64 0 1 0 128 0 64 64 0 1 0-128 0zm273.2 0a64 64 0 1 0 128 0 64 64 0 1 0-128 0z"></path></svg></el-icon>
+                </el-avatar>
+              </div>
             </div>
             <div class="message-bubble">
               <div class="message-content" v-html="formatMessageContent(message.content)"></div>
@@ -402,12 +419,28 @@ onMounted(() => {
 /* 左侧侧边栏 */
 .sidebar {
   width: 260px;
-  background: #001529; /* 与主布局一致的深色背景 */
-  border-right: 1px solid #1f1f1f;
+  background: var(--th-color-surface); /* 浅色背景 */
+  border-right: 1px solid var(--el-border-color-light);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.65);
+  color: var(--el-text-color-primary);
+
+  .logo-area-nav {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--th-sidebar-bg);
+    border-bottom: 1px solid var(--th-sidebar-border);
+    flex-shrink: 0;
+    
+    .nav-logo {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+    }
+  }
   
   .new-chat-btn-wrapper {
     padding: 20px;
@@ -415,15 +448,16 @@ onMounted(() => {
     .new-chat-btn {
       width: 100%;
       height: 40px;
-      border-radius: 4px; /* 稍微减小圆角以匹配整体风格 */
+      border-radius: 4px;
       font-size: 14px;
-      background: var(--th-color-primary);
-      border-color: var(--th-color-primary);
-      color: white;
+      background: var(--el-color-primary-light-9);
+      border-color: var(--el-color-primary-light-8);
+      color: var(--th-color-primary);
       
       &:hover {
-        background: #40a9ff;
-        border-color: #40a9ff;
+        background: var(--th-color-primary);
+        border-color: var(--th-color-primary);
+        color: white;
       }
     }
   }
@@ -437,7 +471,7 @@ onMounted(() => {
     .history-label {
       padding: 0 20px 10px;
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.45);
+      color: var(--el-text-color-secondary);
     }
     
     .session-scroll-area {
@@ -449,7 +483,7 @@ onMounted(() => {
         width: 4px;
       }
       &::-webkit-scrollbar-thumb {
-        background: rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.1);
         border-radius: 2px;
       }
     }
@@ -463,11 +497,11 @@ onMounted(() => {
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s;
-      color: rgba(255, 255, 255, 0.65);
+      color: var(--el-text-color-regular);
       
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: white;
+        background: var(--el-fill-color-light);
+        color: var(--el-text-color-primary);
         
         .session-actions {
           opacity: 1;
@@ -475,8 +509,8 @@ onMounted(() => {
       }
       
       &.active {
-        background: var(--th-color-primary);
-        color: white;
+        background: var(--el-color-primary-light-9);
+        color: var(--th-color-primary);
       }
       
       .session-title-wrapper {
@@ -504,7 +538,7 @@ onMounted(() => {
         
         .delete-icon {
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.45);
+          color: var(--el-text-color-secondary);
           &:hover {
             color: #ff4d4f;
           }
@@ -515,7 +549,7 @@ onMounted(() => {
   
   .user-profile {
     padding: 16px;
-    border-top: 1px solid #1f1f1f;
+    border-top: 1px solid var(--el-border-color-light);
     
     .user-info {
       display: flex;
@@ -526,13 +560,13 @@ onMounted(() => {
       transition: all 0.2s;
       
       &:hover {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--el-fill-color-light);
       }
       
       .username {
         margin: 0 8px;
         font-size: 14px;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--el-text-color-primary);
         flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -540,7 +574,7 @@ onMounted(() => {
       }
       
       .el-icon {
-        color: rgba(255, 255, 255, 0.45);
+        color: var(--el-text-color-secondary);
       }
     }
   }
@@ -553,6 +587,23 @@ onMounted(() => {
   flex-direction: column;
   position: relative;
   background: var(--th-color-surface);
+  overflow: hidden;
+
+  .header-content {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: var(--th-header-bg);
+    border-bottom: 1px solid var(--th-header-border);
+    box-shadow: var(--th-header-shadow);
+    backdrop-filter: blur(10px);
+    flex-shrink: 0;
+
+    :deep(.el-breadcrumb) {
+      font-size: 14px;
+    }
+  }
 }
 
 /* 场景1：欢迎页（新会话） */
