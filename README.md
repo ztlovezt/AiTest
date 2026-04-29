@@ -5,9 +5,8 @@
 **基于 AI 驱动的全栈测试管理平台**
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
-[![Django](https://img.shields.io/badge/Django-4.2-green.svg)](https://www.djangoproject.com/)
+[![Django](https://img.shields.io/badge/Django-6.0-green.svg)](https://www.djangoproject.com/)
 [![Vue](https://img.shields.io/badge/Vue-3.3-brightgreen.svg)](https://vuejs.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
@@ -192,7 +191,7 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 ### 前端技术栈
 
 - **框架**: Vue 3.3.4 + Composition API
-- **构建工具**: Vite 5.4.21
+- **构建工具**: Vite 7.3.1
 - **UI 组件**: Element Plus 2.3.9
 - **状态管理**: Pinia 2.1.6
 - **路由**: Vue Router 4.2.4
@@ -205,103 +204,93 @@ TestHub 是一个功能强大的智能测试管理平台，集成了 **AI 需求
 
 ```
 testhub_platform/
-├── apps/                           # Django 应用模块
-│   ├── users/                      # 用户管理
-│   ├── projects/                   # 项目管理
-│   ├── testcases/                  # 测试用例管理
-│   ├── testsuites/                 # 测试套件管理
-│   ├── executions/                 # 测试执行管理
-│   ├── data_factory/               # 数据工厂
-│   ├── reports/                    # 测试报告
-│   ├── reviews/                    # 用例评审管理
-│   ├── versions/                   # 版本管理
-│   ├── core/                       # 核心功能模块
-│   │   ├── models.py               # 统一通知配置、性能统计模型
-│   │   ├── views.py                # 核心功能视图
-│   │   ├── tasks.py                # 定时任务函数（性能统计聚合）
-│   │   ├── admin_performance.py    # 性能监控 Admin 配置
-│   │   ├── admin_notification.py   # 通知模板 Admin 配置
-│   │   └── management/commands/     # 管理命令
-│   │       ├── run_all_scheduled_tasks.py  # 统一定时任务调度器
-│   │       ├── init_locator_strategies.py  # 初始化元素定位策略
-│   │       ├── download_webdrivers.py      # 下载浏览器驱动
-│   │       └── init_system_tasks.py        # 初始化系统定时任务
-│   ├── requirement_analysis/       # AI 需求分析
-│   ├── assistant/                  # 智能助手
-│   ├── api_testing/                # API 测试
-│   ├── ui_automation/              # UI 自动化测试
-│   ├── app_automation/             # APP 自动化测试
-│   └── ocr_service/                # OCR 服务
-├── backend/                        # Django 项目配置
-│   ├── settings.py                 # 项目设置
-│   ├── urls.py                     # URL 路由
-│   └── middleware.py               # 中间件
-├── frontend/                       # Vue3 前端
+├── backend/                        # Django 后端工程
+│   ├── apps/                       # 业务应用模块
+│   │   ├── users/                  # 用户管理
+│   │   ├── projects/               # 项目管理
+│   │   ├── unified_projects/       # 统一项目管理中心
+│   │   ├── testcases/              # 测试用例管理
+│   │   ├── testsuites/             # 测试套件管理
+│   │   ├── executions/             # 测试执行管理
+│   │   ├── reports/                # 测试报告
+│   │   ├── reviews/                # 用例评审管理
+│   │   ├── versions/               # 版本管理
+│   │   ├── data_factory/           # 数据工厂
+│   │   ├── api_testing/            # API 测试
+│   │   ├── ui_automation/          # UI 自动化测试
+│   │   ├── app_automation/         # APP 自动化测试
+│   │   ├── ai_testing/             # AI 智能测试
+│   │   ├── requirement_analysis/   # AI 需求分析
+│   │   ├── knowledge_base/         # 知识库
+│   │   ├── assistant/              # 智能助手
+│   │   ├── ocr_service/            # OCR 服务
+│   │   ├── ops_tools/              # 运维工具（环境管理、日志查询）
+│   │   ├── scheduler/              # 调度任务管理
+│   │   ├── core/                   # 核心能力与管理命令
+│   │   └── common/                 # 通用模块
+│   ├── backend/                    # Django 项目配置
+│   │   ├── settings.py             # 项目设置
+│   │   ├── urls.py                 # URL 路由
+│   │   ├── asgi.py                 # ASGI 入口
+│   │   ├── wsgi.py                 # WSGI 入口
+│   │   ├── middleware/             # 自定义中间件
+│   │   └── utils/                  # 后端框架级工具
+│   ├── docs/                       # 项目文档与使用说明
+│   ├── logs/                       # 后端日志文件
+│   ├── services/                   # 独立服务与集成脚本
+│   ├── static/                     # 后端静态资源
+│   ├── static_files/               # collectstatic 输出目录
+│   ├── locale/                     # Django 国际化资源
+│   ├── utils/                      # 后端公共工具
+│   ├── .env.example                # 后端环境变量模板
+│   ├── requirements.txt            # Python 依赖
+│   ├── manage.py                   # Django 管理脚本
+│   ├── start_backend.py            # 后端启动脚本
+│   └── start_webscoket.py          # WebSocket 启动脚本
+├── frontend/                       # Vue 3 前端工程
 │   ├── src/
-│   │   ├── api/                    # API 接口
+│   │   ├── api/                    # API 请求封装
+│   │   ├── assets/                 # 静态资源
 │   │   ├── components/             # 公共组件
-│   │   ├── views/                  # 页面视图
-│   │   │   ├── auth/               # 登录注册
+│   │   ├── layout/                 # 布局组件
+│   │   ├── locales/                # 前端国际化文案
+│   │   ├── router/                 # 路由配置
+│   │   ├── stores/                 # Pinia 状态管理
+│   │   ├── utils/                  # 前端工具函数
+│   │   ├── views/                  # 业务页面
+│   │   │   ├── auth/               # 登录与认证
 │   │   │   ├── projects/           # 项目管理
+│   │   │   ├── unified-projects/   # 统一项目中心
 │   │   │   ├── testcases/          # 测试用例
-│   │   │   ├── data-factory/       # 数据工厂
+│   │   │   ├── testsuites/         # 测试套件
+│   │   │   ├── executions/         # 执行记录
+│   │   │   ├── reports/            # 报告管理
 │   │   │   ├── reviews/            # 用例评审
-│   │   │   ├── requirement-analysis/  # 需求分析
-│   │   │   ├── assistant/          # 智能助手
+│   │   │   ├── versions/           # 版本管理
+│   │   │   ├── data-factory/       # 数据工厂
 │   │   │   ├── api-testing/        # API 测试
 │   │   │   ├── ui-automation/      # UI 自动化
-│   │   │   │   ├── ai/             # AI 智能模式
-│   │   │   │   ├── config/         # 配置管理
-│   │   │   │   └── suites/         # 测试套件
-│   │   │   └── configuration/      # 统一配置中心
-│   │   ├── stores/                 # Pinia 状态管理
-│   │   ├── router/                 # 路由配置
-│   │   ├── utils/                  # 工具函数
-│   │   └── assets/                 # 静态资源
-│   └── package.json
-├── media/                          # 媒体文件（上传文件、截图等）
-├── logs/                           # 日志文件
-│   ├── app.log                   # 主日志文件（不包含 ERROR 级别的日志）
-│   ├── error.log                 # 错误日志文件（只包含 ERROR 级别的日志）
-│   ├── django_task.log           # Django任务日志文件（任务队列和定时任务）
-│   └── orm_sql.log               # ORM SQL日志文件（数据库查询）
+│   │   │   ├── app-automation/     # APP 自动化
+│   │   │   ├── ai-testing/         # AI 智能测试
+│   │   │   ├── requirement-analysis/ # 需求分析
+│   │   │   ├── knowledge-base/     # 知识库
+│   │   │   ├── assistant/          # 智能助手
+│   │   │   ├── ops-tools/          # 运维工具
+│   │   │   ├── configuration/      # 配置中心
+│   │   │   ├── notification/       # 通知管理
+│   │   │   ├── profile/            # 个人中心
+│   │   │   └── ocr/                # OCR 配置页面
+│   │   ├── App.vue                 # 前端根组件
+│   │   └── main.js                 # 前端入口
+│   ├── package.json                # 前端依赖
+│   └── vite.config.js              # Vite 构建配置
 ├── expand/                         # 扩展工具
-│   └── allure/                     # Allure 测试报告工具
-├── backend/                        # Django 后端
-│   ├── apps/                      # Django 应用模块
-│   ├── backend/                   # Django 项目配置
-│   │   ├── settings.py            # 项目设置
-│   │   ├── urls.py                # URL 路由
-│   │   └── middleware.py          # 中间件
-│   ├── .env.example              # 后端环境变量配置模板
-│   ├── requirements.txt           # Python 依赖
-│   └── manage.py                  # Django 管理脚本
-├── frontend/                       # Vue3 前端
-│   ├── src/
-│   │   ├── api/                    # API 接口
-│   │   ├── components/             # 公共组件
-│   │   ├── views/                  # 页面视图
-│   │   │   ├── auth/               # 登录注册
-│   │   │   ├── projects/           # 项目管理
-│   │   │   ├── testcases/          # 测试用例
-│   │   │   ├── data-factory/       # 数据工厂
-│   │   │   ├── reviews/            # 用例评审
-│   │   │   ├── requirement-analysis/  # 需求分析
-│   │   │   ├── assistant/          # 智能助手
-│   │   │   ├── api-testing/        # API 测试
-│   │   │   ├── ui-automation/      # UI 自动化
-│   │   │   │   ├── ai/             # AI 智能模式
-│   │   │   │   ├── config/         # 配置管理
-│   │   │   │   └── suites/         # 测试套件
-│   │   │   └── configuration/      # 统一配置中心
-│   │   ├── stores/                 # Pinia 状态管理
-│   │   ├── router/                 # 路由配置
-│   │   ├── utils/                  # 工具函数
-│   │   └── assets/                 # 静态资源
-│   ├── .env.example               # 前端环境变量配置模板
-│   ├── vite.config.js             # Vite 构建配置
-│   └── package.json               # 前端依赖
+│   └── allure/                     # Allure 报告工具
+├── config.yaml.example             # 项目配置模板
+├── config.yaml                     # 本地项目配置
+├── perfdog2.py                     # 性能采集参考脚本
 ├── .gitignore
+├── AGENTS.md
 ├── CLAUDE.md
 └── README.md
 ```
@@ -626,12 +615,12 @@ chmod +x start.sh
 
 ```bash
 # 启动 Django 开发服务器
-python manage.py runserver
-或
-python manage.py start_backend.py
+python manage.py runserver  
+# 或
+python start_backend.py
 
 # 如果需要启动app远程控制则使用：
-start_with_websocket.bat
+python start_webscoket.py
 
 # 启动 Django-Q2 任务队列服务（在另一个终端）
 python manage.py qcluster
@@ -762,6 +751,37 @@ npm run build
 - 后端端口：在 `backend/.env` 文件中配置 `BACKEND_PORT`（默认 8000）
 - 前端端口：在 `frontend/.env` 文件中配置 `VITE_FRONTEND_PORT`（默认 3000）
 - 前端 API 代理：在 `frontend/.env` 文件中配置 `VITE_API_BASE_URL`（默认 http://127.0.0.1:8000）
+
+## 🤖 全局助手（V1.1）
+
+### 配置前提
+
+1. 在配置中心进入 `全局助手配置`（`/configuration/global-agent`），启用 1 条可用模型配置（`base_url`、`api_key`、`model_name`
+   必填）。
+2. 首次使用前执行平台文档同步：
+
+```bash
+cd backend
+python manage.py sync_agent_builtin_docs
+```
+
+### 使用入口
+
+- 悬浮球：全站默认入口，适合日常问答。
+- 调试页：`/agent`，保留会话列表与文档同步按钮，用于联调排障。
+
+### 支持命令
+
+- 文档问答：自然语言或 `/docs ...`
+- 项目查询：`/projects 关键词`
+- 用例查询：`/testcases 关键词`
+- 数据工具：`/data tool_name|tool_category|{"key":"value"}`
+
+### 返回与状态说明
+
+- 模型未配置时接口返回：`409 + MODEL_NOT_CONFIGURED`
+- 助手消息 `metadata` 包含：`preset`、`tool_result`、`citations`、`route_context_snapshot`、`trace`
+- `trace` 记录每轮链路观测字段（预设、LLM 调用状态、工具状态、耗时、失败原因）
 
 ## 📄 文档
 

@@ -1,3 +1,4 @@
+import os
 from rest_framework import serializers
 from django.db.models import Sum
 from .models import (
@@ -13,7 +14,7 @@ class KnowledgeBaseConfigSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        for field in ['embedding_api_key', 'refiner_api_key', 'vision_api_key']:
+        for field in ['embedding_api_key', 'refiner_api_key']:
             if ret.get(field):
                 key = ret[field]
                 if len(key) > 8:
@@ -64,29 +65,29 @@ class KnowledgeBaseSerializer(serializers.ModelSerializer):
 
 class KnowledgeBaseCreateSerializer(serializers.ModelSerializer):
     """知识库创建序列化器 - 支持同时上传初始文档"""
-    file = serializers.FileField(write_only=True, required=False)
 
     class Meta:
         model = KnowledgeBase
         fields = [
             'id', 'name', 'description', 'project', 'is_active',
-            'chunk_size', 'chunk_overlap', 'enable_vectorization',
-            'file'
+            'chunk_size', 'chunk_overlap', 'enable_vectorization'
         ]
 
-    def validate_file(self, value):
-        """验证上传的文件"""
-        if value:
+    def validate(self, attrs):
+        request = self.context.get('request')
+        if request and hasattr(request, 'FILES'):
+            files = request.FILES.getlist('files')
             allowed_extensions = ['.pdf', '.doc', '.docx', '.txt', '.md']
-            filename = value.name.lower()
-            if not any(filename.endswith(ext) for ext in allowed_extensions):
-                raise serializers.ValidationError(
-                    "不支持的文件格式，请上传 PDF、Word、TXT 或 Markdown 文件"
-                )
-            # 检查文件大小 (最大 50MB)
-            if value.size > 50 * 1024 * 1024:
-                raise serializers.ValidationError("文件大小不能超过 50MB")
-        return value
+            for file in files:
+                filename = file.name.lower()
+                if not any(filename.endswith(ext) for ext in allowed_extensions):
+                    raise serializers.ValidationError(
+                        f"不支持的文件格式: {file.name}，请上传 PDF、Word、TXT 或 Markdown 文件"
+                    )
+                # 检查文件大小 (最大 50MB)
+                if file.size > 50 * 1024 * 1024:
+                    raise serializers.ValidationError(f"文件大小不能超过 50MB: {file.name}")
+        return attrs
 
     def validate_chunk_size(self, value):
         """验证分块大小"""
@@ -108,41 +109,43 @@ class KnowledgeBaseCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """创建知识库"""
-        file = validated_data.pop('file', None)
         knowledge_base = super().create(validated_data)
 
-        # 如果有上传文件，创建初始文档记录
-        if file:
-            from .models import KnowledgeDocument
-            import os
+        request = self.context.get('request')
+        if request and hasattr(request, 'FILES'):
+            files = request.FILES.getlist('files')
+            if files:
+                from .models import KnowledgeDocument
+                import os
+                
+                initial_documents = []
+                for file in files:
+                    filename = file.name.lower()
+                    if filename.endswith('.pdf'):
+                        doc_type = 'pdf'
+                    elif filename.endswith('.doc') or filename.endswith('.docx'):
+                        doc_type = 'docx'
+                    elif filename.endswith('.txt'):
+                        doc_type = 'txt'
+                    elif filename.endswith('.md'):
+                        doc_type = 'md'
+                    else:
+                        doc_type = 'txt'
 
-            # 确定文档类型
-            filename = file.name.lower()
-            if filename.endswith('.pdf'):
-                doc_type = 'pdf'
-            elif filename.endswith('.doc') or filename.endswith('.docx'):
-                doc_type = 'docx'
-            elif filename.endswith('.txt'):
-                doc_type = 'txt'
-            elif filename.endswith('.md'):
-                doc_type = 'md'
-            else:
-                doc_type = 'txt'
+                    document = KnowledgeDocument.objects.create(
+                        title=os.path.splitext(file.name)[0],
+                        knowledge_base=knowledge_base,
+                        file=file,
+                        document_type=doc_type,
+                        file_size=file.size,
+                        source='initial',
+                        uploaded_by=request.user,
+                        status='published'
+                    )
+                    initial_documents.append(document)
 
-            # 创建文档记录
-            document = KnowledgeDocument.objects.create(
-                title=os.path.splitext(file.name)[0],
-                knowledge_base=knowledge_base,
-                file=file,
-                document_type=doc_type,
-                file_size=file.size,
-                source='initial',
-                uploaded_by=validated_data.get('created_by'),
-                status='published'
-            )
-
-            # 保存文档ID供后续处理
-            knowledge_base._initial_document = document
+                # 保存文档列表供后续处理
+                knowledge_base._initial_documents = initial_documents
 
         return knowledge_base
 
@@ -245,24 +248,78 @@ class KnowledgeDocumentSerializer(serializers.ModelSerializer):
 
 class DocumentUploadSerializer(serializers.ModelSerializer):
     """文档上传专用序列化器"""
+    title = serializers.CharField(required=False, allow_blank=True)
+    files = serializers.ListField(
+        child=serializers.FileField(),
+        write_only=True,
+        required=False
+    )
+    
     class Meta:
         model = KnowledgeDocument
-        fields = ['id', 'title', 'file', 'knowledge_base', 'category', 'description', 'tags', 'status']
+        fields = ['id', 'title', 'file', 'files', 'knowledge_base', 'category', 'description', 'tags', 'status']
 
     def create(self, validated_data):
         # 自动设置上传者
         user = self.context['request'].user
         if user.is_authenticated:
-            validated_data['uploaded_by'] = user
+            uploaded_by = user
         else:
-            # 如果是匿名用户，使用第一个超级用户作为默认用户
             from apps.users.models import User
             default_user = User.objects.filter(is_superuser=True).first()
             if not default_user:
                 default_user = User.objects.first()
-            validated_data['uploaded_by'] = default_user
+            uploaded_by = default_user
 
-        # 自动设置文档类型
+        files = validated_data.pop('files', None)
+        
+        # 批量上传处理
+        if files and len(files) > 0:
+            knowledge_base = validated_data.get('knowledge_base')
+            created_docs = []
+            for idx, file in enumerate(files):
+                filename = file.name.lower()
+                if filename.endswith('.pdf'):
+                    doc_type = 'pdf'
+                elif filename.endswith('.doc') or filename.endswith('.docx'):
+                    doc_type = 'docx'
+                elif filename.endswith('.txt'):
+                    doc_type = 'txt'
+                elif filename.endswith('.md'):
+                    doc_type = 'md'
+                else:
+                    continue  # 跳过不支持的文件
+
+                # 对于多文件上传，标题取文件名
+                doc_title = os.path.splitext(file.name)[0]
+                # 只有单文件时才优先使用传入的 title
+                if len(files) == 1 and validated_data.get('title'):
+                    doc_title = validated_data.get('title')
+
+                doc_data = {
+                    'title': doc_title,
+                    'file': file,
+                    'knowledge_base': knowledge_base,
+                    'category': validated_data.get('category'),
+                    'description': validated_data.get('description', ''),
+                    'tags': validated_data.get('tags', []),
+                    'status': validated_data.get('status', 'draft'),
+                    'document_type': doc_type,
+                    'file_size': file.size,
+                    'uploaded_by': uploaded_by,
+                    'source': 'upload'
+                }
+                doc = KnowledgeDocument.objects.create(**doc_data)
+                created_docs.append(doc)
+            
+            # 返回第一个文档以符合前端的期望，并在视图中处理其余的文档
+            if created_docs:
+                self.context['created_docs'] = created_docs
+                return created_docs[0]
+            raise serializers.ValidationError("没有成功上传支持的格式的文件")
+            
+        # 单文件上传兼容逻辑
+        validated_data['uploaded_by'] = uploaded_by
         file = validated_data.get('file')
         if file:
             filename = file.name.lower()
@@ -277,9 +334,11 @@ class DocumentUploadSerializer(serializers.ModelSerializer):
             else:
                 raise serializers.ValidationError("不支持的文件格式，请上传 PDF、Word、TXT 或 Markdown 文件")
 
-        # 自动设置文件大小
-        if file:
             validated_data['file_size'] = file.size
+            
+            # 如果没有提供 title，则使用文件名作为 title
+            if not validated_data.get('title'):
+                validated_data['title'] = os.path.splitext(file.name)[0]
 
         return super().create(validated_data)
 

@@ -31,6 +31,42 @@ class PlaywrightTestEngine:
         self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
 
+    @staticmethod
+    def check_browser_available(browser_type='chromium'):
+        """
+        检查Playwright浏览器是否已安装
+        
+        Args:
+            browser_type: 浏览器类型 (chromium, firefox, webkit, chrome, edge)
+            
+        Returns:
+            (是否可用, 错误信息)
+        """
+        import os
+        import platform
+        
+        # 将通用的 chrome/edge 映射回 playwright 的内部名称
+        if browser_type == 'chrome' or browser_type == 'edge':
+            browser_type = 'chromium'
+            
+        # 确定 Playwright 缓存路径
+        if platform.system() == 'Windows':
+            playwright_cache_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), 'ms-playwright')
+        elif platform.system() == 'Darwin':  # macOS
+            playwright_cache_dir = os.path.expanduser('~/Library/Caches/ms-playwright')
+        else:  # Linux
+            playwright_cache_dir = os.path.expanduser('~/.cache/ms-playwright')
+            
+        if not os.path.exists(playwright_cache_dir):
+            return False, f"Playwright 未安装任何浏览器环境。\n请在终端执行: playwright install {browser_type}"
+            
+        # 检查对应的浏览器文件夹
+        for dirname in os.listdir(playwright_cache_dir):
+            if dirname.startswith(browser_type + '-'):
+                return True, None
+                
+        return False, f"Playwright {browser_type.capitalize()} 浏览器未安装。\n请在终端执行: playwright install {browser_type}"
+
     async def start(self):
         """启动浏览器"""
         try:

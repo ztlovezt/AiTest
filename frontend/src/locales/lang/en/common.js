@@ -14,6 +14,8 @@ export default {
   import: 'Import',
   download: 'Download',
   upload: 'Upload',
+  uploadSuccess: 'Upload successful',
+  uploadFailed: 'Upload failed',
   refresh: 'Refresh',
   close: 'Close',
   loading: 'Loading...',

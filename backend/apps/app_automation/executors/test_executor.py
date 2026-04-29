@@ -8,9 +8,10 @@ import sys
 import subprocess
 import glob
 import json
+# import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 from django.conf import settings
 from django.utils import timezone
@@ -351,6 +352,7 @@ class AppTestExecutor(BaseTestExecutor):
             env['DJANGO_SETTINGS_MODULE'] = 'backend.settings'
             env['PYTHONUTF8'] = '1'
             env['PYTHONIOENCODING'] = 'utf-8'
+            # self._apply_tesseract_runtime_env(env)
 
             env['APP_TEST_CASE_ID'] = str(test_case_id)
             env['APP_DEVICE_ID'] = str(device_id) if device_id else '1'
@@ -472,7 +474,8 @@ class AppTestExecutor(BaseTestExecutor):
             # 如果退出码非零，记录完整输出以便调试
             if exit_code != 0:
                 logger.error(f"pytest 执行失败，退出码: {exit_code}")
-                logger.error(f"完整输出:\n{'\n'.join(output_lines)}")
+                full_output = "\n".join(output_lines)
+                logger.error(f"\u5b8c\u6574\u8f93\u51fa:\n{full_output}")
 
             test_results = self._parse_allure_results(allure_results_dir)
 

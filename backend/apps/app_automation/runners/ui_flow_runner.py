@@ -24,6 +24,7 @@ from airtest.core.api import (
     G,
     text as airtest_text,
     keyevent,
+    keyevent,
 )
 
 # 导入 OCR 工具
@@ -243,6 +244,9 @@ class UiFlowRunner:
         # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
         step = copy.deepcopy(step)
         
+        # 深拷贝步骤，避免修改原始配置（特别是嵌套循环时）
+        step = copy.deepcopy(step)
+        
         # 使用 type 字段获取步骤类型
         action_type = step.get('type', '')
         action = action_type.lower() if action_type else ''
@@ -310,6 +314,7 @@ class UiFlowRunner:
             'extract_output': self._action_extract_output,
             'screenshot': self._action_screenshot,
             'api_request': self._action_api_request,
+            'key_event': self._action_key_event,
             'key_event': self._action_key_event,
             
             # 控制流
@@ -465,7 +470,8 @@ class UiFlowRunner:
         if selector_type == 'image':
             # 图片选择器
             if not selector:
-                logger.warning(f"图片选择器的 selector 为空，请检查步骤配置: {step.get('name', step.get('type', 'unknown'))}")
+                step_name = step.get('name', step.get('type', 'unknown'))
+                logger.error(f"❌ 图片选择器的 selector 为空！步骤名: '{step_name}'，请检查步骤配置")
                 return None
             
             image_scope = step.get('image_scope', 'common')
@@ -476,7 +482,9 @@ class UiFlowRunner:
                 return None
             
             threshold = step.get('image_threshold', 0.7)
-            return Template(image_path, threshold=threshold)
+            template = Template(image_path, threshold=threshold)
+            logger.debug(f"创建图片模板: {selector}, 阈值: {threshold}, 路径: {image_path}")
+            return template
         
         elif selector_type == 'pos':
             # 坐标选择器
@@ -556,8 +564,15 @@ class UiFlowRunner:
         if target is None:
             step_name = step.get('name', step.get('type', 'unknown'))
             raise ValueError(f"步骤 '{step_name}' 无法解析选择器，请检查元素配置（selector 或 element_id）")
-        logger.info(f"执行点击: {target}")
+        
+        # 记录详细的点击信息
+        selector_info = step.get('selector', 'N/A')
+        selector_type = step.get('selector_type', 'N/A')
+        logger.info(f"执行点击操作 - 步骤名: {step.get('name', 'unknown')}, 选择器类型: {selector_type}, 选择器: {selector_info}")
+        logger.info(f"点击目标: {target}")
+        
         touch(target)
+        sleep(1)
         sleep(1)
     
     def _action_double_click(self, step: Dict[str, Any]):
@@ -566,6 +581,7 @@ class UiFlowRunner:
         if target:
             logger.info(f"执行双击: {target}")
             double_click(target)
+            sleep(1)
             sleep(1)
     
     def _action_swipe(self, step: Dict[str, Any]):
@@ -609,6 +625,7 @@ class UiFlowRunner:
         text_value = step.get('text', '')
         logger.info(f"输入文本: {text_value}")
         airtest_text(text_value)
+        sleep(1)
         sleep(1)
     
     def _action_set_variable(self, step: Dict[str, Any]):
@@ -818,6 +835,12 @@ class UiFlowRunner:
     def _assert_exists(self, step: Dict[str, Any]):
         """存在性断言：判断图片元素是否存在于屏幕上"""
         target = self._resolve_selector(step)
+        
+        # 关键修复：如果选择器解析失败，直接抛出异常
+        if target is None:
+            step_name = step.get('name', step.get('type', 'unknown'))
+            raise ValueError(f"断言步骤 '{step_name}' 无法解析选择器，请检查元素配置（selector 或 element_id）")
+        
         expected_exists = step.get('expected_exists', True)
         
         result = exists(target) is not None
@@ -861,13 +884,19 @@ class UiFlowRunner:
         """输入文本"""
         target = self._resolve_selector(step)
         value = step.get('value', '')
-        
+        # 增加等待时间，确保键盘完全弹出且输入框获得焦点
+        wait_time = step.get('input_wait_time', 1)  # 默认1.5秒，可通过配置调整
+        logger.info(f"等待 {wait_time} 秒以确保输入框获得焦点")
+        time.sleep(wait_time)
         if target:
+            logger.info(f"点击输入框目标: {target}")
             touch(target)
-            time.sleep(0.3)
+        else:
+            logger.warning("未找到输入框目标，直接输入文本（可能导致输入到错误的输入框）")
         
         logger.info(f"输入文本: {value}")
         airtest_text(value)
+        time.sleep(wait_time)
 
     def _action_key_event(self, step: Dict[str, Any]):
         """键盘事件：模拟键盘按键"""
@@ -1250,26 +1279,142 @@ class UiFlowRunner:
                     return response.text
             return response.text
     
+    def _get_step_value(self, step: Dict[str, Any], key: str, default: Any = None) -> Any:
+        """优先读取步骤顶层字段，其次读取 config 中的同名字段。"""
+        if key in step and step.get(key) is not None:
+            return step.get(key)
+
+        config = step.get('config', {})
+        if isinstance(config, dict) and config.get(key) is not None:
+            return config.get(key)
+
+        return default
+
+    def _get_step_list(self, step: Dict[str, Any], key: str) -> List[Dict[str, Any]]:
+        """读取步骤中的列表字段，不是列表时返回空列表。"""
+        value = self._get_step_value(step, key, [])
+        return value if isinstance(value, list) else []
+
+    def _map_condition_operator(self, operator: str) -> str:
+        """将前端条件运算符映射为 runner 内部可识别的格式。"""
+        operator_map = {
+            'equals': '==',
+            'not_equals': '!=',
+            'greater_than': '>',
+            'greater_or_equal': '>=',
+            'less_than': '<',
+            'less_or_equal': '<=',
+            'truthy': 'truthy',
+            'falsy': 'falsy',
+            'contains': 'contains',
+            'not_contains': 'not_contains',
+            'regex': 'regex',
+            'startswith': 'startswith',
+            'endswith': 'endswith',
+        }
+        return operator_map.get(str(operator or '').strip().lower(), operator or '==')
+
+    def _normalize_condition(self, condition: Dict[str, Any]) -> Dict[str, Any]:
+        """统一条件结构，兼容 left/right 与 field/value 两种写法。"""
+        if not isinstance(condition, dict):
+            return {
+                'left': '',
+                'operator': '==',
+                'right': '',
+            }
+
+        return {
+            'left': self._render_value(condition.get('left', condition.get('field', ''))),
+            'operator': self._map_condition_operator(condition.get('operator', '==')),
+            'right': self._render_value(condition.get('right', condition.get('value', ''))),
+        }
+
+    def _build_conditions_from_step(self, step: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """从步骤配置中提取条件列表，兼容新旧字段结构。"""
+        conditions = self._get_step_value(step, 'conditions', [])
+        if isinstance(conditions, list) and conditions:
+            return [self._normalize_condition(item) for item in conditions]
+
+        conditions_input = self._get_step_value(step, 'conditions_input', [])
+        if isinstance(conditions_input, list) and conditions_input:
+            return [self._normalize_condition(item) for item in conditions_input]
+
+        left = self._get_step_value(step, 'left')
+        operator = self._get_step_value(step, 'operator', '==')
+        right = self._get_step_value(step, 'right')
+        if left is not None or right is not None:
+            return [self._normalize_condition({
+                'left': left or '',
+                'operator': operator,
+                'right': right or '',
+            })]
+
+        return []
+
+    def _evaluate_conditions(self, conditions: List[Dict[str, Any]], mode: str = 'all') -> bool:
+        """根据 all/any 模式计算条件结果。"""
+        if not conditions:
+            return False
+
+        results = []
+        for condition in conditions:
+            normalized = self._normalize_condition(condition)
+            results.append(
+                self._eval_condition(
+                    normalized.get('left'),
+                    normalized.get('operator', '=='),
+                    normalized.get('right'),
+                )
+            )
+
+        if str(mode or 'all').lower() == 'any':
+            return any(results)
+        return all(results)
+
+    def _execute_step_list(self, steps: List[Dict[str, Any]]):
+        """顺序执行一组子步骤。"""
+        for sub_step in steps:
+            self._execute_step(sub_step)
+
+    def _get_else_if_branches(self, step: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """兼容 else_ifs 与 elseif_branches 两种分支字段。"""
+        branches = self._get_step_value(step, 'else_ifs', [])
+        if isinstance(branches, list) and branches:
+            return branches
+
+        branches = self._get_step_value(step, 'elseif_branches', [])
+        return branches if isinstance(branches, list) else []
+
     def _action_if(self, step: Dict[str, Any]):
-        """条件分支，支持丰富的操作符"""
-        left = self._render_value(step.get('left', ''))
-        right = self._render_value(step.get('right', ''))
-        operator = step.get('operator', '==')
-        then_steps = step.get('then_steps', [])
-        else_steps = step.get('else_steps', [])
-        
-        condition = self._eval_condition(left, operator, right)
-        
-        logger.info(f"条件判断: {left} {operator} {right} = {condition}")
-        
-        # 执行分支
-        if condition:
-            for sub_step in then_steps:
-                self._execute_step(sub_step)
-        else:
-            for sub_step in else_steps:
-                self._execute_step(sub_step)
-    
+        """执行 IF 控制流，支持多条件和 else if 分支。"""
+        then_steps = self._get_step_list(step, 'then_steps')
+        else_steps = self._get_step_list(step, 'else_steps')
+        conditions = self._build_conditions_from_step(step)
+        conditions_mode = self._get_step_value(step, 'conditions_mode', 'all')
+
+        main_result = self._evaluate_conditions(conditions, conditions_mode)
+        logger.info(
+            "IF 条件结果: %s, 条件数: %s, 模式: %s",
+            main_result,
+            len(conditions),
+            conditions_mode,
+        )
+
+        if main_result:
+            self._execute_step_list(then_steps)
+            return
+
+        for branch_index, branch in enumerate(self._get_else_if_branches(step), 1):
+            branch_conditions = self._build_conditions_from_step(branch)
+            branch_mode = branch.get('conditions_mode', conditions_mode)
+            branch_result = self._evaluate_conditions(branch_conditions, branch_mode)
+            logger.info("Else If 分支 %s 条件结果: %s", branch_index, branch_result)
+            if branch_result:
+                self._execute_step_list(branch.get('steps', []))
+                return
+
+        self._execute_step_list(else_steps)
+
     @staticmethod
     def _eval_condition(left, operator: str, right) -> bool:
         """
@@ -1339,96 +1484,78 @@ class UiFlowRunner:
         return False
     
     def _action_loop(self, step: Dict[str, Any]):
-        """循环：支持计数/条件/遍历三种模式"""
-        mode = step.get('mode', 'count')
-        steps = step.get('steps', [])
-        max_loops = step.get('max_loops', 10)
-        interval = step.get('interval', 0)
-        
+        """执行循环控制流，支持计数、遍历和条件循环。"""
+        mode = self._get_step_value(step, 'mode', 'count')
+        steps = self._get_step_list(step, 'steps')
+        max_loops = int(self._get_step_value(step, 'max_loops', 10) or 10)
+        interval = float(self._get_step_value(step, 'interval', 0) or 0)
+
         if mode == 'count':
-            # 计数循环
-            times = step.get('times', 1)
-            logger.info(f"计数循环: {times} 次")
-            for i in range(times):
-                logger.info(f"循环第 {i+1}/{times} 次")
-                for sub_step in steps:
-                    self._execute_step(sub_step)
+            times = int(self._get_step_value(step, 'times', 1) or 1)
+            logger.info("计数循环开始，共执行 %s 次", times)
+            for index in range(times):
+                logger.info("计数循环第 %s/%s 次", index + 1, times)
+                self._execute_step_list(steps)
                 if interval > 0:
                     time.sleep(interval)
-        
-        elif mode == 'foreach':
-            # 遍历循环
-            items = step.get('items', [])
-            item_var = step.get('item_var', 'item')
-            item_scope = step.get('item_scope', 'local')
-            
-            logger.info(f"遍历循环: {len(items)} 个元素")
-            for idx, item in enumerate(items):
-                logger.info(f"循环第 {idx+1}/{len(items)} 次, {item_var}={item}")
+            return
+
+        if mode == 'foreach':
+            items = self._render_value(self._get_step_value(step, 'items', []))
+            items = items if isinstance(items, list) else []
+            item_var = self._get_step_value(step, 'item_var', 'item')
+            item_scope = self._get_step_value(step, 'item_scope', 'local')
+
+            logger.info("遍历循环开始，共 %s 项", len(items))
+            for index, item in enumerate(items):
+                logger.info("遍历循环第 %s/%s 项: %s=%s", index + 1, len(items), item_var, item)
                 self._set_variable(item_var, item, item_scope)
-                for sub_step in steps:
-                    self._execute_step(sub_step)
+                self._execute_step_list(steps)
                 if interval > 0:
                     time.sleep(interval)
-        
-        elif mode == 'condition':
-            # 条件循环
-            left = step.get('left', '')
-            operator = step.get('operator', '==')
-            right = step.get('right', '')
-            
-            logger.info(f"条件循环: {left} {operator} {right}")
+            return
+
+        if mode == 'condition':
+            conditions = self._build_conditions_from_step(step)
+            conditions_mode = self._get_step_value(step, 'conditions_mode', 'all')
+            logger.info("条件循环开始，条件数=%s，最大循环次数=%s", len(conditions), max_loops)
+
             loop_count = 0
             while loop_count < max_loops:
-                left_val = self._render_value(left)
-                right_val = self._render_value(right)
-                
-                # 评估条件
-                condition = False
-                if operator == '==':
-                    condition = left_val == right_val
-                elif operator == '!=':
-                    condition = left_val != right_val
-                
-                if not condition:
+                if not self._evaluate_conditions(conditions, conditions_mode):
                     break
-                
+
                 loop_count += 1
-                logger.info(f"条件循环第 {loop_count} 次")
-                for sub_step in steps:
-                    self._execute_step(sub_step)
+                logger.info("条件循环第 %s 次", loop_count)
+                self._execute_step_list(steps)
                 if interval > 0:
                     time.sleep(interval)
-    
+
     def _action_sequence(self, step: Dict[str, Any]):
-        """顺序执行子步骤"""
-        steps = step.get('steps', [])
-        logger.info(f"顺序执行 {len(steps)} 个子步骤")
-        for sub_step in steps:
-            self._execute_step(sub_step)
-    
+        """执行顺序容器中的全部子步骤。"""
+        steps = self._get_step_list(step, 'steps')
+        logger.info("顺序容器开始执行，共 %s 个子步骤", len(steps))
+        self._execute_step_list(steps)
+
     def _action_try(self, step: Dict[str, Any]):
-        """异常处理：try/catch/finally"""
-        try_steps = step.get('try_steps', [])
-        catch_steps = step.get('catch_steps', [])
-        finally_steps = step.get('finally_steps', [])
-        error_var = step.get('error_var', 'error')
-        error_scope = step.get('error_scope', 'local')
-        
-        logger.info("执行 try 块")
+        """执行 try/catch/finally 控制流。"""
+        try_steps = self._get_step_list(step, 'try_steps')
+        catch_steps = self._get_step_list(step, 'catch_steps')
+        finally_steps = self._get_step_list(step, 'finally_steps')
+        error_var = self._get_step_value(step, 'error_var', 'error')
+        error_scope = self._get_step_value(step, 'error_scope', 'local')
+
+        logger.info("开始执行 Try 分支")
         try:
-            for sub_step in try_steps:
-                self._execute_step(sub_step)
+            self._execute_step_list(try_steps)
         except Exception as e:
-            logger.warning(f"捕获异常: {str(e)}")
+            logger.warning(f"Try 分支执行异常: {str(e)}")
             self._set_variable(error_var, str(e), error_scope)
-            for sub_step in catch_steps:
-                self._execute_step(sub_step)
+            self._execute_step_list(catch_steps)
         finally:
-            logger.info("执行 finally 块")
-            for sub_step in finally_steps:
-                self._execute_step(sub_step)
-    
+            logger.info("开始执行 Finally 分支")
+            self._execute_step_list(finally_steps)
+
     def _get_ocr_helper(self):
         """获取或创建 OCR Helper 实例"""
         if self._ocr_helper is None:
@@ -1441,8 +1568,7 @@ class UiFlowRunner:
     def _action_foreach_assert(self, step: Dict[str, Any]):
         """循环点击断言（OCR）"""
         if not OCR_AVAILABLE:
-            logger.warning("foreach_assert 需要 OCR 支持，请安装 pytesseract")
-            return
+            raise RuntimeError("foreach_assert 需要 OCR 支持，请安装 pytesseract")
         
         try:
             # 从 config 中获取配置

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-APP自动化测试 Celery 任务
+APP自动化测试任务
 
 注意：定时任务通知功能已迁移到 apps.scheduler.task_executor 模块统一处理
 """
-from celery import shared_task
 from django.utils import timezone
 import logging
 import os
@@ -38,7 +37,6 @@ def send_execution_update(execution_id, status=None, progress=None, message=None
         logger.debug(f"发送执行状态更新失败: {e}")
 
 
-@shared_task
 def execute_app_test_task(execution_id, package_name: str = None, scheduled_task_id: int = None):
     """
     异步执行APP测试任务
@@ -72,11 +70,15 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
         logger.info(f"开始执行APP测试: {test_case.name}")
         
         # 1. 检查并锁定设备
-        if device.status == 'locked' and device.locked_by != execution.user:
+        if device.is_locked_for_user(execution.user):
             raise RuntimeError(f"设备 {device.device_id} 已被其他用户锁定")
         
-        if device.status != 'locked':
-            device.lock(execution.user)
+        if not (
+            device.is_locked_by_user(execution.user)
+            and device.lock_type == device.LOCK_TYPE_AUTOMATION
+            and device.lock_session_id == f'automation:{execution.id}'
+        ):
+            device.lock_for_automation(execution.user, execution.id)
         
         logger.info(f"设备已锁定: {device.device_id}")
         
@@ -182,14 +184,13 @@ def execute_app_test_task(execution_id, package_name: str = None, scheduled_task
     finally:
         # 7. 清理：释放设备
         try:
-            if device and device.locked_by == execution.user:
-                device.unlock()
+            if device:
+                device.unlock(session_id=f'automation:{execution.id}')
                 logger.info(f"设备已释放: {device.device_id}")
         except Exception as e:
             logger.error(f"释放设备失败: {str(e)}")
 
 
-@shared_task
 def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled_task_id=None):
     """
     异步执行APP测试套件（顺序执行多个用例）
@@ -227,8 +228,14 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
         user = executions[0].user
 
         # 锁定设备
-        if device.status != 'locked':
-            device.lock(user)
+        if device.is_locked_for_user(user):
+            raise RuntimeError(f"设备 {device.device_id} 已被其他用户锁定")
+        if not (
+            device.is_locked_by_user(user)
+            and device.lock_type == device.LOCK_TYPE_AUTOMATION
+            and device.lock_session_id == f'automation:suite:{suite_id}'
+        ):
+            device.lock_for_automation(user, f'suite:{suite_id}')
         logger.info(f"套件执行开始: {suite.name}, 设备: {device.device_id}, 共 {len(executions)} 个用例")
 
         for idx, execution in enumerate(executions):
@@ -365,14 +372,12 @@ def execute_app_suite_task(suite_id, execution_ids, package_name=None, scheduled
         try:
             if device:
                 device.refresh_from_db()
-                if device.status == 'locked':
-                    device.unlock()
-                    logger.info(f"设备已释放: {device.device_id}")
+                device.unlock(session_id=f'automation:suite:{suite_id}')
+                logger.info(f"设备已释放: {device.device_id}")
         except Exception as e:
             logger.error(f"释放设备失败: {str(e)}")
 
 
-@shared_task
 def check_and_release_expired_devices():
     """
     检查并释放过期锁定的设备
@@ -385,7 +390,7 @@ def check_and_release_expired_devices():
         
         for device in devices:
             if device.is_lock_expired():
-                device.unlock()
+                device.unlock(force=True)
                 released_count += 1
                 logger.info(f"释放过期锁定的设备: {device.device_id}")
         
@@ -393,3 +398,90 @@ def check_and_release_expired_devices():
         
     except Exception as e:
         logger.error(f"检查设备锁定失败: {str(e)}", exc_info=True)
+
+
+def check_device_status_task():
+    """
+    定期检查设备状态并更新数据库
+    
+    功能：
+    1. 通过 ADB 获取当前连接的设备列表
+    2. 更新在线设备状态为 available（如果未被锁定）
+    3. 将不在 ADB 列表中的设备标记为 offline（保持 locked 状态不变）
+    
+    建议配置：每 5-10 分钟执行一次
+    """
+    from .models import AppDevice
+    from .managers.device_manager import DeviceManager
+    
+    logger.info("开始检查设备状态...")
+    
+    try:
+        # 获取 ADB 路径
+        try:
+            from .models import AppTestConfig
+            config = AppTestConfig.objects.first()
+            adb_path = config.adb_path if config else 'adb'
+        except Exception as e:
+            logger.warning(f"获取 ADB 配置失败，使用默认路径: {e}")
+            adb_path = 'adb'
+        
+        # 创建 DeviceManager 实例
+        manager = DeviceManager(adb_path=adb_path)
+        
+        # 获取当前通过 ADB 连接的设备列表
+        try:
+            devices_info = manager.list_devices()
+            connected_device_ids = [info['device_id'] for info in devices_info]
+            logger.info(f"当前 ADB 连接的设备: {connected_device_ids}")
+        except Exception as e:
+            logger.error(f"ADB 命令执行失败: {str(e)}")
+            # 如果 ADB 不可用，将所有非锁定设备标记为离线
+            offline_count = AppDevice.objects.exclude(
+                status='locked'
+            ).update(status='offline')
+            logger.info(f"ADB 不可用，将 {offline_count} 个设备标记为离线")
+            return {
+                'success': False,
+                'message': f'ADB 命令执行失败: {str(e)}',
+                'offline_count': offline_count
+            }
+        
+        # 更新在线设备的状态
+        online_count = 0
+        for device_info in devices_info:
+            device_id = device_info['device_id']
+            try:
+                device = AppDevice.objects.get(device_id=device_id)
+                # 只有当设备未被锁定时，才更新状态为 available
+                if device.status != 'locked':
+                    device.status = 'available'
+                    device.save(update_fields=['status', 'updated_at'])
+                    online_count += 1
+                    logger.debug(f"更新设备 {device_id} 状态为 available")
+            except AppDevice.DoesNotExist:
+                logger.debug(f"设备 {device_id} 不在数据库中，跳过")
+        
+        # 将不在 ADB 列表中的设备标记为离线（但保持 locked 状态）
+        offline_count = AppDevice.objects.exclude(
+            device_id__in=connected_device_ids
+        ).exclude(
+            status='locked'  # 保持锁定设备的状态
+        ).update(status='offline')
+        
+        logger.info(f"设备状态检查完成: {online_count} 个在线, {offline_count} 个离线")
+        
+        return {
+            'success': True,
+            'message': f'设备状态检查完成',
+            'online_count': online_count,
+            'offline_count': offline_count,
+            'total_connected': len(connected_device_ids)
+        }
+        
+    except Exception as e:
+        logger.error(f"检查设备状态失败: {str(e)}", exc_info=True)
+        return {
+            'success': False,
+            'message': f'检查设备状态失败: {str(e)}'
+        }

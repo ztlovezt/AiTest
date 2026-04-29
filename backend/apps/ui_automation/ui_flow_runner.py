@@ -267,18 +267,25 @@ class UiFlowRunner:
             options = FirefoxOptions()
             if self.headless:
                 options.add_argument('--headless')
+            # 绕过SSL证书错误
+            options.accept_insecure_certs = True
             driver = webdriver.Firefox(options=options)
         elif self.browser == 'edge':
             options = EdgeOptions()
             if self.headless:
                 options.add_argument('--headless')
+            # 绕过SSL证书错误
+            options.add_argument('--ignore-certificate-errors')
+            options.add_argument('--allow-insecure-localhost')
             driver = webdriver.Edge(options=options)
         else:
             options = ChromeOptions()
             if self.headless:
                 options.add_argument('--headless')
             options.add_argument('--disable-blink-features=AutomationControlled')
+            # 绕过SSL证书错误
             options.add_argument('--ignore-certificate-errors')
+            options.add_argument('--allow-insecure-localhost')
             options.add_argument('--disable-web-security')
             driver = webdriver.Chrome(options=options)
 

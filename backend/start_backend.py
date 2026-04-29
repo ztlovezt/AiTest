@@ -49,8 +49,8 @@ def cleanup(signum=None, frame=None):
 signal.signal(signal.SIGINT, cleanup)
 signal.signal(signal.SIGTERM, cleanup)
 
-# 启动服务器
-proc_server = subprocess.Popen([sys.executable, manage_py_path, 'runserver', f'0.0.0.0:{backend_port}'])
+# 启动服务器 (使用 Uvicorn 替代 runserver，以支持 WebSocket 和 SSE)
+proc_server = subprocess.Popen([sys.executable, '-m', 'uvicorn', 'backend.asgi:application', '--host', '0.0.0.0', '--port', str(backend_port), '--reload'])
 processes.append(proc_server)
 
 # 启动任务队列

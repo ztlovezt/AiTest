@@ -132,6 +132,7 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   projects: { type: Array, default: () => [] },
   currentProjectId: { type: [Number, String], default: null },
+  targetCollectionId: { type: [Number, String], default: null },
 })
 
 const emit = defineEmits(['update:modelValue', 'imported'])
@@ -269,6 +270,7 @@ async function handleImport() {
 
     const res = await api.post('/api-testing/import/confirm/', {
       project_id: targetProjectId.value,
+      target_collection_id: props.targetCollectionId,
       collections,
     })
 

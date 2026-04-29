@@ -75,6 +75,7 @@ class CurlParser:
         headers = []
         body_raw = ''
         has_data = False
+        content_type = ''
 
         i = 1  # 跳过 'curl'
         while i < len(tokens):
@@ -96,6 +97,8 @@ class CurlParser:
                             'enabled': True,
                             'description': '',
                         })
+                        if key.strip().lower() == 'content-type':
+                            content_type = value.strip().lower()
             elif token in ('-d', '--data', '--data-raw', '--data-binary', '--data-urlencode'):
                 i += 1
                 if i < len(tokens):
@@ -122,7 +125,25 @@ class CurlParser:
         # 解析 body
         body = {}
         if body_raw:
-            if self._is_json(body_raw):
+            if 'application/json' in content_type:
+                try:
+                    body = {'type': 'json', 'data': json.loads(body_raw)}
+                except json.JSONDecodeError:
+                    body = {'type': 'json', 'data': body_raw}
+            elif 'application/xml' in content_type or 'text/xml' in content_type:
+                body = {'type': 'xml', 'data': body_raw}
+            elif 'text/html' in content_type:
+                body = {'type': 'html', 'data': body_raw}
+            elif 'text/plain' in content_type:
+                body = {'type': 'text', 'data': body_raw}
+            elif 'application/x-www-form-urlencoded' in content_type:
+                data = {}
+                for pair in body_raw.split('&'):
+                    if '=' in pair:
+                        k, v = pair.split('=', 1)
+                        data[k] = v
+                body = {'type': 'x-www-form-urlencoded', 'data': data}
+            elif self._is_json(body_raw):
                 try:
                     body = {'type': 'json', 'data': json.loads(body_raw)}
                 except json.JSONDecodeError:
@@ -137,6 +158,19 @@ class CurlParser:
                 body = {'type': 'x-www-form-urlencoded', 'data': data}
             else:
                 body = {'type': 'raw', 'data': body_raw}
+        elif content_type:
+            if 'application/json' in content_type:
+                body = {'type': 'json', 'data': ''}
+            elif 'application/xml' in content_type or 'text/xml' in content_type:
+                body = {'type': 'xml', 'data': ''}
+            elif 'text/html' in content_type:
+                body = {'type': 'html', 'data': ''}
+            elif 'text/plain' in content_type:
+                body = {'type': 'text', 'data': ''}
+            elif 'application/x-www-form-urlencoded' in content_type:
+                body = {'type': 'x-www-form-urlencoded', 'data': {}}
+            else:
+                body = {'type': 'raw', 'data': ''}
 
         # 解析 URL 中的 query params
         params = {}

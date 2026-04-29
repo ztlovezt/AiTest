@@ -36,7 +36,8 @@ class AssistantSessionSerializer(serializers.ModelSerializer):
 class AssistantSessionCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = AssistantSession
-        fields = ['session_id', 'title']
+        fields = ['id', 'session_id', 'conversation_id', 'title']
+        read_only_fields = ['id', 'conversation_id']
     
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user

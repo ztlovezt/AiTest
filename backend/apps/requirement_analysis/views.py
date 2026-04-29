@@ -2135,7 +2135,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
             last_final_length = 0  # 记录上次发送的最终用例长度
             last_status = ''  # 记录上次的任务状态
 
-            def event_stream():
+            async def event_stream():
                 nonlocal last_sent_position, loop_count, last_review_length, last_final_length, last_status
 
                 # Performance & Timeout Optimization
@@ -2143,6 +2143,12 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                 last_heartbeat_time = time.time()
                 last_progress_hash = None
                 MAX_TIMEOUT = 3600  # 1 hour safety timeout
+                
+                # 包装同步数据库操作
+                from asgiref.sync import sync_to_async
+                @sync_to_async
+                def refresh_task():
+                    task.refresh_from_db()
 
                 while True:
                     loop_count += 1
@@ -2157,13 +2163,13 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
 
                     # 从数据库重新获取任务状态
                     try:
-                        task.refresh_from_db()
+                        await refresh_task()
                     except TestCaseGenerationTask.DoesNotExist:
                         yield f"event: error\ndata: task_not_found\n\n"
                         break
                     except Exception as e:
                         logger.error(f"DB refresh failed: {e}")
-                        time.sleep(1)
+                        await asyncio.sleep(1)
                         continue
 
                     # 检测状态变化，如果进入revising阶段，重置last_final_length
@@ -2293,7 +2299,7 @@ class TestCaseGenerationTaskViewSet(viewsets.ModelViewSet):
                         last_heartbeat_time = current_time
 
                     # 减少休眠时间到 0.1s，提高响应速度
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
 
             # 返回SSE流式响应 - 使用更稳健的方式
             try:
