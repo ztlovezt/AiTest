@@ -10,36 +10,51 @@ def migrate_and_fix_data(apps, schema_editor):
     2. 从旧表 ui_ai_execution_records 迁移数据到 ai_testing_execution_records
     3. 为没有 project 的旧数据分配一个默认项目
     """
-    
-    # 检查旧表是否存在
+
+    # 检查旧表是否存在（兼容 SQLite / MySQL / PostgreSQL）
+    ui_ai_cases_exists = False
+    ui_ai_execution_records_exists = False
+
     with connection.cursor() as cursor:
-        cursor.execute("SHOW TABLES LIKE 'ui_ai_cases'")
-        ui_ai_cases_exists = cursor.fetchone()
-        
-        cursor.execute("SHOW TABLES LIKE 'ui_ai_execution_records'")
-        ui_ai_execution_records_exists = cursor.fetchone()
-        
+        vendor = connection.vendor
+        if vendor == 'mysql':
+            cursor.execute("SHOW TABLES LIKE 'ui_ai_cases'")
+            ui_ai_cases_exists = cursor.fetchone()
+            cursor.execute("SHOW TABLES LIKE 'ui_ai_execution_records'")
+            ui_ai_execution_records_exists = cursor.fetchone()
+        elif vendor == 'sqlite':
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ui_ai_cases'")
+            ui_ai_cases_exists = cursor.fetchone()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ui_ai_execution_records'")
+            ui_ai_execution_records_exists = cursor.fetchone()
+        elif vendor == 'postgresql':
+            cursor.execute("SELECT tablename FROM pg_tables WHERE tablename IN ('ui_ai_cases', 'ui_ai_execution_records')")
+            rows = cursor.fetchall()
+            tables = {r[0] for r in rows}
+            ui_ai_cases_exists = 'ui_ai_cases' in tables
+            ui_ai_execution_records_exists = 'ui_ai_execution_records' in tables
+
         if ui_ai_cases_exists:
             print("开始迁移 AI 用例数据...")
             cursor.execute("""
-                INSERT IGNORE INTO ai_testing_cases (id, name, description, task_description, created_at, updated_at, created_by_id, project_id)
+                INSERT OR IGNORE INTO ai_testing_cases (id, name, description, task_description, created_at, updated_at, created_by_id, project_id)
                 SELECT id, name, description, task_description, created_at, updated_at, created_by_id, NULL
                 FROM ui_ai_cases;
             """)
-            
+
         if ui_ai_execution_records_exists:
             print("开始迁移 AI 执行记录数据...")
             cursor.execute("""
-                INSERT IGNORE INTO ai_testing_execution_records (
-                    id, case_name, task_description, execution_mode, status, 
-                    start_time, end_time, duration, logs, steps_completed, 
-                    planned_tasks, executed_by_id, gif_path, screenshots_sequence, 
+                INSERT OR IGNORE INTO ai_testing_execution_records (
+                    id, case_name, task_description, execution_mode, status,
+                    start_time, end_time, duration, logs, steps_completed,
+                    planned_tasks, executed_by_id, gif_path, screenshots_sequence,
                     ai_case_id, project_id
                 )
-                SELECT 
-                    id, case_name, task_description, execution_mode, status, 
-                    start_time, end_time, duration, logs, steps_completed, 
-                    planned_tasks, executed_by_id, gif_path, screenshots_sequence, 
+                SELECT
+                    id, case_name, task_description, execution_mode, status,
+                    start_time, end_time, duration, logs, steps_completed,
+                    planned_tasks, executed_by_id, gif_path, screenshots_sequence,
                     ai_case_id, NULL
                 FROM ui_ai_execution_records;
             """)

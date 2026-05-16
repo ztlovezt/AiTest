@@ -1,5 +1,7 @@
 from django.contrib import admin
+
 from .models import MetaProject, MetaProjectMember, ProjectModule
+from .services import ensure_ai_project_for_meta_project
 
 
 @admin.register(MetaProject)
@@ -8,6 +10,10 @@ class MetaProjectAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created_at']
     search_fields = ['name', 'description']
     readonly_fields = ['created_at', 'updated_at']
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        ensure_ai_project_for_meta_project(obj)
 
 
 @admin.register(MetaProjectMember)

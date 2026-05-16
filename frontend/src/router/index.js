@@ -604,6 +604,48 @@ const routes = [
       },
     ],
   },
+  // 精准测试模块路由
+  {
+    path: "/precision-testing",
+    component: Layout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: "",
+        redirect: "dashboard",
+      },
+      {
+        path: "dashboard",
+        name: "PrecisionDashboard",
+        component: () => import("@/views/precision-testing/RiskDashboard.vue"),
+      },
+      {
+        path: "repos",
+        name: "PrecisionRepoBindings",
+        component: () => import("@/views/precision-testing/RepoBindings.vue"),
+      },
+      {
+        path: "analyses",
+        name: "PrecisionChangeAnalyses",
+        component: () => import("@/views/precision-testing/ChangeAnalyses.vue"),
+      },
+      {
+        path: "mappings",
+        name: "PrecisionMappingManager",
+        component: () => import("@/views/precision-testing/MappingManager.vue"),
+      },
+      {
+        path: "graph",
+        name: "PrecisionImpactGraph",
+        component: () => import("@/views/precision-testing/ImpactGraph.vue"),
+      },
+      {
+        path: "runs",
+        name: "PrecisionRunHistory",
+        component: () => import("@/views/precision-testing/PrecisionRunHistory.vue"),
+      },
+    ],
+  },
   {
     path: "/ops-tools",
     component: Layout,
@@ -662,42 +704,26 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore();
 
-  console.log("路由守卫:", {
-    to: to.path,
-    from: from.path,
-    hasToken: !!userStore.accessToken,
-    hasUser: !!userStore.user,
-    isAuthenticated: userStore.isAuthenticated,
-  });
-
   // 只在应用初始化或从登录页面导航时初始化认证
   if (!userStore.user && userStore.accessToken) {
     try {
-      console.log("初始化认证...");
       await userStore.initAuth();
-      console.log("认证初始化完成:", {
-        hasUser: !!userStore.user,
-        isAuthenticated: userStore.isAuthenticated,
-      });
     } catch (error) {
-      console.error("认证初始化失败:", error);
+      // 认证初始化失败时静默回退到未认证状态，由下方路由守卫处理跳转
     }
   }
 
   if (to.meta.requiresAuth && !userStore.isAuthenticated) {
-    console.log("需要认证但未认证，跳转到登录页");
     next("/login");
   } else if (to.meta.requiresGuest && userStore.isAuthenticated) {
-    console.log("访客页面但已认证，跳转到项目页");
     next("/home");
   } else {
-    console.log("路由守卫通过，继续导航");
     next();
   }
 });
 
-router.afterEach((to, from) => {
-  console.log(`Navigated from ${from.path} to ${to.path}`);
+router.afterEach(() => {
+  // 路由切换钩子保留为占位，避免误用 console 调试日志
 });
 
 export default router;

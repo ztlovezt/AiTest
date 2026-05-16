@@ -114,3 +114,15 @@ build-multiplatform.sh
 # Ignore backend APP automation template artifacts
 backend/apps/app_automation/Template/**
 !backend/apps/app_automation/Template/
+
+# Week 4 调试残留（覆盖率报告、测试输出、Redis dump等）
+coverage*.xml
+coverage*.log
+test_output*.txt
+full_test_output.txt
+week*_results.xml
+precision_all_results.xml
+dump.rdb
+debug_*.py
+safe_migrate.py
+demo_output.txt

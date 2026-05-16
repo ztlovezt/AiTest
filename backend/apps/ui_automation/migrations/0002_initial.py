@@ -336,8 +336,6 @@ class Migration(migrations.Migration):
             model_name='uinotificationlog',
             index=models.Index(fields=['created_at'], name='ui_notifica_created_6577cc_idx'),
         ),
-        migrations.AlterUniqueTogether(
-            name='uitasknotificationsetting',
-            unique_together={('task',)},
-        ),
+        # NOTE: AlterUniqueTogether removed — 'task' field visibility issue in Django 5.2+
+        # Model is deleted in 0003_remove_scheduled_task_models.py anyway.
     ]

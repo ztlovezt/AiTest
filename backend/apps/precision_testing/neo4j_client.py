@@ -58,16 +58,28 @@ class Neo4jClient:
     ) -> list[dict[str, Any]]:
         """执行只读 Cypher 查询,返回记录列表。"""
         with self.driver.session() as session:
-            result = session.execute_read(lambda tx: tx.run(query, parameters or {}))
-            return [record.data() for record in result]
+            tx = session.begin_transaction()
+            try:
+                result = tx.run(query, parameters or {})
+                records = [record.data() for record in result]
+                tx.commit()
+            finally:
+                tx.close()
+        return records
 
     def execute_write(
         self, query: str, parameters: dict[str, Any] | None = None
     ) -> list[dict[str, Any]]:
         """执行写操作 Cypher 查询。"""
         with self.driver.session() as session:
-            result = session.execute_write(lambda tx: tx.run(query, parameters or {}))
-            return [record.data() for record in result]
+            tx = session.begin_transaction()
+            try:
+                result = tx.run(query, parameters or {})
+                records = [record.data() for record in result]
+                tx.commit()
+            finally:
+                tx.close()
+        return records
 
     # ------------------------------------------------------------------
     # 批量写入(核心优化)

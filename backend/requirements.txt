@@ -23,7 +23,7 @@ jsonpath_ng==1.8.0
 langchain_core
 langchain_openai
 loguru>=0.7.3
-numpy>=1.26.0,<2.0
+numpy>=1.26.0
 opencv_python
 openpyxl==3.1.2
 Pillow
@@ -52,3 +52,12 @@ tika==3.1.0
 uvicorn[standard]==0.34.0
 webdriver_manager==4.0.2
 whitenoise==6.12.0
+
+# 精准测试模块依赖
+neo4j==5.28.1
+coverage==7.6.4
+astroid==3.3.5
+GitPython==3.1.43
+unidiff==0.7.5
+xgboost>=2.1.4
+scikit-learn>=1.5.2

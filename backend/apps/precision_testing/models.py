@@ -12,7 +12,9 @@ class RepoBinding(models.Model):
         Project, on_delete=models.CASCADE, related_name='repo_binding',
         verbose_name='关联项目'
     )
-    repo_path = models.CharField(max_length=500, verbose_name='仓库本地路径')
+    name = models.CharField(max_length=200, blank=True, default='', verbose_name='仓库显示名称')
+    repo_path = models.CharField(max_length=500, blank=True, default='', verbose_name='仓库本地路径')
+    repo_url = models.CharField(max_length=500, blank=True, default='', verbose_name='仓库远程地址')
     default_branch = models.CharField(max_length=100, default='main', verbose_name='默认分支')
     is_active = models.BooleanField(default=True, verbose_name='是否启用')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='创建时间')
@@ -198,6 +200,7 @@ class PrecisionRunRecord(models.Model):
     )
     task_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='异步任务ID')
     progress = models.IntegerField(default=0, verbose_name='进度(%)')
+    error_message = models.TextField(blank=True, verbose_name='错误信息')
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='开始时间')
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name='完成时间')
     created_at = models.DateTimeField(default=timezone.now, verbose_name='创建时间')

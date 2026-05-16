@@ -80,6 +80,7 @@ LOCAL_APPS = [
     'apps.ocr_service',
     'apps.ops_tools.apps.OpsToolsConfig',
     'apps.agent.apps.AgentConfig',
+    'apps.precision_testing.apps.PrecisionTestingConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -551,17 +552,95 @@ Q_CLUSTER = {
     'workers': 1,  # 工作进程数，根据服务器配置做调整
     'timeout': 600,  # 任务超时时间（秒），OCR任务可能需要较长时间
     'retry': 1200,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
-    'timeout': 600,  # 任务超时时间（秒），OCR任务可能需要较长时间
-    'retry': 1200,  # 重试时间（秒），必须大于timeout，建议为timeout的2倍
     'queue_limit': 50,  # 队列限制
     'bulk': 10,  # 批量处理数量
-    'orm': 'default',  # 数据库配置
+    # 注意：不要设置 'orm' 键。django-q 在 brokers/orm.py 中以 Conf.ORM 作为 Django
+    # 数据库连接别名调用 transaction.get_autocommit(using=Conf.ORM)。
+    # 写 'orm': False 会让 connections[False] 抛 TypeError: attribute name must be
+    # string, not 'bool'，导致 worker 启动即崩溃。要走 Redis 必须完全省略此键。
     'save_limit': 250,  # 保存限制
     'cpu_affinity': 1,  # CPU 亲和性
     'label': '任务管理',  # 菜单名称
     'redis': f"{REDIS_BASE_URL}{redis_config.get('redis_db', 0)}",  # Redis 配置
     'sync': False,  # False异步模式，True同步模式
 }
+
+# =============================================================================
+# Django-Q Broker 配置防护 — 防止 ORM Broker 陷阱复发
+# =============================================================================
+# 根因：django_q.brokers.get_broker() 的选择逻辑中，只要 Conf.ORM 为 truthy
+#（包括字符串 'default'），就会优先使用 ORM Broker，Redis 配置被完全忽略。
+# 这会导致 async_task() 写入数据库 django_q_ormq 表，但 worker 读 Redis 队列，
+# 任务永远不会被消费，分析任务永远卡在 pending。
+#
+# 正确做法：完全省略 'orm' 键（不是设为 False/None，否则 worker 启动崩溃）。
+# 见 django-q 源码 brokers/__init__.py:get_broker() 逻辑。
+# =============================================================================
+
+_broker_validation_errors = []
+
+# 1. 禁止 'orm' 键出现（无论值是什么）
+if 'orm' in Q_CLUSTER:
+    _orm_val = Q_CLUSTER['orm']
+    _broker_validation_errors.append(
+        f"Q_CLUSTER['orm'] = {_orm_val!r} 被检测到。"
+        f"必须完全删除 'orm' 键才能使用 Redis Broker。"
+    )
+
+# 2. 验证 Redis 配置存在且可连接
+_redis_url = Q_CLUSTER.get('redis')
+if not _redis_url:
+    _broker_validation_errors.append("Q_CLUSTER['redis'] 未配置")
+else:
+    try:
+        import redis as _redis_mod
+        _r = _redis_mod.from_url(str(_redis_url))
+        _r.ping()
+    except Exception as _e:
+        _broker_validation_errors.append(
+            f"Redis broker 连接失败 ({_redis_url}): {_e}"
+        )
+
+# 3. 验证 broker 选择逻辑（运行时模拟 django-q 的判断）
+if not _broker_validation_errors:
+    # 模拟 django_q.conf.Conf 的初始化逻辑
+    _orm = Q_CLUSTER.get('orm')
+    _broker_class = Q_CLUSTER.get('broker_class')
+    if _broker_class:
+        _expected = 'custom'
+    elif _orm:
+        _expected = 'ORM'
+    else:
+        _expected = 'Redis'
+    if _expected != 'Redis':
+        _broker_validation_errors.append(
+            f"根据当前 Q_CLUSTER 配置，Django-Q 将选择 {_expected} Broker，"
+            f"而非 Redis。这会导致任务队列假死。"
+        )
+
+if _broker_validation_errors:
+    import logging as _logging
+    _logger = _logging.getLogger('backend.settings')
+    _logger.critical("=" * 60)
+    _logger.critical("Django-Q Broker 配置错误 — 任务队列将无法正常工作")
+    _logger.critical("=" * 60)
+    for _err in _broker_validation_errors:
+        _logger.critical("  [ERROR] %s", _err)
+    _logger.critical("=" * 60)
+    # 在 DEBUG/开发模式下直接抛异常，阻止服务启动
+    if DEBUG:
+        raise RuntimeError(
+            f"Django-Q Broker 配置错误: {'; '.join(_broker_validation_errors)}. "
+            f"详见 backend/settings.py 中 'Broker 配置防护' 注释。"
+        )
+
+# 启动时打印确认信息
+import logging as _logging
+_logging.getLogger('backend.settings').info(
+    "Django-Q Broker 校验通过: Redis (%s)", _redis_url
+)
+
+# =============================================================================
 
 if DEBUG:
     # 开发环境使用本地内存缓存
@@ -767,6 +846,32 @@ SIMPLEUI_ICON = {
     '分析任务': 'el-icon-stopwatch',
     '生成的测试用例': 'el-icon-document',
     '需求文档': 'el-icon-document',
+    '精准测试': 'el-icon-aim',
+}
+
+# ===================================================================
+# Neo4j 图数据库配置 (精准测试模块)
+# ===================================================================
+NEO4J_URI = config('NEO4J_URI', default=config_loader.get('neo4j.uri', 'bolt://127.0.0.1:7687'))
+NEO4J_USER = config('NEO4J_USER', default=config_loader.get('neo4j.user', 'neo4j'))
+NEO4J_PASSWORD = config('NEO4J_PASSWORD', default=config_loader.get('neo4j.password', 'testhub'))
+
+# ===================================================================
+# 精准测试模块配置
+# ===================================================================
+PRECISION_TESTING = {
+    # 覆盖率数据目录
+    'coverage_dir': BASE_DIR / '..' / 'expand' / 'coverage',
+    # 默认最小回归集覆盖率阈值
+    'min_coverage_threshold': 0.80,
+    # XGBoost 模型保存路径
+    'model_path': BASE_DIR / '..' / 'expand' / 'models',
+    # Git 分析默认对比分支
+    'default_base_branch': 'main',
+    # 影响分析 CALLS 关系递归深度
+    'impact_max_depth': 5,
+    # 批量写入 Neo4j 的单批大小
+    'neo4j_batch_size': 500,
 }
 
 # 开发环境，暂时禁用迁移历史检查

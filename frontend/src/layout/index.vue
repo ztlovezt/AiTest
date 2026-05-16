@@ -241,6 +241,34 @@
             </el-menu-item>
           </template>
 
+          <!-- 精准测试模块菜单 -->
+          <template v-else-if="currentModule === 'precision-testing'">
+            <el-menu-item index="/precision-testing/dashboard">
+              <el-icon><Odometer /></el-icon>
+              <span>风险仪表盘</span>
+            </el-menu-item>
+            <el-menu-item index="/precision-testing/repos">
+              <el-icon><Connection /></el-icon>
+              <span>仓库绑定</span>
+            </el-menu-item>
+            <el-menu-item index="/precision-testing/analyses">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>变更分析</span>
+            </el-menu-item>
+            <el-menu-item index="/precision-testing/mappings">
+              <el-icon><Link /></el-icon>
+              <span>用例映射</span>
+            </el-menu-item>
+            <el-menu-item index="/precision-testing/graph">
+              <el-icon><Share /></el-icon>
+              <span>影响图谱</span>
+            </el-menu-item>
+            <el-menu-item index="/precision-testing/runs">
+              <el-icon><Timer /></el-icon>
+              <span>执行记录</span>
+            </el-menu-item>
+          </template>
+
           <!-- 项目管理模块 - 不显示侧边菜单 -->
 
           <!-- 配置中心模块菜单 -->
@@ -457,6 +485,7 @@ import {
   Odometer,
   Search,
   Setting,
+  Share,
   Sunny,
   Timer,
   VideoPlay,
@@ -518,6 +547,7 @@ const currentModule = computed(() => {
     return "ai-intelligent-mode";
   if (route.path.startsWith("/configuration")) return "configuration";
   if (route.path.startsWith("/meta-projects")) return "meta-projects";
+  if (route.path.startsWith("/precision-testing")) return "precision-testing";
   return "";
 });
 
@@ -531,6 +561,7 @@ const moduleName = computed(() => {
     "ai-intelligent-mode": t("modules.aiIntelligentMode"),
     configuration: t("modules.configuration"),
     "meta-projects": t("modules.unifiedProject"),
+    "precision-testing": "精准测试",
   };
   return map[currentModule.value] || "";
 });
@@ -617,6 +648,14 @@ const breadcrumbTitle = computed(() => {
     "/configuration/theme": t("menu.themeConfig"),
 
     "/profile": t("nav.profile"),
+
+    // 精准测试
+    "/precision-testing/dashboard": "风险仪表盘",
+    "/precision-testing/repos": "仓库绑定",
+    "/precision-testing/analyses": "变更分析",
+    "/precision-testing/mappings": "用例映射",
+    "/precision-testing/graph": "影响图谱",
+    "/precision-testing/runs": "执行记录",
   };
 
   const path = route.path;

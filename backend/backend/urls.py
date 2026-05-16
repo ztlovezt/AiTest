@@ -40,6 +40,7 @@ urlpatterns = [
     path('api/meta-projects/', include('apps.unified_projects.urls')),
     path('api/ocr/', include('apps.ocr_service.urls')),
     path('api/ops-tools/', include('apps.ops_tools.urls')),
+    path('api/precision-testing/', include('apps.precision_testing.urls')),
 ]
 
 # 媒体文件服务（不受DEBUG限制）

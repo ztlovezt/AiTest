@@ -154,42 +154,69 @@ def build_graph_task(repo_binding_id: int) -> None:
     logger.info("Graph built for repo %s", binding.repo_path)
 
 
-def predict_risk_task(impact_analysis_id: int) -> None:
-    """失效概率预测: 特征提取 → XGBoost 推理 → 写入 RiskPredictionRecord
+def predict_risk_task(impact_analysis_id: int) -> int:
+    """失效概率预测: 批量特征提取 → 批量推理 → bulk_create RiskPredictionRecord。
 
-    冷启动策略: 若历史数据不足 50 条,则使用启发式规则(修改频率+历史失败率)
-    替代模型预测。
+    Week 4 升级:
+        - 使用 RiskPredictor 批量 API 消除 N+1
+        - FeatureExtractor 接收 change_analysis + impact_paths,
+          为 9 维特征提供完整上下文
+        - 持久化由 RiskPredictor.persist 统一处理
+
+    Returns:
+        写入的预测记录条数。
     """
-    from .risk_predictor import RiskPredictor
+    from apps.testcases.models import TestCase
+    from .risk_predictor import FeatureExtractor, RiskPredictor
 
     impact = ImpactAnalysis.objects.get(id=impact_analysis_id)
-    predictor = RiskPredictor()
 
-    for testcase_id in impact.impacted_testcases:
-        try:
-            testcase = impact.change_analysis.repo_binding.project.testcases.get(id=testcase_id)
-        except Exception:
-            continue
+    # 清空该 impact 之前的预测,避免重复
+    RiskPredictionRecord.objects.filter(impact_analysis=impact).delete()
 
-        # 冷启动: 启发式规则
-        features = predictor.extract_features(testcase)
-        risk_score = predictor.predict_heuristic(features)
+    impacted_ids = impact.impacted_testcases or []
+    if not impacted_ids:
+        logger.info("ImpactAnalysis %s 无受影响用例,跳过预测", impact_analysis_id)
+        return 0
 
-        RiskPredictionRecord.objects.create(
-            testcase=testcase,
-            impact_analysis=impact,
-            risk_score=risk_score,
-            risk_level=predictor.score_to_level(risk_score),
-            features=features,
-            model_version='heuristic-v1',
+    project = impact.change_analysis.repo_binding.project
+    testcases = list(
+        TestCase.objects.filter(project=project, id__in=impacted_ids).prefetch_related(
+            "code_mappings"
         )
+    )
+    if not testcases:
+        logger.warning("ImpactAnalysis %s 受影响用例无法查询到任何 TestCase", impact_analysis_id)
+        return 0
 
-    logger.info("Risk prediction completed for impact analysis %s", impact_analysis_id)
+    # 从 impact.impacted_functions 估算 path depth(简化:有则深度=1,无则=0)
+    impact_paths = {tc.id: 1 for tc in testcases}
+
+    extractor = FeatureExtractor(
+        change_analysis=impact.change_analysis,
+        impact_paths=impact_paths,
+    )
+    predictor = RiskPredictor(extractor=extractor)
+    results = predictor.predict_batch(testcases)
+    written = predictor.persist(impact, results)
+    logger.info(
+        "Risk prediction for impact %s: %d records (model=%s)",
+        impact_analysis_id,
+        written,
+        predictor.scorer.version,
+    )
+    return written
 
 
-def run_precision_regression_task(precision_run_id: int) -> None:
-    """执行精准回归: 生成最小回归集 → 创建 TestPlan + TestRun → 调度执行"""
-    from .regression_selector import RegressionSelector
+def run_precision_regression_task(precision_run_id: int) -> dict:
+    """执行精准回归: 生成最小回归集 → 创建 TestPlan + TestRun → 调度执行。
+
+    Week 4 升级:
+        - 使用 RegressionSelector + SelectionResult 替代旧 tuple 返回
+        - 写入完整选集元数据(must_run_count / candidate_count / reason)
+        - 失败可重试,中间状态写入 progress 字段
+    """
+    from .regression_selector import RegressionSelector, persist_selection
 
     run = PrecisionRunRecord.objects.get(id=precision_run_id)
     run.status = 'running'
@@ -199,44 +226,56 @@ def run_precision_regression_task(precision_run_id: int) -> None:
     try:
         impact = run.impact_analysis
         selector = RegressionSelector(impact)
-        selected, reduction_rate = selector.select()
+        result = selector.select()
 
-        run.selected_testcases = selected
-        run.reduction_rate = reduction_rate
+        run.selected_testcases = result.selected_testcase_ids
+        run.total_testcases = result.total_testcases
+        run.reduction_rate = result.reduction_rate
         run.progress = 50
-        run.save(update_fields=['selected_testcases', 'reduction_rate', 'progress'])
+        run.save(update_fields=[
+            'selected_testcases', 'total_testcases', 'reduction_rate', 'progress',
+        ])
+
+        # 同步写回 ImpactAnalysis
+        persist_selection(impact, result)
 
         # 创建 TestPlan + TestRun
         from apps.executions.models import TestPlan, TestRun
+        from apps.testcases.models import TestCase
+
+        project = impact.change_analysis.repo_binding.project
         plan = TestPlan.objects.create(
             name=f"精准回归 #{precision_run_id}",
-            creator_id=1,  # 占位,实际应从 run 获取
+            creator_id=1,
         )
-        plan.projects.add(impact.change_analysis.repo_binding.project)
+        plan.projects.add(project)
 
         test_run = TestRun.objects.create(
             name=f"精准回归执行 #{precision_run_id}",
             test_plan=plan,
-            project=impact.change_analysis.repo_binding.project,
+            project=project,
             assignee_id=1,
             creator_id=1,
             status='untested',
         )
-        # 关联选中的用例
-        from apps.testcases.models import TestCase
-        for tc_id in selected:
-            try:
-                tc = TestCase.objects.get(id=tc_id)
-                test_run.testcases.add(tc)
-            except TestCase.DoesNotExist:
-                pass
+        # 批量绑定用例
+        if result.selected_testcase_ids:
+            cases = TestCase.objects.filter(id__in=result.selected_testcase_ids)
+            test_run.testcases.add(*list(cases))
 
         run.run_plan = plan
         run.status = 'completed'
         run.progress = 100
         run.completed_at = timezone.now()
         run.save(update_fields=['run_plan', 'status', 'progress', 'completed_at'])
-        logger.info("PrecisionRun %s completed", precision_run_id)
+        logger.info(
+            "PrecisionRun %s completed: %d/%d (reduction=%.2f)",
+            precision_run_id,
+            len(result.selected_testcase_ids),
+            result.total_testcases,
+            result.reduction_rate,
+        )
+        return result.as_dict()
 
     except Exception as exc:
         logger.exception("PrecisionRun %s failed: %s", precision_run_id, exc)
@@ -244,3 +283,62 @@ def run_precision_regression_task(precision_run_id: int) -> None:
         run.completed_at = timezone.now()
         run.save(update_fields=['status', 'completed_at'])
         raise
+
+
+def run_precision_pipeline_task(
+    repo_binding_id: int,
+    base_commit: str,
+    head_commit: str,
+    time_budget_seconds: int | None = None,
+    force_full: bool = False,
+    force_full_reason: str = "",
+) -> dict:
+    """端到端精准测试流水线 — Week 4 里程碑入口。
+
+    阶段:
+        1. 创建 CodeChangeAnalysis (变更分析)
+        2. 调用 analyze_code_change_task (Git diff + AST + 影响)
+        3. 调用 predict_risk_task (风险预测)
+        4. 创建 PrecisionRunRecord + 调用 run_precision_regression_task
+
+    Returns:
+        {analysis_id, impact_id, run_id, selection: dict}
+    """
+    from .models import RepoBinding
+
+    binding = RepoBinding.objects.get(id=repo_binding_id)
+    analysis = CodeChangeAnalysis.objects.create(
+        repo_binding=binding,
+        base_commit=base_commit,
+        head_commit=head_commit,
+        status='pending',
+    )
+
+    # Stage 1+2:变更分析 + 影响分析
+    analyze_code_change_task(analysis.id)
+    analysis.refresh_from_db()
+    if analysis.status != 'completed':
+        raise RuntimeError(
+            f"analyze_code_change_task 未完成: status={analysis.status} err={analysis.error_message}"
+        )
+
+    impact = analysis.impact_results.order_by('-created_at').first()
+    if impact is None:
+        raise RuntimeError("ImpactAnalysis 未生成")
+
+    # Stage 3:风险预测
+    predict_risk_task(impact.id)
+
+    # Stage 4:创建 PrecisionRunRecord + 执行选集
+    run = PrecisionRunRecord.objects.create(
+        impact_analysis=impact,
+        status='pending',
+    )
+    selection = run_precision_regression_task(run.id)
+
+    return {
+        "analysis_id": analysis.id,
+        "impact_id": impact.id,
+        "run_id": run.id,
+        "selection": selection,
+    }
