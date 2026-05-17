@@ -258,6 +258,7 @@ class PrecisionRunRecordSerializer(serializers.ModelSerializer):
     selected_case_count = serializers.SerializerMethodField()
     total_case_count = serializers.SerializerMethodField()
     selected_cases = serializers.SerializerMethodField()
+    total_cases = serializers.SerializerMethodField()
 
     class Meta:
         model = PrecisionRunRecord
@@ -265,7 +266,8 @@ class PrecisionRunRecordSerializer(serializers.ModelSerializer):
             'id', 'impact_analysis', 'impact_commit_range',
             'repo_name', 'branch', 'commit_hash',
             'selected_testcases', 'selected_cases', 'selected_case_count',
-            'total_testcases', 'total_case_count', 'reduction_rate',
+            'supplement_testcases',
+            'total_testcases', 'total_case_count', 'total_cases', 'reduction_rate',
             'run_plan', 'status', 'progress', 'task_id',
             'started_at', 'triggered_at', 'completed_at', 'duration_seconds',
             'error_message', 'created_at',
@@ -317,15 +319,91 @@ class PrecisionRunRecordSerializer(serializers.ModelSerializer):
         if not ids:
             return []
         from apps.testcases.models import TestCase
+        from apps.executions.models import TestRunCase
+
         cases = TestCase.objects.filter(id__in=ids).values('id', 'title')
+
+        # 获取关联 TestRun 的执行结果
+        run_case_map: dict[int, dict] = {}
+        if obj.run_plan:
+            test_run = obj.run_plan.test_runs.first()
+            if test_run:
+                run_cases = TestRunCase.objects.filter(
+                    test_run=test_run,
+                    testcase_id__in=ids,
+                ).values('testcase_id', 'status', 'actual_result', 'executed_at', 'comments')
+                run_case_map = {rc['testcase_id']: rc for rc in run_cases}
+
+        result = []
+        for c in cases:
+            rc = run_case_map.get(c['id'], {})
+            executed_at = rc.get('executed_at')
+            result.append({
+                'id': c['id'],
+                'name': c['title'],
+                'risk_score': None,
+                'status': rc.get('status', 'untested'),
+                'actual_result': rc.get('actual_result', ''),
+                'executed_at': executed_at.isoformat() if executed_at else None,
+                'comments': rc.get('comments', ''),
+            })
+        return result
+
+    def get_total_cases(self, obj: PrecisionRunRecord) -> list[dict]:
+        """查询项目下所有用例（全量用例），供前端对比查看。"""
+        try:
+            project = obj.impact_analysis.change_analysis.repo_binding.project
+        except AttributeError:
+            return []
+
+        from apps.testcases.models import TestCase
+        cases = TestCase.objects.filter(project=project).values('id', 'title', 'priority')
+        selected_set = set(obj.selected_testcases or []) | set(obj.supplement_testcases or [])
         return [
             {
                 'id': c['id'],
                 'name': c['title'],
-                'risk_score': None,  # MVP: 前端显示时暂无风险分，可后续关联 RiskPredictionRecord
+                'priority': c['priority'] or '-',
+                'selected': c['id'] in selected_set,
             }
             for c in cases
         ]
+
+    def get_supplement_cases(self, obj: PrecisionRunRecord) -> list[dict]:
+        """查询补充用例列表（格式同 get_selected_cases）。"""
+        ids = obj.supplement_testcases or []
+        if not ids:
+            return []
+        from apps.testcases.models import TestCase
+        from apps.executions.models import TestRunCase
+
+        cases = TestCase.objects.filter(id__in=ids).values('id', 'title')
+
+        run_case_map: dict[int, dict] = {}
+        if obj.run_plan:
+            test_run = obj.run_plan.test_runs.first()
+            if test_run:
+                run_cases = TestRunCase.objects.filter(
+                    test_run=test_run,
+                    testcase_id__in=ids,
+                ).values('testcase_id', 'status', 'actual_result', 'executed_at', 'comments')
+                run_case_map = {rc['testcase_id']: rc for rc in run_cases}
+
+        result = []
+        for c in cases:
+            rc = run_case_map.get(c['id'], {})
+            executed_at = rc.get('executed_at')
+            result.append({
+                'id': c['id'],
+                'name': c['title'],
+                'risk_score': None,
+                'status': rc.get('status', 'untested'),
+                'actual_result': rc.get('actual_result', ''),
+                'executed_at': executed_at.isoformat() if executed_at else None,
+                'comments': rc.get('comments', ''),
+                'source': 'supplement',
+            })
+        return result
 
 
 class TestCaseCodeMappingBulkSerializer(serializers.Serializer):

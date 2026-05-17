@@ -1,0 +1,3959 @@
+[
+  {
+    "module": "auth",
+    "path": "/api/auth/change-password/",
+    "method": "POST",
+    "operationId": "auth_change_password_create",
+    "summary": "",
+    "description": "修改密码",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/login/",
+    "method": "POST",
+    "operationId": "auth_login_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/logout/",
+    "method": "POST",
+    "operationId": "auth_logout_create",
+    "summary": "",
+    "description": "用户退出登录，将refresh token加入黑名单",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/me/",
+    "method": "GET",
+    "operationId": "auth_me_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/profile/",
+    "method": "GET",
+    "operationId": "auth_profile_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/register/",
+    "method": "POST",
+    "operationId": "auth_register_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "password": {
+          "type": "string",
+          "x-writeOnly": true,
+          "minLength": 6
+        },
+        "password_confirm": {
+          "type": "string",
+          "x-writeOnly": true
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        },
+        "phone": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "手机号",
+          "maxLength": 11
+        },
+        "department": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "部门",
+          "maxLength": 100
+        },
+        "position": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "职位",
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "password",
+        "password_confirm",
+        "username"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "password": {
+              "type": "string",
+              "x-writeOnly": true,
+              "minLength": 6
+            },
+            "password_confirm": {
+              "type": "string",
+              "x-writeOnly": true
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            },
+            "phone": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "手机号",
+              "maxLength": 11
+            },
+            "department": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "部门",
+              "maxLength": 100
+            },
+            "position": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "职位",
+              "maxLength": 100
+            }
+          },
+          "required": [
+            "password",
+            "password_confirm",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/token/refresh/",
+    "method": "POST",
+    "operationId": "auth_token_refresh_create",
+    "summary": "",
+    "description": "自定义 Token 刷新接口，返回过期时间",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/",
+    "method": "GET",
+    "operationId": "auth_users_list",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [
+      {
+        "name": "ordering",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "用于排序结果的字段。"
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "分页结果集中的页码。"
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "搜索关键词。"
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "required": [
+            "count",
+            "results"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "example": 123
+            },
+            "next": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=4"
+            },
+            "previous": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=2"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "username": {
+                    "type": "string",
+                    "title": "用户名",
+                    "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                    "pattern": "^[\\w.@+-]+$",
+                    "maxLength": 150
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "title": "电子邮件地址",
+                    "maxLength": 254
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "title": "名字",
+                    "maxLength": 150
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "title": "姓氏",
+                    "maxLength": 150
+                  }
+                },
+                "required": [
+                  "id",
+                  "username"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/",
+    "method": "POST",
+    "operationId": "auth_users_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/{id}/",
+    "method": "GET",
+    "operationId": "auth_users_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/{id}/",
+    "method": "PUT",
+    "operationId": "auth_users_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/{id}/",
+    "method": "PATCH",
+    "operationId": "auth_users_partial_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "x-nullable": true,
+          "title": "头像"
+        },
+        "phone": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "手机号",
+          "maxLength": 11
+        },
+        "department": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "部门",
+          "maxLength": 100
+        },
+        "position": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "职位",
+          "maxLength": 100
+        },
+        "is_active": {
+          "type": "boolean",
+          "title": "是否激活"
+        },
+        "date_joined": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "加入日期"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "创建时间"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "更新时间"
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "auth",
+    "path": "/api/auth/users/{id}/",
+    "method": "DELETE",
+    "operationId": "auth_users_destroy",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "auth"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "204": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/",
+    "method": "GET",
+    "operationId": "projects_list",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "ordering",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "用于排序结果的字段。"
+      },
+      {
+        "name": "owner",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": ""
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "分页结果集中的页码。"
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "搜索关键词。"
+      },
+      {
+        "name": "status",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "required": [
+            "count",
+            "results"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "example": 123
+            },
+            "next": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=4"
+            },
+            "previous": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=2"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "项目名称",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "项目描述"
+                  },
+                  "status": {
+                    "allOf": [
+                      {
+                        "enum": [
+                          "not_started",
+                          "active",
+                          "paused",
+                          "completed",
+                          "archived"
+                        ],
+                        "type": "string",
+                        "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+                      }
+                    ],
+                    "title": "状态"
+                  },
+                  "owner": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "readOnly": true
+                          },
+                          "username": {
+                            "type": "string",
+                            "title": "用户名",
+                            "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                            "pattern": "^[\\w.@+-]+$",
+                            "maxLength": 150
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "title": "电子邮件地址",
+                            "maxLength": 254
+                          },
+                          "first_name": {
+                            "type": "string",
+                            "title": "名字",
+                            "maxLength": 150
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "title": "姓氏",
+                            "maxLength": 150
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username"
+                        ]
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "members": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "readOnly": true
+                        },
+                        "user": {
+                          "allOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "integer",
+                                  "readOnly": true
+                                },
+                                "username": {
+                                  "type": "string",
+                                  "title": "用户名",
+                                  "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                                  "pattern": "^[\\w.@+-]+$",
+                                  "maxLength": 150
+                                },
+                                "email": {
+                                  "type": "string",
+                                  "format": "email",
+                                  "title": "电子邮件地址",
+                                  "maxLength": 254
+                                },
+                                "first_name": {
+                                  "type": "string",
+                                  "title": "名字",
+                                  "maxLength": 150
+                                },
+                                "last_name": {
+                                  "type": "string",
+                                  "title": "姓氏",
+                                  "maxLength": 150
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "username"
+                              ]
+                            }
+                          ],
+                          "readOnly": true
+                        },
+                        "user_id": {
+                          "type": "integer",
+                          "x-writeOnly": true
+                        },
+                        "role": {
+                          "allOf": [
+                            {
+                              "enum": [
+                                "owner",
+                                "admin",
+                                "developer",
+                                "tester",
+                                "viewer"
+                              ],
+                              "type": "string",
+                              "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                            }
+                          ],
+                          "title": "角色"
+                        },
+                        "joined_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "title": "加入时间"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "user",
+                        "user_id"
+                      ]
+                    },
+                    "readOnly": true
+                  },
+                  "environments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "readOnly": true
+                        },
+                        "name": {
+                          "type": "string",
+                          "title": "环境名称",
+                          "maxLength": 100
+                        },
+                        "base_url": {
+                          "type": "string",
+                          "format": "uri",
+                          "title": "基础URL",
+                          "maxLength": 200
+                        },
+                        "description": {
+                          "type": "string",
+                          "title": "环境描述"
+                        },
+                        "variables": {
+                          "title": "环境变量"
+                        },
+                        "is_default": {
+                          "type": "boolean",
+                          "title": "是否默认"
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "title": "创建时间"
+                        },
+                        "project": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "base_url",
+                        "id",
+                        "name",
+                        "project"
+                      ]
+                    },
+                    "readOnly": true
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "title": "创建时间"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "readOnly": true,
+                    "title": "更新时间"
+                  }
+                },
+                "required": [
+                  "created_at",
+                  "environments",
+                  "id",
+                  "members",
+                  "name",
+                  "owner",
+                  "updated_at"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/",
+    "method": "POST",
+    "operationId": "projects_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "项目名称",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "title": "项目描述"
+        },
+        "status": {
+          "allOf": [
+            {
+              "enum": [
+                "not_started",
+                "active",
+                "paused",
+                "completed",
+                "archived"
+              ],
+              "type": "string",
+              "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+            }
+          ],
+          "title": "状态"
+        },
+        "create_unified": {
+          "type": "boolean",
+          "x-writeOnly": true,
+          "default": true
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "title": "项目名称",
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "title": "项目描述"
+            },
+            "status": {
+              "allOf": [
+                {
+                  "enum": [
+                    "not_started",
+                    "active",
+                    "paused",
+                    "completed",
+                    "archived"
+                  ],
+                  "type": "string",
+                  "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+                }
+              ],
+              "title": "状态"
+            },
+            "create_unified": {
+              "type": "boolean",
+              "x-writeOnly": true,
+              "default": true
+            }
+          },
+          "required": [
+            "name"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{id}/",
+    "method": "GET",
+    "operationId": "projects_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "name": {
+              "type": "string",
+              "title": "项目名称",
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "title": "项目描述"
+            },
+            "status": {
+              "allOf": [
+                {
+                  "enum": [
+                    "not_started",
+                    "active",
+                    "paused",
+                    "completed",
+                    "archived"
+                  ],
+                  "type": "string",
+                  "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+                }
+              ],
+              "title": "状态"
+            },
+            "owner": {
+              "allOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "title": "用户名",
+                      "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                      "pattern": "^[\\w.@+-]+$",
+                      "maxLength": 150
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "title": "电子邮件地址",
+                      "maxLength": 254
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "title": "名字",
+                      "maxLength": 150
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "title": "姓氏",
+                      "maxLength": 150
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "username"
+                  ]
+                }
+              ],
+              "readOnly": true
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "user": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "readOnly": true
+                          },
+                          "username": {
+                            "type": "string",
+                            "title": "用户名",
+                            "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                            "pattern": "^[\\w.@+-]+$",
+                            "maxLength": 150
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "title": "电子邮件地址",
+                            "maxLength": 254
+                          },
+                          "first_name": {
+                            "type": "string",
+                            "title": "名字",
+                            "maxLength": 150
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "title": "姓氏",
+                            "maxLength": 150
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username"
+                        ]
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "x-writeOnly": true
+                  },
+                  "role": {
+                    "allOf": [
+                      {
+                        "enum": [
+                          "owner",
+                          "admin",
+                          "developer",
+                          "tester",
+                          "viewer"
+                        ],
+                        "type": "string",
+                        "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                      }
+                    ],
+                    "title": "角色"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "加入时间"
+                  }
+                },
+                "required": [
+                  "id",
+                  "user",
+                  "user_id"
+                ]
+              },
+              "readOnly": true
+            },
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "环境名称",
+                    "maxLength": 100
+                  },
+                  "base_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "title": "基础URL",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "环境描述"
+                  },
+                  "variables": {
+                    "title": "环境变量"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "title": "是否默认"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "创建时间"
+                  },
+                  "project": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "base_url",
+                  "id",
+                  "name",
+                  "project"
+                ]
+              },
+              "readOnly": true
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "创建时间"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "更新时间"
+            }
+          },
+          "required": [
+            "created_at",
+            "environments",
+            "id",
+            "members",
+            "name",
+            "owner",
+            "updated_at"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{id}/",
+    "method": "PUT",
+    "operationId": "projects_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string",
+          "title": "项目名称",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "title": "项目描述"
+        },
+        "status": {
+          "allOf": [
+            {
+              "enum": [
+                "not_started",
+                "active",
+                "paused",
+                "completed",
+                "archived"
+              ],
+              "type": "string",
+              "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+            }
+          ],
+          "title": "状态"
+        },
+        "owner": {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "readOnly": true
+                },
+                "username": {
+                  "type": "string",
+                  "title": "用户名",
+                  "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                  "pattern": "^[\\w.@+-]+$",
+                  "maxLength": 150
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "title": "电子邮件地址",
+                  "maxLength": 254
+                },
+                "first_name": {
+                  "type": "string",
+                  "title": "名字",
+                  "maxLength": 150
+                },
+                "last_name": {
+                  "type": "string",
+                  "title": "姓氏",
+                  "maxLength": 150
+                }
+              },
+              "required": [
+                "id",
+                "username"
+              ]
+            }
+          ],
+          "readOnly": true
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "readOnly": true
+              },
+              "user": {
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true
+                      },
+                      "username": {
+                        "type": "string",
+                        "title": "用户名",
+                        "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                        "pattern": "^[\\w.@+-]+$",
+                        "maxLength": 150
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "电子邮件地址",
+                        "maxLength": 254
+                      },
+                      "first_name": {
+                        "type": "string",
+                        "title": "名字",
+                        "maxLength": 150
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "title": "姓氏",
+                        "maxLength": 150
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "username"
+                    ]
+                  }
+                ],
+                "readOnly": true
+              },
+              "user_id": {
+                "type": "integer",
+                "x-writeOnly": true
+              },
+              "role": {
+                "allOf": [
+                  {
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "developer",
+                      "tester",
+                      "viewer"
+                    ],
+                    "type": "string",
+                    "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                  }
+                ],
+                "title": "角色"
+              },
+              "joined_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "加入时间"
+              }
+            },
+            "required": [
+              "id",
+              "user",
+              "user_id"
+            ]
+          },
+          "readOnly": true
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "readOnly": true
+              },
+              "name": {
+                "type": "string",
+                "title": "环境名称",
+                "maxLength": 100
+              },
+              "base_url": {
+                "type": "string",
+                "format": "uri",
+                "title": "基础URL",
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "title": "环境描述"
+              },
+              "variables": {
+                "title": "环境变量"
+              },
+              "is_default": {
+                "type": "boolean",
+                "title": "是否默认"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "创建时间"
+              },
+              "project": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "base_url",
+              "id",
+              "name",
+              "project"
+            ]
+          },
+          "readOnly": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "创建时间"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "更新时间"
+        }
+      },
+      "required": [
+        "created_at",
+        "environments",
+        "id",
+        "members",
+        "name",
+        "owner",
+        "updated_at"
+      ]
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "name": {
+              "type": "string",
+              "title": "项目名称",
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "title": "项目描述"
+            },
+            "status": {
+              "allOf": [
+                {
+                  "enum": [
+                    "not_started",
+                    "active",
+                    "paused",
+                    "completed",
+                    "archived"
+                  ],
+                  "type": "string",
+                  "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+                }
+              ],
+              "title": "状态"
+            },
+            "owner": {
+              "allOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "title": "用户名",
+                      "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                      "pattern": "^[\\w.@+-]+$",
+                      "maxLength": 150
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "title": "电子邮件地址",
+                      "maxLength": 254
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "title": "名字",
+                      "maxLength": 150
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "title": "姓氏",
+                      "maxLength": 150
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "username"
+                  ]
+                }
+              ],
+              "readOnly": true
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "user": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "readOnly": true
+                          },
+                          "username": {
+                            "type": "string",
+                            "title": "用户名",
+                            "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                            "pattern": "^[\\w.@+-]+$",
+                            "maxLength": 150
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "title": "电子邮件地址",
+                            "maxLength": 254
+                          },
+                          "first_name": {
+                            "type": "string",
+                            "title": "名字",
+                            "maxLength": 150
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "title": "姓氏",
+                            "maxLength": 150
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username"
+                        ]
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "x-writeOnly": true
+                  },
+                  "role": {
+                    "allOf": [
+                      {
+                        "enum": [
+                          "owner",
+                          "admin",
+                          "developer",
+                          "tester",
+                          "viewer"
+                        ],
+                        "type": "string",
+                        "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                      }
+                    ],
+                    "title": "角色"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "加入时间"
+                  }
+                },
+                "required": [
+                  "id",
+                  "user",
+                  "user_id"
+                ]
+              },
+              "readOnly": true
+            },
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "环境名称",
+                    "maxLength": 100
+                  },
+                  "base_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "title": "基础URL",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "环境描述"
+                  },
+                  "variables": {
+                    "title": "环境变量"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "title": "是否默认"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "创建时间"
+                  },
+                  "project": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "base_url",
+                  "id",
+                  "name",
+                  "project"
+                ]
+              },
+              "readOnly": true
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "创建时间"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "更新时间"
+            }
+          },
+          "required": [
+            "created_at",
+            "environments",
+            "id",
+            "members",
+            "name",
+            "owner",
+            "updated_at"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{id}/",
+    "method": "PATCH",
+    "operationId": "projects_partial_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string",
+          "title": "项目名称",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "title": "项目描述"
+        },
+        "status": {
+          "allOf": [
+            {
+              "enum": [
+                "not_started",
+                "active",
+                "paused",
+                "completed",
+                "archived"
+              ],
+              "type": "string",
+              "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+            }
+          ],
+          "title": "状态"
+        },
+        "owner": {
+          "allOf": [
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "readOnly": true
+                },
+                "username": {
+                  "type": "string",
+                  "title": "用户名",
+                  "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                  "pattern": "^[\\w.@+-]+$",
+                  "maxLength": 150
+                },
+                "email": {
+                  "type": "string",
+                  "format": "email",
+                  "title": "电子邮件地址",
+                  "maxLength": 254
+                },
+                "first_name": {
+                  "type": "string",
+                  "title": "名字",
+                  "maxLength": 150
+                },
+                "last_name": {
+                  "type": "string",
+                  "title": "姓氏",
+                  "maxLength": 150
+                }
+              },
+              "required": [
+                "id",
+                "username"
+              ]
+            }
+          ],
+          "readOnly": true
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "readOnly": true
+              },
+              "user": {
+                "allOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "readOnly": true
+                      },
+                      "username": {
+                        "type": "string",
+                        "title": "用户名",
+                        "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                        "pattern": "^[\\w.@+-]+$",
+                        "maxLength": 150
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "电子邮件地址",
+                        "maxLength": 254
+                      },
+                      "first_name": {
+                        "type": "string",
+                        "title": "名字",
+                        "maxLength": 150
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "title": "姓氏",
+                        "maxLength": 150
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "username"
+                    ]
+                  }
+                ],
+                "readOnly": true
+              },
+              "user_id": {
+                "type": "integer",
+                "x-writeOnly": true
+              },
+              "role": {
+                "allOf": [
+                  {
+                    "enum": [
+                      "owner",
+                      "admin",
+                      "developer",
+                      "tester",
+                      "viewer"
+                    ],
+                    "type": "string",
+                    "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                  }
+                ],
+                "title": "角色"
+              },
+              "joined_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "加入时间"
+              }
+            },
+            "required": [
+              "id",
+              "user",
+              "user_id"
+            ]
+          },
+          "readOnly": true
+        },
+        "environments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "readOnly": true
+              },
+              "name": {
+                "type": "string",
+                "title": "环境名称",
+                "maxLength": 100
+              },
+              "base_url": {
+                "type": "string",
+                "format": "uri",
+                "title": "基础URL",
+                "maxLength": 200
+              },
+              "description": {
+                "type": "string",
+                "title": "环境描述"
+              },
+              "variables": {
+                "title": "环境变量"
+              },
+              "is_default": {
+                "type": "boolean",
+                "title": "是否默认"
+              },
+              "created_at": {
+                "type": "string",
+                "format": "date-time",
+                "title": "创建时间"
+              },
+              "project": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "base_url",
+              "id",
+              "name",
+              "project"
+            ]
+          },
+          "readOnly": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "创建时间"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "更新时间"
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "name": {
+              "type": "string",
+              "title": "项目名称",
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "title": "项目描述"
+            },
+            "status": {
+              "allOf": [
+                {
+                  "enum": [
+                    "not_started",
+                    "active",
+                    "paused",
+                    "completed",
+                    "archived"
+                  ],
+                  "type": "string",
+                  "description": "* `not_started` - 未开始\n* `active` - 进行中\n* `paused` - 暂停\n* `completed` - 已完成\n* `archived` - 已归档"
+                }
+              ],
+              "title": "状态"
+            },
+            "owner": {
+              "allOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "readOnly": true
+                    },
+                    "username": {
+                      "type": "string",
+                      "title": "用户名",
+                      "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                      "pattern": "^[\\w.@+-]+$",
+                      "maxLength": 150
+                    },
+                    "email": {
+                      "type": "string",
+                      "format": "email",
+                      "title": "电子邮件地址",
+                      "maxLength": 254
+                    },
+                    "first_name": {
+                      "type": "string",
+                      "title": "名字",
+                      "maxLength": 150
+                    },
+                    "last_name": {
+                      "type": "string",
+                      "title": "姓氏",
+                      "maxLength": 150
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "username"
+                  ]
+                }
+              ],
+              "readOnly": true
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "user": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "readOnly": true
+                          },
+                          "username": {
+                            "type": "string",
+                            "title": "用户名",
+                            "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                            "pattern": "^[\\w.@+-]+$",
+                            "maxLength": 150
+                          },
+                          "email": {
+                            "type": "string",
+                            "format": "email",
+                            "title": "电子邮件地址",
+                            "maxLength": 254
+                          },
+                          "first_name": {
+                            "type": "string",
+                            "title": "名字",
+                            "maxLength": 150
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "title": "姓氏",
+                            "maxLength": 150
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "username"
+                        ]
+                      }
+                    ],
+                    "readOnly": true
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "x-writeOnly": true
+                  },
+                  "role": {
+                    "allOf": [
+                      {
+                        "enum": [
+                          "owner",
+                          "admin",
+                          "developer",
+                          "tester",
+                          "viewer"
+                        ],
+                        "type": "string",
+                        "description": "* `owner` - 负责人\n* `admin` - 管理员\n* `developer` - 开发者\n* `tester` - 测试者\n* `viewer` - 观察者"
+                      }
+                    ],
+                    "title": "角色"
+                  },
+                  "joined_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "加入时间"
+                  }
+                },
+                "required": [
+                  "id",
+                  "user",
+                  "user_id"
+                ]
+              },
+              "readOnly": true
+            },
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "环境名称",
+                    "maxLength": 100
+                  },
+                  "base_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "title": "基础URL",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "环境描述"
+                  },
+                  "variables": {
+                    "title": "环境变量"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "title": "是否默认"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "创建时间"
+                  },
+                  "project": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "base_url",
+                  "id",
+                  "name",
+                  "project"
+                ]
+              },
+              "readOnly": true
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "创建时间"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time",
+              "readOnly": true,
+              "title": "更新时间"
+            }
+          },
+          "required": [
+            "created_at",
+            "environments",
+            "id",
+            "members",
+            "name",
+            "owner",
+            "updated_at"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{id}/",
+    "method": "DELETE",
+    "operationId": "projects_destroy",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "204": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{project_id}/environments/",
+    "method": "GET",
+    "operationId": "projects_environments_list",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "ordering",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "用于排序结果的字段。"
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "分页结果集中的页码。"
+      },
+      {
+        "name": "project_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "搜索关键词。"
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "required": [
+            "count",
+            "results"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "example": 123
+            },
+            "next": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=4"
+            },
+            "previous": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=2"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "name": {
+                    "type": "string",
+                    "title": "环境名称",
+                    "maxLength": 100
+                  },
+                  "base_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "title": "基础URL",
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "环境描述"
+                  },
+                  "variables": {
+                    "title": "环境变量"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "title": "是否默认"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "title": "创建时间"
+                  },
+                  "project": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "base_url",
+                  "id",
+                  "name",
+                  "project"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{project_id}/environments/",
+    "method": "POST",
+    "operationId": "projects_environments_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "project_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "name": {
+          "type": "string",
+          "title": "环境名称",
+          "maxLength": 100
+        },
+        "base_url": {
+          "type": "string",
+          "format": "uri",
+          "title": "基础URL",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "title": "环境描述"
+        },
+        "variables": {
+          "title": "环境变量"
+        },
+        "is_default": {
+          "type": "boolean",
+          "title": "是否默认"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "创建时间"
+        },
+        "project": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "base_url",
+        "id",
+        "name",
+        "project"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "name": {
+              "type": "string",
+              "title": "环境名称",
+              "maxLength": 100
+            },
+            "base_url": {
+              "type": "string",
+              "format": "uri",
+              "title": "基础URL",
+              "maxLength": 200
+            },
+            "description": {
+              "type": "string",
+              "title": "环境描述"
+            },
+            "variables": {
+              "title": "环境变量"
+            },
+            "is_default": {
+              "type": "boolean",
+              "title": "是否默认"
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time",
+              "title": "创建时间"
+            },
+            "project": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "base_url",
+            "id",
+            "name",
+            "project"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{project_id}/members/",
+    "method": "GET",
+    "operationId": "projects_members_retrieve",
+    "summary": "",
+    "description": "获取项目成员列表",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "project_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{project_id}/members/{member_id}/",
+    "method": "DELETE",
+    "operationId": "projects_members_destroy",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "member_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      },
+      {
+        "name": "project_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "204": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/{project_id}/members/add/",
+    "method": "POST",
+    "operationId": "projects_members_add_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [
+      {
+        "name": "project_id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/all/",
+    "method": "GET",
+    "operationId": "projects_all_retrieve",
+    "summary": "",
+    "description": "获取所有项目列表，用于下拉选择等场景",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "projects",
+    "path": "/api/projects/list/",
+    "method": "GET",
+    "operationId": "projects_list_retrieve",
+    "summary": "",
+    "description": "获取用户有权限访问的项目列表，用于下拉选择",
+    "tags": [
+      "projects"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/change-password/",
+    "method": "POST",
+    "operationId": "users_change_password_create",
+    "summary": "",
+    "description": "修改密码",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/login/",
+    "method": "POST",
+    "operationId": "users_login_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/logout/",
+    "method": "POST",
+    "operationId": "users_logout_create",
+    "summary": "",
+    "description": "用户退出登录，将refresh token加入黑名单",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/me/",
+    "method": "GET",
+    "operationId": "users_me_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/profile/",
+    "method": "GET",
+    "operationId": "users_profile_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/register/",
+    "method": "POST",
+    "operationId": "users_register_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "password": {
+          "type": "string",
+          "x-writeOnly": true,
+          "minLength": 6
+        },
+        "password_confirm": {
+          "type": "string",
+          "x-writeOnly": true
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        },
+        "phone": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "手机号",
+          "maxLength": 11
+        },
+        "department": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "部门",
+          "maxLength": 100
+        },
+        "position": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "职位",
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "password",
+        "password_confirm",
+        "username"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "password": {
+              "type": "string",
+              "x-writeOnly": true,
+              "minLength": 6
+            },
+            "password_confirm": {
+              "type": "string",
+              "x-writeOnly": true
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            },
+            "phone": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "手机号",
+              "maxLength": 11
+            },
+            "department": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "部门",
+              "maxLength": 100
+            },
+            "position": {
+              "type": "string",
+              "x-nullable": true,
+              "title": "职位",
+              "maxLength": 100
+            }
+          },
+          "required": [
+            "password",
+            "password_confirm",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/token/refresh/",
+    "method": "POST",
+    "operationId": "users_token_refresh_create",
+    "summary": "",
+    "description": "自定义 Token 刷新接口，返回过期时间",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      },
+      {}
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/",
+    "method": "GET",
+    "operationId": "users_users_list",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [
+      {
+        "name": "ordering",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "用于排序结果的字段。"
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "type": "integer",
+        "description": "分页结果集中的页码。"
+      },
+      {
+        "name": "search",
+        "in": "query",
+        "required": false,
+        "type": "string",
+        "description": "搜索关键词。"
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "required": [
+            "count",
+            "results"
+          ],
+          "properties": {
+            "count": {
+              "type": "integer",
+              "example": 123
+            },
+            "next": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=4"
+            },
+            "previous": {
+              "type": "string",
+              "x-nullable": true,
+              "format": "uri",
+              "example": "http://api.example.org/accounts/?page=2"
+            },
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer",
+                    "readOnly": true
+                  },
+                  "username": {
+                    "type": "string",
+                    "title": "用户名",
+                    "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+                    "pattern": "^[\\w.@+-]+$",
+                    "maxLength": 150
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "title": "电子邮件地址",
+                    "maxLength": 254
+                  },
+                  "first_name": {
+                    "type": "string",
+                    "title": "名字",
+                    "maxLength": 150
+                  },
+                  "last_name": {
+                    "type": "string",
+                    "title": "姓氏",
+                    "maxLength": 150
+                  }
+                },
+                "required": [
+                  "id",
+                  "username"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/",
+    "method": "POST",
+    "operationId": "users_users_create",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "responses": {
+      "201": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/{id}/",
+    "method": "GET",
+    "operationId": "users_users_retrieve",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/{id}/",
+    "method": "PUT",
+    "operationId": "users_users_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        }
+      },
+      "required": [
+        "id",
+        "username"
+      ]
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/{id}/",
+    "method": "PATCH",
+    "operationId": "users_users_partial_update",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "username": {
+          "type": "string",
+          "title": "用户名",
+          "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+          "pattern": "^[\\w.@+-]+$",
+          "maxLength": 150
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "电子邮件地址",
+          "maxLength": 254
+        },
+        "first_name": {
+          "type": "string",
+          "title": "名字",
+          "maxLength": 150
+        },
+        "last_name": {
+          "type": "string",
+          "title": "姓氏",
+          "maxLength": 150
+        },
+        "avatar": {
+          "type": "string",
+          "format": "uri",
+          "x-nullable": true,
+          "title": "头像"
+        },
+        "phone": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "手机号",
+          "maxLength": 11
+        },
+        "department": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "部门",
+          "maxLength": 100
+        },
+        "position": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "职位",
+          "maxLength": 100
+        },
+        "is_active": {
+          "type": "boolean",
+          "title": "是否激活"
+        },
+        "date_joined": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "加入日期"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "创建时间"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "readOnly": true,
+          "title": "更新时间"
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer",
+              "readOnly": true
+            },
+            "username": {
+              "type": "string",
+              "title": "用户名",
+              "description": "必填；长度为150个字符或以下；只能包含字母、数字、特殊字符“@”、“.”、“-”和“_”。",
+              "pattern": "^[\\w.@+-]+$",
+              "maxLength": 150
+            },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "title": "电子邮件地址",
+              "maxLength": 254
+            },
+            "first_name": {
+              "type": "string",
+              "title": "名字",
+              "maxLength": 150
+            },
+            "last_name": {
+              "type": "string",
+              "title": "姓氏",
+              "maxLength": 150
+            }
+          },
+          "required": [
+            "id",
+            "username"
+          ]
+        }
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  },
+  {
+    "module": "users",
+    "path": "/api/users/users/{id}/",
+    "method": "DELETE",
+    "operationId": "users_users_destroy",
+    "summary": "",
+    "description": "",
+    "tags": [
+      "users"
+    ],
+    "parameters": [
+      {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "type": "integer",
+        "description": ""
+      }
+    ],
+    "body_schema": null,
+    "responses": {
+      "204": {
+        "description": "No response body"
+      }
+    },
+    "security": [
+      {
+        "jwtAuth": []
+      },
+      {
+        "tokenAuth": []
+      },
+      {
+        "cookieAuth": []
+      }
+    ]
+  }
+]

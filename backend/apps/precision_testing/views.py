@@ -103,19 +103,49 @@ class TestCaseCodeMappingViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def auto_build(self, request):
-        """触发静态分析自动建图"""
-        repo_binding_id = request.data.get('repo_binding_id')
-        if not repo_binding_id:
-            return Response(
-                {'error': 'repo_binding_id is required'},
-                status=status.HTTP_400_BAD_REQUEST,
+        """触发静态分析自动建图。
+
+        Body::
+
+            {
+                "repo_binding_id": 1   # 可选；为空则构建所有活跃仓库
+            }
+
+        兼容前端旧字段名 ``repo_id``。
+        """
+        repo_binding_id = request.data.get('repo_binding_id') or request.data.get('repo_id')
+
+        if repo_binding_id:
+            try:
+                binding = RepoBinding.objects.get(id=repo_binding_id, is_active=True)
+            except RepoBinding.DoesNotExist:
+                return Response(
+                    {'error': 'RepoBinding not found or inactive'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            bindings = [binding]
+        else:
+            bindings = list(RepoBinding.objects.filter(is_active=True))
+            if not bindings:
+                return Response(
+                    {'error': 'No active repo bindings found'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        task_ids = []
+        for binding in bindings:
+            task_id = async_task(
+                'apps.precision_testing.tasks.build_graph_task',
+                binding.id,
             )
-        task_id = async_task(
-            'apps.precision_testing.tasks.build_graph_task',
-            repo_binding_id,
-        )
+            task_ids.append(task_id)
+
         return Response(
-            {'task_id': task_id, 'status': 'pending'},
+            {
+                'task_ids': task_ids,
+                'status': 'pending',
+                'repo_count': len(bindings),
+            },
             status=status.HTTP_202_ACCEPTED,
         )
 
@@ -249,6 +279,52 @@ class PrecisionRunRecordViewSet(viewsets.ModelViewSet):
             status=status.HTTP_202_ACCEPTED,
         )
 
+    @action(detail=True, methods=['post'], url_path='supplement')
+    def supplement(self, request, pk=None):
+        """补充执行：将指定用例追加到 TestRun 中。
+
+        Body::
+
+            {"testcase_ids": [1, 2, 3]}
+        """
+        run = self.get_object()
+        testcase_ids = request.data.get('testcase_ids', [])
+        if not testcase_ids:
+            return Response(
+                {'error': 'testcase_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # 过滤掉已存在的（算法选中 + 已补充）
+        existing = set(run.selected_testcases or []) | set(run.supplement_testcases or [])
+        new_ids = [int(tid) for tid in testcase_ids if int(tid) not in existing]
+
+        if not new_ids:
+            return Response(
+                {'supplemented': 0, 'total_supplement': len(run.supplement_testcases or [])},
+                status=status.HTTP_200_OK,
+            )
+
+        # 更新 PrecisionRunRecord
+        run.supplement_testcases = list(set(run.supplement_testcases or []) | set(new_ids))
+        run.save(update_fields=['supplement_testcases'])
+
+        # 同步更新 TestRun
+        if run.run_plan:
+            test_run = run.run_plan.test_runs.first()
+            if test_run:
+                from apps.testcases.models import TestCase
+                cases = TestCase.objects.filter(id__in=new_ids)
+                test_run.testcases.add(*list(cases))
+
+        return Response(
+            {
+                'supplemented': len(new_ids),
+                'total_supplement': len(run.supplement_testcases),
+            },
+            status=status.HTTP_200_OK,
+        )
+
 
 class GraphDataView(APIView):
     """获取 Neo4j 图数据 (Cytoscape.js 兼容格式)。
@@ -339,8 +415,9 @@ class ImpactQueryView(APIView):
             )
         include_paths = bool(request.data.get('include_paths', False))
 
+        impact_query = get_impact_query()
         try:
-            result = get_impact_query().query_impact(
+            result = impact_query.query_impact(
                 changed_function_ids=changed,
                 depth=depth,
                 include_paths=include_paths,
@@ -356,9 +433,16 @@ class ImpactQueryView(APIView):
                 'elapsed_ms': 0.0,
                 'propagation_paths': [],
                 'neo4j_available': False,
+                'nodes': [],
+                'edges': [],
             })
 
-        return Response(result.to_dict())
+        payload = result.to_dict()
+        # 附加 Cytoscape 可视化数据
+        graph_data = impact_query.build_impact_graph_data(result)
+        payload['nodes'] = graph_data['nodes']
+        payload['edges'] = graph_data['edges']
+        return Response(payload)
 
 
 class DashboardView(APIView):

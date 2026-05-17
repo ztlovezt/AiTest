@@ -115,6 +115,59 @@ build-multiplatform.sh
 backend/apps/app_automation/Template/**
 !backend/apps/app_automation/Template/
 
+# CodePilot uploads (session temp files, not project code)
+.codepilot-uploads/
+
+# Generated/coverage/temp files
+.coverage
+EOF
+coverage
+
+# Windows system cache
+Microsoft/
+
+# Backend temp/cache/logs
+backend/django_*.log
+backend/django_server.log
+backend/generate_test_token.py
+backend/black/
+backend/pip/
+backend/Microsoft/
+
+# Session/auth temp files
+*_err.txt
+*_out.txt
+apishared_err.txt
+apishared_out.txt
+auth_session_err.txt
+auth_session_out.txt
+
+# Windows PowerShell cache (recursively)
+Microsoft/
+*/Microsoft/
+
+# Django-Q / Uvicorn logs
+qcluster_err.log
+qcluster_out.log
+qcluster_out2.log
+uvicorn_err.log
+uvicorn_err2.log
+uvicorn_live.log
+uvicorn_out.log
+uvicorn_out2.log
+uvicorn_out3.log
+
+# Test reports and logs (generated, not source)
+tests/testcase/**/*_test_report.html
+tests/testcase/**/*_test_report.xml
+tests/testcase/**/*_console.log
+tests/testcase/**/*_failed_tests.txt
+tests/testcase/**/*_test_report_summary.md
+tests/precision_testing/WEEK*_TEST_REPORT.md
+
+# PID files
+scripts/.pids/
+
 # Week 4 调试残留（覆盖率报告、测试输出、Redis dump等）
 coverage*.xml
 coverage*.log

@@ -95,6 +95,9 @@ def _build_auto_static_mappings(repo_binding, repo_path: str) -> int:
     """若仓库内存在 ``.coverage`` 数据库,则自动登记 ``auto_static`` 类型的
     :class:`TestCaseCodeMapping`。
 
+    当 pytest nodeid 无法匹配已有 :class:`TestCase` 时,自动创建缺失的
+    ``TestCase`` 记录(标题使用 nodeid,项目归属当前仓库绑定项目)。
+
     Returns:
         新创建的映射条数(已存在则跳过)。
     """
@@ -113,17 +116,37 @@ def _build_auto_static_mappings(repo_binding, repo_path: str) -> int:
         logger.warning("CoverageService 解析失败,跳过 auto_static: %s", exc)
         return 0
 
+    if not candidates:
+        logger.info("Coverage 解析结果为空,无候选映射")
+        return 0
+
     created = 0
     project = repo_binding.project
     testcase_qs = TestCase.objects.filter(project=project).only("id", "title")
     title_to_id = {tc.title: tc.id for tc in testcase_qs}
+
+    # 兜底:若没有任何 TestCase,按 nodeid 自动创建(使用系统用户作为 author)
+    default_author_id = _get_default_user_id()
 
     for candidate in candidates:
         # test_id 形如 ``tests/api/test_users.py::test_create_user``
         node_name = candidate["test_id"].rsplit("::", 1)[-1]
         tc_id = title_to_id.get(node_name)
         if tc_id is None:
-            continue
+            # 未匹配到已有用例,自动创建
+            tc = TestCase.objects.create(
+                project=project,
+                title=node_name,
+                expected_result="",
+                author_id=default_author_id,
+                priority="medium",
+                status="draft",
+                test_type="functional",
+            )
+            tc_id = tc.id
+            title_to_id[node_name] = tc_id
+            logger.debug("自动创建 TestCase: title=%s id=%s", node_name, tc_id)
+
         _, was_created = TestCaseCodeMapping.objects.update_or_create(
             testcase_id=tc_id,
             function_signature=candidate["function_signature"],
@@ -135,23 +158,50 @@ def _build_auto_static_mappings(repo_binding, repo_path: str) -> int:
         )
         if was_created:
             created += 1
-    logger.info("auto_static 映射创建数: %d (来自 %d 个候选)", created, len(candidates))
+    logger.info("auto_static 映射创建数: %d (来自 %d 个候选,含 %d 个自动创建用例)",
+                created, len(candidates), len(title_to_id) - testcase_qs.count())
     return created
 
 
-def build_graph_task(repo_binding_id: int) -> None:
-    """全量图谱构建: AST 遍历 + Neo4j batch write
+def _get_default_user_id() -> int | None:
+    """获取系统默认用户 ID,用于自动创建 TestCase 的 author 字段。"""
+    try:
+        from apps.users.models import User
+        user = User.objects.filter(is_superuser=True).first()
+        if user:
+            return user.id
+        user = User.objects.first()
+        return user.id if user else None
+    except Exception:
+        return None
+
+
+def build_graph_task(repo_binding_id: int) -> dict:
+    """全量图谱构建: AST 遍历 + Neo4j batch write + 自动 Coverage 映射提取。
 
     遍历项目所有 Python 文件,提取 Function/Class/APIEndpoint 节点,
     并建立 CALLS/TESTED_BY 关系。
+    若仓库根目录存在 ``.coverage`` 数据库,同时自动创建
+    ``auto_static`` 类型的 :class:`TestCaseCodeMapping`。
     """
     from .models import RepoBinding
     from .graph_builder import GraphBuilder
 
     binding = RepoBinding.objects.get(id=repo_binding_id)
     builder = GraphBuilder(binding.repo_path)
-    builder.build_full_graph()
-    logger.info("Graph built for repo %s", binding.repo_path)
+    graph_stats = builder.build_full_graph()
+
+    # 同步从 .coverage 自动提取 TestCaseCodeMapping
+    mapping_created = _build_auto_static_mappings(binding, binding.repo_path)
+    graph_stats['mapping_created'] = mapping_created
+
+    logger.info(
+        "Graph built for repo %s (nodes=%s, mappings_created=%d)",
+        binding.repo_path,
+        graph_stats.get('node_counts'),
+        mapping_created,
+    )
+    return graph_stats
 
 
 def predict_risk_task(impact_analysis_id: int) -> int:

@@ -1,0 +1,134 @@
+[
+  {
+    "module": "ui-automation",
+    "operations": 106,
+    "paths": 58,
+    "status": "TODO"
+  },
+  {
+    "module": "app-automation",
+    "operations": 103,
+    "paths": 63,
+    "status": "TODO"
+  },
+  {
+    "module": "api-testing",
+    "operations": 89,
+    "paths": 49,
+    "status": "TODO"
+  },
+  {
+    "module": "requirement-analysis",
+    "operations": 71,
+    "paths": 51,
+    "status": "TODO"
+  },
+  {
+    "module": "knowledge-base",
+    "operations": 36,
+    "paths": 20,
+    "status": "TODO"
+  },
+  {
+    "module": "ai-testing",
+    "operations": 25,
+    "paths": 13,
+    "status": "TODO"
+  },
+  {
+    "module": "executions",
+    "operations": 23,
+    "paths": 11,
+    "status": "TODO"
+  },
+  {
+    "module": "ops-tools",
+    "operations": 21,
+    "paths": 13,
+    "status": "TODO"
+  },
+  {
+    "module": "reviews",
+    "operations": 21,
+    "paths": 9,
+    "status": "TODO"
+  },
+  {
+    "module": "agent",
+    "operations": 18,
+    "paths": 10,
+    "status": "TODO"
+  },
+  {
+    "module": "core",
+    "operations": 18,
+    "paths": 10,
+    "status": "TODO"
+  },
+  {
+    "module": "assistant",
+    "operations": 16,
+    "paths": 8,
+    "status": "TODO"
+  },
+  {
+    "module": "ocr",
+    "operations": 16,
+    "paths": 12,
+    "status": "TODO"
+  },
+  {
+    "module": "scheduler",
+    "operations": 15,
+    "paths": 11,
+    "status": "TODO"
+  },
+  {
+    "module": "auth",
+    "operations": 13,
+    "paths": 9,
+    "status": "DONE"
+  },
+  {
+    "module": "projects",
+    "operations": 13,
+    "paths": 8,
+    "status": "DONE"
+  },
+  {
+    "module": "reports",
+    "operations": 13,
+    "paths": 9,
+    "status": "TODO"
+  },
+  {
+    "module": "users",
+    "operations": 13,
+    "paths": 9,
+    "status": "DONE"
+  },
+  {
+    "module": "data-factory",
+    "operations": 12,
+    "paths": 8,
+    "status": "TODO"
+  },
+  {
+    "module": "meta-projects",
+    "operations": 12,
+    "paths": 4,
+    "status": "TODO"
+  },
+  {
+    "module": "testcases",
+    "operations": 9,
+    "paths": 5,
+    "status": "TODO"
+  },
+  {
+    "module": "versions",
+    "operations": 7,
+    "paths": 3,
+    "status": "TODO"
+  }
+]

@@ -188,6 +188,7 @@ class PrecisionRunRecord(models.Model):
         verbose_name='关联影响分析'
     )
     selected_testcases = models.JSONField(default=list, verbose_name='选中用例ID列表')
+    supplement_testcases = models.JSONField(default=list, verbose_name='补充用例ID列表')
     total_testcases = models.IntegerField(default=0, verbose_name='项目总用例数')
     reduction_rate = models.FloatField(default=0.0, verbose_name='缩减率')
     run_plan = models.ForeignKey(

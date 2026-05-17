@@ -1,0 +1,103 @@
+[32m2026-05-17 01:07:01.528[0m - [36m[backend.log_config-->_configure_django_logging:229][0m - [1mINFO[0m - [1mORM SQL ÈÕÖ¾ÒÑÆôÓÃ£¬½«¼ÇÂ¼ËùÓÐÊý¾Ý¿â²éÑ¯µ½ orm_sql.log[0m
+¿ªÊ¼Ç¨ÒÆ AI ÓÃÀýÊý¾Ý...
+¿ªÊ¼Ç¨ÒÆ AI Ö´ÐÐ¼ÇÂ¼Êý¾Ý...
+......................[32m2026-05-17 01:08:23.696[0m - [36m[apps.ocr_service.adapters.tesseract--><module>:22][0m - [33m[1mWARNING[0m - [33m[1mpytesseract not installed. Tesseract OCR will not be available.[0m
+WARNING 2026-05-17 01:08:24,276 log 17572 17544 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:08:26,793 log 17572 17544 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.................................................................................F..................................F...........F..FF......................................................WARNING 2026-05-17 01:09:23,590 log 17572 17544 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:09:24,748 log 17572 17544 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:09:25,901 log 17572 17544 Bad Request: /api/precision-testing/mappings/bulk-create/
+.WARNING 2026-05-17 01:09:27,025 log 17572 17544 Bad Request: /api/precision-testing/mappings/import-csv/
+..........FF..........................................................................................................................................................................................................................s...................................................................................................................................
+================================== FAILURES ===================================
+____________ TestRepoBindingSerializer.test_extra_kwargs_optional _____________
+..\tests\precision_testing\test_serializers.py:65: in test_extra_kwargs_optional
+    assert serializer.fields["project"].required is False
+E   AssertionError: assert True is False
+E    +  where True = PrimaryKeyRelatedField(label='¹ØÁªÏîÄ¿', queryset=Project.objects.all(), validators=[<UniqueValidator(queryset=RepoBinding.objects.all())>]).required
+_______________ TestDashboardView.test_get_returns_aggregations _______________
+..\tests\precision_testing\test_views.py:340: in test_get_returns_aggregations
+    assert "total_analyses" in resp.data
+E   assert 'total_analyses' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 1, 'avg_reduction_rate': 0.5, 'mapping_count': 0, 'repo_count': 1}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 1, 'avg_reduction_rate': 0.5, 'mapping_count': 0, 'repo_count': 1}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+______________ TestRepoBindingViewSet.test_list_supports_search _______________
+..\tests\precision_testing\test_views.py:493: in test_list_supports_search
+    assert resp.data["count"] == 1
+E   assert 2 == 1
+_ TestTestCaseCodeMappingViewSet.test_auto_build_action_requires_repo_binding_id _
+..\tests\precision_testing\test_views.py:525: in test_auto_build_action_requires_repo_binding_id
+    assert "repo_binding_id" in str(resp.data["error"])
+E   AssertionError: assert 'repo_binding_id' in 'No active repo bindings found'
+E    +  where 'No active repo bindings found' = str('No active repo bindings found')
+________ TestTestCaseCodeMappingViewSet.test_auto_build_triggers_task _________
+..\tests\precision_testing\test_views.py:537: in test_auto_build_triggers_task
+    assert resp.status_code == status.HTTP_202_ACCEPTED
+E   assert 404 == 202
+E    +  where 404 = <Response status_code=404, "text/html; charset=utf-8">.status_code
+E    +  and   202 = status.HTTP_202_ACCEPTED
+___________ TestDashboardAggregation.test_dashboard_returns_counts ____________
+..\tests\precision_testing\test_week4_layer3_pipeline.py:642: in test_dashboard_returns_counts
+    assert "total_mappings" in response.data
+E   assert 'total_mappings' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+________ TestDashboardAggregation.test_dashboard_recent_runs_structure ________
+..\tests\precision_testing\test_week4_layer3_pipeline.py:655: in test_dashboard_recent_runs_structure
+    assert "recent_runs" in response.data
+E   assert 'recent_runs' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+============================== warnings summary ===============================
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_models.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_models.py)
+    class TestCase(models.Model):
+
+..\tests\precision_testing\test_run_api.py:24
+  E:\testhub_platform\tests\precision_testing\test_run_api.py:24: PytestCollectionWarning: cannot collect test class 'TestResult' because it has a __init__ constructor (from: test_run_api.py)
+    @dataclass
+
+apps\precision_testing\serializers.py:197
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:197: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingSerializer' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCaseCodeMappingSerializer(serializers.ModelSerializer):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCase(models.Model):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_views.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\precision_testing\views.py:98
+  E:\testhub_platform\backend\apps\precision_testing\views.py:98: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingViewSet' because it has a __init__ constructor (from: test_views.py)
+    class TestCaseCodeMappingViewSet(viewsets.ModelViewSet):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_views.py)
+    class TestCase(models.Model):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\precision_testing\serializers.py:331
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:331: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingBulkSerializer' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingBulkSerializer(serializers.Serializer):
+
+apps\precision_testing\serializers.py:372
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:372: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingCsvImportSerializer' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingCsvImportSerializer(serializers.Serializer):
+
+apps\precision_testing\views.py:98
+  E:\testhub_platform\backend\apps\precision_testing\views.py:98: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingViewSet' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingViewSet(viewsets.ModelViewSet):
+
+test_e2e.py: 16 warnings
+
+[Week4 perf] HeuristicScorer.predict_batch n=1000 total=3.75ms avg=0.0037ms

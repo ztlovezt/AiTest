@@ -69,13 +69,16 @@ class ImpactQuery:
         变更 B 时受影响的是 *上游* 调用方 A，因此查询走 ``<-[:CALLS]-`` 反向。
 
         Args:
-            changed_function_ids: 变更函数 signature 列表
+            changed_function_ids: 变更函数 signature 列表（支持短名称，自动解析为完整签名）
             depth: 传播深度（默认 3，最大 8）
             include_paths: 是否返回每条传播路径（用于前端高亮，会增加 ~30% 耗时）
         """
         if not changed_function_ids:
             return ImpactResult([], [], [], [], depth, 0.0)
         depth = max(1, min(int(depth), MAX_DEPTH))
+
+        # 将短名称（如 "ASTAnalyzer.__init__"）解析为完整签名
+        changed_function_ids = self._resolve_function_ids(changed_function_ids)
 
         start = time.monotonic()
         impacted = self._query_impacted_functions(changed_function_ids, depth)
@@ -105,6 +108,51 @@ class ImpactQuery:
             len(testcases), len(endpoints), elapsed_ms,
         )
         return result
+
+    # ------------------------------------------------------------------
+    # 名称解析：将前端短名称映射为 Neo4j 完整签名
+    # ------------------------------------------------------------------
+    def _resolve_function_ids(self, function_ids: list[str]) -> list[str]:
+        """将可能的短名称（如 ``ASTAnalyzer.__init__``）解析为完整签名。
+
+        策略：
+        1. 已包含 ``:`` 且包含 ``.`` 的视为完整签名，直接保留。
+        2. 否则在 Neo4j 中按 ``name``、``qualified_name``、``id`` 模糊匹配。
+        3. 唯一匹配时替换，无匹配或多匹配时保留原值（让查询自然返回空，前端可提示）。
+        """
+        resolved: list[str] = []
+        for fid in function_ids:
+            # 简单启发：包含模块分隔符且不以 .py 结尾的视为完整签名
+            module_part = fid.split(":", 1)[0] if ":" in fid else ""
+            if ":" in fid and "." in module_part and not module_part.endswith(".py"):
+                resolved.append(fid)
+                continue
+            # 模糊匹配：支持 file.py:Class.method → 提取 Class.method
+            short = fid
+            suffix = f":{fid}"
+            if ".py:" in fid:
+                short = fid.split(".py:", 1)[1]
+                suffix = f":{short}"
+            records = self.client.execute_read(
+                "MATCH (f:Function) WHERE f.name = $short "
+                "OR f.qualified_name = $short "
+                "OR f.id ENDS WITH $suffix "
+                "RETURN f.id AS id LIMIT 5",
+                {"short": short, "suffix": suffix},
+            )
+            if len(records) == 1:
+                resolved.append(records[0]["id"])
+            elif len(records) > 1:
+                # 多个匹配，取第一个并记录警告
+                logger.warning(
+                    "Function short name '%s' matched %d signatures, using first: %s",
+                    fid, len(records), records[0]["id"],
+                )
+                resolved.append(records[0]["id"])
+            else:
+                # 无匹配，保留原值
+                resolved.append(fid)
+        return resolved
 
     # ------------------------------------------------------------------
     # 子图查询（用于 Cytoscape 可视化）
@@ -189,6 +237,59 @@ class ImpactQuery:
     # ------------------------------------------------------------------
     # 全图采样（供 GraphDataView 概览模式）
     # ------------------------------------------------------------------
+    def build_impact_graph_data(self, result: ImpactResult) -> dict[str, Any]:
+        """根据 ImpactResult 构建 Cytoscape 格式的 graph data。
+
+        包含所有 changed/impacted functions、impacted testcases
+        以及它们之间的关系（CALLS / TESTED_BY / HANDLES）。
+        """
+        all_function_ids = list(
+            set(result.changed_functions) | set(result.impacted_functions)
+        )
+        all_testcase_ids = list(set(result.impacted_testcases))
+
+        if not all_function_ids and not all_testcase_ids:
+            return {"nodes": [], "edges": []}
+
+        node_records: list[dict[str, Any]] = []
+        if all_function_ids:
+            func_records = self.client.execute_read(
+                "MATCH (f:Function) WHERE f.id IN $ids "
+                "RETURN id(f) AS internal_id, labels(f) AS labels, f AS props",
+                {"ids": all_function_ids},
+            )
+            node_records.extend(func_records)
+
+        if all_testcase_ids:
+            tc_records = self.client.execute_read(
+                "MATCH (tc:TestCase) WHERE tc.id IN $ids "
+                "RETURN id(tc) AS internal_id, labels(tc) AS labels, tc AS props",
+                {"ids": all_testcase_ids},
+            )
+            node_records.extend(tc_records)
+
+        node_ids = [r["internal_id"] for r in node_records]
+
+        edge_records: list[dict[str, Any]] = []
+        if len(node_ids) > 1:
+            edge_records = self.client.execute_read(
+                "MATCH (a)-[r]->(b) "
+                "WHERE id(a) IN $node_ids AND id(b) IN $node_ids "
+                "RETURN id(a) AS source, id(b) AS target, type(r) AS rel_type, "
+                "       properties(r) AS rel_props",
+                {"node_ids": node_ids},
+            )
+
+        cy_data = _records_to_cytoscape_simple(node_records, edge_records)
+
+        # 标记变更函数，方便前端高亮
+        changed_set = set(result.changed_functions)
+        for node in cy_data["nodes"]:
+            if node["data"].get("node_id") in changed_set:
+                node["data"]["is_changed"] = True
+
+        return cy_data
+
     def query_overview(
         self, node_type: str | None = None, limit: int = 200
     ) -> dict[str, Any]:

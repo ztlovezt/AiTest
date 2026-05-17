@@ -173,9 +173,11 @@ class GitDiffAnalyzer:
         try:
             diff_text = self._repo.git.diff(
                 base_resolved, head_resolved,
-                unified=0,
+                unified=3,
                 no_color=True,
                 find_renames=True,
+                diff_filter='ACMRT',
+                no_ext_diff=True,
             )
         except GitCommandError as exc:
             logger.warning("git diff 失败 (%s vs %s): %s", base, head, exc)
@@ -260,7 +262,12 @@ class GitDiffAnalyzer:
         if not diff_text:
             return ()
 
-        patch = PatchSet.from_string(diff_text)
+        try:
+            patch = PatchSet.from_string(diff_text)
+        except Exception as exc:
+            logger.warning("unidiff 解析失败: %s", exc)
+            return ()
+
         changes: list[FileChange] = []
         for patched_file in patch:
             change_type = GitDiffAnalyzer._infer_change_type(patched_file)
@@ -274,8 +281,8 @@ class GitDiffAnalyzer:
                         removed.append(line.source_line_no)
             path = GitDiffAnalyzer._normalize_path(patched_file.path)
             old_path = (
-                GitDiffAnalyzer._normalize_path(patched_file.source_file.lstrip("ab/"))
-                if patched_file.is_rename else None
+                GitDiffAnalyzer._normalize_path(patched_file.source_file)
+                if getattr(patched_file, 'is_rename', False) else None
             )
             added_sorted = tuple(sorted(set(added)))
             removed_sorted = tuple(sorted(set(removed)))
@@ -303,8 +310,13 @@ class GitDiffAnalyzer:
 
     @staticmethod
     def _normalize_path(raw: str) -> str:
-        """统一为正斜杠相对路径,去除 a/ b/ 前缀。"""
-        path = raw.replace("\\", "/").strip()
+        """统一为正斜杠相对路径,去除 a/ b/ 前缀和引号包裹。
+
+        Git diff 对含空格/中文的文件名会加双引号,例如::
+            --- "a/Week 4/test.md"
+            +++ "b/Week 4/test.md"
+        """
+        path = raw.replace("\\", "/").strip().strip('"')
         for prefix in ("a/", "b/", "./"):
             if path.startswith(prefix):
                 path = path[len(prefix):]

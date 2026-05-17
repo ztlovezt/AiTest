@@ -1,0 +1,236 @@
+
+Running 10 tests using 1 worker
+
+  x   1 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:41:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries (2.2s)
+  x   2 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:49:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) (1.6s)
+  x   3 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:56:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches (2.6s)
+  x   4 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight (2.2s)
+  x   5 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:73:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" (2.1s)
+  x   6 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:79:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos (2.0s)
+  x   7 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:85:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages (1.6s)
+  x   8 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:92:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL (1.7s)
+  x   9 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:102:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar (2.4s)
+  x  10 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:116:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing (2.7s)
+
+
+  1) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:41:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 381 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-16a37-cision-testing-menu-entries-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-16a37-cision-testing-menu-entries-chromium\error-context.md
+
+  2) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:49:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 368 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-807c3-u-item-has-an-icon-el-icon--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-807c3-u-item-has-an-icon-el-icon--chromium\error-context.md
+
+  3) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:56:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 352 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-494da-ighlighted-when-URL-matches-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-494da-ighlighted-when-URL-matches-chromium\error-context.md
+
+  4) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 336 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-2985d-ing-menu-switches-highlight-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-2985d-ing-menu-switches-highlight-chromium\error-context.md
+
+  5) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:73:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 323 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-140dc-umb-shows-module-name-精准测试--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-140dc-umb-shows-module-name-精准测试--chromium\error-context.md
+
+  6) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:79:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 302 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-9b08b-ws-page-title-仓库绑定-on-repos-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-9b08b-ws-page-title-仓库绑定-on-repos-chromium\error-context.md
+
+  7) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:85:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 279 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-3b0b3-g-is-correct-on-all-6-pages-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-3b0b3-g-is-correct-on-all-6-pages-chromium\error-context.md
+
+  8) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:92:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 252 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-9901f-an-be-opened-via-direct-URL-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-9901f-an-be-opened-via-direct-URL-chromium\error-context.md
+
+  9) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:102:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 216 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-ce619-n-testing-repos-via-sidebar-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-ce619-n-testing-repos-via-sidebar-chromium\error-context.md
+
+  10) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:116:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing 
+
+    Error: Login API failed: 429 {"detail":"请求已被限流。 预计 184 秒后可用。"}
+
+       at precision-testing\auth.ts:27
+
+      25 |     if (!loginResponse.ok()) {
+      26 |       const text = await loginResponse.text();
+    > 27 |       throw new Error(
+         |             ^
+      28 |         `Login API failed: ${loginResponse.status()} ${text}`,
+      29 |       );
+      30 |     }
+        at Object.authenticatedPage (E:\testhub_platform\frontend\e2e\precision-testing\auth.ts:27:13)
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-b9def-hing-does-not-break-routing-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-b9def-hing-does-not-break-routing-chromium\error-context.md
+
+  10 failed
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:41:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:49:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:56:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:73:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:79:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:85:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:92:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:102:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:116:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing 

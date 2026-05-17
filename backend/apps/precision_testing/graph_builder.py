@@ -198,6 +198,17 @@ class GraphBuilder:
         contains_edges: list[dict[str, Any]] = []
         call_edges: list[dict[str, Any]] = []
 
+        _SKIP_DIRS = {
+            ".git", ".venv", "venv", "env", "node_modules", "__pycache__",
+            ".tox", ".pytest_cache", ".mypy_cache", "dist", "build",
+            "site-packages", "pip", "playwright-report", "test-results",
+            ".claude", ".idea", ".vscode", "htmlcov", "coverage_html",
+        }
+
+        def _should_skip(path: Path) -> bool:
+            """跳过常见非项目目录。"""
+            return any(part in _SKIP_DIRS for part in path.parts)
+
         if only is not None:
             iterator: Iterable[Path] = (self.repo_path / p for p in only)
         else:
@@ -205,6 +216,8 @@ class GraphBuilder:
 
         for py_file in iterator:
             if not py_file.exists() or not py_file.is_file():
+                continue
+            if _should_skip(py_file):
                 continue
             try:
                 rel_path = str(py_file.relative_to(self.repo_path)).replace("\\", "/")

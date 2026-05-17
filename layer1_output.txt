@@ -1,0 +1,18 @@
+STDOUT: (empty)
+STDERR: ImportError while loading conftest 'E:\testhub_platform\tests\precision_testing\conftest.py'.
+..\tests\precision_testing\conftest.py:25: in <module>
+    django.setup()
+C:\Program Files\Python311\Lib\site-packages\django\__init__.py:19: in setup
+    configure_logging(settings.LOGGING_CONFIG, settings.LOGGING)
+                      ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python311\Lib\site-packages\django\conf\__init__.py:81: in __getattr__
+    self._setup(name)
+C:\Program Files\Python311\Lib\site-packages\django\conf\__init__.py:68: in _setup
+    self._wrapped = Settings(settings_module)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Program Files\Python311\Lib\site-packages\django\conf\__init__.py:166: in __init__
+    mod = importlib.import_module(self.SETTINGS_MODULE)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   ModuleNotFoundError: No module named 'backend.settings_test'
+
+Return code: 4

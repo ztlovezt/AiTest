@@ -1,0 +1,12 @@
+[32m2026-05-11 09:22:02.598[0m - [36m[backend.log_config-->_configure_django_logging:229][0m - [1mINFO[0m - [1mORM SQL ÈÕÖ¾ÒÑÆôÓÃ£¬½«¼ÇÂ¼ËùÓÐÊý¾Ý¿â²éÑ¯µ½ orm_sql.log[0m
+¿ªÊ¼Ç¨ÒÆ AI ÓÃÀýÊý¾Ý...
+¿ªÊ¼Ç¨ÒÆ AI Ö´ÐÐ¼ÇÂ¼Êý¾Ý...
+......................[32m2026-05-11 09:23:06.050[0m - [36m[apps.ocr_service.adapters.tesseract--><module>:22][0m - [33m[1mWARNING[0m - [33m[1mpytesseract not installed. Tesseract OCR will not be available.[0m
+WARNING 2026-05-11 09:23:06,554 log 20340 19432 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-11 09:23:08,617 log 20340 19432 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.......................................................................................................................................................................................WARNING 2026-05-11 09:23:51,359 log 20340 19432 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-11 09:23:52,240 log 20340 19432 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-11 09:23:53,388 log 20340 19432 Bad Request: /api/precision-testing/mappings/bulk-create/
+.WARNING 2026-05-11 09:23:54,254 log 20340 19432 Bad Request: /api/precision-testing/mappings/import-csv/
+......................................................................................................................................................................................................................................s...................................................................................................................................
+[Week4 perf] HeuristicScorer.predict_batch n=1000 total=3.18ms avg=0.0032ms

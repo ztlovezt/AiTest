@@ -77,6 +77,12 @@ export function getRunRecords(params) {
 export function getRunRecordDetail(id) {
   return request({ url: `/precision-testing/runs/${id}/`, method: 'get' })
 }
+export function triggerPipeline(data) {
+  return request({ url: '/precision-testing/runs/trigger-pipeline/', method: 'post', data })
+}
+export function supplementRunRecord(id, data) {
+  return request({ url: `/precision-testing/runs/${id}/supplement/`, method: 'post', data })
+}
 
 // ===== 仪表盘 =====
 export function getDashboard(params) {

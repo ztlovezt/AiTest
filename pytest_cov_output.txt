@@ -1,0 +1,168 @@
+[32m2026-05-17 01:10:37.026[0m - [36m[backend.log_config-->_configure_django_logging:229][0m - [1mINFO[0m - [1mORM SQL ÈÕÖ¾ÒÑÆôÓÃ£¬½«¼ÇÂ¼ËùÓÐÊý¾Ý¿â²éÑ¯µ½ orm_sql.log[0m
+¿ªÊ¼Ç¨ÒÆ AI ÓÃÀýÊý¾Ý...
+¿ªÊ¼Ç¨ÒÆ AI Ö´ÐÐ¼ÇÂ¼Êý¾Ý...
+......................[32m2026-05-17 01:12:39.739[0m - [36m[apps.ocr_service.adapters.tesseract--><module>:22][0m - [33m[1mWARNING[0m - [33m[1mpytesseract not installed. Tesseract OCR will not be available.[0m
+WARNING 2026-05-17 01:12:40,740 log 11952 16116 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:12:44,005 log 11952 16116 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.................................................................................F..................................F...........F..FF......................................................WARNING 2026-05-17 01:13:48,489 log 11952 16116 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:13:50,611 log 11952 16116 Bad Request: /api/precision-testing/runs/trigger-pipeline/
+.WARNING 2026-05-17 01:13:53,024 log 11952 16116 Bad Request: /api/precision-testing/mappings/bulk-create/
+.WARNING 2026-05-17 01:13:55,155 log 11952 16116 Bad Request: /api/precision-testing/mappings/import-csv/
+..........FF..........................................................................................................................................................................................................................s...................................................................................................................................
+================================== FAILURES ===================================
+____________ TestRepoBindingSerializer.test_extra_kwargs_optional _____________
+..\tests\precision_testing\test_serializers.py:65: in test_extra_kwargs_optional
+    assert serializer.fields["project"].required is False
+E   AssertionError: assert True is False
+E    +  where True = PrimaryKeyRelatedField(label='¹ØÁªÏîÄ¿', queryset=Project.objects.all(), validators=[<UniqueValidator(queryset=RepoBinding.objects.all())>]).required
+_______________ TestDashboardView.test_get_returns_aggregations _______________
+..\tests\precision_testing\test_views.py:340: in test_get_returns_aggregations
+    assert "total_analyses" in resp.data
+E   assert 'total_analyses' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 1, 'avg_reduction_rate': 0.5, 'mapping_count': 0, 'repo_count': 1}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 1, 'avg_reduction_rate': 0.5, 'mapping_count': 0, 'repo_count': 1}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+______________ TestRepoBindingViewSet.test_list_supports_search _______________
+..\tests\precision_testing\test_views.py:493: in test_list_supports_search
+    assert resp.data["count"] == 1
+E   assert 2 == 1
+_ TestTestCaseCodeMappingViewSet.test_auto_build_action_requires_repo_binding_id _
+..\tests\precision_testing\test_views.py:525: in test_auto_build_action_requires_repo_binding_id
+    assert "repo_binding_id" in str(resp.data["error"])
+E   AssertionError: assert 'repo_binding_id' in 'No active repo bindings found'
+E    +  where 'No active repo bindings found' = str('No active repo bindings found')
+________ TestTestCaseCodeMappingViewSet.test_auto_build_triggers_task _________
+..\tests\precision_testing\test_views.py:537: in test_auto_build_triggers_task
+    assert resp.status_code == status.HTTP_202_ACCEPTED
+E   assert 404 == 202
+E    +  where 404 = <Response status_code=404, "text/html; charset=utf-8">.status_code
+E    +  and   202 = status.HTTP_202_ACCEPTED
+___________ TestDashboardAggregation.test_dashboard_returns_counts ____________
+..\tests\precision_testing\test_week4_layer3_pipeline.py:642: in test_dashboard_returns_counts
+    assert "total_mappings" in response.data
+E   assert 'total_mappings' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+________ TestDashboardAggregation.test_dashboard_recent_runs_structure ________
+..\tests\precision_testing\test_week4_layer3_pipeline.py:655: in test_dashboard_recent_runs_structure
+    assert "recent_runs" in response.data
+E   assert 'recent_runs' in {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...}
+E    +  where {'risk_distribution': {'high': 0, 'low': 0, 'medium': 0}, 'run_stats': {'dates': ['2026-05-03', '2026-05-04', '2026-05...ry': {'analysis_count': 0, 'avg_reduction_rate': 0.0, 'mapping_count': 0, 'repo_count': 0}, 'top_risky_files': [], ...} = <Response status_code=200, "text/html; charset=utf-8">.data
+============================== warnings summary ===============================
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_models.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_models.py)
+    class TestCase(models.Model):
+
+..\tests\precision_testing\test_run_api.py:24
+  E:\testhub_platform\tests\precision_testing\test_run_api.py:24: PytestCollectionWarning: cannot collect test class 'TestResult' because it has a __init__ constructor (from: test_run_api.py)
+    @dataclass
+
+apps\precision_testing\serializers.py:197
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:197: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingSerializer' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCaseCodeMappingSerializer(serializers.ModelSerializer):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_serializers.py)
+    class TestCase(models.Model):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_views.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\precision_testing\views.py:98
+  E:\testhub_platform\backend\apps\precision_testing\views.py:98: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingViewSet' because it has a __init__ constructor (from: test_views.py)
+    class TestCaseCodeMappingViewSet(viewsets.ModelViewSet):
+
+apps\testcases\models.py:7
+  E:\testhub_platform\backend\apps\testcases\models.py:7: PytestCollectionWarning: cannot collect test class 'TestCase' because it has a __init__ constructor (from: test_views.py)
+    class TestCase(models.Model):
+
+apps\precision_testing\models.py:71
+  E:\testhub_platform\backend\apps\precision_testing\models.py:71: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMapping' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMapping(models.Model):
+
+apps\precision_testing\serializers.py:331
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:331: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingBulkSerializer' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingBulkSerializer(serializers.Serializer):
+
+apps\precision_testing\serializers.py:372
+  E:\testhub_platform\backend\apps\precision_testing\serializers.py:372: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingCsvImportSerializer' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingCsvImportSerializer(serializers.Serializer):
+
+apps\precision_testing\views.py:98
+  E:\testhub_platform\backend\apps\precision_testing\views.py:98: PytestCollectionWarning: cannot collect test class 'TestCaseCodeMappingViewSet' because it has a __init__ constructor (from: test_week4_layer3_pipeline.py)
+    class TestCaseCodeMappingViewSet(viewsets.ModelViewSet):
+
+test_e2e.py: 16 warnings
+  C:\Program Files\Python311\Lib\site-packages\rest_framework\urlpatterns.py:108: RemovedInDjango60Warning: Converter 'drf_format_suffix' is already registered. Support for overriding registered converters is deprecated and will be removed in Django 6.0.
+    register_converter(suffix_converter, converter_name)
+
+test_e2e.py::TestTriggerPipelineView::test_missing_required_fields_returns_400
+  C:\Program Files\Python311\Lib\site-packages\tika\__init__.py:20: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+    __import__('pkg_resources').declare_namespace(__name__)
+
+test_e2e.py::TestTriggerPipelineView::test_missing_required_fields_returns_400
+test_e2e.py::TestTriggerPipelineView::test_missing_required_fields_returns_400
+  C:\Program Files\Python311\Lib\site-packages\pkg_resources\__init__.py:3146: DeprecationWarning: Deprecated call to `pkg_resources.declare_namespace('zope')`.
+  Implementing implicit namespace packages (as specified in PEP 420) is preferred to `pkg_resources.declare_namespace`. See https://setuptools.pypa.io/en/latest/references/keywords.html#keyword-namespace-packages
+    declare_namespace(pkg)
+
+test_e2e.py::TestTriggerPipelineView::test_missing_required_fields_returns_400
+  C:\Program Files\Python311\Lib\site-packages\tika\__init__.py:20: DeprecationWarning: Deprecated call to `pkg_resources.declare_namespace('tika')`.
+  Implementing implicit namespace packages (as specified in PEP 420) is preferred to `pkg_resources.declare_namespace`. See https://setuptools.pypa.io/en/latest/references/keywords.html#keyword-namespace-packages
+    __import__('pkg_resources').declare_namespace(__name__)
+
+test_neo4j_client.py::TestSingletonLifecycle::test_singleton_returns_same_instance
+  C:\Program Files\Python311\Lib\site-packages\neo4j\_sync\driver.py:547: DeprecationWarning: Relying on Driver's destructor to close the session is deprecated. Please make sure to close the session. Use it as a context (`with` statement) or make sure to call `.close()` explicitly. Future versions of the driver will not close drivers automatically.
+    _deprecation_warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.11.8-final-0 _______________
+
+Name                                                                                                   Stmts   Miss  Cover   Missing
+------------------------------------------------------------------------------------------------------------------------------------
+apps\precision_testing\__init__.py                                                                         1      0   100%
+apps\precision_testing\admin.py                                                                           29      0   100%
+apps\precision_testing\apps.py                                                                            13      3    77%   16-19
+apps\precision_testing\ast_analyzer.py                                                                   231     46    80%   97, 180, 183, 226-228, 234, 239, 252-254, 309-310, 323, 334-335, 342, 345, 359-387, 394-404
+apps\precision_testing\coverage_service.py                                                               126     20    84%   97-121, 129-130, 150, 184, 205, 210, 254-255
+apps\precision_testing\filters.py                                                                          8      0   100%
+apps\precision_testing\git_analyzer.py                                                                   180     23    87%   143, 163-164, 169-171, 182-184, 226-227, 236-243, 263, 267-269, 306, 308
+apps\precision_testing\graph_builder.py                                                                  234     39    83%   56-57, 121, 123, 208, 211-212, 215-216, 247-261, 299-301, 312-330, 379-382, 406, 423-424, 429-431, 440-451, 478
+apps\precision_testing\impact_query.py                                                                   139      5    96%   300, 315, 320-321, 333
+apps\precision_testing\management\__init__.py                                                              0      0   100%
+apps\precision_testing\management\commands\__init__.py                                                     0      0   100%
+apps\precision_testing\management\commands\demo_select.py                                                 81      3    96%   83-85
+apps\precision_testing\management\commands\verify_graph.py                                                86      2    98%   170, 174
+apps\precision_testing\migrations\0001_initial.py                                                          8      0   100%
+apps\precision_testing\migrations\0002_add_repo_url.py                                                     4      0   100%
+apps\precision_testing\migrations\0003_add_repo_url.py                                                     4      0   100%
+apps\precision_testing\migrations\0004_precisionrunrecord_error_message_repobinding_name_and_more.py       4      0   100%
+apps\precision_testing\migrations\__init__.py                                                              0      0   100%
+apps\precision_testing\models.py                                                                         113      0   100%
+apps\precision_testing\neo4j_client.py                                                                    80      0   100%
+apps\precision_testing\regression_selector.py                                                            155      5    97%   112-113, 134-135, 144
+apps\precision_testing\risk_predictor.py                                                                 211     19    91%   255-272, 330-331, 344-345, 363-364, 389-390
+apps\precision_testing\route_parser.py                                                                   294     41    86%   110-112, 115-117, 135, 157, 160, 170, 177, 185, 197, 296, 305-310, 325, 328-329, 336, 352-353, 361, 367, 387-388, 406, 434, 437, 440, 451, 454, 471-473, 506, 515, 520
+apps\precision_testing\serializers.py                                                                    245     43    82%   38, 46, 52-53, 112-117, 121-139, 150, 153, 159, 171, 182-183, 186, 284-285, 290-291, 296-297, 301, 306, 319-321, 359, 387, 404, 408, 428, 430, 432, 449
+apps\precision_testing\tasks.py                                                                          158     49    69%   85-91, 101-139, 150-167, 202-203, 293-298, 334, 340
+apps\precision_testing\urls.py                                                                            11      0   100%
+apps\precision_testing\views.py                                                                          249     33    87%   51-74, 126, 135-143, 157, 327-329, 453-467, 473-476
+------------------------------------------------------------------------------------------------------------------------------------
+TOTAL                                                                                                   2664    331    88%
+=========================== short test summary info ===========================
+SKIPPED [1] ..\tests\precision_testing\test_risk_predictor.py:226: xgboost not installed
+FAILED ..\tests\precision_testing\test_serializers.py::TestRepoBindingSerializer::test_extra_kwargs_optional
+FAILED ..\tests\precision_testing\test_views.py::TestDashboardView::test_get_returns_aggregations
+FAILED ..\tests\precision_testing\test_views.py::TestRepoBindingViewSet::test_list_supports_search
+FAILED ..\tests\precision_testing\test_views.py::TestTestCaseCodeMappingViewSet::test_auto_build_action_requires_repo_binding_id
+FAILED ..\tests\precision_testing\test_views.py::TestTestCaseCodeMappingViewSet::test_auto_build_triggers_task
+FAILED ..\tests\precision_testing\test_week4_layer3_pipeline.py::TestDashboardAggregation::test_dashboard_returns_counts
+
+[Week4 perf] HeuristicScorer.predict_batch n=1000 total=18.56ms avg=0.0186ms

@@ -1,0 +1,256 @@
+
+Running 10 tests using 1 worker
+
+  x   1 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:30:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries (58.6s)
+  x   2 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:38:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) (44.7s)
+  x   3 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:45:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches (44.8s)
+  x   4 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:51:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight (43.0s)
+  x   5 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" (43.7s)
+  x   6 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:68:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos (42.6s)
+  x   7 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:74:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages (44.8s)
+  x   8 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:81:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL (43.6s)
+  x   9 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:91:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar (46.5s)
+  x  10 [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:105:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing (46.3s)
+
+
+  1) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:30:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-16a37-cision-testing-menu-entries-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-16a37-cision-testing-menu-entries-chromium\error-context.md
+
+  2) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:38:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-807c3-u-item-has-an-icon-el-icon--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-807c3-u-item-has-an-icon-el-icon--chromium\error-context.md
+
+  3) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:45:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-494da-ighlighted-when-URL-matches-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-494da-ighlighted-when-URL-matches-chromium\error-context.md
+
+  4) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:51:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-2985d-ing-menu-switches-highlight-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-2985d-ing-menu-switches-highlight-chromium\error-context.md
+
+  5) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-140dc-umb-shows-module-name-精准测试--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-140dc-umb-shows-module-name-精准测试--chromium\error-context.md
+
+  6) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:68:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-9b08b-ws-page-title-仓库绑定-on-repos-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-9b08b-ws-page-title-仓库绑定-on-repos-chromium\error-context.md
+
+  7) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:74:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-3b0b3-g-is-correct-on-all-6-pages-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-3b0b3-g-is-correct-on-all-6-pages-chromium\error-context.md
+
+  8) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:81:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-9901f-an-be-opened-via-direct-URL-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-9901f-an-be-opened-via-direct-URL-chromium\error-context.md
+
+  9) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:91:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-ce619-n-testing-repos-via-sidebar-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-ce619-n-testing-repos-via-sidebar-chromium\error-context.md
+
+  10) [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:105:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing 
+
+    TimeoutError: locator.waitFor: Timeout 15000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.el-aside').first() to be visible[22m
+
+
+      20 |   await page.goto(path, { waitUntil: 'domcontentloaded' });
+      21 |   // Wait for sidebar to render — confirms the Layout component is mounted.
+    > 22 |   await page.locator('.el-aside').first().waitFor({ state: 'visible', timeout: 15000 });
+         |                                           ^
+      23 | }
+      24 |
+      25 | test.describe('Precision Testing - Navigation & Routing', () => {
+        at gotoPrecision (E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:22:43)
+        at E:\testhub_platform\frontend\e2e\precision-testing\cross-page\navigation.spec.ts:27:5
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\precision-testing-cross-pa-b9def-hing-does-not-break-routing-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\precision-testing-cross-pa-b9def-hing-does-not-break-routing-chromium\error-context.md
+
+  10 failed
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:30:7 › Precision Testing - Navigation & Routing › NAV_001: sidebar shows 6 precision-testing menu entries 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:38:7 › Precision Testing - Navigation & Routing › NAV_002: each menu item has an icon (el-icon) 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:45:7 › Precision Testing - Navigation & Routing › NAV_003: active menu item is highlighted when URL matches 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:51:7 › Precision Testing - Navigation & Routing › NAV_004: clicking sibling menu switches highlight 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:62:7 › Precision Testing - Navigation & Routing › NAV_005: breadcrumb shows module name "精准测试" 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:68:7 › Precision Testing - Navigation & Routing › NAV_006: breadcrumb shows page title "仓库绑定" on /repos 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:74:7 › Precision Testing - Navigation & Routing › NAV_007: breadcrumb title mapping is correct on all 6 pages 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:81:7 › Precision Testing - Navigation & Routing › NAV_008: every page can be opened via direct URL 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:91:7 › Precision Testing - Navigation & Routing › NAV_009: navigate from home to precision-testing/repos via sidebar 
+    [chromium] › e2e\precision-testing\cross-page\navigation.spec.ts:105:7 › Precision Testing - Navigation & Routing › NAV_010: rapid menu switching does not break routing 

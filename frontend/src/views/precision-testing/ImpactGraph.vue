@@ -87,6 +87,12 @@ const riskColor = (score) => score > 0.7 ? '#f56c6c' : score > 0.4 ? '#e6a23c' :
 const buildCyElements = (nodes, edges) => {
   const elements = []
   nodes.forEach(n => {
+    // 兼容后端直接返回的 Cytoscape element 格式（含 data 属性）
+    if (n.data) {
+      elements.push(n)
+      return
+    }
+    // 兼容旧版扁平格式
     elements.push({
       data: {
         id: String(n.id ?? n.neo4j_id),
@@ -98,6 +104,10 @@ const buildCyElements = (nodes, edges) => {
     })
   })
   edges.forEach((e, idx) => {
+    if (e.data) {
+      elements.push(e)
+      return
+    }
     elements.push({
       data: {
         id: `e-${e.source}-${e.target}-${e.type}-${idx}`,
@@ -128,7 +138,7 @@ const initCy = async (elements) => {
           'font-size': '11px',
           'text-valign': 'bottom',
           'text-halign': 'center',
-          'background-color': (ele) => nodeColor(ele.data('type')),
+          'background-color': (ele) => nodeColor(ele.data('node_type') || ele.data('type')),
           width: 36,
           height: 36,
           color: '#333',
@@ -150,6 +160,14 @@ const initCy = async (elements) => {
         },
       },
       {
+        selector: 'node[is_changed]',
+        style: {
+          'border-width': 3,
+          'border-color': '#f56c6c',
+          'background-color': '#ee6666',
+        },
+      },
+      {
         selector: 'node:selected',
         style: {
           'border-width': 3,
@@ -162,7 +180,14 @@ const initCy = async (elements) => {
 
   cy.on('tap', 'node', (evt) => {
     const data = evt.target.data()
-    selectedNode.value = { id: data.id, name: data.name || data.label, type: data.type, module: data.module, file_path: data.file_path, risk_score: data.risk_score }
+    selectedNode.value = {
+      id: data.node_id || data.id,
+      name: data.name || data.label,
+      type: data.node_type || data.type || 'Function',
+      module: data.module,
+      file_path: data.file_path,
+      risk_score: data.risk_score,
+    }
   })
   cy.on('tap', (evt) => {
     if (evt.target === cy) selectedNode.value = null

@@ -28,20 +28,20 @@
 
     <!-- 数据表格 -->
     <el-table v-loading="loading" :data="tableData" border stripe style="width: 100%">
-      <el-table-column prop="function_name" label="函数" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="function_signature" label="函数" min-width="200" show-overflow-tooltip />
       <el-table-column prop="file_path" label="文件路径" min-width="220" show-overflow-tooltip />
-      <el-table-column prop="testcase_name" label="测试用例" min-width="200" show-overflow-tooltip />
+      <el-table-column prop="testcase_title" label="测试用例" min-width="200" show-overflow-tooltip />
       <el-table-column label="映射类型" width="110" align="center">
         <template #default="{ row }">
           <el-tag :type="mappingTypeTag(row.mapping_type)" size="small">{{ mappingTypeLabel(row.mapping_type) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="confidence_score" label="置信度" width="100" align="center">
+      <el-table-column prop="confidence" label="置信度" width="100" align="center">
         <template #default="{ row }">
           <el-progress
-            v-if="row.confidence_score != null"
+            v-if="row.confidence != null"
             type="circle"
-            :percentage="Math.round(row.confidence_score * 100)"
+            :percentage="Math.round(row.confidence * 100)"
             :width="36"
             :stroke-width="4"
           />
@@ -79,8 +79,8 @@
       @close="resetForm"
     >
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="函数名" prop="function_name">
-          <el-input v-model="form.function_name" placeholder="模块.函数名" />
+        <el-form-item label="函数名" prop="function_signature">
+          <el-input v-model="form.function_signature" placeholder="模块.函数名" />
         </el-form-item>
         <el-form-item label="文件路径" prop="file_path">
           <el-input v-model="form.file_path" placeholder="相对于仓库根目录" />
@@ -96,7 +96,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="置信度">
-          <el-slider v-model="form.confidence_score" :min="0" :max="1" :step="0.01" show-input />
+          <el-slider v-model="form.confidence" :min="0" :max="1" :step="0.01" show-input />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -148,9 +148,9 @@ const showDialog = ref(false)
 const saving = ref(false)
 const editingRecord = ref(null)
 const formRef = ref(null)
-const form = reactive({ function_name: '', file_path: '', testcase: null, mapping_type: 'manual', confidence_score: 1.0 })
+const form = reactive({ function_signature: '', file_path: '', testcase: null, mapping_type: 'manual', confidence: 1.0 })
 const rules = {
-  function_name: [{ required: true, message: '请输入函数名', trigger: 'blur' }],
+  function_signature: [{ required: true, message: '请输入函数名', trigger: 'blur' }],
   file_path: [{ required: true, message: '请输入文件路径', trigger: 'blur' }],
   testcase: [{ required: true, message: '请输入测试用例 ID', trigger: 'blur' }],
 }
@@ -190,13 +190,13 @@ const handleSearch = () => {
 
 const openDialog = (row = null) => {
   editingRecord.value = row
-  if (row) Object.assign(form, { function_name: row.function_name, file_path: row.file_path, testcase: row.testcase, mapping_type: row.mapping_type, confidence_score: row.confidence_score ?? 1.0 })
+  if (row) Object.assign(form, { function_signature: row.function_signature, file_path: row.file_path, testcase: row.testcase, mapping_type: row.mapping_type, confidence: row.confidence ?? 1.0 })
   else resetForm()
   showDialog.value = true
 }
 const resetForm = () => {
   formRef.value?.resetFields()
-  Object.assign(form, { function_name: '', file_path: '', testcase: null, mapping_type: 'manual', confidence_score: 1.0 })
+  Object.assign(form, { function_signature: '', file_path: '', testcase: null, mapping_type: 'manual', confidence: 1.0 })
 }
 
 const handleSave = async () => {
@@ -231,7 +231,7 @@ const startAutoBuild = async () => {
   buildMsg.value = '正在自动构建映射关系...'
   buildPct.value = 20
   try {
-    const data = buildRepoId.value ? { repo_id: buildRepoId.value } : {}
+    const data = buildRepoId.value ? { repo_binding_id: buildRepoId.value } : {}
     await autoBuildMappings(data)
     buildStatus.value = 'done'
     buildMsg.value = '自动构建完成！'
